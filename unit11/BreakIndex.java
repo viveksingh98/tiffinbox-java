@@ -1,4 +1,4 @@
 void main() {
-    String[] menu = {"dal rice", "rajma chawal", "chole bhature", "kadhi", "paneer", "biryani", "thali"};
+    String[] menu = {"lentil rice", "bean curry", "chickpea curry", "vegetable stew", "cottage cheese", "spiced rice", "combo plate"};
     IO.println(menu[7]);
 }

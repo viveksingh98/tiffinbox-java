@@ -1,5 +1,5 @@
 void main() {
-    String dish = "paneer butter masala";
+    String dish = "cottage cheese curry";
     int price = 120;
     String card = """
         TiffinBox - Monday

@@ -13,7 +13,7 @@ int priceFor(String mealType) {
     return switch (mealType) {
         case "veg" -> 120;
         case "non-veg" -> 150;
-        case "jain" -> 130;
+        case "vegan" -> 130;
         default -> throw new IllegalArgumentException("unknown meal type: " + mealType);
     };
 }

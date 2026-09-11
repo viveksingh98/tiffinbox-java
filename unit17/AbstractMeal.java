@@ -1,6 +1,6 @@
 void main() {
-    Meal kadhi = new JainMeal("kadhi");
-    IO.println(kadhi.label());
+    Meal stew = new VeganMeal("vegetable stew");
+    IO.println(stew.label());
 }
 
 abstract class Meal {
@@ -15,7 +15,7 @@ class VegMeal extends Meal {
     @Override int price() { return 120; }
 }
 
-class JainMeal extends VegMeal {
-    JainMeal(String dish) { super(dish); }
+class VeganMeal extends VegMeal {
+    VeganMeal(String dish) { super(dish); }
     @Override int price() { return 130; }
 }

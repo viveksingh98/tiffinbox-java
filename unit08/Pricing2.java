@@ -1,10 +1,10 @@
 void main() {
-    String mealType = "jain";
+    String mealType = "vegan";
     int price = switch (mealType) {
         case "veg" -> 120;
         case "non-veg" -> 150;
-        case "jain" -> {
-            IO.println("Jain: no onion, no garlic");
+        case "vegan" -> {
+            IO.println("Vegan: no dairy, no eggs");
             yield 130;
         }
         default -> 0;

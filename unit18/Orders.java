@@ -13,7 +13,7 @@ record Order(String customer, MealType type, int quantity) {
 }
 
 enum MealType {
-    VEG(120), NON_VEG(150), JAIN(130);
+    VEG(120), NON_VEG(150), VEGAN(130);
 
     private final int price;
 

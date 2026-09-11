@@ -6,4 +6,4 @@ void main() {
 
 record Order(String customer, MealType type, int quantity) {}
 
-enum MealType { VEG, NON_VEG, JAIN }
+enum MealType { VEG, NON_VEG, VEGAN }

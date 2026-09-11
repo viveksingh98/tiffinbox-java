@@ -1,7 +1,7 @@
 void main() {
-    IO.println(new VegMeal("dal rice").label());
+    IO.println(new VegMeal("lentil rice").label());
     IO.println(new NonVegMeal("chicken curry").label());
-    IO.println(new JainMeal("kadhi").label());
+    IO.println(new VeganMeal("vegetable stew").label());
 }
 
 class Meal {
@@ -21,8 +21,8 @@ class NonVegMeal extends Meal {
     @Override String label() { return super.label() + " (non-veg)"; }
 }
 
-class JainMeal extends VegMeal {
-    JainMeal(String dish) { super(dish); }
+class VeganMeal extends VegMeal {
+    VeganMeal(String dish) { super(dish); }
     @Override int price() { return 130; }
-    @Override String label() { return super.label() + " (no onion, no garlic)"; }
+    @Override String label() { return super.label() + " (no dairy, no eggs)"; }
 }

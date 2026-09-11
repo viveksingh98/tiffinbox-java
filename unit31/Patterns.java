@@ -7,7 +7,7 @@ void main() {
     for (var payment : today) IO.println(describe(payment));
     Receipt[] receipts = {
         new Receipt(new Order("Meera", MealType.NON_VEG, 1), new Upi("meera@okbank")),
-        new Receipt(new Order("Sunil", MealType.JAIN, 1), new Cash())
+        new Receipt(new Order("Sunil", MealType.VEGAN, 1), new Cash())
     };
     for (var receipt : receipts) IO.println(summarise(receipt));
 }
@@ -35,7 +35,7 @@ record Order(String customer, MealType type, int quantity) {
 }
 
 enum MealType {
-    VEG(120), NON_VEG(150), JAIN(130);
+    VEG(120), NON_VEG(150), VEGAN(130);
 
     private final int price;
 

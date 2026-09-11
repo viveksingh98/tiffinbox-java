@@ -1,5 +1,5 @@
 void main() {
-    IO.println(new JainMeal("kadhi").label());
+    IO.println(new VeganMeal("vegetable stew").label());
 }
 
 class Meal {
@@ -14,8 +14,8 @@ class VegMeal extends Meal {
     VegMeal(String dish) { super(dish, 120); }
 }
 
-class JainMeal extends VegMeal {
-    JainMeal(String dish) { super(dish); }
+class VeganMeal extends VegMeal {
+    VeganMeal(String dish) { super(dish); }
     int prise() { return 130; }
-    @Override String label() { return super.label() + " (no onion, no garlic)"; }
+    @Override String label() { return super.label() + " (no dairy, no eggs)"; }
 }

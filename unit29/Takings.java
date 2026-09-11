@@ -2,7 +2,7 @@ void main() {
     var orders = List.of(
         new Order("Ravi", MealType.VEG, 2),
         new Order("Meera", MealType.NON_VEG, 1),
-        new Order("Sunil", MealType.JAIN, 1),
+        new Order("Sunil", MealType.VEGAN, 1),
         new Order("Ravi", MealType.VEG, 1));
 
     var byType = orders.stream().collect(
@@ -21,7 +21,7 @@ record Order(String customer, MealType type, int quantity) {
 }
 
 enum MealType {
-    VEG(120), NON_VEG(150), JAIN(130);
+    VEG(120), NON_VEG(150), VEGAN(130);
     private final int price;
     MealType(int price) { this.price = price; }
     int price() { return price; }

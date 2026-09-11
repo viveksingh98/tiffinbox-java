@@ -1,9 +1,9 @@
 void main() {
-    String mealType = "jain";
+    String mealType = "vegan";
     int price = switch (mealType) {
         case "veg" -> 120;
         case "non-veg" -> 150;
-        case "jain" -> 130;
+        case "vegan" -> 130;
     };
     IO.println(mealType + " meal: " + price);
 }

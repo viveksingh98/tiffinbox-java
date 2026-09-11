@@ -1,8 +1,8 @@
 void main() {
-    String[] menu = {"dal rice", "rajma chawal", "chole", "kadhi", "paneer", "biryani", "thali"};
+    String[] menu = {"lentil rice", "bean curry", "chickpeas", "vegetable stew", "cottage cheese", "spiced rice", "combo plate"};
     IO.println("Monday: " + menu[0]);
     IO.println("Days: " + menu.length);
-    menu[2] = "chole bhature";
+    menu[2] = "chickpea curry";
     for (var dish : menu) {
         IO.println("- " + dish);
     }

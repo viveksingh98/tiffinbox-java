@@ -1,4 +1,4 @@
 void main() {
-    var menu = List.of("dal rice", "rajma chawal", "chole");
-    menu.add("kadhi");
+    var menu = List.of("lentil rice", "bean curry", "chickpea curry");
+    menu.add("vegetable stew");
 }

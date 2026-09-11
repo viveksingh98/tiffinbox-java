@@ -1,7 +1,7 @@
 void main() {
-    Meal special = new JainMeal("kadhi");
-    if (special instanceof JainMeal jain) {
-        IO.println(jain.kitchenNote());
+    Meal special = new VeganMeal("vegetable stew");
+    if (special instanceof VeganMeal vegan) {
+        IO.println(vegan.kitchenNote());
     }
 }
 
@@ -17,8 +17,8 @@ class VegMeal extends Meal {
     VegMeal(String dish) { super(dish, 120); }
 }
 
-class JainMeal extends VegMeal {
-    JainMeal(String dish) { super(dish); }
+class VeganMeal extends VegMeal {
+    VeganMeal(String dish) { super(dish); }
     @Override int price() { return 130; }
-    String kitchenNote() { return "Jain: no onion, no garlic"; }
+    String kitchenNote() { return "Vegan: no dairy, no eggs"; }
 }

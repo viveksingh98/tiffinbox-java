@@ -1,7 +1,7 @@
 void main() {
-    var todaysMeals = List.of(new VegMeal("dal rice"),
+    var todaysMeals = List.of(new VegMeal("lentil rice"),
                               new NonVegMeal("chicken curry"),
-                              new JainMeal("kadhi"));
+                              new VeganMeal("vegetable stew"));
     int total = 0;
     for (Meal meal : todaysMeals) {
         IO.println(meal.label());
@@ -9,7 +9,7 @@ void main() {
     }
     IO.println("Total: " + total);
 
-    Meal special = new JainMeal("kadhi");
+    Meal special = new VeganMeal("vegetable stew");
     IO.println(special.price());
 }
 
@@ -30,8 +30,8 @@ class NonVegMeal extends Meal {
     @Override String label() { return super.label() + " (non-veg)"; }
 }
 
-class JainMeal extends VegMeal {
-    JainMeal(String dish) { super(dish); }
+class VeganMeal extends VegMeal {
+    VeganMeal(String dish) { super(dish); }
     @Override int price() { return 130; }
-    @Override String label() { return super.label() + " (no onion, no garlic)"; }
+    @Override String label() { return super.label() + " (no dairy, no eggs)"; }
 }

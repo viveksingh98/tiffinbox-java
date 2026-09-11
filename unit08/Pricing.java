@@ -1,5 +1,5 @@
 void main() {
-    String mealType = "jain";
+    String mealType = "vegan";
     int price;
     if (mealType.equals("veg")) {
         price = 120;
