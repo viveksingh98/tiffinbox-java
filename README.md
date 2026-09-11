@@ -36,6 +36,10 @@ java Hello.java
 | 21 | Generics: Why List<String> Not Just List | `unit21/` |
 | 22 | Sorting and Comparators | `unit22/` |
 | 23 | equals, hashCode and toString | `unit23/` |
+| 24 | Exceptions: When Things Go Wrong | `unit24/` |
+| 25 | Custom Exceptions and Clean Error Handling | `unit25/` |
+| 26 | Files: Read and Write with java.nio | `unit26/` |
+| 27 | Parsing Data: CSV to Objects | `unit27/` |
 | 12 | Classes and Objects: Meet Customer | `unit12/` |
 
 More units land as the videos publish. Roadmap: Core Java → Spring Framework → Spring Boot → JPA → REST → Security → … → Spring AI.

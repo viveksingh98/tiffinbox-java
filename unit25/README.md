@@ -1,0 +1,6 @@
+# Unit 25 — Custom Exceptions and Clean Error Handling
+
+- `CustomException.java` — `class TiffinBoxException extends RuntimeException` (two constructors → `super`) + Unit 14's `Customer` whose setter now throws instead of printing. Run: `java CustomException.java` → `Rejected: meals a day must be 1 to 3, got -5` / `Ravi still eats 2`.
+- `Cause.java` — wrapping: catch `ArithmeticException`, throw `TiffinBoxException("no meals recorded for Sunil", e)`; no catch in `main`, so the trace shows the top block (`Cause.java:8`) and `Caused by: java.lang.ArithmeticException: / by zero` (`Cause.java:6`). Run: `java Cause.java` (exit code 1; the source launcher adds five launcher frames after the cause block that a compiled class does not print).
+- `Resource.java` — try-with-resources on `DeliveryLog implements AutoCloseable`: `checkMeals(9)` throws inside the block, `close()` runs before the catch. Run: `java Resource.java` → `log opened` / `log: Ravi delivered` / `log closed` / `Rejected: meals a day must be 1 to 3, got 9`.
+- `Swallow.java` — the break-it-on-purpose file: `catch (Exception e) { }` eats the rule, prints only `Bill for Ravi: 7200`, exit code 0. Never write this. Run: `java Swallow.java`. Needs JDK 25 (`IO.println`, JEP 512). Verified on JDK 25.0.4.1.

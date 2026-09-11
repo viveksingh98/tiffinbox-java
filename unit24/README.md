@@ -1,0 +1,7 @@
+# Unit 24 — Exceptions: When Things Go Wrong
+
+- `Trace.java` — `main` → `averagePerMeal` → `average(520, 0)`: dies with `Exception in thread "main" java.lang.ArithmeticException: / by zero` / `at Trace.average(Trace.java:8)` / `at Trace.averagePerMeal(Trace.java:5)` / `at Trace.main(Trace.java:2)`. Read the trace top-down (what · where · who called whom). Run: `java Trace.java`
+- `Catch.java` — the same call inside `try` / `catch (ArithmeticException e)` / `finally`; prints `No meals today: / by zero` / `Report closed` / `Program continues`. Run: `java Catch.java`
+- `Throw.java` — Unit 08's `default -> 0` becomes `default -> throw new IllegalArgumentException(...)`, a loop with an off-by-one on purpose and one multi-catch; prints `veg x 2 = 240` / `non-veg x 1 = 150` / `Skipped: unknown meal type: vge` / `Skipped: Index 3 out of bounds for length 3`. Run: `java Throw.java`
+- `BreakChecked.java` — "break it on purpose": `Files.readAllLines(...)` throws the checked `IOException`, so it does NOT compile (`BreakChecked.java:2: error: unreported exception IOException; must be caught or declared to be thrown`). `FixChecked.java` — `void main() throws IOException`, writes a one-line `customers.csv` first, prints `1 customers on file`. Run: `java BreakChecked.java` (read the error), then `java FixChecked.java`
+- Needs JDK 25 (compact source files + `IO.println`, JEP 512; `Files`, `Path`, `IOException` need no import — compact files import the `java.base` module). Verified on JDK 25.0.4.1.
