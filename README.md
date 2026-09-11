@@ -40,6 +40,11 @@ java Hello.java
 | 25 | Custom Exceptions and Clean Error Handling | `unit25/` |
 | 26 | Files: Read and Write with java.nio | `unit26/` |
 | 27 | Parsing Data: CSV to Objects | `unit27/` |
+| 28 | Lambdas and Functional Interfaces | `unit28/` |
+| 29 | Streams: Reports in One Line | `unit29/` |
+| 30 | Optional: The End of null Checks | `unit30/` |
+| 31 | Pattern Matching: instanceof and switch | `unit31/` |
+| 32 | Dates and Times with java.time | `unit32/` |
 | 12 | Classes and Objects: Meet Customer | `unit12/` |
 
 More units land as the videos publish. Roadmap: Core Java → Spring Framework → Spring Boot → JPA → REST → Security → … → Spring AI.

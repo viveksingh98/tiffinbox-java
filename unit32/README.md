@@ -1,0 +1,7 @@
+# Unit 32 — Dates and Times with java.time
+
+- `Pause.java` — Ravi's pause (14–20 Sept 2026) with fixed dates, never `LocalDate.now()`: `LocalDate.of`, `getDayOfWeek`, `lengthOfMonth`, `ChronoUnit.DAYS.between` (+1 for an inclusive pause), `plusDays`, the bill, then `Period.between`, `isBefore`, `datesUntil` stream counting Sundays. Prints `2026-09-01 is a TUESDAY, 30 days` / `Paused 7 days, resumes 2026-09-21` / `Ravi's bill: 5520` / `Customer for 1y 2m 3d` / `true true` / `Sundays off: 4`. Run: `java Pause.java`
+- `Formats.java` — `DateTimeFormatter.ofPattern("dd/MM/yyyy")` to format and parse, ISO `parse` with no formatter, `LocalTime` + `LocalDateTime`; prints `Pause from 14/09/2026` / `2026-09-21` / `2026-09-21` / `12:30 2026-09-14T12:30`. Run: `java Formats.java`
+- `BreakDate.java` — "break it on purpose": `LocalDate.parse("14/09/2026")` with no formatter throws `java.time.format.DateTimeParseException: Text '14/09/2026' could not be parsed at index 0`. Fix: pass the `dd/MM/yyyy` formatter. Run: `java BreakDate.java` and read the stack trace.
+- `BreakInvalid.java` — `LocalDate.of(2026, 2, 30)` throws `java.time.DateTimeException: Invalid date 'FEBRUARY 30'` — the library refuses a date that does not exist. Run: `java BreakInvalid.java`
+- Needs JDK 25 (compact source files + `IO.println`, JEP 512; `java.time` classes need no import — compact files import all of `java.base`). Verified on JDK 25.0.4.1.
