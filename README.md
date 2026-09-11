@@ -31,6 +31,11 @@ java Hello.java
 | 16 | Polymorphism: One Call, Many Behaviours | `unit16/` |
 | 17 | Abstract Classes and Interfaces | `unit17/` |
 | 18 | Records, Enums and Sealed Types | `unit18/` |
+| 19 | ArrayList: A List That Grows | `unit19/` |
+| 20 | HashMap and HashSet: Look Things Up Fast | `unit20/` |
+| 21 | Generics: Why List<String> Not Just List | `unit21/` |
+| 22 | Sorting and Comparators | `unit22/` |
+| 23 | equals, hashCode and toString | `unit23/` |
 | 12 | Classes and Objects: Meet Customer | `unit12/` |
 
 More units land as the videos publish. Roadmap: Core Java → Spring Framework → Spring Boot → JPA → REST → Security → … → Spring AI.

@@ -1,0 +1,7 @@
+# Unit 21 — Generics: Why List<String> Not Just List
+
+- `BreakRaw.java` — the first "break it on purpose" file: a raw `List` (no brackets), `String first = names.get(0);` does NOT compile (`BreakRaw.java:4: error: incompatible types: Object cannot be converted to String`, plus `warning: [unchecked] unchecked call to add(E) as a member of the raw type List`). Run: `java BreakRaw.java` and read the error.
+- `RawCrash.java` — the cast that lies: raw list, `names.add("Ravi"); names.add(42);`, then `(String) o` in a loop; compiles, prints `4`, then crashes with `java.lang.ClassCastException: class java.lang.Integer cannot be cast to class java.lang.String`. Run: `java RawCrash.java`
+- `BreakTyped.java` — same mistake with `List<String>`: `names.add(42);` does NOT compile (`BreakTyped.java:4: error: no suitable method found for add(int)` / `int cannot be converted to String`) — caught before the program runs. Run: `java BreakTyped.java`
+- `Generics.java` — a generic method `<T> T firstOr(List<T> list, T fallback)` and a bounded one `<T extends Comparable<T>> T max(List<T> list)`; prints `Ravi` / `0` / `7200` / `Sunil`. Run: `java Generics.java`
+- `BreakMax.java` — `max(customers)` on an `ArrayList<Customer>` does NOT compile (`inference variable T has incompatible bounds` / `upper bounds: Comparable<T>`): Customer is not Comparable until Unit 22. Needs JDK 25 (compact source files + `IO.println`, JEP 512). Verified on JDK 25.0.4.1.
