@@ -45,6 +45,10 @@ java Hello.java
 | 30 | Optional: The End of null Checks | `unit30/` |
 | 31 | Pattern Matching: instanceof and switch | `unit31/` |
 | 32 | Dates and Times with java.time | `unit32/` |
+| 33 | Packages, Imports and Project Structure | `unit33/` |
+| 34 | Maven in 15 Minutes | `unit34/` |
+| 35 | Testing with JUnit 5 | `unit35/` |
+| 36 | Debugging in IntelliJ | `unit36/` |
 | 12 | Classes and Objects: Meet Customer | `unit12/` |
 
 More units land as the videos publish. Roadmap: Core Java → Spring Framework → Spring Boot → JPA → REST → Security → … → Spring AI.

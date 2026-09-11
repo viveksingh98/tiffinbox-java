@@ -1,0 +1,6 @@
+# Unit 36 — Debugging in IntelliJ
+
+- `MonthReport.java` — the FIXED report (`day <= daysInMonth`, package `com.tiffinbox`, normal public class + classic `main`): prints `September total: 7200` / `Formula says:    7200`. Run: `javac -d out MonthReport.java Billing.java && java -cp out com.tiffinbox.MonthReport` (or drop both files into the `tiffinbox` Maven project's `src/main/java/com/tiffinbox/` and `java -cp target/classes com.tiffinbox.MonthReport` after `mvn -q package`).
+- `buggy/MonthReport.java` — the same file with Unit 09's boundary bug on line 10 (`day < daysInMonth`, 29 rounds): prints `September total: 6960` / `Formula says:    7200`. Set a breakpoint on line 11 (`total +=`) and Debug it; the slides' Variables values (`total = 0, day = 1` → … → `total = 6960`, no `day`) come from a real debugger session on this file. Run: `javac -g -d out buggy/MonthReport.java Billing.java && java -cp out com.tiffinbox.MonthReport`
+- `Billing.java` — Unit 33's class after Unit 35's fixes (two-argument overload uses 30; 1-to-3 meals guard); needed by both reports for the `Formula says:` line.
+- Needs JDK 25 (`java.lang.IO` is an ordinary class, JEP 512). Packaged sources cannot use the single-file launcher (`java MonthReport.java` → `end of path to source file does not match its package name`); compile with `-d` as above. Verified on JDK 25.0.4.1.
