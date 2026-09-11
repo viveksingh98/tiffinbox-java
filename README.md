@@ -49,8 +49,11 @@ java Hello.java
 | 34 | Maven in 15 Minutes | `unit34/` |
 | 35 | Testing with JUnit 5 | `unit35/` |
 | 36 | Debugging in IntelliJ | `unit36/` |
+| 37 | TiffinBox Console App: The Design (→ capstone/) | `unit37/` |
+| 38 | TiffinBox: Build It (→ capstone/) | `unit38/` |
+| 39 | What's Next: Spring Boot, AI Agents and Your Java Path | `unit39/` |
 | 12 | Classes and Objects: Meet Customer | `unit12/` |
 
-More units land as the videos publish. Roadmap: Core Java → Spring Framework → Spring Boot → JPA → REST → Security → … → Spring AI.
+All 39 units are here; the finished app is in `capstone/`. Videos publish a few per day on the channel. Roadmap: Core Java → Spring Framework → Spring Boot → JPA → REST → Security → … → Spring AI.
 
 — Vivek Singh · Prompt Vidya AI: https://www.youtube.com/@PromptVidyaAI

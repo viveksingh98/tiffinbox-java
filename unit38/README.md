@@ -1,0 +1,7 @@
+# Unit 38 — TiffinBox: Build It
+
+- The code for this unit is the finished capstone project in `../capstone/` (`pom.xml`, `customers.csv`, eight source files under `src/main/java/com/tiffinbox/`, three test classes under `src/test/java/com/tiffinbox/`) — nothing lives in this folder on purpose; Unit 37 designed it, Unit 38 builds it, Unit 39 maps what comes next.
+- Run the tests: `cd ../capstone && mvn test` (with `JAVA_HOME` on JDK 25) → `Tests run: 11, Failures: 0, Errors: 0, Skipped: 0` / `BUILD SUCCESS`. Build and run: `mvn -q package` then `printf '1\n3\n5\n' | java -jar target/tiffinbox-1.0.jar` (or run it without the pipe and type the answers).
+- To see the red run from the video: in `Pause.java`, change `return (int) ChronoUnit.DAYS.between(from, to) + 1;` to `return (int) ChronoUnit.DAYS.between(from, to);`, run `mvn test`, and read `expected: <5520> but was: <5760>` in `BillingServiceTest.pauseOfSevenDaysBillsTwentyThree`; put the `+ 1` back for green. The shipped capstone is already fixed.
+- Two honest gaps (your first extensions): pauses are kept in memory only (`BillingService`), never saved — add a `pauses.csv` through a second repository of the same shape; a name containing a comma breaks `split(",")` in `Customer.fromCsv` — Unit 34's `commons-csv` dependency fixes that.
+- Needs JDK 25 (`java.lang.IO`, JEP 512), Apache Maven 3.9.x, JUnit Jupiter 5.13.4 (downloaded by Maven on the first run). Verified on JDK 25.0.4.1, Maven 3.9.16, surefire 3.5.3, jar plugin 3.5.0.
