@@ -19,6 +19,12 @@ java Hello.java
 | 03 | Your First Program: Hello, TiffinBox | `unit03/` |
 | 04 | How Java Actually Runs: Source, Bytecode, JVM | `unit04/` |
 | 05 | Variables and Types: Where Data Lives | `unit05/` |
+| 06 | Operators and Expressions: Ravi's Monthly Bill | `unit06/` |
+| 07 | Strings: Text Done Right | `unit07/` |
+| 08 | Making Decisions: if, else, switch | `unit08/` |
+| 09 | Loops: Doing It 30 Times | `unit09/` |
+| 10 | Methods: Name a Piece of Work | `unit10/` |
+| 11 | Arrays: Seven Days of Menus | `unit11/` |
 
 More units land as the videos publish. Roadmap: Core Java → Spring Framework → Spring Boot → JPA → REST → Security → … → Spring AI.
 
