@@ -1,0 +1,6 @@
+# Unit 13 — Constructors and this
+
+- `Constructors.java` — `Customer` with a four-argument constructor (`this.name = name; ...`) and a one-argument "usual plan" constructor that trims the name and chains with `this(clean, 2, 120, true)` (a statement before `this(...)` is legal on JDK 25: flexible constructor bodies, JEP 513); prints `Ravi: 7200` / `[Meera]: 7200`. Run: `java Constructors.java`
+- `BreakNoArgs.java` — the "break it on purpose" file: only a one-argument constructor exists, so `new Customer()` does NOT compile (`BreakNoArgs.java:2: error: constructor Customer in class BreakNoArgs.Customer cannot be applied to given types; required: String, found: no arguments`) — the free no-argument constructor disappears the moment you write your own. Run: `java BreakNoArgs.java` and read the error.
+- `Shadow.java` — the trap the compiler cannot catch: `name = name;` without `this.` assigns the parameter to itself, so the field stays `null` and the program prints `null`. Fix: `this.name = name;`. Run: `java Shadow.java`
+- Needs JDK 25 (compact source files + `IO.println`, JEP 512; `BreakNoArgs.Customer` in the message is the implicit class named after the file). Verified on JDK 25.0.4.1.

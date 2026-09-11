@@ -25,6 +25,13 @@ java Hello.java
 | 09 | Loops: Doing It 30 Times | `unit09/` |
 | 10 | Methods: Name a Piece of Work | `unit10/` |
 | 11 | Arrays: Seven Days of Menus | `unit11/` |
+| 13 | Constructors and this | `unit13/` |
+| 14 | Encapsulation: Private Fields, Public Doors | `unit14/` |
+| 15 | Inheritance: Meal, VegMeal, NonVegMeal | `unit15/` |
+| 16 | Polymorphism: One Call, Many Behaviours | `unit16/` |
+| 17 | Abstract Classes and Interfaces | `unit17/` |
+| 18 | Records, Enums and Sealed Types | `unit18/` |
+| 12 | Classes and Objects: Meet Customer | `unit12/` |
 
 More units land as the videos publish. Roadmap: Core Java → Spring Framework → Spring Boot → JPA → REST → Security → … → Spring AI.
 
