@@ -54,6 +54,10 @@ java Hello.java
 | 39 | What's Next: Spring Boot, AI Agents and Your Java Path | `unit39/` |
 | 12 | Classes and Objects: Meet Customer | `unit12/` |
 
-All 39 units are here; the finished app is in `capstone/`. Videos publish a few per day on the channel. Roadmap: Core Java → Spring Framework → Spring Boot → JPA → REST → Security → … → Spring AI.
+All 39 Java Fundamentals units are here; the finished app is in `capstone/`.
+
+## Course 2 — Core Java II: Under the Hood
+Code for that course lives in `c2-unitNN/` folders (JVM memory, GC, generics, concurrency, I/O, modules, JDBC).
+Some units need JVM flags — each folder's README has the exact command. Videos publish a few per day on the channel. Roadmap: Core Java → Spring Framework → Spring Boot → JPA → REST → Security → … → Spring AI.
 
 — Vivek Singh · Prompt Vidya AI: https://www.youtube.com/@PromptVidyaAI

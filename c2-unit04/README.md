@@ -1,0 +1,7 @@
+# Core Java II — Unit 04 — Reference Types: Strong, Soft, Weak and WeakHashMap
+
+- `Weak.java` — a `WeakReference` and a `SoftReference` over the same kind of object; the only strong reference is dropped, then `System.gc()`. Run: `java Weak.java` → `weak before:   Ravi: 7200` / `weak after gc: null` / `soft after gc: Priya: 3600` (identical on 3 runs).
+- `WeakCache.java` — a `WeakHashMap` cache whose key becomes unreachable; the `Thread.sleep(100)` is **required** — cleared references reach the map through a `ReferenceQueue` drained by the reference-handler thread. Run: `java WeakCache.java` → `cached entries:        1` / `after key = null + gc: 0` (identical on 5 runs).
+- `NoSleep.java` — the same file with the sleep removed: `after key = null + gc: 1`, every run. The break-it-on-purpose file: the entry is not gone, you only looked too early.
+- `InternedKey.java` — why a `String` literal is a bad weak key: the interned literal keeps its entry (`literal key cache: 1`) while a `new String("Ravi")` key is collected (`new String() cache: 0`). Run: `java InternedKey.java`.
+- `Bounded.java` — the recommended alternative to a soft-reference cache: an access-order `LinkedHashMap` with `removeEldestEntry` (LRU, ceiling of 3). Run: `java Bounded.java` → `[Sam, Ravi, Nina]`. Needs JDK 25 (compact source files + `IO.println`, JEP 512); all five verified on JDK 25.0.4.1 (`/opt/homebrew/opt/openjdk@25`, macOS, Apple silicon).
