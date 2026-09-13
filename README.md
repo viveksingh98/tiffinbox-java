@@ -69,7 +69,20 @@ export PATH="$JAVA_HOME/bin:$PATH"
 `verify_course1.sh` time-boxes every command, asserts that the break-it-on-purpose files really fail with the right message, cleans up the files and class trees the examples create, and exits non-zero if anything is off.
 
 ## Course 2 — Core Java II: Under the Hood
-Code for that course lives in `c2-unitNN/` folders (JVM memory, GC, generics, concurrency, I/O, modules, JDBC).
-Some units need JVM flags — each folder's README has the exact command. Videos publish a few per day on the channel. Roadmap: Core Java → Spring Framework → Spring Boot → JPA → REST → Security → … → Spring AI.
+Code for that course lives in `c2-unitNN/` folders (JVM memory, GC, generics, concurrency, I/O, modules, JDBC), and the finished service in `c2-capstone/`.
+Many units need JVM flags — `-Xmx16m`, `--enable-preview`, `-Djdk.virtualThreadScheduler.parallelism=1` and friends. **Each folder's README has the exact command and the real output**, and files that fail on purpose are labelled with the error they print.
+
+Course 2 needs **JDK 25** (compact source files, JEP 512; `StructuredTaskScope` preview, JEP 505):
+
+```bash
+export JAVA_HOME=/opt/homebrew/opt/openjdk@25   # or wherever your JDK 25 lives
+export PATH="$JAVA_HOME/bin:$PATH"
+./verify_course2.sh            # runs every c2-* command and prints PASS/FAIL
+./verify_course2.sh 09 14      # just those units
+SKIP_SLOW=1 ./verify_course2.sh   # skip the ~50 s pool run and the deadlock demo
+```
+
+`verify_course2.sh` walks only the `c2-*` folders that exist, time-boxes the long demos, kills every JVM it starts and leaves no ports, heap dumps or build output behind.
+Videos publish a few per day on the channel. Roadmap: Core Java → Spring Framework → Spring Boot → JPA → REST → Security → … → Spring AI.
 
 — Vivek Singh · Prompt Vidya AI: https://www.youtube.com/@PromptVidyaAI
