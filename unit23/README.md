@@ -17,6 +17,8 @@ false
 false
 ```
 
+> The hex digits after `@` are an identity hash — they change on every run, so yours will differ. The two `false` lines will not.
+
 ### java ToStringDemo.java
 
 `toString` overridden, and `equals` alone making two customers equal.

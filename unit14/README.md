@@ -40,7 +40,7 @@ Exit code: `1` (non-zero — the failure is the point).
 ```console
 $ cd breakfinal
 $ java BreakFinal.java
-/Users/viveksingh/Downloads/Youtube Content/LearnProgrammingWithVivek/_deliverables/tiffinbox-java/unit14/breakfinal/Customer.java:7: error: variable name might not have been initialized
+.../tiffinbox-java/unit14/breakfinal/Customer.java:7: error: variable name might not have been initialized
     }
     ^
 1 error

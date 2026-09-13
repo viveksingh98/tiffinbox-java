@@ -37,8 +37,14 @@ test-classes
 tiffinbox-1.0.jar
 ```
 
+### What is in this folder
+
+- `src/test/java/com/tiffinbox/BillingTest.java` — the three tests: `defaultMonthIsThirtyDays`, `nonVegSingleMeal`, `rejectsImpossibleMeals`.
+- `src/main/java/com/tiffinbox/Billing.java` — the class under test, with Unit 34's `31` bug fixed to `30` and the 1-to-3 meals guard added.
+- `src/main/java/com/tiffinbox/Main.java`, `pom.xml` — unchanged from Unit 34.
+
 ### Notes
 
 - `export JAVA_HOME=/opt/homebrew/opt/openjdk@25` (macOS Homebrew) before `mvn`.
-- See the red run from the video: in `src/main/java/com/tiffinbox/Billing.java`, change the two-argument overload to `return calculateBill(mealsPerDay, pricePerMeal, 31);` and run `mvn -B test` → `expected: <7200> but was: <7440>` at `BillingTest.defaultMonthIsThirtyDays:10`, `BUILD FAILURE`. Change the `31` back to `30` for green. The shipped code is the fixed version.
+- See the red run from the video: in `src/main/java/com/tiffinbox/Billing.java`, change the two-argument overload to `return calculateBill(mealsPerDay, pricePerMeal, 31);` and run `mvn -B test` → `expected: <7200> but was: <7440>` at `BillingTest.defaultMonthIsThirtyDays:11`, `BUILD FAILURE`. Change the `31` back to `30` for green. The shipped code is the fixed version.
 - `target/` is git-ignored — never commit it.

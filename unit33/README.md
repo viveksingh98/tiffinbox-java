@@ -36,7 +36,7 @@ $ java -cp out com.tiffinbox.ModuleImports
 [Ravi, Meera, Sunil] 2026-09-01
 ```
 
-### cd out/com/tiffinbox — **supposed to fail**
+### java Main — from inside the package folder — **supposed to fail**
 
 > **This one is supposed to fail — that is the lesson.** standing inside the package folder and using the short name.
 
@@ -48,8 +48,14 @@ Caused by: java.lang.NoClassDefFoundError: Main (wrong name: com/tiffinbox/Main)
 
 Exit code: `1` (non-zero — the failure is the point).
 
+### What is in this folder
+
+- `src/main/java/com/tiffinbox/Billing.java` — Unit 10's `calculateBill` as a normal `public class` with two overloads; no `main`.
+- `src/main/java/com/tiffinbox/Main.java` — `import java.util.List;`, prints `3 customers on file` / `Ravi pays 7200`.
+- `src/main/java/com/tiffinbox/ModuleImports.java` — the same idea with JDK 25's `import module java.base;` (JEP 511).
+- `src/test/java/com/tiffinbox/` — empty on purpose; Unit 35 puts `BillingTest.java` here.
+
 ### Notes
 
-- `src/test/java/com/tiffinbox/` is empty on purpose — Unit 35 puts `BillingTest.java` there.
 - Quick check without `-d`: `java src/main/java/com/tiffinbox/Main.java` (the source launcher compiles the siblings, JEP 458).
 - `out/` is git-ignored; `rm -rf out` resets the unit.

@@ -25,7 +25,7 @@ $ mvn -B test
 
 ### mvn -q package
 
-Tests, then the runnable jar.
+Tests, then the runnable jar. The two lines before the `ls` result come from the tests: `CustomerRepositoryTest` deliberately feeds the loader a bad row and a missing file, and `mvn -q` hides Maven's log but not what the tests print.
 
 ```console
 $ mvn -q package && ls target/tiffinbox-1.0.jar
@@ -34,7 +34,7 @@ No .../junit-<random>/nothing-here.csv yet, starting empty
 target/tiffinbox-1.0.jar
 ```
 
-### printf '1\n3\n5\n' | java -jar target/tiffinbox-1.0.jar
+### Drive the menu without typing
 
 List customers, print the bill report, save and exit — piped so it runs without typing.
 
@@ -78,7 +78,7 @@ TiffinBox - Asha's tiffin service
 Choose (1-5): Saved 3 customers to customers.csv. Bye!
 ```
 
-### printf '2\nPriya\n2\ny\n\n4\nRavi\n14/09/2026\n20/09/2026\n3\n5\n' | java -jar target/tiffinbox-1.0.jar
+### Add a customer, pause Ravi, print the report
 
 Add a customer, pause Ravi for a week, then the report — the full feature set.
 
@@ -125,6 +125,15 @@ TiffinBox - Asha's tiffin service
 [... trimmed ...]
 Choose (1-5): Saved 4 customers to customers.csv. Bye!
 ```
+
+### What is in this folder
+
+- `src/main/java/com/tiffinbox/TiffinBoxApp.java` — `main`, the menu loop and every `Scanner` prompt.
+- `BillingService.java` — monthly bills, pauses, the revenue report and the by-type grouping.
+- `CustomerRepository.java` — load and save `customers.csv`, skipping bad rows.
+- `Customer.java` (record + compact constructor), `MealType.java` (enum), `Payment.java` (sealed), `Pause.java`, `TiffinBoxException.java` — the model.
+- `src/test/java/com/tiffinbox/` — `CustomerTest`, `CustomerRepositoryTest`, `BillingServiceTest`: 11 tests.
+- `customers.csv` — the three starting customers; `pom.xml` — JDK 25, JUnit 5.13.4, surefire, the runnable jar.
 
 ### Notes
 

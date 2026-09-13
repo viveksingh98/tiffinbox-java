@@ -6,7 +6,7 @@
 
 Run everything from this folder (`cd unit37`), in the order below.
 
-### cd ../capstone
+### Build the capstone and see the menu
 
 Build the designed app and see the menu the slides draw (option 5 saves and exits).
 
@@ -24,6 +24,8 @@ TiffinBox - Asha's tiffin service
 5  Save and exit
 Choose (1-5): Saved 3 customers to customers.csv. Bye!
 ```
+
+> The two lines before `Loaded 3 customers` come from the capstone's own tests: `CustomerRepositoryTest` deliberately feeds the loader a bad row and a missing file, and `mvn -q` hides Maven's log but not what the tests print.
 
 ### Notes
 

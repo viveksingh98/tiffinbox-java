@@ -6,7 +6,7 @@
 
 Run everything from this folder (`cd unit38`), in the order below.
 
-### cd ../capstone
+### Run the capstone's tests
 
 The eleven tests of the finished app.
 
@@ -23,7 +23,7 @@ $ cd ../capstone && mvn -B test
 [INFO] BUILD SUCCESS
 ```
 
-### cd ../capstone
+### Build the jar and drive the menu
 
 List the customers, print the bill report, save and exit.
 
@@ -68,6 +68,8 @@ TiffinBox - Asha's tiffin service
 5  Save and exit
 Choose (1-5): Saved 3 customers to customers.csv. Bye!
 ```
+
+> The two lines before `Loaded 3 customers` come from the capstone's own tests: `CustomerRepositoryTest` deliberately feeds the loader a bad row and a missing file, and `mvn -q` hides Maven's log but not what the tests print.
 
 ### Notes
 

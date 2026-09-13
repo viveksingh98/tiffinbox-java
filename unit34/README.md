@@ -58,6 +58,12 @@ META-INF/maven/com.tiffinbox/tiffinbox/pom.xml
 META-INF/maven/com.tiffinbox/tiffinbox/pom.properties
 ```
 
+### What is in this folder
+
+- `pom.xml` — the whole lesson: coordinates, `maven.compiler.release`, the JUnit dependency, surefire and the jar plugin.
+- `src/main/java/com/tiffinbox/Billing.java` — Unit 33's class, unchanged (it still carries the planted `31` overload that Unit 35's test catches).
+- `src/main/java/com/tiffinbox/Main.java` — the program the jar runs.
+
 ### Notes
 
 - `export JAVA_HOME=/opt/homebrew/opt/openjdk@25` (macOS Homebrew) before `mvn`, or Maven may pick a different JDK.
