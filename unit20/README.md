@@ -1,6 +1,49 @@
 # Unit 20 — HashMap and HashSet: Look Things Up Fast
 
-- `Dues.java` — `Map<String, Integer> dues = new HashMap<>()`: `put` / `get` / a second `put` replaces / `containsKey` + `size`, then the safe reads `get` → `null`, `getOrDefault(..., 0)` → `0`, `merge("Ravi", 240, Integer::sum)` → `7440`, and an `entrySet()` loop; prints `4500` / `{Meera=4800, Ravi=7200, Sunil=3600}` / `false 3` / `null` / `0` / `7440` / `Meera owes 4800` / `Ravi owes 7440` / `Sunil owes 3600`. Run: `java Dues.java`
-- `BreakNull.java` — the "break it on purpose" file: `int due = dues.get("Asha");` on a missing key throws `Exception in thread "main" java.lang.NullPointerException: Cannot invoke "java.lang.Integer.intValue()" because the return value of "java.util.Map.get(Object)" is null` at `BreakNull.java:7`. Fix: `getOrDefault("Asha", 0)`. Run: `java BreakNull.java` and read the message.
-- `Phones.java` — `Set<String> phones = new HashSet<>()`: `add` returns `true` / `true` / `false` for a repeated number, `2 unique: [98200 22222, 98200 11111]`; `Map.of("Ravi", "north", "Meera", "south")` → `south` (fixed, immutable; `put` throws `UnsupportedOperationException`). Run: `java Phones.java`
-- Needs JDK 25 (compact source files + `IO.println`, JEP 512). Verified on JDK 25.0.4.1.
+**What this unit teaches:** A `Map` answers by key instead of walking a list; a `Set` keeps each value once. Order is never promised.
+
+**You need:** JDK 25 (compact source files + `IO.println`, JEP 512). Verified on JDK 25.0.4.1.
+
+Run everything from this folder (`cd unit20`), in the order below.
+
+### java Dues.java
+
+`put`, `get`, `containsKey`, `getOrDefault`, `merge`, and a sorted `TreeMap` walk.
+
+```console
+$ java Dues.java
+4500
+{Meera=4800, Ravi=7200, Sunil=3600}
+false 3
+null
+0
+7440
+Meera owes 4800
+Ravi owes 7440
+Sunil owes 3600
+```
+
+### java Phones.java
+
+A `HashSet` dropping the duplicate, and `Map.of` for a fixed lookup.
+
+```console
+$ java Phones.java
+true
+true
+false
+2 unique: [98200 22222, 98200 11111]
+south
+```
+
+### java BreakNull.java — **supposed to fail**
+
+> **This one is supposed to fail — that is the lesson.** `map.get(missingKey)` returns `null`, and unboxing it throws.
+
+```console
+$ java BreakNull.java
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "java.lang.Integer.intValue()" because the return value of "java.util.Map.get(Object)" is null
+	at BreakNull.main(BreakNull.java:7)
+```
+
+Exit code: `1` (non-zero — the failure is the point).

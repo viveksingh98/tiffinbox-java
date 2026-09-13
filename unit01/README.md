@@ -1,5 +1,16 @@
 # Unit 01 — Why Java in 2026 (and How This Course Works)
-This unit teaches no new code. `Hello.java` here is the three-line JDK 25 program previewed on the last slide; it is taught line by line in `unit03/`.
-Run it (JDK 25 required): `java Hello.java`
-Expected output: `Hello, TiffinBox!`
-Next: `../unit03/` — Your First Program: Hello, TiffinBox.
+
+**What this unit teaches:** Why Java is worth learning in 2026, and the one-file program the whole course starts from.
+
+**You need:** JDK 25 (compact source files + `IO.println`, JEP 512). Verified on JDK 25.0.4.1.
+
+Run everything from this folder (`cd unit01`), in the order below.
+
+### java Hello.java
+
+The whole program: `void main()` + `IO.println` — no class, no `public static`.
+
+```console
+$ java Hello.java
+Hello, TiffinBox!
+```

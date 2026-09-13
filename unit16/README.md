@@ -1,5 +1,46 @@
 # Unit 16 — Polymorphism: One Call, Many Behaviours
-Run each file with JDK 25: `java Polymorphism.java` (one loop, three `price()` methods, total 400, then the upcast prints 130).
-`java BreakUpcast.java` fails on purpose: `cannot find symbol ... method kitchenNote() ... variable special of type BreakUpcast.Meal`.
-`java FixUpcast.java` prints `Vegan: no dairy, no eggs` via pattern matching for `instanceof`.
-Verified on JDK 25.0.4.1 (compact source files, `IO.println`, no imports needed for `List.of`).
+
+**What this unit teaches:** One call, many behaviours: the real object decides which `price()` runs, and the reference type decides what you may call.
+
+**You need:** JDK 25 (compact source files + `IO.println`, JEP 512). Verified on JDK 25.0.4.1.
+
+Run everything from this folder (`cd unit16`), in the order below.
+
+### java Polymorphism.java
+
+One loop over `List<Meal>` running three different `price()` methods.
+
+```console
+$ java Polymorphism.java
+lentil rice - 120
+chicken curry - 150 (non-veg)
+vegetable stew - 130 (no dairy, no eggs)
+Total: 400
+130
+```
+
+### java BreakUpcast.java — **supposed to fail**
+
+> **This one is supposed to fail — that is the lesson.** a `Meal` reference cannot see a child-only method.
+
+```console
+$ java BreakUpcast.java
+BreakUpcast.java:3: error: cannot find symbol
+    IO.println(special.kitchenNote());
+                      ^
+  symbol:   method kitchenNote()
+  location: variable special of type BreakUpcast.Meal
+1 error
+error: compilation failed
+```
+
+Exit code: `1` (non-zero — the failure is the point).
+
+### java FixUpcast.java
+
+The fix: `instanceof` with a pattern variable.
+
+```console
+$ java FixUpcast.java
+Vegan: no dairy, no eggs
+```

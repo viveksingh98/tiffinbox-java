@@ -25,6 +25,7 @@ java Hello.java
 | 09 | Loops: Doing It 30 Times | `unit09/` |
 | 10 | Methods: Name a Piece of Work | `unit10/` |
 | 11 | Arrays: Seven Days of Menus | `unit11/` |
+| 12 | Classes and Objects: Meet Customer | `unit12/` |
 | 13 | Constructors and this | `unit13/` |
 | 14 | Encapsulation: Private Fields, Public Doors | `unit14/` |
 | 15 | Inheritance: Meal, VegMeal, NonVegMeal | `unit15/` |
@@ -52,9 +53,20 @@ java Hello.java
 | 37 | TiffinBox Console App: The Design (→ capstone/) | `unit37/` |
 | 38 | TiffinBox: Build It (→ capstone/) | `unit38/` |
 | 39 | What's Next: Spring Boot, AI Agents and Your Java Path | `unit39/` |
-| 12 | Classes and Objects: Meet Customer | `unit12/` |
 
 All 39 Java Fundamentals units are here; the finished app is in `capstone/`.
+**Every folder's README states what the unit teaches, the exact command for each file (with flags) and the real output it prints**; files that fail or give the wrong answer on purpose are labelled with the error you should see.
+
+Course 1 needs **JDK 25**, plus Apache Maven 3.9.x for units 34, 35, 37, 38 and the capstone:
+
+```bash
+export JAVA_HOME=/opt/homebrew/opt/openjdk@25   # or wherever your JDK 25 lives
+export PATH="$JAVA_HOME/bin:$PATH"
+./verify_course1.sh              # runs every Course 1 command and prints PASS/FAIL per unit
+./verify_course1.sh unit05 unit26  # just those folders
+```
+
+`verify_course1.sh` time-boxes every command, asserts that the break-it-on-purpose files really fail with the right message, cleans up the files and class trees the examples create, and exits non-zero if anything is off.
 
 ## Course 2 — Core Java II: Under the Hood
 Code for that course lives in `c2-unitNN/` folders (JVM memory, GC, generics, concurrency, I/O, modules, JDBC).

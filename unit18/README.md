@@ -1,7 +1,62 @@
 # Unit 18 — Records, Enums and Sealed Types
 
-- `Orders.java` — `record Order(String customer, MealType type, int quantity)` with a `total()` method + `enum MealType { VEG(120), NON_VEG(150), VEGAN(130) }`; prints `Order[customer=Ravi, type=VEG, quantity=2]` / `Ravi pays 240` / `true` / `VEG -> 120` / `NON_VEG -> 150` / `VEGAN -> 130`. Run: `java Orders.java`
-- `BreakRecord.java` — the first "break it on purpose" file: `order.quantity = 3;` does NOT compile (`BreakRecord.java:3: error: cannot assign a value to final variable quantity`) — a record is a value; make a new Order instead. Run: `java BreakRecord.java` and read the error.
-- `Payments.java` — `sealed interface Payment permits Cash, Upi, Card` (three records) + `describe(...)` pattern `switch` with no `default`; prints `cash at the door` / `UPI to ravi@okbank` / `card ending 4421`. Run: `java Payments.java`
-- `BreakSealed.java` — the second "break it on purpose" file: the `case Card` line is deleted, so it does NOT compile (`BreakSealed.java:7: error: the switch expression does not cover all possible input values`). Fix: put the `case Card c -> ...` line back. Run: `java BreakSealed.java` and read the error.
-- Needs JDK 25 (compact source files + `IO.println`, JEP 512; records JEP 395, sealed types JEP 409, pattern switch JEP 441). Verified on JDK 25.0.4.1.
+**What this unit teaches:** Three modern types that say what you mean: `record` for immutable data, `enum` for a fixed set, `sealed` for a closed family.
+
+**You need:** JDK 25 (compact source files + `IO.println`, JEP 512). Verified on JDK 25.0.4.1.
+
+Run everything from this folder (`cd unit18`), in the order below.
+
+### java Orders.java
+
+A record's generated `toString`/`equals`, plus an enum with a field.
+
+```console
+$ java Orders.java
+Order[customer=Ravi, type=VEG, quantity=2]
+Ravi pays 240
+true
+VEG -> 120
+NON_VEG -> 150
+VEGAN -> 130
+```
+
+### java Payments.java
+
+A `sealed interface` with three permitted records and an exhaustive `switch`.
+
+```console
+$ java Payments.java
+cash at the door
+UPI to ravi@okbank
+card ending 4421
+```
+
+### java BreakRecord.java — **supposed to fail**
+
+> **This one is supposed to fail — that is the lesson.** a record is a value — its components cannot be reassigned.
+
+```console
+$ java BreakRecord.java
+BreakRecord.java:3: error: cannot assign a value to final variable quantity
+    order.quantity = 3;   // a record is a value
+         ^
+1 error
+error: compilation failed
+```
+
+Exit code: `1` (non-zero — the failure is the point).
+
+### java BreakSealed.java — **supposed to fail**
+
+> **This one is supposed to fail — that is the lesson.** drop one permitted type from the switch and it stops compiling.
+
+```console
+$ java BreakSealed.java
+BreakSealed.java:7: error: the switch expression does not cover all possible input values
+    return switch (payment) {
+           ^
+1 error
+error: compilation failed
+```
+
+Exit code: `1` (non-zero — the failure is the point).

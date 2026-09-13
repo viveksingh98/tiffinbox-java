@@ -1,7 +1,73 @@
 # Unit 23 — equals, hashCode and toString
 
-- `Identity.java` — Unit 14's `Customer` with no overrides: prints `Identity$Customer@51b7e5df` (class name + identity hash, the hex is not a promise) / `false` / `false`. Run: `java Identity.java`
-- `ToStringDemo.java` — `toString()` + `equals(Object)` overridden (`instanceof` pattern + field compare): prints `Ravi (2 meals/day)` / `Today: Ravi (2 meals/day)` / `true`. Run: `java ToStringDemo.java`
-- `BreakEqualsSig.java` — "break it on purpose": `equals(Customer other)` under `@Override` does NOT compile (`BreakEqualsSig.java:15: error: method does not override or implement a method from a supertype`). Fix: the parameter must be `Object`. Run: `java BreakEqualsSig.java` and read the error.
-- `BreakSet.java` → `2 customers, contains Ravi: false` (equals without hashCode: the HashSet keeps both Ravis and cannot find either) · `FixSet.java` adds `hashCode()` via `Objects.hash(name, mealsPerDay)` → `1 customers, contains Ravi: true` · `RecordSet.java` — `record Customer(String name, int mealsPerDay) {}` generates all three → `Customer[name=Ravi, mealsPerDay=2]` / `true` / `2`. Run: `java BreakSet.java`, `java FixSet.java`, `java RecordSet.java`
-- Needs JDK 25 (compact source files + `IO.println`, JEP 512; `Set`, `HashSet`, `Objects` from `java.util`, imported implicitly). Verified on JDK 25.0.4.1.
+**What this unit teaches:** The three methods every class inherits from `Object`, why the defaults are wrong for your classes, and the contract.
+
+**You need:** JDK 25 (compact source files + `IO.println`, JEP 512). Verified on JDK 25.0.4.1.
+
+Run everything from this folder (`cd unit23`), in the order below.
+
+### java Identity.java
+
+The defaults: `Class@hash` and identity-based `equals`.
+
+```console
+$ java Identity.java
+Identity$Customer@51b7e5df
+false
+false
+```
+
+### java ToStringDemo.java
+
+`toString` overridden, and `equals` alone making two customers equal.
+
+```console
+$ java ToStringDemo.java
+Ravi (2 meals/day)
+Today: Ravi (2 meals/day)
+true
+```
+
+### java BreakSet.java — **supposed to be wrong**
+
+> **This one is supposed to give the wrong answer — that is the lesson.** `equals` without `hashCode`: the `HashSet` keeps the duplicate and cannot find it. It runs happily and the answer is wrong.
+
+```console
+$ java BreakSet.java
+2 customers, contains Ravi: false
+```
+
+### java FixSet.java
+
+Add `hashCode` and the set behaves.
+
+```console
+$ java FixSet.java
+1 customers, contains Ravi: true
+```
+
+### java RecordSet.java
+
+A record generates all three for free.
+
+```console
+$ java RecordSet.java
+Customer[name=Ravi, mealsPerDay=2]
+true
+2
+```
+
+### java BreakEqualsSig.java — **supposed to fail**
+
+> **This one is supposed to fail — that is the lesson.** `equals(Customer)` is an overload, not an override.
+
+```console
+$ java BreakEqualsSig.java
+BreakEqualsSig.java:15: error: method does not override or implement a method from a supertype
+    @Override
+    ^
+1 error
+error: compilation failed
+```
+
+Exit code: `1` (non-zero — the failure is the point).
