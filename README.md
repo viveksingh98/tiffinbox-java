@@ -1,7 +1,8 @@
-# TiffinBox — code for *Java Fundamentals* and *Core Java II* (Learn Programming with Vivek)
+# TiffinBox — code for *Java Fundamentals*, *Core Java II* and *Build & Test Like a Pro* (Learn Programming with Vivek)
 
-Every unit of both courses builds **TiffinBox**, a small tiffin-delivery service app, one concept at a time.
-Course 1 lives in `unitNN/` + `capstone/`; Course 2 in `c2-unitNN/` + `c2-capstone/`.
+Every unit of all three courses builds **TiffinBox**, a small tiffin-delivery service app, one concept at a time.
+Course 1 lives in `unitNN/` + `capstone/`; Course 2 in `c2-unitNN/` + `c2-capstone/`; Course 3 in
+`c3-unitNN/` + `c3-tiffinbox/`.
 Channel: https://www.youtube.com/@LearnProgrammingWithVivek
 
 ## How to run
@@ -166,18 +167,88 @@ SKIP_SLOW=1 ./verify_course2.sh    # skip every demo that is slow on purpose
 capstone's `--enable-preview` build then fails with `invalid source release 25`. The script exports
 it for every `mvn` and `java` it runs, and warns if the JDK is older than 25.
 
-**What makes this repo runnable rather than a code dump: `verify_course1.sh` and `verify_course2.sh`
-actually run every command the READMEs give a viewer** — all 44 Course 2 units and the capstone —
-assert the real output, assert that the break-it-on-purpose files fail with the *right* error text,
-time-box every command, check each port is free before use and kill by PID after, and delete every
-`target/`, `out/`, `.class`, `.db`, `.jfr`, thread dump, jlink image and jpackage bundle the examples
-create. Either script exits non-zero if anything is off.
+**What makes this repo runnable rather than a code dump: `verify_course1.sh`, `verify_course2.sh` and
+`verify_course3.sh` actually run every command the READMEs give a viewer** — all 44 Course 2 units and
+the capstone — assert the real output, assert that the break-it-on-purpose files fail with the *right*
+error text, time-box every command, check each port is free before use and kill by PID after, and delete
+every `target/`, `out/`, `.class`, `.db`, `.jfr`, thread dump, jlink image and jpackage bundle the
+examples create. Any of the three exits non-zero if anything is off.
 
 Units that start servers (27, 28, 30, 42, 43) each own one port at a time — 8123, 8234/8456, 8345,
 18425 and 18543 — and the script asserts the port is free again afterwards. `SKIP_SLOW=1` skips the
 ~50 s virtual-thread pool run, the deadlock demo, unit 25's 50 MB four-way read, unit 33's `jpackage`
 bundle and unit 43's `StackChunks` recordings plus the full `watch.sh` cycle. The `jpackage --type dmg`
 build is always skipped — it takes minutes and shows nothing the app-image does not.
+
+## Course 3 — Build & Test Like a Pro
+**The build itself**, in `c3-unitNN/`, with the long-lived multi-module project in `c3-tiffinbox/`.
+Course playlist: *Build & Test Like a Pro*. The anchor is the same TiffinBox app for the third time:
+the Course 2 capstone, cut into a parent POM plus `tiffinbox-core` and `tiffinbox-web`, and then read,
+broken and rebuilt one Maven concept at a time.
+
+| Unit | Topic | Folder |
+|---|---|---|
+| 01 | The POM, Read Line by Line | `c3-unit01/` |
+| 02 | The Lifecycle and the Reactor | `c3-unit02/` |
+| 03 | Dependencies: Scope, Transitivity, Conflict | `c3-unit03/` |
+| 04 | Plugins: Bind Your Own Goal | `c3-unit04/` |
+| 05 | Multi-Module TiffinBox | `c3-tiffinbox/` |
+| 06 | Settings, the Repository, and Why Maven 4 Is Still Not Here | `c3-unit06/` |
+
+**Unit 05 has almost nothing in `c3-unit05/` on purpose** — its code *is* `c3-tiffinbox/`, the split
+project every later unit of the course builds on, so that folder holds only the unit's exercise.
+`c3-tiffinbox/README.md` carries the build command, the `java -jar` command, the six `curl`s and the
+real output of each, plus the receipt that the split changed nothing observable: the same md5 over six
+captures, three of `c2-capstone` and three of `c3-tiffinbox`.
+
+Each `c3-unitNN/` holds the demo projects the unit reads, the POM variants it compares side by side
+(`poms/pom-*.xml`, `pom-pinned.xml`, `pom-wrongphase.xml`), the folders that **break on purpose** —
+unit 01's `<maven.compiler.release>17` that a plugin `<configuration>` overrules, unit 02's
+`breaks/cycle/` and `breaks/stale-sibling/`, unit 03's `provided-break/`, unit 04's `enforcer/` and
+`wrongphase/` — and an `exercise/` whose starter builds unedited with the `solution/pom.xml` beside it.
+**Each folder's README has the exact command, the real output and the exit code**, and the two silent
+failures — unit 04's annotation processor that never ran and its `copy-dependencies` bound one phase
+too late — are labelled with the artifact that gives them away, because both print `BUILD SUCCESS`.
+
+Course 3 needs **JDK 25** and Apache Maven **3.9.x** — every unit is a Maven unit.
+
+```bash
+export JAVA_HOME=/opt/homebrew/opt/openjdk@25   # or wherever your JDK 25 lives
+export PATH="$JAVA_HOME/bin:$PATH"
+./verify_course3.sh                # runs every c3-* command and prints PASS/FAIL
+./verify_course3.sh 03 06          # just those units
+./verify_course3.sh tiffinbox      # just c3-tiffinbox (that is unit 05's code)
+SKIP_SLOW=1 ./verify_course3.sh    # shorten the repeated-build hash loops
+KEEP_M2=1 ./verify_course3.sh      # keep the scratch repositories, so the next run is warm
+```
+
+JDK **25 exactly**, not 25-or-newer: units 01, 03 and 04 compile `--release 25 --enable-preview`, which
+JDK 26 refuses outright with `invalid source release 25 with --enable-preview`, and a bare `java` on
+this Mac is 23.0.1. The script checks the JDK before it runs anything and says which one it wants.
+
+`verify_course3.sh` runs every command in the six unit READMEs and in `c3-tiffinbox/README.md` and
+asserts the real output: the Reactor Summary row counts (never `BUILD SUCCESS` on its own — a
+single-module build prints no summary at all), the goal-line counts, the jars in `target/lib`, the
+`javap` minor version that shows the preview bit leaving, the six `curl` responses byte for byte, and
+the md5s and the `shasum` the READMEs quote. It asserts that every break beat still breaks with the
+*right* message and the *right* exit code, and for the two silent failures it asserts the artifact —
+the generated-file count, the class-file list — never the word `SUCCESS`. It checks both halves of all
+six exercises: the starter builds unedited, and `solution/pom.xml` produces the end state the exercise
+README promises. It time-boxes every command, asserts port 18425 is free before a server starts and
+free again after, puts back every `pom.xml` an exercise swaps and the one source file a break beat
+`sed`s, and deletes every `target/`, `effective-pom.xml`, `cp*.txt`, `es.xml` and scratch repository
+the READMEs create.
+
+**It never writes to your `~/.m2`.** Course 3 runs `install` and `deploy`, so every `mvn` the script
+runs carries a quoted `-Dmaven.repo.local=` — the one difference between it and the line printed in the
+README — and the run ends by asserting that `~/.m2/repository/com/tiffinbox` still does not exist. The
+quotes are not decoration: unquoted, a path with a space in it splits and Maven reads the tail as a
+goal. The first run downloads into cold scratch repositories and needs a network, because a green run
+has to mean the commands work rather than that this machine happened to be warm. **`mvn -o` appears only
+in pairs**: several units print an *offline receipt* ("this resolves nothing new when offline"), and the
+script proves each one by running the ordinary online `verify` into the scratch repository first and
+then the same command with `-o` in that same repository. It never runs `-o` against a repository it did
+not fill itself — that is the false green verify_course2.sh printed.
 
 Videos publish a few per day on the channel. Roadmap: Core Java → Spring Framework → Spring Boot → JPA → REST → Security → … → Spring AI.
 

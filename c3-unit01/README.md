@@ -6,6 +6,14 @@ on this Mac resolves **JDK 26.0.2.1**, and this POM's `--enable-preview` then di
 `invalid source release 25 with --enable-preview` (measured, 3/3, exit 1).
 Verified 2026-09-14 · Maven 3.9.16 · JDK 25.0.4.1 · every command run 3 times, output byte-identical.
 
+> **On the local repository.** The commands below run without `-Dmaven.repo.local`, on purpose: they only
+> `compile` and `package`, so nothing of this course is ever *installed* into your repository — the units that
+> do install (`c3-unit02`, `c3-unit04`, `c3-unit06`) carry the flag on every line, and so does this unit's
+> `exercise/`. If you would rather keep even the downloaded third-party jars out of `~/.m2`, add
+> `"-Dmaven.repo.local=${TMPDIR:-/tmp}/c3-m2"` to each command — **with the quotes**, because a path
+> containing a space is otherwise split by the shell into a bogus goal name.
+
+
 ## The five commands
 
 1. `mvn -B -q help:effective-pom -Doutput=effective-pom.xml && wc -l < effective-pom.xml && wc -l < pom.xml`

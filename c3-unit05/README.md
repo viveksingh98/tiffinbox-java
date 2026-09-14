@@ -4,6 +4,14 @@ The unit itself writes to **`../c3-tiffinbox/`** — the long-lived multi-module
 every later unit of this course builds on. Read that project's own `README.md` for the build
 command, the run command and their real output.
 
+> **On the local repository.** The commands below run without `-Dmaven.repo.local`, on purpose: they only
+> `compile` and `package`, so nothing of this course is ever *installed* into your repository — the units that
+> do install (`c3-unit02`, `c3-unit04`, `c3-unit06`) carry the flag on every line, and so does this unit's
+> `exercise/`. If you would rather keep even the downloaded third-party jars out of `~/.m2`, add
+> `"-Dmaven.repo.local=${TMPDIR:-/tmp}/c3-m2"` to each command — **with the quotes**, because a path
+> containing a space is otherwise split by the shell into a bogus goal name.
+
+
 This folder holds only what is *not* part of that project: the exercise.
 
 ```

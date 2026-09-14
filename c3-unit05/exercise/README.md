@@ -6,11 +6,17 @@ declares `jackson-databind` at `2.13.5`, while the parent's `<dependencyManageme
 
 ## Start
 
+Every `mvn` below runs against a **scratch local repository**, never your real `~/.m2` — that is the
+one flag that separates these lines from the ones that fill your own repository. **Keep the quotes:**
+this tree's path contains a space, and unquoted in bash `-Dmaven.repo.local=` splits and Maven answers
+`Unknown lifecycle phase "Content/…"`.
+
 ```bash
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
+M2="${TMPDIR:-/tmp}/c3-m2"                       # scratch repo, never your real ~/.m2
 cd c3-tiffinbox
-mvn -B clean package
-mvn -B dependency:tree -Dincludes=com.fasterxml.jackson.core
+mvn -B "-Dmaven.repo.local=$M2" clean package
+mvn -B "-Dmaven.repo.local=$M2" dependency:tree -Dincludes=com.fasterxml.jackson.core
 ls tiffinbox-web/target/lib
 ```
 
@@ -64,8 +70,8 @@ gone, and the parent decides. Copy it over and re-run:
 
 ```bash
 cp ../solution/pom.xml tiffinbox-web/pom.xml
-mvn -B clean package
-mvn -B dependency:tree -Dincludes=com.fasterxml.jackson.core
+mvn -B "-Dmaven.repo.local=$M2" clean package
+mvn -B "-Dmaven.repo.local=$M2" dependency:tree -Dincludes=com.fasterxml.jackson.core
 ls tiffinbox-web/target/lib
 ```
 

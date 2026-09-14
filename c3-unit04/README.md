@@ -68,7 +68,29 @@ Every variant is the same project; only the two lines named below differ. All 3/
 | `pom-pinned.xml` | 2.22.2 → snakeyaml 2.5 | `org.yaml:snakeyaml:[1.31]` | **SUCCESS**, exit 0, and `exec:exec` prints the routes |
 | `pom-pinned-unfixed.xml` | 2.13.5 → snakeyaml 1.31 | `org.yaml:snakeyaml:[1.31]` | **FAILURE**, exit 1 — the bracket still catches the real thing |
 | `pom-excluded.xml` | 2.13.5 + `<exclusions>` + hand-declared snakeyaml 2.5 | `org.yaml:snakeyaml:[1.31]` | **SUCCESS**, exit 0 — **and the program dies at run time**, exit 1, `NoSuchMethodError: org.yaml.snakeyaml.parser.ParserImpl.<init>(StreamReader)` (md5 `415d8b232bcdb0ccbf032b84bc307935`). The 2.13.5 module was compiled against SnakeYAML 1.x. Upgrade the library, do not bolt a new jar under the old one. |
-| `pom-warnonly.xml` | 2.13.5 → snakeyaml 1.31 | `<level>WARN</level>` inside the rule | **SUCCESS**, exit 0, message printed as `[WARNING]` (md5 `629ec74c817358581d7919faaf22dab0`) |
+| `pom-warnonly.xml` | 2.13.5 → snakeyaml 1.31 | `<level>WARN</level>` inside the rule | **SUCCESS**, exit 0. Only the **header line** is prefixed — `[WARNING] Rule 0: …BannedDependencies warned with message:` — and the message sentence and the three-line path trace under it print **unprefixed**, where the failing run prefixes *every* one of those lines `[ERROR]`. The whole build therefore holds exactly **one** `^\[WARNING\]` line and **zero** `^\[ERROR\]` lines (md5 `629ec74c817358581d7919faaf22dab0`) |
+
+Side by side, the same rule failing and warning — note where the prefix stops:
+
+```
+$ mvn -B -f pom.xml clean package                  # <level>ERROR</level>, the default
+[ERROR] Rule 0: org.apache.maven.enforcer.rules.dependency.BannedDependencies failed with message:
+[ERROR] snakeyaml 1.31 is CVE-2022-1471. Exclude it and declare a current one.
+[ERROR] com.tiffinbox:c3-unit04-enforcer:jar:1.0.0
+[ERROR]    com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:jar:2.13.5
+[ERROR]       org.yaml:snakeyaml:jar:1.31 <--- banned via the exclude/include list
+
+$ mvn -B -f pom-warnonly.xml clean package         # <level>WARN</level>
+[WARNING] Rule 0: org.apache.maven.enforcer.rules.dependency.BannedDependencies warned with message:
+snakeyaml 1.31 is CVE-2022-1471. Exclude it and declare a current one.
+com.tiffinbox:c3-unit04-enforcer:jar:1.0.0
+   com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:jar:2.13.5
+      org.yaml:snakeyaml:jar:1.31 <--- banned via the exclude/include list
+```
+
+`grep -c '^\[WARNING\]'` over that whole build prints **1** — the rule fired once and told you five lines'
+worth, four of which no line-prefix filter will ever see. If you count warn-only rules by grepping for the
+prefix, you count the rules, never what they said.
 
 `<fail>false</fail>` is a parameter of the **`enforce` goal**, not of a rule: put it beside `<rules>` and every
 rule in that execution warns instead of failing. Inside `<bannedDependencies>` it is a hard error —
@@ -121,7 +143,9 @@ tail as a goal name and the build fails for a reason that has nothing to do with
 
 ### Offline receipt
 
-After one warm build, with `$M2` still set from above — drop the flag and these read your real `~/.m2`:
+After one warm build, with `$M2` still set from above. **Every line below keeps the flag** — that is
+what makes it a receipt for `$M2` and not for your real repository. Drop `-Dmaven.repo.local="$M2"` and
+the same four commands read, and fill, your real `~/.m2` instead:
 
 ```
 enforcer  (pom-pinned.xml)   mvn -o -B "-Dmaven.repo.local=$M2" verify  ->  BUILD SUCCESS   exit 0

@@ -2,9 +2,14 @@
 
 ## Start here
 
+The unit's rule holds here too: every `mvn` below carries `-Dmaven.repo.local`, so this exercise builds into
+`c3-unit04/.m2-unit04` — the same scratch repository the rest of the unit used — and never your real `~/.m2`.
+**Keep the quotes:** this tree's path contains a space.
+
 ```bash
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
-mvn -B clean package
+M2="$PWD/../.m2-unit04"                          # the unit's scratch repo, never your real ~/.m2
+mvn -B "-Dmaven.repo.local=$M2" clean package
 ls target/lib
 java --enable-preview -Djava.util.logging.config.file=logging.properties -jar target/c2-capstone-1.0.0.jar
 ```
@@ -28,7 +33,7 @@ never written, and the build did not say a word.
 Count the goal lines before and after — that number is the whole exercise:
 
 ```bash
-mvn -B clean package | grep -c '^\[INFO\] --- '
+mvn -B "-Dmaven.repo.local=$M2" clean package | grep -c '^\[INFO\] --- '
 ```
 
 ## The end state
@@ -54,7 +59,7 @@ Stop it with `curl -s -X POST http://127.0.0.1:18425/shutdown`.
 
 ```bash
 cp solution/pom.xml pom.xml
-mvn -B clean package
+mvn -B "-Dmaven.repo.local=$M2" clean package
 ```
 
 Run by the author on JDK 25.0.4.1 / Maven 3.9.16, **3 times, byte-identical**, md5

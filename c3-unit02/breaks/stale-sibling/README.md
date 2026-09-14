@@ -17,9 +17,19 @@ mvn -B clean package -pl tiffinbox-kitchen -Dmaven.repo.local="$PWD/.m2-demo"
          7: bipush        60
 ```
 
-Line 1 is the source. Line 2 is the build's verdict. Line 3 is the kitchen's **compile classpath**
-(`mvn -B -q dependency:build-classpath -pl tiffinbox-kitchen -Dmdep.outputFile=cp.txt`) — the installed jar,
-not the sibling's `target/classes`. Line 4 is `javap -c -p` on that jar: it still says **60**.
+Line 1 is the source. Line 2 is the build's verdict. Line 3 is the kitchen's **compile classpath** — the
+installed jar, not the sibling's `target/classes`. Line 4 is `javap -c -p` on that jar: it still says **60**.
+
+Line 3 comes from `dependency:build-classpath`. **`-Dmdep.outputFile` is relative to the module the goal
+ran in, not to the directory you typed the command in**, so with `-pl tiffinbox-kitchen` the file lands in
+`tiffinbox-kitchen/cp.txt`; a `cat cp.txt` from `c3-unit02/` answers `No such file or directory`. From
+`c3-unit02/`:
+
+```
+mvn -B -q dependency:build-classpath -pl tiffinbox-kitchen -Dmdep.outputFile=cp.txt \
+    -Dmaven.repo.local="$PWD/.m2-demo"
+cat tiffinbox-kitchen/cp.txt          # not cp.txt — the goal wrote it inside the module
+```
 
 Green build, wrong input, no warning. Add `-am` and the same command rebuilds the sibling from source:
 
