@@ -61,6 +61,10 @@ echo "java:  $(java -version 2>&1 | head -1)"
 if command -v mvn >/dev/null 2>&1; then echo "maven: $(mvn -v 2>/dev/null | head -1)"; else echo "maven: ${YELLOW}not found — Maven units will be skipped${OFF}"; fi
 echo
 
+# Kill a process and every descendant it spawned (children enumerated first,
+# so reparenting cannot lose them).
+kill_tree() { local p="$1" c; for c in $(pgrep -P "$p" 2>/dev/null); do kill_tree "$c"; done; kill -9 "$p" 2>/dev/null; }
+
 # Run a command with a wall-clock timeout (macOS has no coreutils `timeout`).
 run_with_timeout() {
   local secs="$1" dir="$2" cmd="$3" pid waited rc
@@ -69,7 +73,7 @@ run_with_timeout() {
   waited=0
   while kill -0 "$pid" 2>/dev/null; do
     if [ "$waited" -ge "$((secs * 10))" ]; then
-      kill -9 "$pid" 2>/dev/null
+      kill_tree "$pid"
       wait "$pid" 2>/dev/null
       echo "[timed out after ${secs}s]" >>"$TMPOUT"
       return 124
