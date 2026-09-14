@@ -23,6 +23,7 @@
 # ---------------------------------------------------------------------------
 set -u
 cd "$(dirname "$0")" || exit 2
+SELF="$(basename "$0")"
 
 # JDK 25: honour an existing JAVA_HOME, else use the Homebrew location.
 if [ -z "${JAVA_HOME:-}" ] && [ -x /opt/homebrew/opt/openjdk@25/bin/java ]; then
@@ -36,6 +37,18 @@ command -v java >/dev/null 2>&1 || { echo "no java on PATH — install JDK 25"; 
 
 TIMEOUT_SECS="${TIMEOUT_SECS:-180}"
 ONLY="$*"
+if [ -n "$ONLY" ]; then
+  KNOWN_UNITS="$(awk '/^begin_unit /{print $2}' "$SELF")"
+  BAD=""
+  for u in $ONLY; do
+    printf '%s\n' "$KNOWN_UNITS" | grep -qxF "$u" || BAD="$BAD $u"
+  done
+  if [ -n "$BAD" ]; then
+    echo "unknown unit(s):$BAD"
+    echo "valid: $(printf '%s ' $KNOWN_UNITS)"
+    exit 2
+  fi
+fi
 TMPOUT="$(mktemp -t course1out)"
 trap 'rm -f "$TMPOUT"' EXIT
 
