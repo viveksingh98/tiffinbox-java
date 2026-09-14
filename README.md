@@ -53,9 +53,18 @@ java Hello.java
 | 37 | TiffinBox Console App: The Design (→ capstone/) | `unit37/` |
 | 38 | TiffinBox: Build It (→ capstone/) | `unit38/` |
 | 39 | What's Next: Spring Boot, AI Agents and Your Java Path | `unit39/` |
+| 40 | Recursion, Varargs and Two-Dimensional Arrays | `unit40/` |
+| 41 | Numbers You Can Trust: Ranges, Overflow, Math and Random | `unit41/` |
+| 42 | Text, Properly: char, the Methods You'll Type Daily, and printf | `unit42/` |
+| 43 | Talking to the User: Scanner, args, and a Program That Answers Back | `unit43/` |
+| 44 | Comments, Javadoc, and How to Read the Java Docs | `unit44/` |
+| 45 | The Keywords We Skipped: protected, final, static Interface Methods, Nested Classes | `unit45/` |
+| 46 | You're On Your Own Now: Practice, Errors and Asking for Help | `unit46/` |
 
-All 39 Java Fundamentals units are here; the finished app is in `capstone/`.
+All 46 Java Fundamentals units, across 9 sections, are here; the finished app is in `capstone/`.
 **Every folder's README states what the unit teaches, the exact command for each file (with flags) and the real output it prints**; files that fail or give the wrong answer on purpose are labelled with the error you should see.
+
+**Section 9 (units 40-46) ships an exercise with every unit** — that is the thing that makes this section more than a code dump. Each `unitNN/exercise/` holds a **starter** that compiles and runs unedited (stubbed answers behind `// TODO`s), the **worked solution** beside it, and an `exercise/README.md` giving the task, the exact run commands, the acceptance output byte for byte, the traps the exercise is built on and what every file in the folder is. Unit 46's starter is the debugging exercise, so it is meant to crash until you fix it. `verify_course1.sh` checks both halves of all seven.
 
 Course 1 needs **JDK 25**, plus Apache Maven 3.9.x for units 34, 35, 37, 38 and the capstone:
 
@@ -66,7 +75,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ./verify_course1.sh unit05 unit26  # just those folders
 ```
 
-`verify_course1.sh` time-boxes every command, asserts that the break-it-on-purpose files really fail with the right message, cleans up the files and class trees the examples create, and exits non-zero if anything is off.
+`verify_course1.sh` time-boxes every command, asserts that the break-it-on-purpose files really fail with the right message, checks every Section 9 exercise (the starter runs unedited; the worked solution prints its acceptance block byte for byte), cleans up the files, class trees and `javadoc` sites the examples create, and exits non-zero if anything is off. Unit 44's `javadoc` runs offline — there is no `-link` flag anywhere in this repo.
 
 ## Course 2 — Core Java II: Under the Hood
 Code for that course lives in `c2-unitNN/` folders (JVM memory, GC, generics, concurrency, I/O, modules, JDBC), and the finished service in `c2-capstone/`.

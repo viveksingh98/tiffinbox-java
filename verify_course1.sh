@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# verify_course1.sh — Course 1 (Java Fundamentals), units 01-39 + capstone.
+# verify_course1.sh — Course 1 (Java Fundamentals), units 01-46 + capstone.
 #
 # Walks every unit folder, runs every command printed in that unit's README,
 # and checks the result:
@@ -8,6 +8,10 @@
 #   * "supposed to fail" files must exit non-zero and print the expected error
 #   * "supposed to be wrong"   files must exit 0 and print the wrong-but-expected
 #                              answer that the lesson is about
+#
+# Section 9 (units 40-46) also ships an exercise per unit: the starter must
+# compile and run unedited, and the worked solution must print the acceptance
+# block from that unit's exercise/README.md byte for byte.
 #
 # Usage:   ./verify_course1.sh              # everything
 #          ./verify_course1.sh unit05 unit26  # only those folders
@@ -76,7 +80,10 @@ pre() { [ -n "$ONLY" ] && ! printf '%s\n' $ONLY | grep -qx "$UNIT" && return 0
         [ "$UNIT_SKIP" = 1 ] && return 0
         ( cd "$UNIT" && eval "$1" ) >/dev/null 2>&1; return 0; }
 
-# step <ok|fail|wrong> <subdir> <expected text> <command>
+# step <ok|fail|wrong|exact> <subdir> <expected text> <command>
+#   ok / wrong / fail : the expected text must appear somewhere in the output
+#   exact             : the output must BE the expected text, byte for byte
+#                       (the acceptance blocks of the Section 9 exercises)
 step() {
   local kind="$1" sub="$2" expect="$3" cmd="$4" rc out label
   if [ -n "$ONLY" ] && ! printf '%s\n' $ONLY | grep -qx "$UNIT"; then return 0; fi
@@ -96,6 +103,14 @@ step() {
     if [ "$rc" -ne 0 ]; then
       UNIT_FAILS=$((UNIT_FAILS + 1)); echo "  ${RED}x${OFF} $label — exit $rc"; echo "$out" | tail -6 | sed 's/^/      /'; return 0
     fi
+  fi
+  if [ "$kind" = exact ]; then
+    if [ "$out" != "$expect" ]; then
+      UNIT_FAILS=$((UNIT_FAILS + 1))
+      echo "  ${RED}x${OFF} $label — output is not the acceptance block, byte for byte"
+      diff <(printf '%s\n' "$expect") <(printf '%s\n' "$out") | sed 's/^/      /'
+    fi
+    return 0
   fi
   case "$out" in
     *"$expect"*) : ;;
@@ -431,6 +446,207 @@ step ok . tiffinbox-1.0.jar 'mvn -q package && ls target/tiffinbox-1.0.jar'
 step ok . 'Total revenue: 15300' 'printf '"'"'1\n3\n5\n'"'"' | java -jar target/tiffinbox-1.0.jar'
 step ok . 'paused 7 days' 'printf '"'"'2\nPriya\n2\ny\n\n4\nRavi\n14/09/2026\n20/09/2026\n3\n5\n'"'"' | java -jar target/tiffinbox-1.0.jar'
 post 'git checkout -- customers.csv 2>/dev/null || true'
+end_unit
+
+
+# ===========================================================================
+# Section 9 — units 40-46. Every unit here also ships exercise/: a starter that
+# must compile and run unedited, and a worked solution whose output must match
+# the acceptance block of that unit's exercise/README.md byte for byte.
+# ===========================================================================
+
+# --- unit40: Recursion, Varargs and Two-Dimensional Arrays
+begin_unit unit40
+step ok    . 'Family lunch costs 270' 'java Combo.java'
+step ok    . '<- 270' 'java ComboTrace.java'
+step ok    . 'bean curry in the lunch?  true' 'java Contains.java'
+step fail  . 'java.lang.StackOverflowError' 'java BreakBaseCase.java'
+step ok    . 1019 'java BreakBaseCase.java 2>&1 | grep -c "BreakBaseCase.daysLeft(BreakBaseCase.java:5)"'
+step ok    . 'Recursion: 30' 'java DaysLeft.java'
+step fail  . 'java.lang.StackOverflowError' 'java NoTailCalls.java'
+step ok    . 1019 'java NoTailCalls.java 2>&1 | grep -c "NoTailCalls.countDown(NoTailCalls.java:"'
+step ok    . '5 bills [7200, 4500, 3600, 7200, 5520] -> 28020' 'java Varargs.java'
+step fail  . 'varargs parameter must be the last parameter' 'java BreakVarargs.java'
+step ok    . 'Week total: veg 288, non-veg 91' 'java WeekGrid.java'
+step ok    . 'deepToString: [[40, 12], [38, 10], [42, 14], [41, 9], [45, 18], [52, 22], [30, 6]]' 'java FlatVsDeep.java'
+step ok    . 'toString    : [[I@' 'java FlatVsDeepWarm.java'
+step ok    . 'First busy slot: Wed' 'java Labels.java'
+step ok    . 'binarySearch(sorted, 50)  : 4' 'java ArraysToolkit.java'
+step ok    exercise 'Busiest day     : ?' 'java PartyBoxStarter.java'
+step exact exercise 'Meals in the box: 3
+Nesting depth   : 3
+Cheapest of 120, 60, 90: 60
+Cheapest of nothing    : 0
+Busiest day     : Sat (74 meals)
+Grid            : [[40, 12], [38, 10], [42, 14], [41, 9], [45, 18], [52, 22], [30, 6]]' 'java PartyBox.java'
+end_unit
+
+# --- unit41: Numbers You Can Trust: Ranges, Overflow, Math and Random
+begin_unit unit41
+step ok    . 'int  total paise: -1796567296' 'java Overflow.java'
+step ok    . 'long      64    -9223372036854775808  9223372036854775807' 'java Ranges.java'
+step fail  . 'integer number too large' 'java BreakLiteral.java'
+step ok    . '0.1 + 0.2         = 0.30000000000000004' 'java Doubles.java'
+step ok    . 'Math.rint(-2.5)  = -2.0' 'java Rounding.java'
+step ok    . 'multiplyExact throws  : integer overflow' 'java MathTools.java'
+step ok    . 'Dice: 3' 'java SeededRandom.java'
+step ok    . 'Dice roll:' 'java Unseeded.java'
+step ok    exercise 'Yearly paise (int would break): 0' 'java TillStarter.java'
+step exact exercise 'Yearly paise (int would break): 29980800000
+int would have given         : -83971072
+4.35 rupees in paise, wrong  : 434
+4.35 rupees in paise, right  : 435
+Skipped, raw                 : 23.333333333333332
+Skipped, for Asha            : 23.3%
+Skipped, rounded to a whole  : 23
+Meal of day 1            : lentil rice
+Meal of day 2            : cottage cheese curry
+Meal of day 3            : combo plate' 'java Till.java'
+end_unit
+
+# --- unit42: Text, Properly: char, the Methods You'll Type Daily, and printf
+begin_unit unit42
+step ok    . 'Digits found: 9 of 10' 'java Chars.java'
+step ok    . 'strip [Ravi] length 4' 'java TextToolkit.java'
+step ok    . 'TOTAL                   22500' 'java -Duser.language=en -Duser.country=US Printf.java'
+step ok    . 'Ravi owes 7200 rupees (32.0% of revenue)' 'java -Duser.language=en -Duser.country=US Conversions.java'
+step ok    . 'Ravi owes 7200 rupees (32,0% of revenue)' 'java -Duser.language=de -Duser.country=DE Conversions.java'
+step fail  . 'IllegalFormatConversionException: d != java.lang.Double' 'java BreakFormat.java'
+step fail  . 'StringIndexOutOfBoundsException: Index 20 out of bounds for length 5' 'java BreakCharAt.java'
+step ok    . 'codePointCount(): 7' 'java Emoji.java'
+step ok    . '%n bytes: 11 [82, 97, 118, 105, 13, 10, 77, 101, 101, 114, 97]' 'java -Dline.separator=$'"'"'\r\n'"'"' Emoji.java'
+step ok    exercise '?        9876543210     false  0' 'java SignUpFormStarter.java'
+step exact exercise 'NAME     PHONE          OK     VOWELS
+--------------------------------------
+Meera    9876543210     true   3
+Ravi     98765 43210    false  2
+Guest    98765x4321     false  2
+Priya    0123456789     true   2
+All names: Meera, Ravi, Guest, Priya' 'java SignUpForm.java'
+end_unit
+
+# --- unit43: Talking to the User: Scanner, args, and a Program That Answers Back
+begin_unit unit43
+step ok    . 'Customer name: Meals per day: Welcome Priya - 2 meals a day, 7200 a month.' 'printf '"'"'Priya\n2\n'"'"' | java SignUp.java'
+step wrong . 'Welcome [] - 2 meals a day.' 'printf '"'"'2\nPriya\n'"'"' | java BreakScanner.java'
+step ok    . 'Welcome [Priya] - 2 meals a day.' 'printf '"'"'2\nPriya\n'"'"' | java FixScanner.java'
+step ok    . 'nextBoolean() left: [true] rest of that line: []' 'printf '"'"'VEG\n2.5\ntrue\n'"'"' | java NextVariants.java'
+step fail  . 'NoSuchElementException: No line found' 'printf '"'"''"'"' | java BreakClosed.java'
+step ok    . '(no input - closing TiffinBox)' 'printf '"'"''"'"' | java Guard.java'
+step ok    . 'Customer name: Welcome Priya' 'printf '"'"'Priya\n'"'"' | java Guard.java'
+step ok    . 'hasNextLine now       : false' 'printf '"'"'\n'"'"' | java Blank.java'
+step ok    . 'Customer name: Meals per day: Welcome Priya - 2 meals a day, 7200 a month.' 'printf '"'"'Priya\n2\n'"'"' | java Readln.java'
+step fail  . 'NumberFormatException: Cannot parse null string' 'printf '"'"''"'"' | java Readln.java'
+step ok    . 'name == null ? true' 'printf '"'"''"'"' | java ReadlnNull.java'
+step ok    . 'public static java.lang.String readln(java.lang.String);' 'javap java.lang.IO'
+step ok    . 'Ravi owes 7200 this month.' 'java Bill.java Ravi 2 120'
+step fail  . 'NumberFormatException: For input string: "two"' 'java Bill.java Ravi two 120'
+step ok    . 'Usage: java Bill.java <name> <mealsPerDay> <pricePerMeal>' 'java Bill.java'
+step fail  . 'ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0' 'java BreakArgs.java'
+step fail  . 'symbol:   class Scanner' 'java Classic.java'
+step ok    . 'Welcome Priya' 'printf '"'"'Priya\n'"'"' | java ClassicFixed.java'
+step ok    exercise 'Usage: java SignUpStarter.java <name> <mealsPerDay> <pricePerMeal>' 'java SignUpStarter.java Priya 2 120'
+step ok    exercise 'Usage: java SignUpStarter.java <name> <mealsPerDay> <pricePerMeal>' 'printf '"'"'Priya\n2\n120\n'"'"' | java SignUpStarter.java'
+step exact exercise 'Welcome Priya - 2 meals a day, 7200 a month.' 'java SignUp.java Priya 2 120'
+step exact exercise 'Customer name: Meals per day (1-3): Price per meal: Welcome Priya - 2 meals a day, 7200 a month.' 'printf '"'"'Priya\n2\n120\n'"'"' | java SignUp.java'
+step exact exercise 'Customer name: (input closed - nothing saved)' 'printf '"'"''"'"' | java SignUp.java'
+step exact exercise 'Error: not a number - For input string: "two"' 'java SignUp.java Priya two 120'
+step exact exercise 'Error: meals a day must be 1 to 3, got 9' 'java SignUp.java Priya 9 120'
+step exact exercise 'Usage: java SignUp.java <name> <mealsPerDay> <pricePerMeal>' 'java SignUp.java Priya'
+end_unit
+
+# --- unit44: Comments, Javadoc, and How to Read the Java Docs
+# javadoc runs OFFLINE here: there is no -link flag anywhere, so nothing reaches
+# the network. Every docs/ tree it writes is removed again by the post below.
+begin_unit unit44
+pre 'rm -rf docs brokendocs slipdocs compact/docs compact/out exercise/docs exercise/out exercise/starter/docs exercise/starter/out'
+step ok    . 'Ravi owes 7200' 'java Bill.java'
+step ok    . 'Generating docs/com/tiffinbox/Customer.html...' 'rm -rf docs && javadoc -d docs src/main/java/com/tiffinbox/Customer.java'
+step ok    . 61 'find docs -type f | wc -l'
+step ok    . 'warning: no @param for customer' 'rm -rf brokendocs && javadoc -d brokendocs broken/com/tiffinbox/Order.java'
+step fail  . 'error: @param name not found' 'rm -rf slipdocs && javadoc -d slipdocs broken/com/tiffinbox/Slip.java'
+step fail  . 'StringIndexOutOfBoundsException: Range [14, 8) out of bounds for length 20' 'java Substring.java'
+step ok    . 'caught as IndexOutOfBoundsException: java.lang.StringIndexOutOfBoundsException' 'java CatchParent.java'
+step ok    . 'extends java.lang.IndexOutOfBoundsException' 'javap java.lang.StringIndexOutOfBoundsException'
+step ok    deprecated 'has been deprecated and marked for removal' 'java MenuApp.java'
+step ok    deprecated 'Menu: lentil rice, bean curry' 'java SameFile.java'
+step ok    compact 3600 'java Quick.java'
+step ok    compact 'Generating docs/Quick.Billing.html...' 'rm -rf docs && javadoc -d docs Quick.java'
+step ok    compact '<title>Unnamed Package</title>' 'grep -o "<title>[^<]*</title>" docs/package-summary.html'
+step ok    compact 'public class Quick$Billing {' 'rm -rf out && javac -d out Quick.java && javap -p -cp out '"'"'Quick$Billing'"'"''
+step ok    exercise/starter 'Math.abs(Integer.MIN_VALUE): 0' 'rm -rf out && javac -d out src/com/tiffinbox/Pause.java && java -cp out PauseDemo.java'
+step ok    exercise/starter '5 warnings' 'rm -rf docs && javadoc -d docs src/com/tiffinbox/Pause.java'
+step exact exercise 'Ravi paused 7 days (14 to 20)
+Days: 7
+Math.abs(Integer.MIN_VALUE): -2147483648
+Caught, exactly as the Javadoc promised: pause ends before it starts: 20 to 14' 'rm -rf out && javac -d out src/com/tiffinbox/Pause.java && java -cp out PauseDemo.java'
+step ok    exercise 'zero warnings' 'rm -rf docs && javadoc -d docs src/com/tiffinbox/Pause.java 2>&1 | grep -q "warning" || echo "zero warnings"'
+step ok    exercise 61 'find docs -type f | wc -l'
+post 'rm -rf docs brokendocs slipdocs compact/docs compact/out exercise/docs exercise/out exercise/starter/docs exercise/starter/out'
+end_unit
+
+# --- unit45: The Keywords We Skipped: protected, final, static Interface Methods, Nested Classes
+begin_unit unit45
+pre 'rm -rf out packages/out break-package-private/out'
+step ok    packages 'VeganMeal 130' 'javac -d out src/com/tiffinbox/menu/Meal.java src/com/tiffinbox/special/VeganMeal.java src/com/tiffinbox/app/Main.java && java -cp out com.tiffinbox.app.Main'
+step fail  packages 'basePrice has protected access in Meal' 'javac -d out src/com/tiffinbox/menu/Meal.java src/com/tiffinbox/special/VeganMeal.java src/com/tiffinbox/special/Peek.java'
+step fail  packages 'packedToday is not public in Meal; cannot be accessed from outside package' 'javac -d out src/com/tiffinbox/menu/Meal.java src/com/tiffinbox/app/Stock.java'
+step fail  break-package-private 'basePrice is not public in Meal; cannot be accessed from outside package' 'javac -d out src/com/tiffinbox/menu/Meal.java src/com/tiffinbox/special/VeganMeal.java'
+step ok    . 'deliveryFee() is final: true' 'java FinalProof.java'
+step fail  . 'cannot inherit from final String' 'java BreakFinalClass.java'
+step fail  . 'overridden method is final' 'java BreakFinalMethod.java'
+step ok    . 'public final class java.lang.IO' 'javap java.lang.IO'
+step ok    . 'Payable.of made a: Interfaces$Payable$1' 'java Interfaces.java'
+step ok    . 'Receipt is tied to one    : Customer$Receipt' 'javac -d out Customer.java && java -cp out Customer'
+step ok    . 'public Customer$Builder mealsPerDay(int);' 'javap -p -cp out '"'"'Customer$Builder'"'"''
+step ok    . 'final Customer this$0;' 'javap -p -cp out '"'"'Customer$Receipt'"'"''
+step fail  . 'an enclosing instance that contains Customer.Receipt is required' 'java -cp out BreakInner.java'
+step ok    . 'Marked name    : ImplicitNesting$Marked' 'java ImplicitNesting.java'
+step ok    . 'ImplicitNesting$Plain(ImplicitNesting);' 'javac -d out ImplicitNesting.java && javap -p -cp out '"'"'ImplicitNesting$Plain'"'"''
+step ok    . 'ImplicitNesting$Marked();' 'javap -p -cp out '"'"'ImplicitNesting$Marked'"'"''
+step ok    . 'class name: Anon$1' 'java Anon.java'
+step ok    exercise 'Payable.of returns: KitchenStarter$Placeholder' 'java KitchenStarter.java'
+step exact exercise 'DUE       Ravi       7200
+REMINDER  Sunil      8800
+Vegan meal price: 140 (delivery 20)
+Priya | 7200 | paid by UPI
+Guest | 0 | -
+VeganMeal is final: true
+Payable.of returns: Kitchen$Payable$1' 'java Kitchen.java'
+post 'rm -rf out packages/out break-package-private/out'
+end_unit
+
+# --- unit46: You're On Your Own Now: Practice, Errors and Asking for Help
+begin_unit unit46
+step fail  . 'because "<local1>" is null' 'java Report.java'
+step fail  . 'because "amount" is null' 'javac -g -d outg Report.java && java -cp outg Report'
+step fail  . 'because "<local1>" is null' 'javac -d outn Report.java && java -cp outn Report'
+step exact . 'Ravi owes 7200
+Priya owes 0' 'java ReportFixed.java'
+step fail  . 'symbol:   variable mealsperday' 'java E1CannotFindSymbol.java'
+step fail  . 'symbol:   class HashMap' 'java BillsNoImport.java'
+step fail  . 'incompatible types: String cannot be converted to int' 'java E2IncompatibleTypes.java'
+step fail  . 'Index 7 out of bounds for length 7' 'java E3IndexOutOfBounds.java'
+step fail  . 'at PauseReport$PauseBook.unpause(PauseReport.java:14)' 'java PauseReport.java'
+step wrong . '[1, 2, 4, 5]' 'java Shrink.java'
+step ok    . '[1, 3, 4, 5]' 'java ShrinkFixed.java'
+step ok    . '[unpause] after remove list=[1, 2, 4, 5]' 'java Trace.java'
+step fail  . 'symbol:   method capitalize()' 'java BreakHallucination.java'
+step ok    . Meera 'java Capitalise.java'
+# This unit's starter is the debugging exercise, so it is SUPPOSED to exit
+# non-zero: assert the documented starting output, two lines then the NPE.
+step fail  exercise 'Meera: 1
+Sunil: 1
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "java.lang.Integer.intValue()" because the return value of "java.util.HashMap.get(Object)" is null
+	at DayReportStarter.main(DayReportStarter.java:21)' 'java DayReportStarter.java'
+step fail  exercise 'at DayReportBroken.main(DayReportBroken.java:11)' 'java DayReportBroken.java'
+step fail  exercise 'at Repro46.main(Repro46.java:3)' 'java Repro46.java'
+step exact exercise 'Ravi: 2
+Meera: 1
+Sunil: 1
+Priya: 0  (not subscribed today)
+Meals to cook today: 4' 'java DayReport.java'
+post 'rm -rf outg outn'
 end_unit
 
 
