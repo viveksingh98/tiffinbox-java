@@ -5,9 +5,11 @@ void main() throws InterruptedException {
     CountDownLatch aboutToReach = new CountDownLatch(1);
 
     Runnable shift = () -> {
-        try { Thread.sleep(300); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-        aboutToReach.countDown();
-        synchronized (orderCounter) { }
+        try {
+            Thread.sleep(300);                 // TIMED_WAITING
+            aboutToReach.countDown();
+            synchronized (orderCounter) { }    // BLOCKED: main holds it
+        } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
     };
     Thread cook = Thread.ofPlatform().name("cook").unstarted(shift);
 

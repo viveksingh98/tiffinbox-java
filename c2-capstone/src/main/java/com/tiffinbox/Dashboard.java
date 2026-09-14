@@ -3,10 +3,15 @@ package com.tiffinbox;
 import java.util.List;
 import java.util.concurrent.StructuredTaskScope;
 import java.util.concurrent.StructuredTaskScope.Joiner;
+import java.util.concurrent.StructuredTaskScope.Subtask;
 
 /**
- * Unit 17: three reads, forked together, joined in the block that started them.
- * PREVIEW in JDK 25 (JEP 505) — the whole project compiles and runs with --enable-preview.
+ * Structured concurrency: three reads, forked together, joined in the block that
+ * started them. PREVIEW in JDK 25 (JEP 505) — the project compiles and runs with
+ * --enable-preview.
+ *
+ * awaitAllSuccessfulOrThrow is the joiner that wants no result of its own, so each
+ * Subtask keeps the type fork() gave it: no cast, no @SuppressWarnings anywhere.
  */
 public final class Dashboard {
 
@@ -18,16 +23,13 @@ public final class Dashboard {
         this.repo = repo;
     }
 
-    @SuppressWarnings("preview")
     public View load() throws Exception {
         try (var scope = StructuredTaskScope.open(Joiner.<Object>awaitAllSuccessfulOrThrow())) {
-            var customers = scope.fork(repo::findAll);
-            var revenue = scope.fork(repo::monthRevenue);
-            var paused = scope.fork(repo::pausedDays);
+            Subtask<List<Customer>> customers = scope.fork(repo::findAll);
+            Subtask<Integer> revenue = scope.fork(repo::monthRevenue);
+            Subtask<Integer> paused = scope.fork(repo::pausedDays);
             scope.join();                       // all three, or an exception — never a leak
-            @SuppressWarnings("unchecked")
-            var list = (List<Customer>) customers.get();
-            return new View(list, (Integer) revenue.get(), (Integer) paused.get());
+            return new View(customers.get(), revenue.get(), paused.get());
         }
     }
 }

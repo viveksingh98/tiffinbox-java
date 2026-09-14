@@ -44,6 +44,41 @@
           </compilerArgs>
         </configuration>
       </plugin>
+
+      <!-- Main-Class + Class-Path in the manifest: the jar is runnable, not just built -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.5.0</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>com.tiffinbox.TiffinBoxServer</mainClass>
+              <addClasspath>true</addClasspath>
+              <classpathPrefix>lib/</classpathPrefix>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+
+      <!-- the two dependencies land in target/lib, where the manifest Class-Path points -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.11.0</version>
+        <executions>
+          <execution>
+            <id>copy-libs</id>
+            <phase>prepare-package</phase>
+            <goals><goal>copy-dependencies</goal></goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/lib</outputDirectory>
+              <includeScope>runtime</includeScope>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
       <!-- exec:exec forks a real JVM, so the preview flag actually reaches it -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -53,6 +88,7 @@
           <executable>java</executable>
           <arguments>
             <argument>--enable-preview</argument>
+            <argument>-Djava.util.logging.config.file=logging.properties</argument>
             <argument>-classpath</argument>
             <classpath/>
             <argument>com.tiffinbox.TiffinBoxServer</argument>
