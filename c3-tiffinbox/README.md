@@ -246,14 +246,18 @@ picture** — prints one `[WARNING]` above the tree and then `BUILD SUCCESS`, ex
 [INFO] com.tiffinbox:tiffinbox-web:jar:1.0.0
 [INFO] +- com.tiffinbox:tiffinbox-core:jar:1.0.0:compile
 [INFO] \- com.fasterxml.jackson.core:jackson-databind:jar:2.22.2:compile
+[INFO]    +- com.fasterxml.jackson.core:jackson-annotations:jar:2.22:compile
+[INFO]    \- com.fasterxml.jackson.core:jackson-core:jar:2.22.2:compile
 ```
+
+Jackson's own two children are still drawn — it is `tiffinbox-core` that goes flat, taking **h2** with it.
 
 ## Building part of it
 
-| Command | Modules | Result |
+| Command | Modules *built* | Result |
 |---|---|---|
 | `mvn -B clean package` | **3** | `BUILD SUCCESS` |
-| `mvn -B clean package -pl tiffinbox-core` | **1** — *no reactor summary is printed at all* | `BUILD SUCCESS` |
+| `mvn -B clean package -pl tiffinbox-core` | **1** — *and no reactor summary is printed at all, which is why a summary-row counter reads zero here* | `BUILD SUCCESS` |
 | `mvn -B clean package -pl tiffinbox-web` | **1** | **`BUILD FAILURE`**, exit 1 |
 | `mvn -B clean package -pl tiffinbox-web -am` | **3** | `BUILD SUCCESS` |
 

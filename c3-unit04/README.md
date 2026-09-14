@@ -7,23 +7,26 @@ every one of them: units 01, 04 and 05 compile with `--enable-preview`, and a ba
 3/3**; its md5 and exit code are beside it.
 
 ```bash
-export JAVA_HOME=/opt/homebrew/opt/openjdk@25 && cd enforcer && mvn -B clean package            # 1
-export JAVA_HOME=/opt/homebrew/opt/openjdk@25 && cd enforcer && mvn -B -f pom-upgraded.xml clean package   # 2
+export JAVA_HOME=/opt/homebrew/opt/openjdk@25 && cd enforcer && mvn -B clean package | grep '^\[ERROR\]' | head -6   # 1
+export JAVA_HOME=/opt/homebrew/opt/openjdk@25 && cd enforcer && mvn -B -f pom-upgraded.xml clean package | grep '^\[ERROR\]' | head -6   # 2
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25 && cd enforcer && mvn -B -f pom-pinned.xml clean package exec:exec   # 3
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25 && cd proc && mvn -B clean install && cd menu-app && mvn -B exec:exec   # 4
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25 && cd wrongphase && mvn -B -f pom-wrongphase.xml clean package && ls target/lib   # 5
 ```
 
 ```
-1  [ERROR] Rule 0: …BannedDependencies failed with message:                exit 1  md5 7a725dfb53bec85d822f5f0cdab68f3e
+1  [ERROR] Failed to execute goal org.apache.maven.plugins:maven-enforcer-plugin:3.6.3:enforce (no-known-bad-jars) on project c3-unit04-enforcer:
+   [ERROR] Rule 0: org.apache.maven.enforcer.rules.dependency.BannedDependencies failed with message:      exit 1  md5 7a725dfb53bec85d822f5f0cdab68f3e
    [ERROR] snakeyaml 1.31 is CVE-2022-1471. Exclude it and declare a current one.
    [ERROR] com.tiffinbox:c3-unit04-enforcer:jar:1.0.0
    [ERROR]    com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:jar:2.13.5
    [ERROR]       org.yaml:snakeyaml:jar:1.31 <--- banned via the exclude/include list
 
-2  [ERROR]    com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:jar:2.22.2   exit 1  md5 fb2d7cadae32dec20e8a45c4680f5b98
+2  ... first 4 of the 6 lines are byte-identical to block 1 and elided; only these two differ ...
+   [ERROR]    com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:jar:2.22.2   exit 1  md5 fb2d7cadae32dec20e8a45c4680f5b98
    [ERROR]       org.yaml:snakeyaml:jar:2.5 <--- banned via the exclude/include list
-   (the upgrade is clean; a bare version in an enforcer pattern is the range [1.31,) and bans 2.5 too)
+   (the hash is over all six lines, as printed by the filter above; the upgrade is clean, and
+    a bare version in an enforcer pattern is the range [1.31,) so it bans 2.5 too)
 
 3  [INFO] BUILD SUCCESS                                                    exit 0  md5 51cd33e10da4fc4c8df4046da8579a11
    routes : 2                                                              exit 0  md5 969d38271734d46f18df708776b6a1aa

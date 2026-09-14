@@ -43,8 +43,8 @@ daily total       : 375
 ```
 
 `modules=` counts the rows of the **Reactor Summary**, not the word `BUILD SUCCESS`. A single-module build
-prints no Reactor Summary at all, which is why the two one-module rows read `modules=0`: *the absence of the
-block is the count.* Never read `BUILD SUCCESS` as evidence that a selector did what you meant.
+prints no Reactor Summary at all, which is why all three one-module rows read `modules=0` — the one that passed and the two that failed:
+*the absence of the block is the count.* Never read `BUILD SUCCESS` as evidence that a selector did what you meant.
 
 `.m2-demo/` is an isolated local repository created on the first run so that `-pl` without `-am` genuinely
 cannot find its sibling. It is not committed. Your real `~/.m2` is never written to by anything here —
