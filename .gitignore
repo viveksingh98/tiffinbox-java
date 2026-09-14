@@ -82,3 +82,22 @@ dist/
 dmgout/
 dist/TiffinBox.app/
 *.dmg
+
+# ---------------------------------------------------------------- Course 3 ---
+# Produced by a command in a c3-unitNN/README.md, and machine-specific, so the
+# `git add c3-*` that first commits Course 3 must not sweep them in.
+# `target/` (incl. c3-unit06's target/team-repo) is covered at the top of this
+# file; `.m2-demo/` and `.m2-unit06/` by c3-unit02/.gitignore + c3-unit06/.gitignore.
+# Scoped to their units, like the c2-unit24 block above, and kept here even
+# where a per-unit .gitignore repeats them: same second net as Course 2.
+
+# c3-unit01 README cmd 1: help:effective-pom -Doutput=effective-pom.xml
+c3-unit01/effective-pom.xml
+
+# c3-unit03 README cmd 5: dependency:build-classpath -Dmdep.outputFile=cp-$s.txt
+# (absolute paths into whichever local repository resolved the jars)
+c3-unit03/scopes/cp-*.txt
+
+# c3-unit06 README cmd 1: help:effective-settings -Doutput=es.xml
+# (its own README: "the file's header comment names your user and host")
+c3-unit06/es.xml
