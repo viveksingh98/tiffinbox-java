@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.tiffinbox</groupId>
+    <artifactId>tiffinbox-parent</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
+  <artifactId>tiffinbox-web</artifactId>
+  <name>TiffinBox Web</name>
+  <description>The HTTP server, the router and the JSON. No SQL in here.</description>
+
+  <dependencies>
+    <!-- One of these names a version. The parent manages it too. Nothing complains. -->
+    <dependency>
+      <groupId>com.tiffinbox</groupId>
+      <artifactId>tiffinbox-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>2.13.5</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- Main-Class + Class-Path: the jar is runnable, not just built. No version here
+           either — the parent's pluginManagement pins 3.5.0. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>com.tiffinbox.web.TiffinBoxServer</mainClass>
+              <addClasspath>true</addClasspath>
+              <classpathPrefix>lib/</classpathPrefix>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+
+      <!-- Five jars land in target/lib, where the manifest Class-Path points: the four the
+           capstone had, plus tiffinbox-core-1.0.0.jar, which is now a dependency like any other. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-libs</id>
+            <phase>prepare-package</phase>
+            <goals><goal>copy-dependencies</goal></goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/lib</outputDirectory>
+              <includeScope>runtime</includeScope>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- exec:exec forks a real JVM. It no longer has to pass the preview flag. -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <configuration>
+          <executable>java</executable>
+          <arguments>
+            <argument>-Djava.util.logging.config.file=logging.properties</argument>
+            <argument>-classpath</argument>
+            <classpath/>
+            <argument>com.tiffinbox.web.TiffinBoxServer</argument>
+          </arguments>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

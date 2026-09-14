@@ -1,0 +1,7 @@
+routes:
+  - name: North Loop
+    stops: 14
+  - name: Riverside
+    stops: 9
+  - name: Old Market
+    stops: 11

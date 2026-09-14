@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A settings file is per-machine, not per-project. This copy lives in the unit folder
+     only so you can read it; the real one lives at ~/.m2/settings.xml.
+     There is no <servers> block here on purpose: passwords never go in a repository. -->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 https://maven.apache.org/xsd/settings-1.2.0.xsd">
+
+  <mirrors>
+    <mirror>
+      <id>central-mirror</id>
+      <mirrorOf>central</mirrorOf>
+      <name>Central, reached under a name this machine chose</name>
+      <url>https://repo.maven.apache.org/maven2</url>
+    </mirror>
+  </mirrors>
+
+  <profiles>
+    <profile>
+      <id>tiffinbox</id>
+      <repositories>
+        <repository>
+          <id>tiffinbox-team</id>
+          <url>file://${env.TEAM_REPO}</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+      </repositories>
+    </profile>
+  </profiles>
+
+  <activeProfiles>
+    <activeProfile>tiffinbox</activeProfile>
+  </activeProfiles>
+</settings>
