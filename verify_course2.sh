@@ -679,14 +679,14 @@ if unit 29 "JSON without Spring: Jackson via Maven"; then
   if ! command -v mvn >/dev/null 2>&1; then
     skip "mvn -q compile exec:java" "Maven is not installed"
   else
-    expect_ok "mvn -o -q compile exec:java (write / pretty / read, month total 24300)" 600 \
-        'month total: 24300' mvn -o -q -B compile exec:java
-    expect_ok "mvn -o -q compile exec:java -Dexec.mainClass=com.tiffinbox.JsonOops" 600 \
-        'lenient mapper: Ravi -> 7200' mvn -o -q -B compile exec:java -Dexec.mainClass=com.tiffinbox.JsonOops
+    expect_ok "mvn -q compile exec:java (write / pretty / read, month total 24300)" 600 \
+        'month total: 24300' mvn -q -B compile exec:java
+    expect_ok "mvn -q compile exec:java -Dexec.mainClass=com.tiffinbox.JsonOops" 600 \
+        'lenient mapper: Ravi -> 7200' mvn -q -B compile exec:java -Dexec.mainClass=com.tiffinbox.JsonOops
     expect_ok "java hand-rolled/HandRolled.java (the hook: dies twice on field order)" 120 \
         'as the last unit sent it -> 7200' "$JAVA" hand-rolled/HandRolled.java
-    expect_ok "mvn -o -q compile dependency:build-classpath -Dmdep.outputFile=cp.txt" 600 '' \
-        mvn -o -q -B compile dependency:build-classpath -Dmdep.outputFile=cp.txt
+    expect_ok "mvn -q compile dependency:build-classpath -Dmdep.outputFile=cp.txt" 600 '' \
+        mvn -q -B compile dependency:build-classpath -Dmdep.outputFile=cp.txt
     if [ -f cp.txt ]; then
       expect_ok "javac -Xlint:unchecked … Unchecked.java (warning on line 11)" 120 'unchecked conversion' \
           bash -c '"$JAVA_HOME/bin/javac" -Xlint:unchecked -cp "target/classes:$(cat cp.txt)" -d target/classes src/main/java/com/tiffinbox/Unchecked.java'
@@ -716,8 +716,8 @@ if unit 30 "A tiny HTTP server: jdk.httpserver on virtual threads"; then
     if ! command -v mvn >/dev/null 2>&1; then
       skip "mvn -q compile exec:java (TiffinServer)" "Maven is not installed"
     else
-      expect_ok "mvn -o -q compile dependency:build-classpath -Dmdep.outputFile=cp.txt" 600 '' \
-          mvn -o -q -B compile dependency:build-classpath -Dmdep.outputFile=cp.txt
+      expect_ok "mvn -q compile dependency:build-classpath -Dmdep.outputFile=cp.txt" 600 '' \
+          mvn -q -B compile dependency:build-classpath -Dmdep.outputFile=cp.txt
       if [ -f cp.txt ]; then
         "$JAVA" "-D$TAG=tiffinserver" -cp "target/classes:$(cat cp.txt)" TiffinServer >"$WORK/ts.log" 2>&1 &
         TS=$!
@@ -937,8 +937,8 @@ fi
 if unit 34 "SQL in 15 minutes: TiffinBox tables in H2"; then
   if ! command -v mvn >/dev/null 2>&1; then skip "mvn -q compile exec:java -Dexec.mainClass=Sql101" "Maven is not installed"
   else
-    expect_ok "mvn -o -q compile exec:java -Dexec.mainClass=Sql101" 600 'new order id: 7' \
-        mvn -o -q -B compile exec:java -Dexec.mainClass=Sql101
+    expect_ok "mvn -q compile exec:java -Dexec.mainClass=Sql101" 600 'new order id: 7' \
+        mvn -q -B compile exec:java -Dexec.mainClass=Sql101
     grep -q '23505' "$OUT" && ok "the duplicate email really raises SQLState 23505 (UQ_CUSTOMER_EMAIL)" \
       || bad "Sql101 duplicate-email demo" "no 23505 in the output"
     rm -rf data target
@@ -949,10 +949,10 @@ fi
 if unit 35 "JDBC: connect, query, map rows to records"; then
   if ! command -v mvn >/dev/null 2>&1; then skip "mvn -q compile exec:java -Dexec.mainClass=Connect" "Maven is not installed"
   else
-    expect_ok "mvn -o -q compile exec:java -Dexec.mainClass=Connect" 600 '' \
-        mvn -o -q -B compile exec:java -Dexec.mainClass=Connect
+    expect_ok "mvn -q compile exec:java -Dexec.mainClass=Connect" 600 '' \
+        mvn -q -B compile exec:java -Dexec.mainClass=Connect
     expect_ok "… -Duser.timezone=America/New_York (the timestamp beat is zone-independent)" 600 '' \
-        mvn -o -q -B compile exec:java -Dexec.mainClass=Connect -Dexec.args= -Duser.timezone=America/New_York
+        mvn -q -B compile exec:java -Dexec.mainClass=Connect -Dexec.args= -Duser.timezone=America/New_York
     rm -rf data target
   fi
 fi
@@ -961,8 +961,8 @@ fi
 if unit 36 "Transactions, savepoints and batches"; then
   if ! command -v mvn >/dev/null 2>&1; then skip "mvn -q compile exec:java -Dexec.mainClass=Tx" "Maven is not installed"
   else
-    expect_ok "mvn -o -q compile exec:java -Dexec.mainClass=Tx" 600 '' \
-        mvn -o -q -B compile exec:java -Dexec.mainClass=Tx
+    expect_ok "mvn -q compile exec:java -Dexec.mainClass=Tx" 600 '' \
+        mvn -q -B compile exec:java -Dexec.mainClass=Tx
     grep -q '23506' "$OUT" && ok "the rollback is proved by a real foreign-key failure (SQLState 23506)" \
       || bad "Tx rollback demo" "no 23506 in the output"
     rm -rf data target
@@ -973,10 +973,10 @@ fi
 if unit 37 "Connection pools: close() that gives it back"; then
   if ! command -v mvn >/dev/null 2>&1; then skip "mvn -q compile exec:java -Dexec.mainClass=Pool" "Maven is not installed"
   else
-    expect_ok "mvn -o -q compile exec:java -Dexec.mainClass=Pool" 600 '' \
-        mvn -o -q -B compile exec:java -Dexec.mainClass=Pool
-    expect_ok "mvn -o -q dependency:build-classpath -Dmdep.outputFile=cp.txt" 600 '' \
-        mvn -o -q -B compile dependency:build-classpath -Dmdep.outputFile=cp.txt
+    expect_ok "mvn -q compile exec:java -Dexec.mainClass=Pool" 600 '' \
+        mvn -q -B compile exec:java -Dexec.mainClass=Pool
+    expect_ok "mvn -q dependency:build-classpath -Dmdep.outputFile=cp.txt" 600 '' \
+        mvn -q -B compile dependency:build-classpath -Dmdep.outputFile=cp.txt
     if [ -f cp.txt ]; then
       expect_ok "java -cp \"target/classes:\$(cat cp.txt)\" Pool (with Hikari's own banner)" 180 '' \
           bash -c '"$JAVA_HOME/bin/java" -cp "target/classes:$(cat cp.txt)" Pool'
@@ -993,8 +993,8 @@ fi
 if unit 38 "TiffinBox on a real database: the JDBC repository"; then
   if ! command -v mvn >/dev/null 2>&1; then skip "mvn -q compile exec:java -Dexec.mainClass=RepoDemo" "Maven is not installed"
   else
-    expect_ok "mvn -o -q compile exec:java -Dexec.mainClass=RepoDemo" 600 'count now: *4' \
-        mvn -o -q -B compile exec:java -Dexec.mainClass=RepoDemo
+    expect_ok "mvn -q compile exec:java -Dexec.mainClass=RepoDemo" 600 'count now: *4' \
+        mvn -q -B compile exec:java -Dexec.mainClass=RepoDemo
     grep -q 'rs.wasNull() = true' "$OUT" && ok "revenueWithoutCoalesce: getLong returns 0 with wasNull() true" \
       || bad "RepoDemo wasNull beat" "expected 'rs.wasNull() = true'"
     grep -q 'SQLState 42S22' "$OUT" && ok "the renamed column is translated, cause kept (SQLState 42S22)" \
