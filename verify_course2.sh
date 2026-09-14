@@ -164,6 +164,18 @@ capstone_jar() {
 }
 
 UNITS=("$@")
+# A filter that matches nothing used to run zero checks and still print "all green."
+# Reject anything this script cannot run, so a typo fails instead of faking a pass.
+# (verify_course1.sh takes `unit09`; this script takes `09`.)
+if [ ${#UNITS[@]} -ne 0 ]; then
+  for u in "${UNITS[@]}"; do
+    case "$u" in
+      capstone|42) ;;   # unit 42 has no c2-unit42/ on purpose: its code IS c2-capstone
+      [0-9][0-9]) [ -d "$REPO/c2-unit$u" ] || { echo "unknown unit: $u (no c2-unit$u/ in $REPO)" >&2; exit 2; } ;;
+      *) echo "unknown unit: $u (use two digits, e.g. 09, or 'capstone')" >&2; exit 2 ;;
+    esac
+  done
+fi
 
 printf 'verify_course2.sh — %s\n' "$JV"
 printf 'repo: %s\n' "$REPO"
@@ -1272,6 +1284,13 @@ if [ "$FAIL" -gt 0 ]; then
   printf 'failed:\n'
   for l in "${FAILED_LABELS[@]}"; do printf '  - %s\n' "$l"; done
   exit 1
+fi
+# A filtered run that ran nothing at all — a c2-unit folder that exists but has no
+# block here yet — is not a pass either; the unfiltered run says so via the
+# "not covered by this script yet" list above.
+if [ ${#UNITS[@]} -ne 0 ] && [ $((PASS+FAIL+SKIP)) -eq 0 ]; then
+  printf '%sno checks ran for:%s %s\n' "$YLW" "$OFF" "${UNITS[*]}" >&2
+  exit 2
 fi
 printf 'all green.\n'
 exit 0
