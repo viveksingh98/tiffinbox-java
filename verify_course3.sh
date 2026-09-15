@@ -6,6 +6,7 @@
 #   ./verify_course3.sh                 # every c3-* folder that exists
 #   ./verify_course3.sh 03 06           # only those units
 #   ./verify_course3.sh 08 10           # the Gradle ones
+#   ./verify_course3.sh 11 17           # the testing ones (Section 3)
 #   ./verify_course3.sh tiffinbox       # only c3-tiffinbox (that is unit 05's code)
 #   SKIP_SLOW=1 ./verify_course3.sh     # skip the repeated-build hash loops
 #   KEEP_M2=1 ./verify_course3.sh       # keep the scratch repositories AND the four
@@ -83,6 +84,20 @@
 #      output against `wc -l` of its input; the generated-file count), never the
 #      word SUCCESS, which is precisely what those failures print.
 #
+#   5. **In Section 3 a green build is never the evidence.** Units 11-18 are about tests
+#      that pass for the wrong reason, so `BUILD SUCCESS` under a break beat is the thing
+#      being warned about and can never be what proves the beat. Unit 11's three green
+#      tests are checked by RUNNING the Customer they cover and reading 7440 back where
+#      7200 belongs; unit 14's two green `verify` calls by running BillingService against a
+#      recording gateway and reading 120 back where the month is 7200; unit 17's green
+#      `naive-argline` build by the absence of `target/jacoco.exec` and the 0 files under
+#      `target/site/`. And every one of those breaks is asserted to STILL BREAK, with the
+#      exit code its receipts.sh prints — fix unit 11's 31-day month or unit 17's `>` and
+#      the build improves while the video becomes wrong, which is a failure, not a pass.
+#      The one number this script refuses to assert is unit 16's flake rate: that README
+#      says out loud that it could not be measured, so what is held is the claim the page
+#      makes rather than a figure it declined to give.
+#
 # The first run downloads Maven plugins and H2/Jackson/SnakeYAML/JUnit into cold
 # scratch repositories, and the four Gradle wrappers each fetch the 9.7.1
 # distribution (~130 MB) into their own `.gradle-home`, so it needs a network and
@@ -143,7 +158,14 @@ M2_U02="$REPO/c3-unit02/.m2-demo"
 M2_U04="$REPO/c3-unit04/.m2-unit04"
 M2_U06="$REPO/c3-unit06/.m2-unit06"
 M2_CONSUMER="/tmp/m2consumer"        # c3-unit06/README.md step 3 names this path
+# Section 3: every unit's own README prints `-Dmaven.repo.local="$PWD/.m2-demo"` and its own
+# receipts.sh uses the same path, so this run warms the repository the receipts then reuse.
+M2_U11="$REPO/c3-unit11/.m2-demo"; M2_U12="$REPO/c3-unit12/.m2-demo"
+M2_U13="$REPO/c3-unit13/.m2-demo"; M2_U14="$REPO/c3-unit14/.m2-demo"
+M2_U15="$REPO/c3-unit15/.m2-demo"; M2_U16="$REPO/c3-unit16/.m2-demo"
+M2_U17="$REPO/c3-unit17/.m2-demo"; M2_U18="$REPO/c3-unit18/.m2-demo"
 export M2 M2_U02 M2_U04 M2_U06 M2_CONSUMER
+export M2_U11 M2_U12 M2_U13 M2_U14 M2_U15 M2_U16 M2_U17 M2_U18
 
 TAG="c3verify$$"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/c3verify.XXXXXX")"
@@ -192,7 +214,7 @@ cleanup() {
   restore_all
   # target/ and build/ everywhere under Course 3 (incl. c3-unit06/target/team-repo)
   local d
-  for d in "$REPO"/c3-unit0[1-9] "$REPO"/c3-unit10 "$REPO"/c3-tiffinbox; do
+  for d in "$REPO"/c3-unit0[1-9] "$REPO"/c3-unit1[0-8] "$REPO"/c3-tiffinbox; do
     [ -d "$d" ] || continue
     find "$d" -type d -name target -prune -exec rm -rf {} + 2>/dev/null
     find "$d" -type d -name build  -prune -exec rm -rf {} + 2>/dev/null
@@ -205,10 +227,28 @@ cleanup() {
   rm -f  "$REPO"/c3-unit06/es.xml 2>/dev/null
   # the throw-away Gradle homes unit 10 uses to prove the sha256 pin bites
   rm -rf "$GH10X" "$REPO/c3-unit10/.gh-fresh" "$REPO/c3-unit10/.gh-old" 2>/dev/null
+  # Section 3: each receipts.sh writes one `.r-<block>.out` per block plus a handful of
+  # throwaway copies, and each unit's OWN .gitignore is the list of them — read it here, so a
+  # block that gains a new scratch directory is cleaned up without this file being edited.
+  local ln
+  for d in "$REPO"/c3-unit1[1-8]; do
+    [ -d "$d" ] && [ -f "$d/.gitignore" ] || continue
+    while IFS= read -r ln; do
+      ln="${ln%/}"
+      case "$ln" in
+        ''|'#'*|'.gitignore'|'.m2-demo') continue ;;
+        *[*?]*)  ( cd "$d" && rm -rf -- $ln ) 2>/dev/null ;;
+        .*)      rm -rf -- "$d/$ln" 2>/dev/null ;;
+      esac
+    done < "$d/.gitignore"
+  done
+  remove_created
   if [ "$KEEP_M2" != "1" ]; then
     rm -rf "$M2_U02" "$M2_U04" "$M2_U06" "$M2_CONSUMER" 2>/dev/null
     rm -rf "$M2_U07" "$M2_U09C" "$M2_U10" 2>/dev/null
     rm -rf "$GH07" "$GH08" "$GH09" "$GH10" 2>/dev/null
+    rm -rf "${M2_U11:-}" "${M2_U12:-}" "${M2_U13:-}" "${M2_U14:-}" 2>/dev/null
+    rm -rf "${M2_U15:-}" "${M2_U16:-}" "${M2_U17:-}" "${M2_U18:-}" 2>/dev/null
   fi
   rm -rf "$WORK"
 }
@@ -556,6 +596,368 @@ check_receipts() {
   is "…and c3-unit$n/README.md quotes $want receipt hashes in all" "$np" "$want"
 }
 
+# ------------------------------------------ the Section 3 units (11-18) ------
+# Section 3 is "Testing That Earns Trust", and it is the first section in this course
+# whose subject is tests that are *supposed to fail* and tests that are *supposed to pass
+# for the wrong reason*. Four rules follow from that, and every assertion below keeps
+# them:
+#
+#   1. **Never assert BUILD SUCCESS over a break beat.** Unit 11's break is three green
+#      tests over a `Customer` that overcharges everyone; unit 14's is two green `verify`
+#      calls over a service that charges 120 where the bill is 7200; unit 17's is a green
+#      build whose coverage agent never loaded. `BUILD SUCCESS` is what all three PRINT —
+#      it is the thing being warned about, so it can never be the evidence. What is
+#      asserted instead is the artifact: the number the compiled program really returns
+#      (`bill_is` below runs it), the amount the gateway was really handed, the file the
+#      tool was supposed to write and did not.
+#
+#   2. **A break beat that stopped breaking is a defect, not a pass.** Fix unit 11's
+#      31-day month, give unit 14's mock a real expectation, fix unit 17's `>` to `>=`,
+#      drop the `static` from unit 18's roster, and the *build* gets better while the
+#      *video* becomes wrong: the page still teaches a lesson the code no longer shows.
+#      So every break is asserted to still break, with the message and the exit code its
+#      README quotes — and the artifact is asserted in the direction the lesson needs.
+#
+#   3. **receipts.sh is a deliverable here, in all eight units.** Each one regenerates the
+#      numbers its slides and its README quote, block by block, and prints
+#      `md5 <hash>  exit <codes>` under each. `receipt_is` below compares that whole line —
+#      hash AND exit codes — because several blocks are deliberately multi-exit
+#      (`exit 1`, `exit 0 and 0`, `exit 0 then 1 then 0`), and a block that stopped failing
+#      is exactly the defect rule 2 is about. Unit 11's hashes are READ OUT OF its README's
+#      table; the rest are quoted only on the slides, and are written down here with the
+#      deck that quotes each one named beside it.
+#
+#   4. **A green suite is not a suite that checks anything.** Nothing in a unit — not its
+#      test count, not its `Tests run:` line, not one md5 — is a function of what its tests
+#      ASSERT. Measured: weakening a single `isEqualTo(7200)` to `.isNotNull()` in unit 18,
+#      or `isEqualTo(24300)` in unit 15, left this whole script green until `sensitive_to`
+#      below was written. It answers the section's own question — *what would this test have
+#      to see before it failed?* — by moving the thing the tests watch in a scratch copy
+#      (a 31-day billing month, a stubbed answer changed, `30 - dayOfMonth` put back into
+#      the shipped clock) and asserting surefire's summary line, because how many of them
+#      NOTICED is the claim. "It went red" is not: weakening one assertion in a class whose
+#      other methods still name a number leaves the class red and a class-name check green.
+#
+# Every Maven command in this section carries `-Dmaven.repo.local="$REPO/c3-unitNN/.m2-demo"`
+# — the very path the unit's own README prints as `"$PWD/.m2-demo"`, which is also the one
+# its receipts.sh uses, so the receipts run below finds the repository this run warmed.
+M2_U11="$REPO/c3-unit11/.m2-demo"; M2_U12="$REPO/c3-unit12/.m2-demo"
+M2_U13="$REPO/c3-unit13/.m2-demo"; M2_U14="$REPO/c3-unit14/.m2-demo"
+M2_U15="$REPO/c3-unit15/.m2-demo"; M2_U16="$REPO/c3-unit16/.m2-demo"
+M2_U17="$REPO/c3-unit17/.m2-demo"; M2_U18="$REPO/c3-unit18/.m2-demo"
+export M2_U11 M2_U12 M2_U13 M2_U14 M2_U15 M2_U16 M2_U17 M2_U18
+
+# The md5 every unit in this section claims for the five carried sources. Not transcribed:
+# it is `grep`ed out of each README that prints it, and only compared with a live `md5`.
+CARRIED_FIVE="Customer.java CustomerRepository.java Dashboard.java Database.java OrderQueue.java"
+
+# src_hash5 DIR — `md5 -q <the five named files> | sort | md5 -q`.
+# src_hash above globs `*.java`, which is the same thing in units 11-13, 15 and the five at the
+# top of unit 14's package — and NOT the same thing in unit 16, whose README names the five by
+# hand precisely because `Billing.java` sits beside them in that package. Using the glob there
+# would compare six files against a five-file hash and fail for the wrong reason.
+src_hash5() { ( cd "$1" 2>/dev/null && for f in $CARRIED_FIVE; do md5of "$f"; done | sort | md5in ); }
+
+# readme_hash NN ANCHOR — the first 32-hex md5 on the first line of c3-unitNN/README.md that
+# contains ANCHOR (a FIXED string, not a pattern: the anchors are the commands the page prints).
+# The point is that the number is read OFF THE PAGE and only then compared with a live one, so a
+# README that drifts away from its own receipts.sh fails here instead of being quietly agreed with.
+readme_hash() { grep -F -- "$2" "$REPO/c3-unit$1/README.md" | grep -oE '[0-9a-f]{32}' | head -1; }
+
+# receipts_table NN — the (block, md5, exit) rows of the markdown table c3-unit11/README.md
+# ships. Read out of the page exactly as receipts_pairs reads the Gradle units' prose: the hash
+# a row carries is found by its SHAPE, not by its column index, so a description containing a
+# pipe cannot silently shift which cell is compared.
+receipts_table() {
+  grep -E '^\| *`[a-z][a-z-]*` *\|.*\| *`[0-9a-f]{32}` *\|' "$REPO/c3-unit$1/README.md" \
+    | awk -F'|' '{ id=""; h=""; e=""
+        for (i=2; i<=NF; i++) { f=$i; sub(/^[ \t]+/,"",f); sub(/[ \t]+$/,"",f)
+          if (id=="" && f ~ /^`[a-z][a-z-]*`$/) { id=f; gsub(/`/,"",id) }
+          else if (h=="" && f ~ /^`[0-9a-f]+`$/) { h=f; gsub(/`/,"",h); e=$(i+1) } }
+        gsub(/\*/,"",e); sub(/^[ \t]+/,"",e); sub(/[ \t]+$/,"",e)
+        if (id != "" && h != "") printf "%s\t%s\t%s\n", id, h, e }'
+}
+
+# offline_test LABEL TIMEOUT DIR REPO — the Section 3 form of offline_receipt. These READMEs
+# print `mvn -B -Dmaven.repo.local="$PWD/.m2-demo" -o test`, not `verify`, and every one of them
+# says in so many words that offline mode can only reuse what a previous ONLINE run of the SAME
+# lifecycle fetched. So the pair has to be `test` and then `-o test`, in that order, in one
+# repository — the online half is what earns the offline half its meaning.
+offline_test() {
+  local label="$1" t="$2" d="$3" r="$4"
+  expect_ok "$label — online first, into the scratch repository" "$t" 'BUILD SUCCESS' \
+      mvn_in "$d" "$r" test || return 1
+  expect_ok "$label — then -o, same repository: it resolved nothing new" "$t" 'BUILD SUCCESS' \
+      mvn_in "$d" "$r" -o test
+}
+
+# Some exercise answers are "put a file where there was none" rather than "swap one file for
+# another", and restore_all cannot undo that: it only copies backups back. Anything this run
+# CREATES is registered here and removed by the EXIT trap too, so an interrupted run does not
+# leave a test directory behind for the next one to compile.
+CREATED=()
+created() { CREATED+=("$1"); }
+remove_created() { local p; for p in ${CREATED[@]+"${CREATED[@]}"}; do [ -n "$p" ] && rm -rf "$p"; done; }
+
+# ------------------------------------------------- the READMEs' own panels ---
+# panel NN ANCHOR K — the Kth fenced ``` block at or after the first line of
+# c3-unitNN/README.md matching ANCHOR (an ERE), into $WORK/panel. Anchored on the prose
+# above it rather than on an index, so adding a section earlier in the page cannot silently
+# move a check onto a different block.
+panel() {
+  awk -v a="$2" -v want="$3" '
+      !st { if ($0 ~ a) st=1; next }
+      /^```/ { if (open) { open=0; if (n==want) exit } else { open=1; n++ }; next }
+      open && n==want { print }' "$REPO/c3-unit$1/README.md" > "$WORK/panel"
+}
+
+# xpanel NN ANCHOR K — the same selector against c3-unitNN/exercise/README.md. Three exercises
+# in this section print their acceptance output on the exercise page rather than the unit page,
+# and two of those acceptance outputs are FAILURES (unit 14's captured 7200-vs-120, unit 17's
+# 86% mutation score), which is exactly the kind of claim a page is most likely to drift away from.
+xpanel() {
+  awk -v a="$2" -v want="$3" '
+      !st { if ($0 ~ a) st=1; next }
+      /^```/ { if (open) { open=0; if (n==want) exit } else { open=1; n++ }; next }
+      open && n==want { print }' "$REPO/c3-unit$1/exercise/README.md" > "$WORK/panel"
+}
+
+# panel_drop N — drop the first N lines of the selected panel. c3-unit14/exercise/README.md says
+# in so many words that the line number after the method name is not part of its acceptance
+# ("it depends on where you put the assertion") — so the check there is the two lines under it,
+# and the method name is asserted on its own.
+panel_drop() { sed "1,${1}d" "$WORK/panel" > "$WORK/panel.t" && mv "$WORK/panel.t" "$WORK/panel"; }
+
+# out_has_panel LABEL — the panel just selected occurs in $OUT as one contiguous run of
+# lines. This is the "every output the README quotes must come back" half of the contract,
+# and it is the opposite direction from readme_shows: there a capture has to be findable in
+# the page, here the page's own capture has to be findable in the run.
+out_has_panel() {
+  if [ ! -s "$WORK/panel" ]; then bad "$1" "c3-unit's README has no such panel to check"; return 1; fi
+  if awk 'NR==FNR{nd[++N]=$0;next}{h[++H]=$0}
+          END{ if(N==0) exit 1
+               for(i=1;i+N-1<=H;i++){ok=1; for(j=1;j<=N;j++) if(h[i+j-1]!=nd[j]){ok=0;break}; if(ok) exit 0}
+               exit 1 }' "$WORK/panel" "$OUT"; then
+    ok "$1"
+  else
+    bad "$1" "this run never printed those $(wc -l <"$WORK/panel" | tr -d ' ') lines; the README's panel starts: $(head -2 "$WORK/panel" | tr '\n' '|')"
+  fi
+}
+
+# out_has_lines LABEL — every line of the selected panel appears in $OUT, in that order, but
+# not necessarily next to each other. This is the right reading for a README panel that is an
+# ELISION — c3-unit11 prints surefire's suite total and `BUILD SUCCESS` with the `Results:` rule
+# between them left out, and a strict contiguity check there would be measuring the elision
+# rather than the claim. Where the page prints a WHOLE capture (every receipts.sh panel below,
+# and the `jacoco.csv` row), out_has_panel is used instead and contiguity is the point.
+out_has_lines() {
+  if [ ! -s "$WORK/panel" ]; then bad "$1" "the README has no such panel to check"; return 1; fi
+  if awk 'NR==FNR{nd[++N]=$0;next}
+          { if (k<N && $0==nd[k+1]) k++ }
+          END{ exit (k==N ? 0 : 1) }' "$WORK/panel" "$OUT"; then
+    ok "$1"
+  else
+    bad "$1" "this run did not print all $(wc -l <"$WORK/panel" | tr -d ' ') of the README's lines in that order; first is: $(head -1 "$WORK/panel")"
+  fi
+}
+
+# out_has_panel_rtrim LABEL — as out_has_panel, but with trailing whitespace stripped from both
+# sides. surefire writes `[ERROR]   Class.method ` with a trailing space before the message it puts
+# on the next line, and a markdown editor strips it: c3-unit18/README.md's four-line failure-report
+# panel is that capture minus four invisible characters. Where a trailing space IS the evidence —
+# every hashed receipts capture below, which keeps them — the exact form is used instead.
+out_has_panel_rtrim() {
+  sed 's/[[:space:]]*$//' "$WORK/panel" > "$WORK/panel.r"
+  sed 's/[[:space:]]*$//' "$OUT"        > "$WORK/out.r"
+  if [ ! -s "$WORK/panel.r" ]; then bad "$1" "the README has no such panel to check"; return 1; fi
+  if awk 'NR==FNR{nd[++N]=$0;next}{h[++H]=$0}
+          END{ if(N==0) exit 1
+               for(i=1;i+N-1<=H;i++){ok=1; for(j=1;j<=N;j++) if(h[i+j-1]!=nd[j]){ok=0;break}; if(ok) exit 0}
+               exit 1 }' "$WORK/panel.r" "$WORK/out.r"; then
+    ok "$1"
+  else
+    bad "$1" "this run did not print those $(wc -l <"$WORK/panel.r" | tr -d ' ') lines together, trailing spaces ignored"
+  fi
+}
+
+# ------------------------------------ the Maven receipts.sh, as a deliverable ---
+# Units 11-18 each ship a bash receipts.sh that rebuilds every number its slides and its
+# README quote. run_receipts runs one from this clone into $WORK/receipts.NN.
+run_receipts() {
+  local n="$1" t="$2" env="${3:-}"
+  expect_ok "c3-unit$n/receipts.sh — every block, from a clean clone" "$t" '' \
+      bash -c "cd \"$REPO/c3-unit$n\" && $env ./receipts.sh" || return 1
+  cp "$OUT" "$WORK/receipts.$n"
+  return 0
+}
+
+# block_tail NN ID — the `md5 …` line(s) printed inside the `=== ID …` section of the run
+# kept in $WORK/receipts.NN. Bounded by that block's OWN header, so a hash cannot be matched
+# against a line another block printed.
+block_tail() {
+  awk -v id="$2" 'BEGIN{re="^=== " id "( |$)"}
+       $0 ~ /^=== / { inb = ($0 ~ re) }
+       inb && /^md5 / { print }' "$WORK/receipts.$1" 2>/dev/null
+}
+
+# receipt_is NN ID "md5 <hash>  exit <codes>" — the whole trailer line, hash and exit codes
+# together. The exit codes are half the claim in this section: `break` blocks exit 1 on
+# purpose, `unchanged` exits `0 and 0`, `green` exits `0 then 1 then 0`, and a block that
+# quietly started exiting 0 is a break that stopped breaking.
+receipt_is() {
+  local got; got="$(block_tail "$1" "$2")"
+  is "…c3-unit$1/receipts.sh $2 -> $3" "$got" "$3"
+}
+
+# receipt_body NN ID -> $OUT — everything the `=== ID …` block printed, without its header
+# and without its `md5 …` trailer. That is exactly the console panel a README puts under it,
+# so `panel`/`out_has_panel` can hold the page to it.
+receipt_body() {
+  awk -v id="$2" 'BEGIN{re="^=== " id "( |$)"}
+       $0 ~ /^=== / { inb = ($0 ~ re); next }
+       inb && /^md5 / { inb=0; next }
+       inb { print }' "$WORK/receipts.$1" > "$OUT" 2>/dev/null
+}
+
+# derived_unprobed NN — say out loud that this unit's derived counts are hashed but not PROBED.
+#
+# A `$(grep -c …)` and the literal it happens to equal today produce identical bytes, an identical
+# block md5 and an identical whole-run md5. No hash can tell a measurement from a caption; only
+# moving the INPUT can, and that means a second receipts run per unit. Measured, twice: replacing
+# one derived count in c3-unit11's `counts` block with `"1"`, and one in c3-unit12's `cases` block
+# with `"5"`, left this script entirely green until the two probes above were written. Those two
+# units now have them. Doing the same for every derived line in the other six would add a full
+# extra receipts run each to a script that already takes the better part of an hour — so it is
+# named here instead of hidden behind a green line.
+derived_unprobed() {
+  skip "c3-unit$1/receipts.sh — its derived counts are HASHED but not PROBED" \
+       "a \$(grep -c …) and the literal it happens to equal today are the same bytes and the same md5; only moving the input separates them. c3-unit11's counts and c3-unit12's cases have that probe; here a WRONG count is caught (it is compared with the number the README and the deck quote) but a RIGHT one that stopped being measured is not"
+}
+
+# receipts_blocks NN — how many `=== … ===` blocks the run printed. Several READMEs state
+# that count in words ("eight blocks", "all nine block hashes"), and a block that stopped
+# running is invisible to every per-hash check above.
+receipts_blocks() { grep -cE '^=== ' "$WORK/receipts.$1" 2>/dev/null | tr -d ' '; }
+
+# receipts_md5 NN — the md5 of the WHOLE run's output. Four of these READMEs quote that
+# number and say in so many words that hashing receipts.sh itself is a different number and
+# is not a receipt of anything, so both readings are checked where both are written down.
+receipts_md5() { md5of "$WORK/receipts.$1"; }
+
+# pit_survivors XML — the line numbers PIT recorded as SURVIVED, sorted, on one line. c3-unit17's
+# receipts.sh derives its survivor lines from `target/pit-reports/mutations.xml` and never from
+# PIT's console log, which stamps a wall clock on every line — so anything asserted about a
+# survivor has to read the same file, not grep the build output for a word that is not in it.
+pit_survivors() {
+  [ -f "$1" ] || { echo "no mutations.xml"; return 0; }
+  python3 - "$1" <<'PYEOF'
+import re,sys
+s=open(sys.argv[1]).read()
+out=[]
+for m in re.finditer(r"<mutation detected='\w+' status='(\w+)'[^>]*>(.*?)</mutation>", s, re.S):
+    if m.group(1)!='SURVIVED': continue
+    out.append(re.search(r'<lineNumber>(\d+)', m.group(2)).group(1))
+print(' '.join(sorted(out, key=int)))
+PYEOF
+}
+
+# sensitive_to LABEL NN REPO FILE FROM TO WANT — the question this whole section asks of a test:
+# **what would it have to see before it failed?**
+#
+# This exists because of two survivors this script did not catch when it was first written.
+# Weaken one `assertThat(…monthlyBill()).isEqualTo(7200)` in c3-unit18/src/test to `.isNotNull()`,
+# or one `assertThat(view.monthRevenue()).isEqualTo(24300)` in c3-unit15's, and NOTHING moves: the
+# classes still declare the same methods, surefire still prints the same `Tests run:` line, the
+# build is still green, and every md5 in the unit still reproduces — because not one of them is a
+# function of what the test asserts. A suite can keep its count, keep its tick and stop
+# constraining anything at all, which is the exact failure mode Section 3 exists to teach.
+#
+# The only honest answer is the one c3-unit11's own `green` receipt uses on its break: move the
+# thing the tests are supposed to be watching, and count how many of them notice. So this copies
+# the unit into $WORK, makes ONE edit there — a 31-day billing month, a stubbed answer changed,
+# `30 - dayOfMonth` put back into the shipped clock — and asserts surefire's own summary line,
+# because the COUNT is the claim. "It went red" is not: weakening one assertion in a class whose
+# other methods still name a number leaves the class in the failure list and the suite red, and a
+# check that only asked for the class name passes straight over it. Measured: that is exactly how
+# this probe's first draft let a weakened `isEqualTo(7200)` through.
+#
+# Nothing in the working tree is touched; the copy is deleted either way.
+sensitive_to() {
+  local label="$1" n="$2" r="$3" f="$4" from="$5" to="$6" want="$7"
+  local d="$WORK/vs$n" got
+  rm -rf "$d"
+  mkdir -p "$d" || { bad "$label" "could not make a scratch copy of c3-unit$n"; return 1; }
+  ( cd "$REPO/c3-unit$n" && tar cf - pom.xml src ) | ( cd "$d" && tar xf - ) 2>/dev/null
+  if [ ! -f "$d/$f" ]; then bad "$label" "no $f in the copy"; rm -rf "$d"; return 1; fi
+  if ! python3 - "$d/$f" "$from" "$to" <<'PYEOF'
+import sys
+p, a, b = sys.argv[1], sys.argv[2], sys.argv[3]
+s = open(p, encoding='utf-8').read()
+if s.count(a) != 1:
+    sys.exit(3)
+open(p, "w", encoding='utf-8').write(s.replace(a, b))
+PYEOF
+  then
+    bad "$label" "the probe's edit did not apply exactly once to $f — it would prove nothing"
+    rm -rf "$d"; return 1
+  fi
+  timed 900 bash -c "cd \"$d\" && mvn -B \"-Dmaven.repo.local=$r\" test"
+  got="$(grep -oE 'Tests run: [0-9]+, Failures: [0-9]+, Errors: [0-9]+, Skipped: [0-9]+' "$OUT" | tail -1)"
+  is "$label" "$got" "$want"
+  rm -rf "$d"
+}
+
+# ------------------------------------------------- the artifact, not the word ---
+# bill_is LABEL CLASSES NAME MEALS PRICE WANT — what `new Customer(NAME, MEALS, PRICE, "VEG")
+# .monthlyBill()` really returns when run against a given target/classes, compared with WANT.
+#
+# This exists because rule 1 above has no other honest answer. c3-unit11's break is three
+# tests that pass over a Customer billing a 31-day month; every one of surefire's words is
+# `Tests run: 3, Failures: 0` and `BUILD SUCCESS`, which is the lesson rather than the
+# evidence. The evidence is 7440 where 7200 belongs, and the only way to have it is to run
+# the class that was just built and read the number.
+bill_is() {
+  local label="$1" cp="$2" nm="$3" meals="$4" price="$5" want="$6"
+  cat > "$WORK/Bill.java" <<EOF
+public class Bill {
+  public static void main(String[] a) throws Exception {
+    System.out.println(new com.tiffinbox.Customer("$nm", $meals, $price, "VEG").monthlyBill());
+  }
+}
+EOF
+  if [ ! -d "$cp" ]; then bad "$label" "no compiled classes at $cp"; return 1; fi
+  timed 120 "$JAVA" "-D$TAG=bill" -cp "$cp" "$WORK/Bill.java"
+  is "$label" "$(tr -d ' \n' <"$OUT")" "$want"
+}
+
+# charged_is LABEL CLASSES NAME MEALS PRICE WANT — the amount BillingService really hands the
+# PaymentGateway. c3-unit14's break is two green `verify(gateway).charge(eq("Ravi"), anyInt())`
+# calls over a service that charges one meal instead of the month; `anyInt()` is satisfied by
+# every possible answer, so the green run says nothing at all. The captured amount is the
+# artifact, and this runs the compiled service against a gateway that records it.
+charged_is() {
+  local label="$1" cp="$2" nm="$3" meals="$4" price="$5" want="$6"
+  cat > "$WORK/Charged.java" <<EOF
+import com.tiffinbox.Customer;
+import com.tiffinbox.billing.BillingService;
+import com.tiffinbox.billing.PaymentGateway;
+public class Charged {
+  public static void main(String[] a) {
+    final int[] seen = { -1 };
+    PaymentGateway recorder = new PaymentGateway() {
+      public String charge(String customer, int paise) { seen[0] = paise; return "REF-TEST"; }
+      public int balanceOf(String customer) { return 0; }
+    };
+    new BillingService(recorder).chargeMonthly(new Customer("$nm", $meals, $price, "VEG"));
+    System.out.println(seen[0]);
+  }
+}
+EOF
+  if [ ! -d "$cp" ]; then bad "$label" "no compiled classes at $cp"; return 1; fi
+  timed 120 "$JAVA" "-D$TAG=charged" -cp "$cp" "$WORK/Charged.java"
+  is "$label" "$(tr -d ' \n' <"$OUT")" "$want"
+}
+
 # ------------------------------------------ the tree, before and after --------
 # The run swaps pom.xml files and `sed`s one source file, and has to put every one
 # back. The old proof was `git status` at the end — which also fails when the tree
@@ -564,7 +966,7 @@ check_receipts() {
 # compare it with itself at the end: that is literally "as this run found it".
 tree_fingerprint() {
   local d f
-  { for d in "$REPO"/c3-unit0[1-9] "$REPO"/c3-unit10 "$REPO"/c3-tiffinbox; do
+  { for d in "$REPO"/c3-unit0[1-9] "$REPO"/c3-unit1[0-8] "$REPO"/c3-tiffinbox; do
       [ -d "$d" ] || continue
       find "$d" -type f \
            -not -path '*/target/*'      -not -path '*/.m2-demo/*' \
@@ -573,7 +975,15 @@ tree_fingerprint() {
            -not -path '*/.gradle-home/*' \
            -not -path '*/.gh-fresh/*'   -not -path '*/.gh-old/*' \
            -not -name 'cp.txt'          -not -name 'cp-*.txt' \
-           -not -name 'es.xml'          -not -name 'effective-pom.xml' 2>/dev/null
+           -not -name 'es.xml'          -not -name 'effective-pom.xml' \
+           -not -name '.r-*'            -not -path '*/.sol/*' \
+           -not -path '*/.capstone/*'   -not -path '*/.green/*' \
+           -not -path '*/.green2/*'     -not -path '*/.zero-strict/*' \
+           -not -path '*/.assertall/*'  -not -path '*/.noagent/*' \
+           -not -path '*/.space trap/*' -not -path '*/.amount/*' \
+           -not -path '*/.flags/*'      -not -path '*/.q/*' \
+           -not -path '*/.ex/*'         -not -path '*/.fix/*' \
+           -not -path '*/.props/*' 2>/dev/null
     done | LC_ALL=C sort | while IFS= read -r f; do
       printf '%s  %s\n' "$(shasum "$f" | cut -d' ' -f1)" "${f#"$REPO"/}"
     done; } | shasum | cut -d' ' -f1
@@ -590,8 +1000,16 @@ if [ ${#UNITS[@]} -ne 0 ]; then
   for u in "${UNITS[@]}"; do
     case "$u" in
       tiffinbox|05) ;;   # unit 05's code IS c3-tiffinbox; c3-unit05/ holds only the exercise
-      0[1-9]|10) [ -d "$REPO/c3-unit$u" ] || { echo "unknown unit: $u (no c3-unit$u/ in $REPO)" >&2; exit 2; } ;;
-      *) echo "unknown unit: $u (use two digits, 01-10, or 'tiffinbox')" >&2; exit 2 ;;
+      0[1-9]|1[0-8]) [ -d "$REPO/c3-unit$u" ] || { echo "unknown unit: $u (no c3-unit$u/ in $REPO)" >&2; exit 2; } ;;
+      # A unit that has landed but that this script does not cover yet gets its own sentence. The
+      # folder is right there, so "no such unit" would be a lie, and the report's
+      # "not covered by this script yet" line is the thing to read instead.
+      *) if [ -d "$REPO/c3-unit$u" ]; then
+           echo "c3-unit$u/ exists but verify_course3.sh does not cover it yet — run with no arguments and read the 'not covered by this script yet' line" >&2
+         else
+           echo "unknown unit: $u (use two digits, 01-18, or 'tiffinbox')" >&2
+         fi
+         exit 2 ;;
     esac
   done
 fi
@@ -614,6 +1032,7 @@ printf 'repo: %s\n' "$REPO"
 printf 'local repositories (never ~/.m2): %s\n' "$M2"
 printf '                                  c3-unit02/.m2-demo · c3-unit04/.m2-unit04 · c3-unit06/.m2-unit06 · %s\n' "$M2_CONSUMER"
 printf '                                  c3-unit07/.m2-demo · c3-unit09/conflict/.m2-demo · c3-unit10/.m2-demo\n'
+printf '                                  c3-unit11..18/.m2-demo — one per testing unit, the path each README prints\n'
 printf 'Gradle homes (never ~/.gradle):   c3-unit07..10/.gradle-home — each project'"'"'s committed wrapper fetches 9.7.1 into its own\n'
 [ -n "${OLD_GRADLE:-}" ] && printf 'OLD_GRADLE=%s — unit 10'"'"'s drift beat runs for real\n' "$OLD_GRADLE"
 [ "$SKIP_SLOW" = "1" ] && printf '%sSKIP_SLOW=1 — the repeated-build hash loops are shortened%s\n' "$YLW" "$OFF"
@@ -2166,6 +2585,1148 @@ if unit 10 "Maven or Gradle: the same project, both tools"; then
   gstop "c3-unit10" "$REPO/c3-unit10" "$GH10"
 fi
 
+# ============================================================= c3-unit11 ====
+if unit 11 "The Section 3 baseline: JUnit 6, and a green build that proves nothing"; then
+  # ---- the carried sources. The README prints the command and the number it gives, twice —
+  # once here and once in ../c3-tiffinbox — so both halves are run and the number is read off
+  # the page rather than kept in this file.
+  U11H="$(readme_hash 11 'Both print')"
+  is "README quotes a 32-hex md5 for the five carried sources" "$(printf '%s' "$U11H" | wc -c | tr -d ' ')" "32"
+  is "cd src/main/java/com/tiffinbox && md5 -q *.java | sort | md5 -q -> the hash the README prints" \
+     "$(src_hash "$REPO/c3-unit11/src/main/java/com/tiffinbox")" "$U11H"
+  is "…and ../c3-tiffinbox/tiffinbox-core prints the same one — byte-identical, not 'the same idea'" \
+     "$(src_hash "$REPO/c3-tiffinbox/tiffinbox-core/src/main/java/com/tiffinbox")" "$U11H"
+  # …and that the hash covers FIVE files and no sixth. `md5 -q *.java` is a non-recursive glob:
+  # a class added under com/tiffinbox/<anything>/ compiles, ships, and moves no hash at all.
+  is "…and the source root holds exactly those five .java files, nothing else" \
+     "$(src_files "$REPO/c3-unit11/src/main/java")" "$FIVE_SRC"
+
+  # ---- the POM's two claims: one version for the whole JUnit family, and surefire pinned
+  timed 60 cat "$REPO/c3-unit11/pom.xml"
+  has "pom.xml imports org.junit:junit-bom 6.1.3 in dependencyManagement" '<artifactId>junit-bom</artifactId>'
+  has "…at 6.1.3"                                                        '<version>6\.1\.3</version>'
+  has "…and pins maven-surefire-plugin"                                  '<artifactId>maven-surefire-plugin</artifactId>'
+  has "…at 3.6.0, not the 3.5.4 Maven 3.9.16 would bind on its own"      '<version>3\.6\.0</version>'
+  # the BOM's whole point, and the one line that proves it: junit-jupiter carries NO version.
+  N="$(awk '/<artifactId>junit-jupiter<\/artifactId>/{f=1} f&&/<version>/{c++} /<\/dependency>/{f=0} END{print c+0}' "$REPO/c3-unit11/pom.xml")"
+  is "…and junit-jupiter carries no <version> of its own — the BOM decides it" "$N" "0"
+
+  # ---- run it, the way the README's "Run it" block says to
+  expect_ok 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" test' 1200 'BUILD SUCCESS' \
+      bash -c 'cd "$REPO/c3-unit11" && mvn -B "-Dmaven.repo.local=$M2_U11" test'
+  has "…Tests run: 4, Skipped: 1 — four @Test methods, and the assumeTrue one really is skipped" \
+      'Tests run: 4, Failures: 0, Errors: 0, Skipped: 1'
+  is  "…and CustomerTest really declares four of them" \
+      "$(grep -c '@Test' "$REPO/c3-unit11/src/test/java/com/tiffinbox/CustomerTest.java")" "4"
+  sensitive_to "…and they CONSTRAIN the bill: make the month 31 days and TWO of those four notice" \
+      11 "$M2_U11" src/main/java/com/tiffinbox/Customer.java \
+      "mealsPerDay * pricePerMeal * 30;" "mealsPerDay * pricePerMeal * 31;" \
+      "Tests run: 4, Failures: 2, Errors: 0, Skipped: 1"
+
+  # ---- breaks/green-for-nothing. The README's own words: three green ticks, and not one of
+  # them looks at the number. So the run is asserted to be GREEN — that is the lesson — and
+  # then the ARTIFACT is measured, because the green is what is being warned about.
+  expect_ok "breaks/green-for-nothing: mvn -B test -> BUILD SUCCESS, three passing tests over a wrong bill" 900 \
+      'BUILD SUCCESS' \
+      bash -c 'cd "$REPO/c3-unit11/breaks/green-for-nothing" && mvn -B "-Dmaven.repo.local=$M2_U11" test'
+  panel 11 'The one to run before you write another test' 2
+  out_has_lines "…and the two lines the README prints under that command came back, in order"
+  # THE assertion of this beat. `Tests run: 3, Failures: 0` and `BUILD SUCCESS` are the defect;
+  # 7440 is the evidence. Ravi is 2 meals at 120 — 7200 for a 30-day month, 7440 for the 31 this
+  # Customer bills. Fix the 31 and this line fails, which is correct: the video is then teaching
+  # a lesson the code no longer shows.
+  bill_is "…and the bill it really returns for Ravi is 7440, not 7200 — a 31-day month" \
+      "$REPO/c3-unit11/breaks/green-for-nothing/target/classes" "Ravi" 2 120 "7440"
+  bill_is "…while the unit's own Customer, same inputs, returns 7200" \
+      "$REPO/c3-unit11/target/classes" "Ravi" 2 120 "7200"
+  timed 60 cat "$REPO/c3-unit11/breaks/green-for-nothing/src/main/java/com/tiffinbox/Customer.java"
+  has "…and the one character that does it is still there: * 31" 'mealsPerDay \* pricePerMeal \* 31'
+  is  "…and the break declares three @Test methods, all of which pass" \
+      "$(grep -c '@Test' "$REPO/c3-unit11/breaks/green-for-nothing/src/test/java/com/tiffinbox/GreenForNothingTest.java")" "3"
+
+  # ---- breaks/one-assertion: the same wrong Customer, checked two ways. This one FAILS.
+  expect_fail "breaks/one-assertion: mvn -B test -> exit 1, and two different failure reports" 900 \
+      'Tests run: 2, Failures: 2' \
+      bash -c 'cd "$REPO/c3-unit11/breaks/one-assertion" && mvn -B "-Dmaven.repo.local=$M2_U11" test'
+  # counted inside the Failures: block, and per class inside its own entry — surefire's
+  # runOrder is not a promise about which class is reported first, and 'the text is in there
+  # somewhere' would read the same number whichever way round the two arrived.
+  sed -n '/^\[ERROR\] Failures:/,/^\[ERROR\] Tests run:/p' "$OUT" > "$WORK/fails"
+  N="$(awk '/^\[ERROR\]   ReportsAllOfThemTest\./{p=1;next} p&&/^\[ERROR\]   [A-Za-z]/{p=0} p&&/expected:/{c++} END{print c+0}' "$WORK/fails")"
+  is "…assertAll named TWO failures inside its own report entry" "$N" "2"
+  N="$(awk '/^\[ERROR\]   StopsAtTheFirstTest\./{p=1} p&&/expected:/{c++} p&&/^\[ERROR\] Tests run:/{p=0} END{print c+0}' "$WORK/fails")"
+  is "…and the three-statements-in-a-row version named ONE — the first assert ends the method" "$N" "1"
+
+  # ---- the exercise, both halves. The starter's whole output is 'No tests to run.'
+  expect_ok "exercise: mvn -B test unedited -> No tests to run." 900 'No tests to run\.' \
+      bash -c 'cd "$REPO/c3-unit11/exercise" && mvn -B "-Dmaven.repo.local=$M2_U11" test'
+  has "…and BUILD SUCCESS under it — an empty suite is a green build" 'BUILD SUCCESS'
+  hasnt "…with no Tests run: line at all, because surefire found no test directory" 'Tests run:'
+  # the surefire NOBODY pinned: the exercise pom leaves it out on purpose, and Maven binds 3.5.4
+  has "…run by surefire 3.5.4, Maven 3.9.16's own default binding, because this pom pins none" \
+      'surefire:3\.5\.4:test'
+  backup "$REPO/c3-unit11/exercise/pom.xml"
+  cp "$REPO/c3-unit11/exercise/solution/pom.xml" "$REPO/c3-unit11/exercise/pom.xml"
+  mkdir -p "$REPO/c3-unit11/exercise/src/test/java/com/tiffinbox"
+  cp "$REPO/c3-unit11/exercise/solution/BillTest.java" \
+     "$REPO/c3-unit11/exercise/src/test/java/com/tiffinbox/BillTest.java"
+  created "$REPO/c3-unit11/exercise/src/test/java"
+  expect_ok "exercise solution: the answer's pom + BillTest.java -> Tests run: 1, BUILD SUCCESS" 900 \
+      'Tests run: 1, Failures: 0, Errors: 0, Skipped: 0' \
+      bash -c 'cd "$REPO/c3-unit11/exercise" && mvn -B "-Dmaven.repo.local=$M2_U11" test'
+  has "…and the answer's pom pins surefire, so this half is NOT run by 3.5.4" 'surefire:3\.6\.0:test'
+  # …and that answer CONSTRAINS the three bills it names. A survivor this script did not catch when
+  # it was first written: weaken the first `assertEquals(7200, ravi.monthlyBill())` to
+  # `assertEquals(7200, 7200)` and `Tests run: 1`, `BUILD SUCCESS`, the receipts `solution` block
+  # and its md5 are all exactly where they were, because none of them is a function of what the
+  # answer asserts. So the exercise's own Customer is given the break's 31-day month for one run:
+  # the answer has to go red, and — because it uses assertAll — has to name all THREE at once.
+  # Weaken any one of them and that count is 2.
+  backup "$REPO/c3-unit11/exercise/src/main/java/com/tiffinbox/Customer.java"
+  sed -i '' 's/mealsPerDay \* pricePerMeal \* 30;/mealsPerDay * pricePerMeal * 31;/' \
+      "$REPO/c3-unit11/exercise/src/main/java/com/tiffinbox/Customer.java"
+  expect_fail "…and the answer CONSTRAINS all three bills: a 31-day month turns it red" 900 \
+      'Tests run: 1, Failures: 1' \
+      bash -c 'cd "$REPO/c3-unit11/exercise" && mvn -B "-Dmaven.repo.local=$M2_U11" test'
+  has "…naming all THREE of them, because the answer is one assertAll" 'Multiple Failures \(3 failures\)'
+  rm -rf "$REPO/c3-unit11/exercise/src/test" "$REPO/c3-unit11/exercise/target"
+  restore_all
+
+  # ---- receipts.sh. Ten blocks, and c3-unit11 is the one unit in this section whose README
+  # writes the hashes down in a table — so they are read OUT OF the page, never transcribed
+  # here, which is the only way this still fails when README and receipts.sh drift apart.
+  if run_receipts 11 3600; then
+    is "…and it printed ten blocks" "$(receipts_blocks 11)" "10"
+    NP=0
+    while IFS="$(printf '\t')" read -r RID RHASH REXIT; do
+      [ -n "${RID:-}" ] || continue
+      NP=$((NP+1))
+      receipt_is 11 "$RID" "md5 $RHASH  exit $REXIT"
+    done < <(receipts_table 11)
+    is "…and c3-unit11/README.md's table carries ten (block, md5, exit) rows" "$NP" "10"
+    # …and that the counts block's first number is DERIVED, not a literal. Replace
+    # `$(grep -c '^\[INFO\] Tests run:' .r-counts.out)` with `"1"` — right today — and the line, the
+    # block's md5 and the whole run's md5 do not move by one character, because a receipt and a
+    # caption are the same bytes until the input does. So the input is moved: a SECOND test class,
+    # with nothing skipped in it, is added to a copy of this unit and the block re-run there.
+    # Surefire then prints that class's own line at [INFO] as well, so a derived pair answers
+    # `2 of the 3`; a hardcoded first number keeps saying 1.
+    D11="$WORK/d11"; rm -rf "$D11"; mkdir -p "$D11"
+    ( cd "$REPO/c3-unit11" && tar cf - pom.xml src receipts.sh ) | ( cd "$D11" && tar xf - ) 2>/dev/null
+    ln -s "$M2_U11" "$D11/.m2-demo"
+    cat > "$D11/src/test/java/com/tiffinbox/DerivedProbeTest.java" <<'JAVA'
+package com.tiffinbox;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.Test;
+
+class DerivedProbeTest {
+    @Test
+    void aSecondClassVerifyCourse3Added() {
+        assertEquals(7200, new Customer("Ravi", 2, 120, "VEG").monthlyBill());
+    }
+}
+JAVA
+    expect_ok "…and both numbers on its counts line are DERIVED, not literals: a second test class in a copy makes them 2 and 3" 900 \
+        '^the \[INFO\] filter kept 2 of the 3 Tests run: lines surefire printed; this one is the suite total$' \
+        bash -c "cd \"$D11\" && ./receipts.sh counts"
+    rm -rf "$D11"
+
+    # the two panels this unit's README prints out of receipts.sh, held to what it really got
+    receipt_body 11 platform
+    panel 11 '`platform` is the one block whose output does not appear on a slide' 1
+    out_has_panel "…README's platform panel is what receipts.sh really printed"
+    receipt_body 11 lifecycle
+    panel 11 'So the block recomputes that hash over' 1
+    out_has_panel "…README's lifecycle order panel is what receipts.sh really printed"
+  fi
+
+  # ---- the offline receipt, as a pair: online first into this repository, then -o in the same one
+  offline_test 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" -o test' 900 "$REPO/c3-unit11" "$M2_U11"
+fi
+
+# ============================================================= c3-unit12 ====
+if unit 12 "One test, many cases — and the case name your build tool throws away"; then
+  U12H="$(readme_hash 12 'cd src/main/java/com/tiffinbox && md5 -q')"
+  is "cd src/main/java/com/tiffinbox && md5 -q *.java | sort | md5 -q -> the hash the README prints" \
+     "$(src_hash "$REPO/c3-unit12/src/main/java/com/tiffinbox")" "$U12H"
+  is "…and it is still c3-tiffinbox/tiffinbox-core's own hash — forked with no new dependency" \
+     "$(src_hash "$REPO/c3-tiffinbox/tiffinbox-core/src/main/java/com/tiffinbox")" "$U12H"
+  is "…and the source root holds exactly those five .java files" \
+     "$(src_files "$REPO/c3-unit12/src/main/java")" "$FIVE_SRC"
+  # "no new dependency at all — junit-jupiter already brings junit-jupiter-params"
+  N="$(grep -c '<artifactId>junit-jupiter-params</artifactId>' "$REPO/c3-unit12/pom.xml" | tr -d ' ')"
+  is "…and junit-jupiter-params is declared nowhere in the pom: junit-jupiter already brings it" "$N" "0"
+
+  # ---- five test methods, twenty cases on the report
+  expect_ok 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" test' 1200 'BUILD SUCCESS' \
+      bash -c 'cd "$REPO/c3-unit12" && mvn -B "-Dmaven.repo.local=$M2_U12" test'
+  has "…Tests run: 20 — twenty cases on the report" 'Tests run: 20, Failures: 0, Errors: 0, Skipped: 0'
+  N="$(grep -hcE '^ *@(ParameterizedTest|TestFactory|Test)\b' "$REPO"/c3-unit12/src/test/java/com/tiffinbox/*.java | paste -sd+ - | bc)"
+  is "…out of FIVE test methods in src/test/java — the runner did the looping, not the test" "$N" "5"
+  sensitive_to "…and those twenty cases CONSTRAIN the bill: a 31-day month is noticed by 16 of the 20" \
+      12 "$M2_U12" src/main/java/com/tiffinbox/Customer.java \
+      "mealsPerDay * pricePerMeal * 30;" "mealsPerDay * pricePerMeal * 31;" \
+      "Tests run: 20, Failures: 16, Errors: 0, Skipped: 0"
+
+  # ---- breaks/loop-in-a-test: one bug, five rows, counted two ways
+  expect_fail "breaks/loop-in-a-test: mvn -B test -> exit 1, the same bug counted two ways" 900 \
+      'Tests run: 6, Failures: 6' \
+      bash -c 'cd "$REPO/c3-unit12/breaks/loop-in-a-test" && mvn -B "-Dmaven.repo.local=$M2_U12" test'
+  N="$(countq '^\[ERROR\]   LoopOverTheTableTest\.')"
+  is "…the loop version reports ONE failure, whatever the table's length" "$N" "1"
+  N="$(countq '^\[ERROR\]   OneCaseEachTest\.')"
+  is "…the @ParameterizedTest version, over the same five rows and the same bug, reports FIVE" "$N" "5"
+  # the bug itself is the 31-day month again, and it is the artifact, not the report
+  bill_is "…and the Customer under both is billing 31 days: Ravi comes back 7440" \
+      "$REPO/c3-unit12/breaks/loop-in-a-test/target/classes" "Ravi" 2 120 "7440"
+
+  # ---- breaks/zero-cases: two test methods in the file, one line on the report, BUILD SUCCESS
+  expect_ok "breaks/zero-cases: mvn -B test -> BUILD SUCCESS over a method that ran zero times" 900 \
+      'BUILD SUCCESS' \
+      bash -c 'cd "$REPO/c3-unit12/breaks/zero-cases" && mvn -B "-Dmaven.repo.local=$M2_U12" test'
+  has "…and the report says Tests run: 1" 'Tests run: 1, Failures: 0, Errors: 0, Skipped: 0'
+  N="$(grep -cE '^ *@(ParameterizedTest|Test)\b' "$REPO/c3-unit12/breaks/zero-cases/src/test/java/com/tiffinbox/EmptySourceTest.java" | tr -d ' ')"
+  is "…while the file declares TWO — the silenced one is not in the count at all" "$N" "2"
+  is "…and the silencer is on the annotation itself, where a reader will not look" \
+     "$(grep -c '@ParameterizedTest(allowZeroInvocations = true)' "$REPO/c3-unit12/breaks/zero-cases/src/test/java/com/tiffinbox/EmptySourceTest.java" | tr -d ' ')" "1"
+  # …and the refusal it turns off is real. Same class, same empty source, the switch removed.
+  rm -rf "$WORK/zero"; cp -R "$REPO/c3-unit12/breaks/zero-cases" "$WORK/zero"; rm -rf "$WORK/zero/target"
+  sed -i '' 's/@ParameterizedTest(allowZeroInvocations = true)/@ParameterizedTest/' \
+      "$WORK/zero/src/test/java/com/tiffinbox/EmptySourceTest.java"
+  expect_fail "…and without that switch JUnit 6.1.3 refuses the empty source and the build fails" 900 \
+      'You must configure at least one set of arguments for this @ParameterizedTest' \
+      bash -c 'cd "$WORK/zero" && mvn -B "-Dmaven.repo.local=$M2_U12" test'
+  rm -rf "$WORK/zero"
+
+  # ---- breaks/name-thrown-away: the console cannot tell the two naming styles apart
+  expect_fail "breaks/name-thrown-away: mvn -B test -> exit 1, the same case named two ways" 900 \
+      'defaultName\(int, int, int\)\[4\]' \
+      bash -c 'cd "$REPO/c3-unit12/breaks/name-thrown-away" && mvn -B "-Dmaven.repo.local=$M2_U12" test'
+  N="$(countq 'meals x')"
+  is "…and the phrased name reaches the console zero times, though the method carries one" "$N" "0"
+  is "…because the method really does carry a name = pattern, and the console still will not print it" \
+     "$(grep -c 'name = "{0} meals x {1} rupees -> {2}"' "$REPO/c3-unit12/breaks/name-thrown-away/src/test/java/com/tiffinbox/NamedCasesTest.java" | tr -d ' ')" "1"
+
+  # ---- the exercise, both halves
+  expect_ok "exercise: mvn -B test unedited -> Tests run: 1 over five rows" 900 \
+      'Tests run: 1, Failures: 0, Errors: 0, Skipped: 0' \
+      bash -c 'cd "$REPO/c3-unit12/exercise" && mvn -B "-Dmaven.repo.local=$M2_U12" test'
+  backup "$REPO/c3-unit12/exercise/src/test/java/com/tiffinbox/PlanTableTest.java"
+  cp "$REPO/c3-unit12/exercise/solution/PlanTableTest.java" \
+     "$REPO/c3-unit12/exercise/src/test/java/com/tiffinbox/PlanTableTest.java"
+  expect_ok "exercise solution: solution/PlanTableTest.java -> Tests run: 5, BUILD SUCCESS" 900 \
+      'Tests run: 5, Failures: 0, Errors: 0, Skipped: 0' \
+      bash -c 'cd "$REPO/c3-unit12/exercise" && mvn -B "-Dmaven.repo.local=$M2_U12" test'
+  has "…and it is still one @ParameterizedTest, not five methods" 'BUILD SUCCESS'
+  N="$(grep -c '@ParameterizedTest' "$REPO/c3-unit12/exercise/solution/PlanTableTest.java" | tr -d ' ')"
+  is "…the answer declares ONE @ParameterizedTest and lets the runner count the rows" "$N" "1"
+  restore_all
+
+  # ---- receipts.sh. c3-unit12/README.md quotes ONE number, the md5 of the whole RUN, and says
+  # in so many words that hashing receipts.sh itself is a different number. Both readings below.
+  if run_receipts 12 3600; then
+    is "…and it printed eight blocks, the count c3-unit12/README.md states" "$(receipts_blocks 12)" "8"
+    U12R="$(readme_hash 12 './receipts.sh 2>&1 | md5 -q')"
+    is "…./receipts.sh 2>&1 | md5 -q -> the md5 c3-unit12/README.md quotes for the whole run" \
+       "$(receipts_md5 12)" "$U12R"
+    # …and the six per-block hashes, which live only on the deck (12-parameterized-dynamic-tests.md).
+    receipt_is 12 cases     "md5 f2d7236ccec93c8124043efe0bc31a4f  exit 0"
+    receipt_is 12 break     "md5 950b82490fb791eeee4b5e294e816b59  exit 1"
+    receipt_is 12 names     "md5 a2136c900ef9e1900ef44966691b262c  exit 1 then 0"
+    receipt_is 12 plain     "md5 4c0327166284f402e8b2893a775b32c3  exit 1 then 0"
+    receipt_is 12 assertall "md5 0dd5dea3369f4782afa31c10668ef6e7  exit 1 then 1"
+    receipt_is 12 zero      "md5 9128b4e7f9520586f8a3cb39649a764b  exit 0 then 1"
+    # …and its two counts are DERIVED, not literals. This is the survivor that is invisible to
+    # every hash: replace `$(grep -rhcE '^\s+(@Test|@ParameterizedTest|@TestFactory)' …)` with the
+    # literal `5` and the line, the block's md5 and the whole run's md5 are all unchanged, because
+    # a receipt and a caption are the same bytes until the input moves. So the input is moved: a
+    # sixth test method is added to a COPY of this unit and the block re-run there. A derived pair
+    # answers 6 and 21; a literal keeps saying 5, and a literal case count keeps saying 20.
+    D12="$WORK/d12"; rm -rf "$D12"; mkdir -p "$D12"
+    ( cd "$REPO/c3-unit12" && tar cf - pom.xml src receipts.sh ) | ( cd "$D12" && tar xf - ) 2>/dev/null
+    ln -s "$M2_U12" "$D12/.m2-demo"
+    cat > "$D12/src/test/java/com/tiffinbox/DerivedProbeTest.java" <<'JAVA'
+package com.tiffinbox;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.Test;
+
+class DerivedProbeTest {
+    @Test
+    void aSixthTestMethodVerifyCourse3Added() {
+        assertEquals(7200, new Customer("Ravi", 2, 120, "VEG").monthlyBill());
+    }
+}
+JAVA
+    expect_ok "…and both numbers on its cases line are DERIVED, not literals: a sixth test method in a copy makes them 6 and 21" 900 \
+        '^6 test methods in src/test/java; 21 cases on the report$' \
+        bash -c "cd \"$D12\" && ./receipts.sh cases"
+    rm -rf "$D12"
+
+    # assertAll fixes the MESSAGE, never the COUNT — the one sentence this unit's second half is
+    # about, and the only place the three numbers appear together is that block's own output.
+    receipt_body 12 assertall
+    has "…receipts.sh assertall: hoisted out of the loop, assertAll names five rows" 'hoisted.*5|5.*hoisted'
+    has "…and wrapped round the loop body it still names one" 'wrapped.*1|1.*wrapped'
+  fi
+
+  offline_test 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" -o test' 900 "$REPO/c3-unit12" "$M2_U12"
+fi
+
+# ============================================================= c3-unit13 ====
+if unit 13 "AssertJ: the unit whose subject is the failure message"; then
+  U13H="$(readme_hash 13 'cd src/main/java/com/tiffinbox && md5 -q')"
+  is "cd src/main/java/com/tiffinbox && md5 -q *.java | sort | md5 -q -> the hash the README prints" \
+     "$(src_hash "$REPO/c3-unit13/src/main/java/com/tiffinbox")" "$U13H"
+  is "…still c3-tiffinbox/tiffinbox-core's own, forked with ONE new dependency and no source change" \
+     "$(src_hash "$REPO/c3-tiffinbox/tiffinbox-core/src/main/java/com/tiffinbox")" "$U13H"
+  is "…and the source root holds exactly those five .java files" \
+     "$(src_files "$REPO/c3-unit13/src/main/java")" "$FIVE_SRC"
+  timed 60 cat "$REPO/c3-unit13/pom.xml"
+  has "pom.xml pins assertj-core 3.27.7, the newest GA" '<artifactId>assertj-core</artifactId>'
+  has "…at 3.27.7"        '<version>3\.27\.7</version>'
+  # NOT 4.0.0-M1 — and the pom names that milestone in a comment explaining why it is not the
+  # pin, so the assertion has to be about the <version> ELEMENT and not about the word anywhere.
+  is "…and no <version> element in it is 4.0.0-M1, the milestone Central's <release> field points at" \
+     "$(grep -c '<version>4\.0\.0-M1</version>' "$REPO/c3-unit13/pom.xml" | tr -d ' ')" "0"
+  is "…while the comment above the pin does name it, which is how a reader learns why" \
+     "$(grep -c '4\.0\.0-M1' "$REPO/c3-unit13/pom.xml" | tr -d ' ')" "1"
+
+  expect_ok 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" test' 1200 'BUILD SUCCESS' \
+      bash -c 'cd "$REPO/c3-unit13" && mvn -B "-Dmaven.repo.local=$M2_U13" test'
+  has "…Tests run: 5, all green — the failures live in breaks/, and they are the unit" \
+      'Tests run: 5, Failures: 0, Errors: 0, Skipped: 0'
+  # …and the one assertion here that names a NUMBER is a threshold, so the probe has to land
+  # between the two: bill one day instead of thirty and `isGreaterThanOrEqualTo(3000)` notices.
+  # Lower that 3000 to anything a one-day bill clears and this line is the only thing that moves.
+  sensitive_to "…and the soft assertions CONSTRAIN that threshold: a one-day bill is noticed by 1 of the 5" \
+      13 "$M2_U13" src/main/java/com/tiffinbox/Customer.java \
+      "mealsPerDay * pricePerMeal * 30;" "mealsPerDay * pricePerMeal * 1;" \
+      "Tests run: 5, Failures: 1, Errors: 0, Skipped: 0"
+
+  # ---- breaks/three-messages. Seven tests, every one failing on purpose; the lesson is what
+  # each failure SAYS, so what is asserted is the three messages, not the exit code alone.
+  expect_fail "breaks/three-messages: mvn -B test -> exit 1, seven failures on purpose" 900 \
+      'Tests run: 7' \
+      bash -c 'cd "$REPO/c3-unit13/breaks/three-messages" && mvn -B "-Dmaven.repo.local=$M2_U13" test'
+  has "…assertTrue's whole contribution: expected: <true> but was: <false>" 'expected: <true> but was: <false>'
+  has "…AssertJ prints the roster instead, and names the element that is missing" 'Priya'
+  has "…and SoftAssertions reports all three at once" 'Multiple Failures \(3 failures\)'
+  N="$(grep -hcE '^ *@Test' "$REPO"/c3-unit13/breaks/three-messages/src/test/java/com/tiffinbox/*.java | paste -sd+ - | bc)"
+  is "…and the three classes really declare seven @Test methods between them" "$N" "7"
+
+  # ---- central/: the version sweep, shipped as bytes so the <release> chip is checkable offline
+  exists "central/assertj-core-maven-metadata.xml is shipped, so the sweep needs no network" \
+      "$REPO/c3-unit13/central/assertj-core-maven-metadata.xml"
+  exists "…and the directory listing beside it" "$REPO/c3-unit13/central/assertj-core-listing.html"
+  timed 60 cat "$REPO/c3-unit13/central/assertj-core-maven-metadata.xml"
+  has "…and Central's <release> field in those bytes really is the milestone, not the GA" \
+      '<release>4\.0\.0-M1</release>'
+
+  # ---- the exercise, both halves
+  expect_fail "exercise: mvn -B test unedited -> the whole message is 'expected: <true> but was: <false>'" 900 \
+      'RosterTest\.theKitchenKnowsAboutSunil:[0-9]+ expected: <true> but was: <false>' \
+      bash -c 'cd "$REPO/c3-unit13/exercise" && mvn -B "-Dmaven.repo.local=$M2_U13" test'
+  xpanel 13 'Right now that fails, and the whole message is' 1
+  out_has_panel "…and that is the exercise README's panel, line for line"
+  # step 1 is NOT run in place: solution/RosterTest.step1.java.txt is deliberately not a
+  # compilable file — it is the one assertion plus the report it produces, because the MESSAGE is
+  # the lesson rather than the green run. receipts.sh solution runs that state for real, and the
+  # .txt is held to it below.
+  backup "$REPO/c3-unit13/exercise/src/test/java/com/tiffinbox/RosterTest.java"
+  cp "$REPO/c3-unit13/exercise/solution/RosterTest.java" \
+     "$REPO/c3-unit13/exercise/src/test/java/com/tiffinbox/RosterTest.java"
+  expect_ok "exercise solution: solution/RosterTest.java -> Tests run: 1, BUILD SUCCESS" 900 \
+      'Tests run: 1, Failures: 0, Errors: 0, Skipped: 0' \
+      bash -c 'cd "$REPO/c3-unit13/exercise" && mvn -B "-Dmaven.repo.local=$M2_U13" test'
+  # …and the answer still LOOKS AT the roster. `Tests run: 1` and `BUILD SUCCESS` are true of an
+  # answer that asserts nothing at all, and no hash in this unit covers what it asserts — so the
+  # roster under it is moved by one character and the answer has to notice.
+  sed -i '' 's/new Customer("Sunil", 3, 100, "VEG")/new Customer("Suniel", 3, 100, "VEG")/' \
+      "$REPO/c3-unit13/exercise/src/test/java/com/tiffinbox/RosterTest.java"
+  expect_fail "…and it CONSTRAINS the name it looks for: misspell the roster and the answer goes red" 900 \
+      'but could not find the following element' \
+      bash -c 'cd "$REPO/c3-unit13/exercise" && mvn -B "-Dmaven.repo.local=$M2_U13" test'
+  has "…printing the roster it searched, which is the whole point of the rewrite" '"Ravi", "Meera", "Suniel"'
+  restore_all
+
+  # ---- receipts.sh: nine blocks, and BOTH readings of "the hash" the README is careful about
+  if run_receipts 13 3600; then
+    is "…and it printed nine blocks" "$(receipts_blocks 13)" "9"
+    U13R="$(readme_hash 13 './receipts.sh 2>&1 | md5')"
+    is "…./receipts.sh 2>&1 | md5 -> the md5 of the whole RUN that c3-unit13/README.md quotes" \
+       "$(receipts_md5 13)" "$U13R"
+    # the other reading, which the deck names precisely so a viewer does not conclude the
+    # receipts are broken: hashing the FILE is a different number and is a receipt of nothing.
+    is "…and md5 receipts.sh — the file, not the run — is still the number the deck warns about" \
+       "$(md5of "$REPO/c3-unit13/receipts.sh")" "c8bbdfa90f04f08b3cad018c15c5217f"
+    receipt_is 13 messages "md5 6da4bc0f4174295ab57e5958f7ff33b2  exit 1"
+    receipt_is 13 source   "md5 243f933ff6060128e142f0fbd596a5c5  no build - this block reads the shipped source"
+    receipt_is 13 records  "md5 4ce8c4efcebcf14042b9d10ff768032b  exit 1"
+    receipt_is 13 softly   "md5 73c17e5bdf980d3562a1379ab02d2819  exit 1"
+    receipt_is 13 unsafe   "md5 6a71c127dc14372c175322299d6496c7  exit 0 then 0"
+    receipt_is 13 version  "md5 8db3799720e21fc190bb9f59d155ba0c  exit 0"
+    receipt_is 13 release  "md5 0c5ce7edbf947e3330ead81298839f6f  no build - this block reads central/, fetched 2026-09-15 and shipped verbatim"
+    receipt_is 13 solution "md5 35722400e3a8aba3e4573e858f9b7856  exit 1 then 1 then 0"
+    receipt_is 13 offline  "md5 dd1c74f681b049d1e239e42bb4b0f8bd  exit 0"
+    derived_unprobed 13
+    # the README's <release> chip, held to the bytes in central/ rather than to prose. The page
+    # lays the two versions out as a little table; the block derives them as one sentence, so what
+    # is compared is the two DATES and the ordering finding, not the page's formatting.
+    receipt_body 13 release
+    has "…receipts.sh release: <release> is the milestone, and it is the last entry of the list" \
+        '<release> is 4\.0\.0-M1 and the last entry of the list is 4\.0\.0-M1'
+    has "…and it is not publication order: the milestone is ten months OLDER than the GA it hides" \
+        '4\.0\.0-M1 was published 2025-03-09 and 3\.27\.7 on 2026-01-24, 10 months later'
+    has "…nor text order: 3.9.1 sits before 3.10.0, which a text sort would reverse" \
+        'not text order: entry 38 is 3\.9\.1 and entry 39 is 3\.10\.0'
+    has "…it is version order, major first — and the pom pins the newest GA in that list" \
+        'newest GA in the list: 3\.27\.7; pom\.xml pins: 3\.27\.7'
+    readme_quotes "…and c3-unit13/README.md prints the 3.27.7 date the block derived" 13 "published 2026-01-24"
+    readme_quotes "…and the 4.0.0-M1 one" 13 "published 2025-03-09"
+    # the halfway state, which is the whole point of that exercise and lives only in a .txt file:
+    # not compilable, so nothing else in this run would ever notice if its message went stale.
+    receipt_body 13 solution
+    awk '/^    \[ERROR\]   RosterTest/{c=1;next} c&&c<=6{sub(/^    /,"");print;c++}' \
+        "$REPO/c3-unit13/exercise/solution/RosterTest.step1.java.txt" > "$WORK/panel"
+    out_has_lines "…and solution/RosterTest.step1.java.txt still shows the message that state really prints" 
+    # the Byte Buddy warning count, and the zero that only means something as a measurement
+    receipt_body 13 unsafe
+    has "…receipts.sh unsafe: byte-buddy appears 0 times in this pom" 'appears 0 time\(s\) in this pom'
+    is  "…and the pom really does not declare it — grep -c, the same number the block prints" \
+        "$(grep -c '<artifactId>byte-buddy</artifactId>' "$REPO/c3-unit13/pom.xml" | tr -d ' ')" "0"
+  fi
+
+  offline_test 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" -o test' 900 "$REPO/c3-unit13" "$M2_U13"
+fi
+
+# ============================================================= c3-unit14 ====
+if unit 14 "Test doubles, and Mockito doing the one job it is for"; then
+  U14H="$(readme_hash 14 'cd src/main/java/com/tiffinbox && md5 -q')"
+  is "cd src/main/java/com/tiffinbox && md5 -q *.java | sort | md5 -q -> the hash the README prints" \
+     "$(src_hash "$REPO/c3-unit14/src/main/java/com/tiffinbox")" "$U14H"
+  is "…the same five, byte for byte, as c3-tiffinbox/tiffinbox-core" \
+     "$(src_hash "$REPO/c3-tiffinbox/tiffinbox-core/src/main/java/com/tiffinbox")" "$U14H"
+  # THE reason that hash still means something here. The two new production classes live one
+  # package DOWN, and `md5 -q *.java` is a non-recursive glob: the README says so in words, and
+  # this is the measurement of that sentence. Move BillingService up into com/tiffinbox/ and the
+  # hash above is wrong while every other check in this unit stays green.
+  is "…and the five-file glob really is five files, with the two new classes one package down" \
+     "$( cd "$REPO/c3-unit14/src/main/java/com/tiffinbox" && ls *.java | LC_ALL=C sort | tr '\n' ' ' )" \
+     "Customer.java CustomerRepository.java Dashboard.java Database.java OrderQueue.java "
+  is "…com/tiffinbox/billing/ holding exactly the two the unit added" \
+     "$(src_files "$REPO/c3-unit14/src/main/java/com/tiffinbox/billing")" \
+     "./BillingService.java ./PaymentGateway.java "
+  timed 60 cat "$REPO/c3-unit14/pom.xml"
+  has "pom.xml declares mockito-core"          '<artifactId>mockito-core</artifactId>'
+  has "…and mockito-junit-jupiter"             '<artifactId>mockito-junit-jupiter</artifactId>'
+  has "…both at 5.23.0"                        '<version>5\.23\.0</version>'
+  # the quotes that stop the fork dying on a path with a space in it
+  has "…and the static-agent argLine QUOTES the jar path — this tree's own path has a space in it" \
+      '<argLine>-javaagent:"\$\{org\.mockito:mockito-core:jar\}"</argLine>'
+  # surefire's version sits OUTSIDE the STATIC-AGENT markers on purpose: run_warn deletes that
+  # region and both halves must still fork the same surefire, or the contrast measures two things.
+  N="$(awk '/STATIC-AGENT/{f=!f} !f && /<artifactId>maven-surefire-plugin<\/artifactId>/{c++} END{print c+0}' "$REPO/c3-unit14/pom.xml")"
+  is "…and maven-surefire-plugin's version is pinned OUTSIDE the STATIC-AGENT markers" "$N" "1"
+
+  expect_ok 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" test' 1200 'BUILD SUCCESS' \
+      bash -c 'cd "$REPO/c3-unit14" && mvn -B "-Dmaven.repo.local=$M2_U14" test'
+  has "…Tests run: 9 — four hand-written doubles plus the framework's fifth word" \
+      'Tests run: 9, Failures: 0, Errors: 0, Skipped: 0'
+  hasnt "…and Mockito is NOT self-attaching, because the agent is declared statically" 'self-attaching'
+  is "…byte-buddy appears zero times in this pom: it is nobody's declared dependency" \
+     "$(grep -c '<artifactId>byte-buddy</artifactId>' "$REPO/c3-unit14/pom.xml" | tr -d ' ')" "0"
+  # …and this suite really would catch the bug the break ships. Give the SHIPPED BillingService the
+  # break's one-meal charge and five of the nine tests notice; a suite that stopped naming the
+  # amount would stay green and no count, hash or exit code in this unit would move.
+  sensitive_to "…and they CONSTRAIN the amount: give the shipped service the break's one-meal charge and 5 of the 9 notice" \
+      14 "$M2_U14" src/main/java/com/tiffinbox/billing/BillingService.java \
+      "gateway.charge(c.name(), c.monthlyBill());" "gateway.charge(c.name(), c.pricePerMeal());" \
+      "Tests run: 9, Failures: 4, Errors: 1, Skipped: 0"
+
+  # ---- the break. Two green verifies over a service that charges 120 where the bill is 7200.
+  # The run is RED overall (the captor class fails), so the exit code proves nothing about the two
+  # that passed — which is exactly why the amount is measured directly below.
+  expect_fail "breaks/verified-nothing: mvn -B test -> the captor fails where the two verifies passed" 900 \
+      'expected: 7200' \
+      bash -c 'cd "$REPO/c3-unit14/breaks/verified-nothing" && mvn -B "-Dmaven.repo.local=$M2_U14" test'
+  has "… but was: 120 — the captured value is the artifact, not the green run" ' but was: 120'
+  N="$(countq '^\[ERROR\]   GreenAndWrongTest\.')"
+  is "…and NOT ONE of the two tests in GreenAndWrongTest is in the failure list" "$N" "0"
+  # THE assertion of this beat: what the service really hands the gateway. verify(…, anyInt())
+  # is satisfied by every possible answer, so a green `verify` says nothing at all; 120 does.
+  charged_is "…BillingService really hands the gateway 120 — one meal, where the month is 7200" \
+      "$REPO/c3-unit14/breaks/verified-nothing/target/classes" "Ravi" 2 120 "120"
+  timed 60 cat "$REPO/c3-unit14/breaks/verified-nothing/src/test/java/com/tiffinbox/billing/GreenAndWrongTest.java"
+  has "…and the two green tests really do ask only for a call of that SHAPE" 'anyInt\(\)'
+
+  # ---- the exercise. Its END STATE is a FAILURE, which is the whole point of the unit.
+  expect_ok "exercise: mvn -B test unedited -> Tests run: 1, BUILD SUCCESS, and the wrong amount" 900 \
+      'Tests run: 1, Failures: 0, Errors: 0, Skipped: 0' \
+      bash -c 'cd "$REPO/c3-unit14/exercise" && mvn -B "-Dmaven.repo.local=$M2_U14" test'
+  has "…green" 'BUILD SUCCESS'
+  charged_is "…over a BillingService that hands the gateway 120, not 7200" \
+      "$REPO/c3-unit14/exercise/target/classes" "Ravi" 2 120 "120"
+  backup "$REPO/c3-unit14/exercise/src/test/java/com/tiffinbox/billing/ChargeTest.java"
+  cp "$REPO/c3-unit14/exercise/solution/ChargeTest.java" \
+     "$REPO/c3-unit14/exercise/src/test/java/com/tiffinbox/billing/ChargeTest.java"
+  expect_fail "exercise answer: the ArgumentCaptor version -> the end state IS a failure" 900 \
+      'ChargeTest\.raviIsChargedHisMonthlyBill' \
+      bash -c 'cd "$REPO/c3-unit14/exercise" && mvn -B "-Dmaven.repo.local=$M2_U14" test'
+  xpanel 14 'The end state to reach' 1
+  panel_drop 1     # the README says the line number after the method name is not part of its acceptance
+  out_has_panel "…and the two lines under the method name are the exercise README's, verbatim"
+  backup "$REPO/c3-unit14/exercise/src/main/java/com/tiffinbox/billing/BillingService.java"
+  cp "$REPO/c3-unit14/exercise/solution/BillingService.java" \
+     "$REPO/c3-unit14/exercise/src/main/java/com/tiffinbox/billing/BillingService.java"
+  expect_ok "…and solution/BillingService.java is the one-word fix that makes it green" 900 \
+      'Tests run: 1, Failures: 0, Errors: 0, Skipped: 0' \
+      bash -c 'cd "$REPO/c3-unit14/exercise" && mvn -B "-Dmaven.repo.local=$M2_U14" test'
+  charged_is "…because it now hands the gateway 7200" \
+      "$REPO/c3-unit14/exercise/target/classes" "Ravi" 2 120 "7200"
+  restore_all
+
+  # ---- receipts.sh: eight blocks, seven hashes on the deck (14-test-doubles-and-mockito.md),
+  # plus the whole-run number. c3-unit14/README.md quotes none of them, so these are the deck's.
+  #
+  # A DEFECT, found by this script, reported rather than fixed — it lives in a file this script
+  # does not own. `run_spacetrap` cannot run from a checkout whose OWN path contains a space, and
+  # this tree's does (`Youtube Content`) — which is the very hazard that block exists to teach.
+  # It builds its trap by symlinking the local repository under a directory called `m2 demo`, then
+  # requires surefire's `Command was …` line to show
+  #     '-javaagent:<…>.space' 'trap/m2'
+  # — the `-javaagent:` token ITSELF ending in `.space`. From a path that already has a space in
+  # it, surefire tears the argument at the FIRST space instead, somewhere inside the checkout
+  # path, so that token ends in `Youtube`, the guard does not match and the block dies with
+  # "this failure is not the space trap" — on a run where the trap fired exactly as designed.
+  # Widening the guard to `'[^']*\.space' 'trap/m2'` — the same two adjacent tokens, without
+  # insisting the first is the agent's own — is true from either kind of path, and is a one-line
+  # change. Measured both ways: from a path with no space the block prints
+  # c34582e7e4035b1e925c475eaba03461 and `exit 1 then 0`, which are the deck's own numbers.
+  #
+  # So when this checkout's path has a space in it, the block is asserted to die with THAT exact
+  # message and no other, the in-place run is labelled for what it is, and the receipts are then
+  # run from a copy under $WORK — TMPDIR, no space — where every number is measured for real.
+  U14DIR="$REPO/c3-unit14"
+  case "$REPO" in
+    *\ *)
+      expect_rc "receipts.sh spacetrap IN PLACE: a DEFECT pinned, not a pass — its guard is path-dependent and this checkout's path has a space in it, so the block dies on a run where the trap fired exactly as designed" 900 1 \
+          "RECEIPT FAILED \(spacetrap\): surefire's command line does not show the agent path split at the space" \
+          bash -c "cd \"$REPO/c3-unit14\" && ./receipts.sh spacetrap"
+      case "$WORK" in
+        *\ *) U14DIR=""; skip "c3-unit14/receipts.sh — every block" \
+                  "run_spacetrap's guard is path-dependent (above) and TMPDIR has a space in it too, so there is nowhere here to measure it from; set TMPDIR to a path without one" ;;
+        *)    U14DIR="$WORK/u14"; rm -rf "$U14DIR"; cp -R "$REPO/c3-unit14" "$U14DIR"
+              printf '  %sNOTE%s  c3-unit14 receipts run from %s — a path with no space, because of the defect above\n' \
+                     "$YLW" "$OFF" "$U14DIR" ;;
+      esac
+      ;;
+  esac
+  if [ -n "$U14DIR" ] && expect_ok "c3-unit14/receipts.sh — every block, from a clean copy" 3600 '' \
+      bash -c "cd \"$U14DIR\" && ./receipts.sh"; then
+    cp "$OUT" "$WORK/receipts.14"
+    is "…and it printed eight blocks" "$(receipts_blocks 14)" "8"
+    is "…./receipts.sh | md5 -> the whole-script hash the deck quotes" \
+       "$(receipts_md5 14)" "5194e04a0e748099330175d5001ce54a"
+    receipt_is 14 doubles   "md5 c030c244d7410d347620b1fa3ba28dc8  exit 0"
+    receipt_is 14 spacetrap "md5 c34582e7e4035b1e925c475eaba03461  exit 1 then 0"
+    receipt_is 14 flags     "md5 87458d528c4005f275108108bc943a1e  exit 0"
+    receipt_is 14 bytebuddy "md5 cec564d104b2df1fc5285728cb34120e  exit 0"
+    receipt_is 14 break     "md5 8333f03da3e4f06f353b476552938ede  exit 1"
+    derived_unprobed 14
+    # `warn` is the one block that prints TWO md5 lines, one per half of its contrast
+    is "…receipts.sh warn -> the before/after pair the deck quotes" \
+       "$(block_tail 14 warn | tr '\n' '|')" \
+       "md5 before aa7a579eb37f09049edcb20d15d78221  exit 0|md5 after  d0d6c46d817b071e156549d3775db489  exit 0|"
+    # the flags table, exactly as c3-unit14/README.md prints it
+    receipt_body 14 flags
+    panel 14 'tries four flags against it' 1
+    out_has_panel "…README's five-row flags table is what receipts.sh really measured"
+    # and the sentence the break block exists for: a grep for capture() could not tell the
+    # difference in either direction, so the block re-runs the green class against a third
+    # wrong amount and counts what it noticed.
+    receipt_body 14 break
+    has "…receipts.sh break: the 2 that passed, re-run against a third wrong amount, noticed it 0 times" \
+        'the 2 that passed, re-run against a third wrong amount, noticed it 0 time\(s\)'
+    readme_quotes "…and c3-unit14/README.md prints that same derived sentence" 14 \
+        "3 test(s) ran; 1 failed; the 2 that passed, re-run against a third wrong amount, noticed it 0 time(s)"
+  fi
+  rm -rf "$WORK/u14"
+
+  offline_test 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" -o test' 900 "$REPO/c3-unit14" "$M2_U14"
+fi
+
+# ============================================================= c3-unit15 ====
+if unit 15 "Mockito's sharp edges: a green test over broken SQL"; then
+  U15H="$(readme_hash 15 'Both print')"
+  is "cd src/main/java/com/tiffinbox && md5 -q *.java | sort | md5 -q -> the hash the README prints" \
+     "$(src_hash "$REPO/c3-unit15/src/main/java/com/tiffinbox")" "$U15H"
+  is "…and c3-unit11's own source root prints the same one, which is what the README claims" \
+     "$(src_hash "$REPO/c3-unit11/src/main/java/com/tiffinbox")" "$U15H"
+  is "…and the source root holds exactly those five .java files" \
+     "$(src_files "$REPO/c3-unit15/src/main/java")" "$FIVE_SRC"
+
+  timed 60 cat "$REPO/c3-unit15/pom.xml"
+  has "pom.xml declares mockito-core and mockito-junit-jupiter" '<artifactId>mockito-junit-jupiter</artifactId>'
+  is "…both at 5.23.0, the version this unit's deck quotes" \
+     "$(grep -c '<version>5\.23\.0</version>' "$REPO/c3-unit15/pom.xml" | tr -d ' ')" "2"
+  is "…and assertj-core at 3.27.7, carried from the unit before it" \
+     "$(awk '/<artifactId>assertj-core<\/artifactId>/{getline; print}' "$REPO/c3-unit15/pom.xml" | tr -d ' ')" \
+     "<version>3.27.7</version>"
+  has "…and the static-agent argLine QUOTES the jar path" \
+      '<argLine>-javaagent:"\$\{org\.mockito:mockito-core:jar\}"</argLine>'
+
+  expect_ok 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" test' 1200 'BUILD SUCCESS' \
+      bash -c 'cd "$REPO/c3-unit15" && mvn -B "-Dmaven.repo.local=$M2_U15" test'
+  has "…Tests run: 4 — a mock of our own boundary, a fake over real H2, and the strict-stub shape" \
+      'Tests run: 4, Failures: 0, Errors: 0, Skipped: 0'
+  hasnt "…and Mockito is not self-attaching: the agent is declared in the POM" 'self-attaching'
+  # A mocked boundary cannot see a production change — that is this unit's own lesson, and it is
+  # why the 31-day probe the other units use says nothing here. So the STUB is moved instead: same
+  # class, same mock, one different canned answer. A test that names the number goes red; the one
+  # that stopped naming it (`isEqualTo(24300)` weakened to `.isNotNegative()`) does not.
+  sensitive_to "…and MockedRepositoryTest CONSTRAINS the value it stubs: change the canned answer and 1 of the 4 notices" \
+      15 "$M2_U15" src/test/java/com/tiffinbox/MockedRepositoryTest.java \
+      "when(repo.monthRevenue()).thenReturn(24300);" "when(repo.monthRevenue()).thenReturn(99999);" \
+      "Tests run: 4, Failures: 1, Errors: 0, Skipped: 0"
+
+  # ---- breaks/green-over-broken. ONE character wrong in the SQL. The mocked test passes
+  # *because its stubs were written by reading the same broken code*; the real database does not.
+  expect_fail "breaks/green-over-broken: mvn -B test -> the mocked test is green, the real one is not" 900 \
+      'Column "MEAL_TYP" not found' \
+      bash -c 'cd "$REPO/c3-unit15/breaks/green-over-broken" && mvn -B "-Dmaven.repo.local=$M2_U15" test'
+  N="$(countq '^\[ERROR\]   MockedJdbcTest\.')"
+  is "…MockedJdbcTest is in no failure entry at all — a mock of somebody else's type only ever agrees with you" "$N" "0"
+  has "…and RealDatabaseTest is the one that failed" 'RealDatabaseTest'
+  # the artifact: the character itself, in the two files that disagree
+  timed 60 grep -n 'meal_typ' "$REPO/c3-unit15/breaks/green-over-broken/src/main/java/com/tiffinbox/CustomerRepository.java"
+  has "…the SELECT really asks for meal_typ" 'SELECT name, meals_per_day, price_per_meal, meal_typ FROM customer'
+  timed 60 grep -n 'meal_type' "$REPO/c3-unit15/breaks/green-over-broken/src/main/java/com/tiffinbox/Database.java"
+  has "…while the CREATE TABLE beside it declares meal_type" 'meal_type +VARCHAR'
+
+  # ---- breaks/strict-vs-lenient: the same unused stub under both settings, in one run
+  expect_fail "breaks/strict-vs-lenient: mvn -B test -> strict reports UnnecessaryStubbing, lenient says nothing" 900 \
+      'UnnecessaryStubbing' \
+      bash -c 'cd "$REPO/c3-unit15/breaks/strict-vs-lenient" && mvn -B "-Dmaven.repo.local=$M2_U15" test'
+  N="$(countq '^\[ERROR\]   LenientTest\.')"
+  is "…and the LENIENT copy of the same class reports nothing — that is the hazard" "$N" "0"
+  has "…while the strict one names the line" 'StrictTest'
+  is "…and the two classes really are the same test twice, one carrying @MockitoSettings" \
+     "$(grep -c 'Strictness.LENIENT' "$REPO/c3-unit15/breaks/strict-vs-lenient/src/test/java/com/tiffinbox/LenientTest.java" | tr -d ' ')" "1"
+
+  # ---- the exercise, both halves. The starting state is RED, on purpose.
+  expect_fail "exercise: mvn -B test unedited -> UnnecessaryStubbing, Tests run: 2, Errors: 1" 900 \
+      'UnnecessaryStubbing' \
+      bash -c 'cd "$REPO/c3-unit15/exercise" && mvn -B "-Dmaven.repo.local=$M2_U15" test'
+  has "…Tests run: 2, Failures: 0, Errors: 1" 'Tests run: 2, Failures: 0, Errors: 1, Skipped: 0'
+  has "…and Mockito names the two lines by number" 'PausesTest\.java:2[01]'
+  backup "$REPO/c3-unit15/exercise/src/test/java/com/tiffinbox/PausesTest.java"
+  cp "$REPO/c3-unit15/exercise/solution/PausesTest.java" \
+     "$REPO/c3-unit15/exercise/src/test/java/com/tiffinbox/PausesTest.java"
+  expect_ok "exercise solution: the two stubs deleted -> Tests run: 2, BUILD SUCCESS" 900 \
+      'Tests run: 2, Failures: 0, Errors: 0, Skipped: 0' \
+      bash -c 'cd "$REPO/c3-unit15/exercise" && mvn -B "-Dmaven.repo.local=$M2_U15" test'
+  # the fix is deletion, not @MockitoSettings — the exercise README says so in so many words
+  is "…and the answer does NOT reach for Strictness.LENIENT to make the message go away" \
+     "$(grep -c 'LENIENT' "$REPO/c3-unit15/exercise/solution/PausesTest.java" | tr -d ' ')" "0"
+  is "…it deletes stubs: 4 when(…) lines in the starter, 2 in the answer" \
+     "$(grep -c 'when(' "$REPO/c3-unit15/exercise/src/test/java/com/tiffinbox/PausesTest.java" | tr -d ' ')" "2"
+  # …and the two it keeps are the two it ASSERTS on. `Tests run: 2` and `BUILD SUCCESS` are true of
+  # an answer whose assertions say nothing, and the stub count alone cannot tell the difference —
+  # so one canned answer is moved and one of the two tests has to notice.
+  sed -i '' 's/when(repo.pausedDays()).thenReturn(5);/when(repo.pausedDays()).thenReturn(6);/' \
+      "$REPO/c3-unit15/exercise/src/test/java/com/tiffinbox/PausesTest.java"
+  expect_fail "…and it CONSTRAINS what those stubs return: change one canned answer and 1 of the 2 goes red" 900 \
+      'Tests run: 2, Failures: 1, Errors: 0, Skipped: 0' \
+      bash -c 'cd "$REPO/c3-unit15/exercise" && mvn -B "-Dmaven.repo.local=$M2_U15" test'
+  restore_all
+  is "…and the starter really carries the four" \
+     "$(grep -c 'when(' "$REPO/c3-unit15/exercise/src/test/java/com/tiffinbox/PausesTest.java" | tr -d ' ')" "4"
+
+  # ---- receipts.sh: ten blocks. c3-unit15/README.md quotes the whole-run md5; the ten per-block
+  # hashes live on the deck (15-mockito-sharp-edges.md).
+  if run_receipts 15 3600; then
+    is "…and it printed ten blocks" "$(receipts_blocks 15)" "10"
+    U15R="$(readme_hash 15 './receipts.sh | md5')"
+    is "…./receipts.sh | md5 -> the md5 of the whole run that c3-unit15/README.md quotes" \
+       "$(receipts_md5 15)" "$U15R"
+    receipt_is 15 tests    "md5 c2ba52d3218b4c90ce0f4af487472397  exit 0"
+    receipt_is 15 counts   "md5 8de5a53ad4be939f9fc154d2731785ed  exit 0"
+    receipt_is 15 strict   "md5 552fcea51f23fe2952218470a1dc053c  exit 1"
+    receipt_is 15 doubles  "md5 f9cbc359f9ddc4d3db93012073230aca  exit 0"
+    receipt_is 15 quoting  "md5 c11cf094c34aea27e015442aeceb00b0  exit 1 then 0"
+    receipt_is 15 exercise "md5 affcd166ae46065a85242c7ac7ca2b25  exit 1"
+    receipt_is 15 solution "md5 6ffe3e00f5bf40e13f048989cab730ae  exit 0"
+    receipt_is 15 offline  "md5 34f321bd001f4095704674bd7053bde4  exit 0"
+    derived_unprobed 15
+    # `green` prints two md5 lines: the mocked class's single green line, and the Results: block
+    is "…receipts.sh green -> the mocked/green pair the deck quotes" \
+       "$(block_tail 15 green | tr '\n' '|')" \
+       "md5 0133599168cf7507d1a4a536fcf63125  exit 1|md5 b97f9930e4117e11b7d949970edd95b9  exit 1|"
+    # the quoting trap, which is the same hazard as -Dmaven.repo.local and is measured, not hoped
+    receipt_body 15 quoting
+    has "…receipts.sh quoting: unquoted -> 0 tests ran; quoted -> 4 tests ran" \
+        'unquoted -> exit 1, 0 test\(s\) ran; quoted -> exit 0, 4 test\(s\) ran'
+    has "…and the verdict comes from the two exit codes, not from an adjective" \
+        'the quotes are load bearing on this machine: yes'
+    panel 15 'unquoted run succeeds:' 1
+    out_has_panel "…and README's quoting panel is what that block really printed"
+  fi
+
+  offline_test 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" -o test' 900 "$REPO/c3-unit15" "$M2_U15"
+fi
+
+# ============================================================= c3-unit16 ====
+# The one unit in this section whose headline number is deliberately NOT a number. Its race
+# beat has no reproducible failure rate — the README says that out loud, and says why — so the
+# assertions below hold the page to the claim it actually makes: that the rate varies, that the
+# block prints both numbers on every row, and that the three flaky blocks carry NO md5 and say
+# so. Asserting "3 of 12" here would be inventing a receipt the page refused to give.
+if unit 16 "Testing concurrency and time: a clock you can set, a race you cannot count"; then
+  U16H="$(readme_hash 11 'Both print')"     # the section's carried-five hash, from c3-unit11's page
+  # `md5 -q *.java` would be SIX files here: Billing.java sits in the same package. c3-unit16's
+  # README names the five by hand for exactly that reason, and this is that command.
+  is "md5 -q Customer.java CustomerRepository.java Dashboard.java Database.java OrderQueue.java | sort | md5 -q" \
+     "$(src_hash5 "$REPO/c3-unit16/src/main/java/com/tiffinbox")" "$U16H"
+  is "…and the package holds those five plus Billing.java, the one new class, and nothing else" \
+     "$(src_files "$REPO/c3-unit16/src/main/java")" \
+     "./com/tiffinbox/Billing.java ./com/tiffinbox/Customer.java ./com/tiffinbox/CustomerRepository.java ./com/tiffinbox/Dashboard.java ./com/tiffinbox/Database.java ./com/tiffinbox/OrderQueue.java "
+  # counted over the CODE, not the file: Billing.java's own javadoc says "Nothing below calls
+  # LocalDate.now() with no argument", so a grep over the whole file reads 1 and means nothing.
+  is "…and nothing in Billing.java calls LocalDate.now() with no argument — that is the seam" \
+     "$(grep -vE '^\s*(\*|//|/\*)' "$REPO/c3-unit16/src/main/java/com/tiffinbox/Billing.java" | grep -c 'LocalDate\.now()' | tr -d ' ')" "0"
+  is "…it asks the Clock it was handed" \
+     "$(grep -c 'LocalDate\.now(clock)' "$REPO/c3-unit16/src/main/java/com/tiffinbox/Billing.java" | tr -d ' ')" "1"
+
+  is "pom.xml pins awaitility at 4.3.0, the one new dependency this unit declares" \
+     "$(awk '/<artifactId>awaitility<\/artifactId>/{getline; print}' "$REPO/c3-unit16/pom.xml" | tr -d ' ')" \
+     "<version>4.3.0</version>"
+  is "…and declares no Mockito at all: no agent is on this classpath" \
+     "$(grep -c 'mockito' "$REPO/c3-unit16/pom.xml" | tr -d ' ')" "0"
+
+  expect_ok 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" test' 1200 'BUILD SUCCESS' \
+      bash -c 'cd "$REPO/c3-unit16" && mvn -B "-Dmaven.repo.local=$M2_U16" test'
+  has "…Tests run: 6 — four fixed dates plus the two rewrites of the race" \
+      'Tests run: 6, Failures: 0, Errors: 0, Skipped: 0'
+  # …and the four fixed dates CONSTRAIN the arithmetic. Put breaks/wrong-arithmetic's own bug into
+  # the shipped class — `30 - dayOfMonth` where `lengthOfMonth() - dayOfMonth` belongs — and two of
+  # the six notice. A BillingTest that stopped naming the days would stay green under it.
+  sensitive_to "…and the four dates CONSTRAIN the arithmetic: put the break's own bug in the shipped clock and 2 of the 6 notice" \
+      16 "$M2_U16" src/main/java/com/tiffinbox/Billing.java \
+      "return d.lengthOfMonth() - d.getDayOfMonth();" "return 30 - d.getDayOfMonth();" \
+      "Tests run: 6, Failures: 2, Errors: 0, Skipped: 0"
+
+  # ---- the clock. 30 - dayOfMonth is invisible on the 120 days of the year that have 30 in them.
+  expect_fail "breaks/wrong-arithmetic: mvn -B test -> exit 1, and the count it is wrong on" 900 \
+      'agrees with the calendar on 120 of 365 days in 2026' \
+      bash -c 'cd "$REPO/c3-unit16/breaks/wrong-arithmetic" && mvn -B "-Dmaven.repo.local=$M2_U16" test'
+  has "…and on 31 January it is not: expected: 0 but was: -1" 'expected: 0'
+  has "…but was: -1"                                          'but was: -1'
+  timed 60 cat "$REPO/c3-unit16/breaks/wrong-arithmetic/src/main/java/com/tiffinbox/Billing.java"
+  has "…the arithmetic that does it is still written 30 - dayOfMonth" 'return 30 - today\(\)\.getDayOfMonth\(\);'
+  hasnt "…not lengthOfMonth(), which is what the shipped class uses" 'lengthOfMonth\(\)'
+
+  # ---- the flake. What this script may assert about it is what the README claims about it,
+  # and the README refuses to give a rate. So: the beat still races (the sleep is still there,
+  # the class still declares its tests), and the page still says the number cannot be quoted.
+  readme_quotes "README still refuses to quote a failure rate for this race" 16 \
+      "**Your numbers will differ, and that is the point.**"
+  readme_quotes "…and still says the spread inside one configuration beat the gap between configurations" 16 \
+      "tell you the failure rate of this race, and it will not tell you its shape either"
+  is "…and breaks/sleep-race still stands in a Thread.sleep for a barrier" \
+     "$(grep -c 'Thread\.sleep' "$REPO/c3-unit16/breaks/sleep-race/src/test/java/com/tiffinbox/RailSleepTest.java" | tr -d ' ')" "1"
+  is "…over the queue length the README reads out of that file — 20 000 orders, written 20_000" \
+     "$(grep -oE 'Integer\.getInteger\("orders", [0-9_]+\)' "$REPO/c3-unit16/breaks/sleep-race/src/test/java/com/tiffinbox/RailSleepTest.java" | grep -oE '[0-9_]+\)' | tr -d '_)')" "20000"
+  # the two rewrites, on the other hand, are NOT flaky and that is assertable: run each one.
+  expect_ok "RailCloseFirstTest + RailAwaitilityTest: mvn -B test -Dtest='Rail*' -> the fixed pair is green" 900 \
+      'BUILD SUCCESS' \
+      bash -c 'cd "$REPO/c3-unit16" && mvn -B "-Dmaven.repo.local=$M2_U16" test -Dtest=RailCloseFirstTest,RailAwaitilityTest -DfailIfNoSpecifiedTests=true'
+  has "…and both really ran: Tests run: 2" 'Tests run: 2, Failures: 0, Errors: 0, Skipped: 0'
+
+  # ---- the exercise. Its starting state does not even COMPILE, which is the acceptance.
+  expect_fail "exercise: mvn -B test unedited -> COMPILATION ERROR, there is no Clock to hand it" 900 \
+      'constructor Billing in class com\.tiffinbox\.Billing cannot be applied to given types' \
+      bash -c 'cd "$REPO/c3-unit16/exercise" && mvn -B "-Dmaven.repo.local=$M2_U16" test'
+  has "…BUILD FAILURE, not a red test" 'BUILD FAILURE'
+  backup "$REPO/c3-unit16/exercise/src/main/java/com/tiffinbox/Billing.java"
+  cp "$REPO/c3-unit16/exercise/solution/Billing.java" \
+     "$REPO/c3-unit16/exercise/src/main/java/com/tiffinbox/Billing.java"
+  expect_ok "exercise solution: solution/Billing.java -> Tests run: 2, BUILD SUCCESS" 900 \
+      'Tests run: 2, Failures: 0, Errors: 0, Skipped: 0' \
+      bash -c 'cd "$REPO/c3-unit16/exercise" && mvn -B "-Dmaven.repo.local=$M2_U16" test'
+  # "Change nothing else: BillingTest.java is the specification - do not edit it." The receipt for
+  # that sentence is what the answer ships: one file, and it is the production class.
+  is "…and the answer is the production class alone — BillingTest.java is the specification, untouched" \
+     "$(ls "$REPO/c3-unit16/exercise/solution" | tr '\n' ' ')" "Billing.java "
+  restore_all
+
+  # ---- receipts.sh. The five deterministic blocks are run as the README's own command prints
+  # them, and hashed; race/retry/fixed are run separately with the RUNS knob the README documents,
+  # and asserted to carry NO md5 — because a flake has no byte-identical output, and saying so is
+  # the finding rather than a gap.
+  if expect_ok "c3-unit16/receipts.sh tests clock classpath solution offline — the deterministic five" 3600 '' \
+      bash -c 'cd "$REPO/c3-unit16" && ./receipts.sh tests clock classpath solution offline'; then
+    cp "$OUT" "$WORK/receipts.16"
+    is "…five blocks" "$(receipts_blocks 16)" "5"
+    U16R="$(readme_hash 16 'whole-output md5')"
+    is "…and their combined output is the md5 c3-unit16/README.md quotes" "$(receipts_md5 16)" "$U16R"
+    receipt_is 16 tests     "md5 c724ff44ebce3ffd223d654bef76e2f0  exit 0"
+    receipt_is 16 clock     "md5 d915ee30eddb35efa3f85715b0ebe8a2  exit 1"
+    receipt_is 16 classpath "md5 939c27594066d3165d7829e1ac2b7f31  exit 0"
+    receipt_is 16 solution  "md5 268aafd6c73386c400ee2967f450bad3  exit 0"
+    receipt_is 16 offline   "md5 e119de6084ff170590fb1e43386284d0  exit 0"
+    derived_unprobed 16
+    receipt_body 16 classpath
+    panel 16 'prints the rule it counted under, and diffs the two lists' 1
+    out_has_panel "…README's classpath panel is what that block really measured"
+  fi
+  U16RUNS=4; [ "$SKIP_SLOW" = "1" ] && U16RUNS=2
+  if expect_ok "c3-unit16/receipts.sh race retry fixed (RUNS=$U16RUNS — the knob the README documents)" 3600 '' \
+      bash -c "cd \"$REPO/c3-unit16\" && RUNS=$U16RUNS ./receipts.sh race retry fixed"; then
+    cp "$OUT" "$WORK/receipts.16f"
+    N="$(grep -cE '^md5 ' "$WORK/receipts.16f" | tr -d ' ')"
+    is "…and not one of those three blocks printed an md5: a flake has no byte-identical output" "$N" "0"
+    has "…race prints BOTH numbers on every row — runs and failures, because neither means anything alone" \
+        "failed [0-9]+ of $U16RUNS runs of .mvn test. in this session"
+    has "…and it prints the queue length it read out of RailSleepTest.java, not one somebody typed" \
+        'the length this test ships with, read out of RailSleepTest\.java: 20000'
+    has "…retry: surefire rescues a lost race and the build goes green with a [WARNING] nobody reads" \
+        'passed WITH a recorded flake'
+    has "…fixed: 0 failures each, and the test count asserted on every run so that is not 0-over-nothing" \
+        '0 failure\(s\)|failed 0 of '"$U16RUNS"
+  fi
+fi
+
+# ============================================================= c3-unit17 ====
+# The unit that ships a bug on purpose under 100% line AND branch coverage. Three things here
+# are assertions nothing else in this script makes:
+#   * the JaCoCo CSV row for Pricing is compared as a STRING, before and after the fix, because
+#     "the two rows are identical" is the whole lesson and a percentage would hide it;
+#   * the break is a build that EXITS 0 — its coverage agent never loaded — so the assertion is
+#     the file that proves the tool ran (`target/jacoco.exec`), never the word SUCCESS;
+#   * the whole-run roll-up is asserted to be PATH-INDEPENDENT. Every capture in this unit is
+#     masked to `<project>/`, and that is what makes one number true from two different
+#     checkouts. If this line ever fails, the thing to fix is the masking, not the number.
+if unit 17 "Coverage, and what it does not tell you"; then
+  timed 60 cat "$REPO/c3-unit17/src/main/java/com/tiffinbox/Pricing.java"
+  has "Pricing's javadoc states the rule: 6000 rupees and above is SILVER" '6000 rupees and above: SILVER'
+  has "…and the code branches on bill > 6_000 — the bug, on purpose, still there" 'if \(bill > 6_000\) \{'
+  hasnt "…it is NOT >= yet; that is the exercise" 'if \(bill >= 6_000\) \{'
+  # the artifact of that bug, run rather than read: a bill of exactly 6000 comes back BRONZE.
+  timed 60 cat "$REPO/c3-unit17/pom.xml"
+  has "pom.xml carries jacoco-maven-plugin"              '<artifactId>jacoco-maven-plugin</artifactId>'
+  has "…and the surefire argLine that makes its agent reach the fork: @{argLine}" \
+      '<argLine>@\{argLine\}'
+  has "…and pitest-junit5-plugin declared as a dependency OF the pitest plugin" \
+      '<artifactId>pitest-junit5-plugin</artifactId>'
+  # …at the versions the deck quotes. A survivor this script did not catch when it was first
+  # written: JaCoCo 0.8.15 -> 0.8.14 moved no hash here, because every capture in this unit is
+  # either a CSV row both versions agree on, or a goal line out of breaks/naive-argline, whose pom
+  # is a different file. Both poms are pinned below, and the version that actually RAN is read off
+  # the goal line of this unit's own build further down.
+  is "…jacoco-maven-plugin is pinned at 0.8.15, the version the deck quotes" \
+     "$(awk '/<artifactId>jacoco-maven-plugin<\/artifactId>/{getline; print}' "$REPO/c3-unit17/pom.xml" | tr -d ' ')" \
+     "<version>0.8.15</version>"
+  is "…and breaks/naive-argline pins the SAME one, which is what makes the two builds comparable" \
+     "$(awk '/<artifactId>jacoco-maven-plugin<\/artifactId>/{getline; print}' "$REPO/c3-unit17/breaks/naive-argline/pom.xml" | tr -d ' ')" \
+     "<version>0.8.15</version>"
+  is "…pitest-maven at 1.30.0" \
+     "$(awk '/<artifactId>pitest-maven<\/artifactId>/{getline; print}' "$REPO/c3-unit17/pom.xml" | tr -d ' ')" \
+     "<version>1.30.0</version>"
+  is "…and pitest-junit5-plugin at 1.2.3, without which PIT cannot see a JUnit 5 or 6 test at all" \
+     "$(awk '/<artifactId>pitest-junit5-plugin<\/artifactId>/{getline; print}' "$REPO/c3-unit17/pom.xml" | tr -d ' ')" \
+     "<version>1.2.3</version>"
+
+  expect_ok 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" clean test' 1800 'BUILD SUCCESS' \
+      bash -c 'cd "$REPO/c3-unit17" && mvn -B "-Dmaven.repo.local=$M2_U17" clean test'
+  has "…Tests run: 3, and every one of them green over a class that is wrong" \
+      'Tests run: 3, Failures: 0, Errors: 0, Skipped: 0'
+  has "…and the agent that really ran is jacoco 0.8.15 — the goal line, not the pom" 'jacoco:0\.8\.15:prepare-agent'
+  exists "…and target/jacoco.exec exists — the file that proves the agent really ran" \
+      "$REPO/c3-unit17/target/jacoco.exec"
+  timed 60 bash -c 'cd "$REPO/c3-unit17" && cat target/site/jacoco/jacoco.csv | grep Pricing'
+  is "cat target/site/jacoco/jacoco.csv | grep Pricing -> 0 missed, everything covered" \
+     "$(tr -d ' \n' <"$OUT")" "TiffinBoxCore,com.tiffinbox,Pricing,0,15,0,4,0,6,0,3,0,1"
+  panel 17 '^## Run it' 2
+  out_has_panel "…and that row is the one c3-unit17/README.md prints, character for character"
+  bill_is "…the customer the hundred percent gets wrong: Arun, 1 meal at 200, is billed exactly 6000" \
+      "$REPO/c3-unit17/target/classes" "Arun" 1 200 "6000"
+
+  # ---- the break: seven goals ran, three tests passed, the build is green, and the tool did
+  # nothing. BUILD SUCCESS is the defect here, so the assertion is the missing artifact.
+  expect_ok "breaks/naive-argline: mvn -B test -> exit 0, BUILD SUCCESS, and no coverage at all" 900 \
+      'Skipping JaCoCo execution due to missing execution data file' \
+      bash -c 'cd "$REPO/c3-unit17/breaks/naive-argline" && mvn -B "-Dmaven.repo.local=$M2_U17" test'
+  has "…with three tests passing under it" 'Tests run: 3, Failures: 0, Errors: 0, Skipped: 0'
+  absent "…and target/jacoco.exec does not exist: the agent never reached the forked JVM" \
+      "$REPO/c3-unit17/breaks/naive-argline/target/jacoco.exec"
+  N="$(find "$REPO/c3-unit17/breaks/naive-argline/target/site" -type f 2>/dev/null | wc -l | tr -d ' ')"
+  is "…and target/site/ holds 0 files — 'which file proves it ran?' is the question, not 'did it pass'" "$N" "0"
+  timed 60 grep -n '<argLine>' "$REPO/c3-unit17/breaks/naive-argline/pom.xml"
+  has "…the whole difference is one token: the break's argLine has no @{argLine}" '<argLine>-Xmx512m</argLine>'
+  hasnt "…which is late replacement, and without it surefire's own element overrides the property" '@\{argLine\}'
+
+  # ---- the exercise: 86%, not 100%, because one survivor is an equivalent mutant
+  expect_ok "exercise: mvn -B clean test unedited -> green, and JaCoCo at a hundred percent" 1800 \
+      'Tests run: 3, Failures: 0, Errors: 0, Skipped: 0' \
+      bash -c 'cd "$REPO/c3-unit17/exercise" && mvn -B "-Dmaven.repo.local=$M2_U17" clean test'
+  expect_ok "exercise: org.pitest:pitest-maven:mutationCoverage -> 7 mutations, 5 killed, 2 survivors" 1800 \
+      '>> Generated 7 mutations Killed 5 \(71%\)' \
+      bash -c 'cd "$REPO/c3-unit17/exercise" && mvn -B "-Dmaven.repo.local=$M2_U17" test-compile org.pitest:pitest-maven:mutationCoverage'
+  is "…and the two survivors PIT recorded are on lines 20 and 23, read out of mutations.xml — PIT's own console log is never a receipt, it stamps a clock on every line" \
+     "$(pit_survivors "$REPO/c3-unit17/exercise/target/pit-reports/mutations.xml")" "20 23"
+  backup "$REPO/c3-unit17/exercise/src/main/java/com/tiffinbox/Pricing.java"
+  backup "$REPO/c3-unit17/exercise/src/test/java/com/tiffinbox/PricingTest.java"
+  cp "$REPO/c3-unit17/exercise/solution/PricingTest.java" \
+     "$REPO/c3-unit17/exercise/src/test/java/com/tiffinbox/PricingTest.java"
+  expect_fail "exercise step 2: the boundary test alone -> a real defect, found before the fix" 1800 \
+      'expected: "SILVER"' \
+      bash -c 'cd "$REPO/c3-unit17/exercise" && mvn -B "-Dmaven.repo.local=$M2_U17" clean test'
+  has "… but was: \"BRONZE\"" 'but was: "BRONZE"'
+  cp "$REPO/c3-unit17/exercise/solution/Pricing.java" \
+     "$REPO/c3-unit17/exercise/src/main/java/com/tiffinbox/Pricing.java"
+  expect_ok "exercise solution: both answer files -> Tests run: 4, BUILD SUCCESS" 1800 \
+      'Tests run: 4, Failures: 0, Errors: 0, Skipped: 0' \
+      bash -c 'cd "$REPO/c3-unit17/exercise" && mvn -B "-Dmaven.repo.local=$M2_U17" clean test'
+  expect_ok "exercise solution: PIT again -> 6 of 7, which is 86% and is where the exercise STOPS" 1800 \
+      '>> Generated 7 mutations Killed 6 \(86%\)' \
+      bash -c 'cd "$REPO/c3-unit17/exercise" && mvn -B "-Dmaven.repo.local=$M2_U17" test-compile org.pitest:pitest-maven:mutationCoverage'
+  is "…with ONE survivor left, not none, and it is line 20 — the equivalent mutant no test can kill" \
+     "$(pit_survivors "$REPO/c3-unit17/exercise/target/pit-reports/mutations.xml")" "20"
+  # the arithmetic that makes it equivalent, checked rather than repeated: a monthly bill is
+  # meals x price x 30, and 10000 is not a multiple of 30.
+  is "…10000 mod 30 is 10, so no Customer can tell bill >= 10000 from bill > 10000" \
+     "$(awk 'BEGIN{print 10000%30}')" "10"
+  restore_all
+  rm -rf "$REPO/c3-unit17/exercise/target"
+
+  # ---- receipts.sh: nine blocks, every hash on the deck, and the roll-up that must not move
+  # when the checkout does.
+  if run_receipts 17 5400; then
+    is "…and it printed nine blocks" "$(receipts_blocks 17)" "9"
+    receipt_is 17 coverage  "md5 e1686a68cd30b56e95930ff44ee9f619  exit 0"
+    receipt_is 17 scope     "md5 18596680f0137dafc3df3b1d9f3ff809  exit 0"
+    receipt_is 17 bug       "md5 b2505193eae46373a69f0f98613ab1e2  exit 1"
+    receipt_is 17 unchanged "md5 af39241963b2db0568fb30b7365968e8  exit 0 and 0"
+    receipt_is 17 mutants   "md5 b78a169a50376ef389a9dab076855d5b  exit 0"
+    receipt_is 17 ctor      "md5 eab2e7b90b5514b8a42703075c4692ae  exit 0 and 0"
+    receipt_is 17 naive     "md5 1ab59782d46afe52ad2da4925a9fae29  exit 0"
+    receipt_is 17 solution  "md5 d2910ac2af3a0b0077c81cb3377e9bac  exit 0 and 0"
+    receipt_is 17 offline   "md5 2bdee10c78eb172ea120d5528197df88  exit 0"
+    derived_unprobed 17
+    # c3-unit17/README.md quotes exactly one of those numbers in prose, and it is the one the
+    # whole unit turns on; so that half is read off the page rather than trusted to this file.
+    U17B="$(readme_hash 17 'is taken over')"
+    is "…and the bug block's hash is the one c3-unit17/README.md quotes in prose" \
+       "$(block_tail 17 bug | awk '{print $2}')" "$U17B"
+    # THE roll-up. Every capture in this unit is masked to `<project>/`, so this number is the
+    # same from any checkout — verified 3/3 across two paths, one of them containing a space.
+    # A mismatch here is a finding about the masking, not a number to update.
+    is "…./receipts.sh 2>&1 | md5 -q -> the 9-block roll-up, and it is NOT path-dependent" \
+       "$(receipts_md5 17)" "701ad6052901edb0d476fad22f05e4c4"
+    # the receipt that matters: the same CSV row, with the bug and with it fixed
+    receipt_body 17 unchanged
+    panel 17 'the JaCoCo row for' 1
+    out_has_panel "…README's before/after panel is what that block really wrote"
+    has "…and the two rows really are identical" 'the two rows are identical: yes'
+    # the denominator, and the other tool that counts differently
+    receipt_body 17 scope
+    has "…receipts.sh scope: Pricing lines 6/6 (100%)"        'Pricing +lines 6/6 \(100%\)'
+    has "…and the whole project 8/97 (8%), from the same file" 'whole project \(8 classes\) lines 8/97 \(8%\)'
+    receipt_body 17 ctor
+    has "…receipts.sh ctor: the filtered private constructor moves the DENOMINATOR, 6 -> 7" \
+        'lines JaCoCo counted: 6 -> 7 ; lines it called covered: 6 -> 6'
+    # PIT's panel, on the unit page and on the exercise page, held to the block that made it.
+    # An elision, not a contiguous capture: `>> Mutations with no coverage …` sits between the
+    # Generated line and the survivors, and the pages leave it out.
+    receipt_body 17 mutants
+    panel 17 '^## Mutation testing' 2
+    out_has_lines "…README's PIT panel — 7 generated, 5 killed, two survivors — is what that block produced"
+    xpanel 17 'Right now the tests are green, JaCoCo reports' 1
+    out_has_lines "…and the exercise README's starting PIT panel is the same three lines"
+    receipt_body 17 solution
+    xpanel 17 'The end state to reach' 1
+    out_has_panel "…and its end state — Tests run: 4, 6 of 7 killed, one survivor — is what the answer really produced"
+    has "…and the block says WHY that survivor cannot be killed, in arithmetic" \
+        'the surviving boundary is reachable by a Customer: no'
+  fi
+
+  offline_test 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" -o test' 900 "$REPO/c3-unit17" "$M2_U17"
+fi
+
+# ============================================================= c3-unit18 ====
+if unit 18 "Test architecture: naming, builders, and a flake you can hand to a colleague"; then
+  is "pom.xml pins assertj-core at 3.27.7" \
+     "$(awk '/<artifactId>assertj-core<\/artifactId>/{getline; print}' "$REPO/c3-unit18/pom.xml" | tr -d ' ')" \
+     "<version>3.27.7</version>"
+  is "…and declares no Mockito, no JaCoCo, no agent of any kind — the deck's ⚑ D13" \
+     "$(grep -cE 'mockito|jacoco|javaagent' "$REPO/c3-unit18/pom.xml" | tr -d ' ')" "0"
+
+  expect_ok 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" test' 1200 'BUILD SUCCESS' \
+      bash -c 'cd "$REPO/c3-unit18" && mvn -B "-Dmaven.repo.local=$M2_U18" test'
+  has "…Tests run: 6 — the naming convention, and the repaired flake" \
+      'Tests run: 6, Failures: 0, Errors: 0, Skipped: 0'
+  is "…and src/test's RosterTest holds NO static field: that is the repair, one word" \
+     "$(grep -cE '^ *private +static' "$REPO/c3-unit18/src/test/java/com/tiffinbox/RosterTest.java" | tr -d ' ')" "0"
+  # counted over the CODE: the class's own javadoc explains the repair and names @BeforeEach in
+  # a sentence, so a grep over the whole file reads 2 and says nothing about the annotation.
+  is "…rebuilt by a @BeforeEach instead" \
+     "$(grep -cE '^ *@BeforeEach' "$REPO/c3-unit18/src/test/java/com/tiffinbox/RosterTest.java" | tr -d ' ')" "1"
+  sensitive_to "…and MonthlyBillTest CONSTRAINS the bill it names: a 31-day month is noticed by 2 of the 6" \
+      18 "$M2_U18" src/main/java/com/tiffinbox/Customer.java \
+      "mealsPerDay * pricePerMeal * 30;" "mealsPerDay * pricePerMeal * 31;" \
+      "Tests run: 6, Failures: 2, Errors: 0, Skipped: 0"
+
+  # ---- breaks/nameless: four failures, two bugs, the same two assertions in both classes
+  expect_fail "breaks/nameless: mvn -B test -> exit 1, four failures over two bugs" 900 \
+      'Tests run: 4, Failures: 4' \
+      bash -c 'cd "$REPO/c3-unit18/breaks/nameless" && mvn -B "-Dmaven.repo.local=$M2_U18" test'
+  panel 18 '^## What actually reaches a failure report' 2
+  out_has_panel_rtrim "…and the README's four-line failure report is what this run really printed"
+  # the finding that surprises people, measured in the direction that can fail: the three
+  # @DisplayName strings reach the report ZERO times, and a zero only counts when the search
+  # could have found something — so the method names, which DO reach it, are counted too.
+  # searched in THE FAILURE REPORT, which is what the page's sentence is about — not in the whole
+  # console, where surefire prints the CLASS display name for free on its `Running …` lines and
+  # every one of these three would be found. That is also where c3-unit18/receipts.sh looks.
+  sed -n '/^\[INFO\] Results:/,/^\[ERROR\] Tests run:/p' "$OUT" > "$WORK/report18"
+  D=0; Z=0
+  while IFS= read -r dn; do
+    D=$((D+1)); grep -qF "$dn" "$WORK/report18" && Z=$((Z+1))
+  done < <(sed -nE 's/.*@DisplayName\("([^"]*)"\).*/\1/p' "$REPO/c3-unit18/breaks/nameless/src/test/java/com/tiffinbox/BillingRulesTest.java")
+  is "…BillingRulesTest carries three @DisplayName annotations" "$D" "3"
+  is "…and zero of those three strings appear anywhere in the failure report" "$Z" "0"
+  if grep -q 'BillingRulesTest\.doesNotBillThePausedDays' "$WORK/report18"; then
+    ok "…while the METHOD name does, which is what makes that zero a finding and not an empty grep"
+  else
+    bad "the failure report" "it does not name BillingRulesTest.doesNotBillThePausedDays either, so the 0 above counted nothing"
+  fi
+  # what surefire DOES give you for free: the class display name, on the console
+  has "…and the class display name is free on the console: Running billing rules" 'Running billing rules'
+  hasnt "…not Running com.tiffinbox.BillingRulesTest" 'Running com\.tiffinbox\.BillingRulesTest'
+
+  # ---- breaks/positional-arguments: it compiles, it bills correctly, and it is wrong
+  expect_fail "breaks/positional-arguments: mvn -B test -> only the field assertion catches it" 900 \
+      'PositionalTest\.theCustomerIsNot' \
+      bash -c 'cd "$REPO/c3-unit18/breaks/positional-arguments" && mvn -B "-Dmaven.repo.local=$M2_U18" test'
+  has "…expected: 2"   'expected: 2'
+  has "… but was: 120" 'but was: 120'
+  # THE artifact: the two ints are interchangeable, so the BILL is right either way. 120 x 2 x 30
+  # and 2 x 120 x 30 are the same 7200, which is why the bill test passes over a swapped record.
+  bill_is "…and new Customer(\"Ravi\", 120, 2, \"VEG\") really does bill 7200, same as the right way round" \
+      "$REPO/c3-unit18/breaks/positional-arguments/target/classes" "Ravi" 120 2 "7200"
+  bill_is "…because 2 x 120 x 30 is the same number — the bill can never catch this" \
+      "$REPO/c3-unit18/breaks/positional-arguments/target/classes" "Ravi" 2 120 "7200"
+
+  # ---- breaks/shared-state: one static list, three tests, an order-dependent failure
+  expect_fail "breaks/shared-state: mvn -B test -> red under Jupiter's own default order" 900 \
+      'Expected size: 2 but was: 3' \
+      bash -c 'cd "$REPO/c3-unit18/breaks/shared-state" && mvn -B "-Dmaven.repo.local=$M2_U18" test'
+  is "…and the cause is one word: the roster is a private static final List" \
+     "$(grep -cE 'private +static +final +List' "$REPO/c3-unit18/breaks/shared-state/src/test/java/com/tiffinbox/RosterTest.java" | tr -d ' ')" "1"
+  # named seeds, so the flake is reproducible rather than "it fails sometimes"
+  expect_ok "…and seed 2 passes, which is what makes this a flake you can hand to a colleague" 900 \
+      'Tests run: 3, Failures: 0, Errors: 0, Skipped: 0' \
+      bash -c 'cd "$REPO/c3-unit18/breaks/shared-state" && mvn -B "-Dmaven.repo.local=$M2_U18" '"'"'-Djunit.jupiter.testmethod.order.default=org.junit.jupiter.api.MethodOrderer$Random'"'"' -Djunit.jupiter.execution.order.random.seed=2 test'
+  expect_fail "…while seed 42, the same command, does not" 900 'Tests run: 3, Failures: 2' \
+      bash -c 'cd "$REPO/c3-unit18/breaks/shared-state" && mvn -B "-Dmaven.repo.local=$M2_U18" '"'"'-Djunit.jupiter.testmethod.order.default=org.junit.jupiter.api.MethodOrderer$Random'"'"' -Djunit.jupiter.execution.order.random.seed=42 test'
+  # the double-quote trap, which is NOT silent and does NOT go green
+  expect_fail "…and in double quotes \$Random expands to nothing, JUnit falls back, and it says so twice" 900 \
+      'Failed to load default method orderer class' \
+      bash -c 'cd "$REPO/c3-unit18/breaks/shared-state" && mvn -B "-Dmaven.repo.local=$M2_U18" "-Djunit.jupiter.testmethod.order.default=org.junit.jupiter.api.MethodOrderer$Random" -Djunit.jupiter.execution.order.random.seed=42 test'
+  N="$(countq 'Failed to load default method orderer class')"
+  is "…twice, naming the parameter and the class" "$N" "2"
+  has "…with a NoSuchMethodException under it" 'NoSuchMethodException'
+  has "…and the fallback run is RED, so nothing warns you by going green" 'Tests run: 3, Failures: 1'
+
+  # ---- junit-platform.properties: the file form of the same two knobs
+  exists "junit-platform.properties ships beside the pom" "$REPO/c3-unit18/junit-platform.properties"
+  timed 60 cat "$REPO/c3-unit18/junit-platform.properties"
+  has "…and it carries the orderer"  'junit\.jupiter\.testmethod\.order\.default'
+  has "…and the seed"                'junit\.jupiter\.execution\.order\.random\.seed'
+
+  # ---- the exercise, both halves
+  expect_fail "exercise: mvn -B test unedited -> Tests run: 3, Failures: 1, order-dependent" 900 \
+      'RosterTest\.startsWithTwoCustomers' \
+      bash -c 'cd "$REPO/c3-unit18/exercise" && mvn -B "-Dmaven.repo.local=$M2_U18" test'
+  has "…Expected size: 2 but was: 3" 'Expected size: 2 but was: 3'
+  backup "$REPO/c3-unit18/exercise/src/test/java/com/tiffinbox/RosterTest.java"
+  cp "$REPO/c3-unit18/exercise/solution/RosterTest.java" \
+     "$REPO/c3-unit18/exercise/src/test/java/com/tiffinbox/RosterTest.java"
+  cp "$REPO/c3-unit18/exercise/solution/CustomerBuilder.java" \
+     "$REPO/c3-unit18/exercise/src/test/java/com/tiffinbox/CustomerBuilder.java"
+  created "$REPO/c3-unit18/exercise/src/test/java/com/tiffinbox/CustomerBuilder.java"
+  expect_ok "exercise solution: green under Jupiter's default order" 900 \
+      'Tests run: 3, Failures: 0, Errors: 0, Skipped: 0' \
+      bash -c 'cd "$REPO/c3-unit18/exercise" && mvn -B "-Dmaven.repo.local=$M2_U18" test'
+  expect_ok "…and green under a shuffled one, seed 1 — which the starter is not" 900 \
+      'Tests run: 3, Failures: 0, Errors: 0, Skipped: 0' \
+      bash -c 'cd "$REPO/c3-unit18/exercise" && mvn -B "-Dmaven.repo.local=$M2_U18" '"'"'-Djunit.jupiter.testmethod.order.default=org.junit.jupiter.api.MethodOrderer$Random'"'"' -Djunit.jupiter.execution.order.random.seed=1 test'
+  is "…and the answer's field is not static — the repair is the field, not a pinned seed" \
+     "$(grep -cE '^ *private +static' "$REPO/c3-unit18/exercise/solution/RosterTest.java" | tr -d ' ')" "0"
+  # …and the answer's three assertions are still assertions. Green under two orders is true of a
+  # class that asserts nothing, and no hash here covers what it asserts — so a third customer is
+  # put into the @BeforeEach roster and all three have to notice.
+  if python3 - "$REPO/c3-unit18/exercise/src/test/java/com/tiffinbox/RosterTest.java" <<'PYEOF'
+import sys
+p = sys.argv[1]
+a = 'aCustomer().named("Meera").eating(1).atRupees(150).ofType("NON_VEG").build()));'
+b = ('aCustomer().named("Meera").eating(1).atRupees(150).ofType("NON_VEG").build(),\n'
+     '            aCustomer().named("Extra").build()));')
+s = open(p, encoding='utf-8').read()
+if s.count(a) != 1:
+    sys.exit(3)
+open(p, "w", encoding='utf-8').write(s.replace(a, b))
+PYEOF
+  then
+    expect_fail "…and it CONSTRAINS the roster it builds: a third customer in the @BeforeEach and all 3 go red" 900 \
+        'Tests run: 3, Failures: 3, Errors: 0, Skipped: 0' \
+        bash -c 'cd "$REPO/c3-unit18/exercise" && mvn -B "-Dmaven.repo.local=$M2_U18" test'
+  else
+    bad "c3-unit18 exercise answer: the third-customer probe" \
+        "the edit did not apply exactly once to the answer's @BeforeEach — the probe would prove nothing"
+  fi
+  rm -f "$REPO/c3-unit18/exercise/src/test/java/com/tiffinbox/CustomerBuilder.java"
+  restore_all
+
+  # ---- receipts.sh: nine blocks. c3-unit18/README.md quotes no hash at all, so every number
+  # below is the deck's (18-test-architecture.md), including both readings it is careful to
+  # separate: the md5 of the whole OUTPUT, and the md5 of the script FILE.
+  if run_receipts 18 5400; then
+    is "…and it printed nine blocks" "$(receipts_blocks 18)" "9"
+    is "…./receipts.sh | md5 -> the md5 of the whole OUTPUT the deck quotes" \
+       "$(receipts_md5 18)" "f7c205f518262b5db5446f7d478956c6"
+    is "…and md5 receipts.sh — the FILE, which the deck is careful to call a different thing" \
+       "$(md5of "$REPO/c3-unit18/receipts.sh")" "ce33b5613d9eb92003f5a59a18f528ae"
+    receipt_is 18 tests      "md5 e82720a3f6352ab8b5b97ea80847df03  exit 0"
+    receipt_is 18 names      "md5 30ac0690c2f92704c9ba7f2422b5165c  exit 1"
+    receipt_is 18 builders   "md5 2b8b1bae97335442359807f4dcacf468  exit 1"
+    receipt_is 18 seeds      "md5 3c794aaf243981ae26bee297a06e8234  5 of 6 mvn runs exited non-zero"
+    receipt_is 18 properties "md5 aa238f896a53aebf27a50e10796c0ce1  2 of 2 mvn runs exited non-zero"
+    receipt_is 18 quotes     "md5 27d7df359a05264086787a1f1a6a6745  exit 1 then 1"
+    receipt_is 18 fixed      "md5 dfa53278f20f1cac70c67abda936e4d4  0 of 6 mvn runs exited non-zero"
+    receipt_is 18 offline    "md5 cdff0a142ac3f7101931c250e89d4506  exit 0"
+    derived_unprobed 18
+    # the seeds panel: one order green out of six, every row asserting that three tests RAN
+    receipt_body 18 seeds
+    panel 18 '^## The flake, made reproducible' 2
+    out_has_panel "…README's seeds panel is what that block really produced"
+    has "…and every row carries 'of 3 test(s)', because a failure count over a class that did not run is not a receipt" \
+        'of 3 test\(s\)'
+    has "…1 of 6 orders tried were green; the class holds 1 static field" \
+        '1 of 6 orders tried were green; the class holds 1 static field\(s\); 3 test\(s\) ran under every order'
+    # the quotes block, which refuses to print unless all four of its conditions fired
+    receipt_body 18 quotes
+    has "…receipts.sh quotes: single-quoted at seed 42 is 2 of 3" '2 (failure\(s\) )?of 3'
+    has "…and the double-quoted run is a DIFFERENT order, not a silent nothing" 'Failed to load default method orderer class'
+  fi
+
+  offline_test 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" -o test' 900 "$REPO/c3-unit18" "$M2_U18"
+fi
+
 # =============================================================== teardown ===
 cd "$REPO"
 printf '\n%steardown%s\n' "$DIM" "$OFF"
@@ -2201,7 +3762,7 @@ if [ "$FP_AFTER" = "$FP_BEFORE" ]; then
   ok "the c3-* working tree is as this run found it (every pom swap and sed put back)"
 else
   bad "the c3-* working tree changed under the run" \
-      "fingerprint $FP_BEFORE -> $FP_AFTER; git status: $(cd "$REPO" && git status --porcelain -- 'c3-unit0[1-6]' c3-tiffinbox 2>/dev/null | head -5 | tr '\n' ' ')"
+      "fingerprint $FP_BEFORE -> $FP_AFTER; git status: $(cd "$REPO" && git status --porcelain -- 'c3-unit*' c3-tiffinbox 2>/dev/null | head -5 | tr '\n' ' ')"
 fi
 
 # ------------------------------------------------------------------ report ---
@@ -2213,7 +3774,7 @@ if [ ${#UNITS[@]} -eq 0 ]; then
   for d in "$REPO"/c3-*/; do
     n="$(basename "$d")"
     case "$n" in
-      c3-unit0[1-9]|c3-unit10|c3-tiffinbox) continue ;;
+      c3-unit0[1-9]|c3-unit1[0-8]|c3-tiffinbox) continue ;;
       *) UNCHECKED="$UNCHECKED $n" ;;
     esac
   done

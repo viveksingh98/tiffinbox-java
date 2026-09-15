@@ -164,7 +164,13 @@ run_spacetrap() {
     forkdied=$(grep -cE '^\[ERROR\] (The forked VM terminated|Error occurred in starting fork)' .r-space-raw.out)
     [ "$forkdied" -gt 0 ] \
       || die "the unquoted run exited $rc1 but surefire never reported a dead fork - this failure is not the space trap"
-    split=$(grep -cE "^\[ERROR\] Command was .*'-javaagent:[^']*\.space' 'trap/m2'" .r-space-raw.out)
+    # NOT '-javaagent:[^']*\.space' - that insists the agent's OWN token ends in ".space", which is
+    # only true when the checkout path has no space in it. From a path that already contains one
+    # (the canonical "Youtube Content" one does), surefire tears the argument at the FIRST space, so
+    # the -javaagent: token ends in "Youtube" and this guard rejected a run where the trap had fired
+    # exactly as designed. What the split really looks like is two ADJACENT tokens: one ending
+    # ".space" and the next being "trap/m2". That is what is matched, and it holds either way.
+    split=$(grep -cE "^\[ERROR\] Command was .*'[^']*\.space' 'trap/m2'" .r-space-raw.out)
     [ "$split" -gt 0 ] \
       || die "surefire's command line does not show the agent path split at the space - this failure is not the space trap"
     unquoted_err=$(grep -c '^\[ERROR\] Error occurred during initialization of VM' .r-space-raw.out)

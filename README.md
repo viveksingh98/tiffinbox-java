@@ -185,7 +185,8 @@ build is always skipped — it takes minutes and shows nothing the app-image doe
 Course playlist: *Build & Test Like a Pro*. The anchor is the same TiffinBox app for the third time:
 the Course 2 capstone, cut into a parent POM plus `tiffinbox-core` and `tiffinbox-web`, and then read,
 broken and rebuilt one build-tool concept at a time — **Maven** in section 1 (units 01-06), **Gradle
-beside it** in section 2 (units 07-10), on the same sources.
+beside it** in section 2 (units 07-10) on the same sources, and then **tests over those same five
+classes** in section 3 (units 11-18).
 
 | Unit | Topic | Folder |
 |---|---|---|
@@ -199,6 +200,14 @@ beside it** in section 2 (units 07-10), on the same sources.
 | 08 | Tasks, Inputs, Outputs | `c3-unit08/` |
 | 09 | Configurations and the Version Catalog | `c3-unit09/` |
 | 10 | Maven or Gradle: the Same Project, Both Tools | `c3-unit10/` |
+| 11 | JUnit 6, Properly | `c3-unit11/` |
+| 12 | Parameterized and Dynamic Tests | `c3-unit12/` |
+| 13 | AssertJ: Failure Messages That Help | `c3-unit13/` |
+| 14 | Test Doubles and Mockito | `c3-unit14/` |
+| 15 | Mockito's Sharp Edges | `c3-unit15/` |
+| 16 | Testing Concurrency and Time | `c3-unit16/` |
+| 17 | Coverage, and What It Does Not Tell You | `c3-unit17/` |
+| 18 | Test Architecture: Naming, Builders, Flakiness | `c3-unit18/` |
 
 **Unit 05 has almost nothing in `c3-unit05/` on purpose** — its code *is* `c3-tiffinbox/`, the split
 project every later unit of the course builds on, so that folder holds only the unit's exercise.
@@ -229,6 +238,27 @@ measures. They break on purpose too: unit 08's `breaks/undeclared-input/` is the
 one character of a pinned checksum. And each of the four ships a **`receipts.sh`** that regenerates
 every md5 its README quotes, from the exact pipeline printed above each block.
 
+**Units 11-18 are section 3, "Testing That Earns Trust"**, and they are the same five sources a third
+time: `md5 -q *.java | sort | md5 -q` over `src/main/java/com/tiffinbox/` is
+`fdb1643d622615f3c331d75deaebb9da` in every one of them and in `c3-tiffinbox/tiffinbox-core/`, so a
+lesson about tests is a lesson about code you already know. What is new is the kind of break. Sections
+1 and 2 break a build; this one breaks **trust in a green run**. `c3-unit11/breaks/green-for-nothing/`
+is three passing tests over a `Customer` that bills a 31-day month — Ravi comes back 7440 where 7200
+belongs, and not one of the three ever looks at the number. `c3-unit14/breaks/verified-nothing/` is two
+passing `verify(gateway).charge(eq("Ravi"), anyInt())` calls over a service that charges 120 where the
+bill is 7200, because `anyInt()` is satisfied by every possible answer. `c3-unit17/` ships a real bug
+under **100% line and 100% branch coverage**, and its `receipts.sh unchanged` block prints JaCoCo's CSV
+row for that class with the bug and with it fixed: the two rows are the same string, character for
+character. `c3-unit15/breaks/green-over-broken/` has one character wrong in a `SELECT`, a mocked test
+that passes and a real-database test that does not. `c3-unit18/breaks/shared-state/` is a flake you
+hand to a colleague by name — *seed 2 passes; seeds 1, 3, 42 and 2026 do not* — rather than one you
+describe as "it fails sometimes". And `c3-unit16/breaks/sleep-race/` is the one number this course
+**refuses to quote**: its README measured the failure rate, found the spread inside one configuration
+beat the gap between configurations, and says so instead of putting a figure on a slide. All eight
+units ship a **`receipts.sh`** that regenerates every number their READMEs and slides quote, block by
+block, with the **exit code printed beside each md5** — several of them fail on purpose, and
+`exit 1`, `exit 0 and 0` and `exit 0 then 1 then 0` are part of the claim.
+
 Course 3 needs **JDK 25** and Apache Maven **3.9.x**. It does **not** need Gradle installed.
 
 ```bash
@@ -237,6 +267,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ./verify_course3.sh                # runs every c3-* command and prints PASS/FAIL
 ./verify_course3.sh 03 06          # just those units
 ./verify_course3.sh 08 10          # just the Gradle ones
+./verify_course3.sh 11 17          # just the testing ones (section 3)
 ./verify_course3.sh tiffinbox      # just c3-tiffinbox (that is unit 05's code)
 SKIP_SLOW=1 ./verify_course3.sh    # shorten the repeated-build hash loops
 KEEP_M2=1 ./verify_course3.sh      # keep the scratch repositories AND the four .gradle-home/
@@ -250,15 +281,17 @@ JDK **25 exactly**, not 25-or-newer: units 01, 03 and 04 compile `--release 25 -
 JDK 26 refuses outright with `invalid source release 25 with --enable-preview`, and a bare `java` on
 this Mac is 23.0.1. The script checks the JDK before it runs anything and says which one it wants.
 
-`verify_course3.sh` runs every command in the ten unit READMEs and in `c3-tiffinbox/README.md` and
+`verify_course3.sh` runs every command in the eighteen unit READMEs and in `c3-tiffinbox/README.md` and
 asserts the real output: the Reactor Summary row counts (never `BUILD SUCCESS` on its own — a
 single-module build prints no summary at all), the goal-line counts, the jars in `target/lib`, the
 `javap` minor version that shows the preview bit leaving, the six `curl` responses byte for byte, and
 the md5s and the `shasum` the READMEs quote. It asserts that every break beat still breaks with the
 *right* message and the *right* exit code, and for the two silent failures it asserts the artifact —
 the generated-file count, the class-file list — never the word `SUCCESS`. It checks both halves of all
-ten exercises: the starter behaves as documented, and the shipped solution produces the end state the
-exercise README promises. It time-boxes every command, asserts port 18425 is free before a server
+eighteen exercises: the starter behaves as documented, and the shipped solution produces the end state
+the exercise README promises — including the two whose promised end state is *not* green, `c3-unit14/`
+(a captured 7200-vs-120 failure) and `c3-unit17/` (86% mutation score, because one survivor is an
+equivalent mutant that no test can kill). It time-boxes every command, asserts port 18425 is free before a server
 starts and free again after, puts back every `pom.xml` an exercise swaps, the two `menu.txt` files a
 break beat appends to, the one source file another `sed`s and the checksum unit 10 corrupts, and
 deletes every `target/`, `build/`, `.gradle/`, `effective-pom.xml`, `cp*.txt`, `es.xml`, scratch
@@ -282,6 +315,25 @@ from the clean clone as well, and every hash it prints is compared against the h
 with the pairs read out of the README at run time rather than copied into the script, so the check
 still fails when a README and its receipts.sh drift apart. The two blocks that need something you have
 to supply (unit 10's `OLD_GRADLE`) are asserted to **skip with a message** rather than pass quietly.
+
+**For units 11-18 it adds the rule the whole section turns on: a green build is never the evidence.**
+`BUILD SUCCESS` is what every break beat in this section *prints* — it is the thing being warned
+about — so the script asserts the **artifact** instead. It compiles and then **runs** the `Customer`
+under `c3-unit11/breaks/green-for-nothing/` and reads 7440 back where 7200 belongs; it runs the
+`BillingService` under `c3-unit14/breaks/verified-nothing/` against a gateway that records what it was
+handed and reads 120 back; and for `c3-unit17/breaks/naive-argline/` — a build that exits 0 with seven
+goals run and three tests passing — it asserts that `target/jacoco.exec` does **not** exist and that
+`target/site/` holds **0** files, because the question is never *"did the build pass"* but *"which file
+proves the tool ran?"*. Every break is also asserted to **still break**, with the exit code its
+`receipts.sh` prints: fix unit 11's 31-day month, give unit 14's mock a real expectation, change unit
+17's `>` to `>=` or drop the `static` from unit 18's roster and the build gets better while the video
+becomes wrong, which is a failure here and not a pass. Each unit's `receipts.sh` is run from the clean
+clone and every hash **and exit-code line** it prints is compared with the number its README and its
+slides quote — `c3-unit11/`'s are read out of its README's own table at run time, and `c3-unit17/`'s
+whole-run roll-up is asserted to be the same from any checkout, because every capture in that unit is
+masked to `<project>/`. The one number the script does **not** assert is `c3-unit16/`'s flake rate: that
+README declined to give one, so what is held is the claim the page makes rather than a figure it
+refused.
 
 **It never writes to your `~/.m2`.** Course 3 runs `install` and `deploy`, so every `mvn` the script
 runs carries a quoted `-Dmaven.repo.local=` — the one difference between it and the line printed in the
