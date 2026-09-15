@@ -1,0 +1,19 @@
+<!--
+  Logback reads this file off the classpath at startup. Nothing in the Java sources
+  names it, imports it, or knows it is here.
+
+  One level word on line 12 decides what the same compiled classes print. Change it,
+  run again, and the output changes with no recompile — that is the whole difference
+  between a logging call and a println.
+-->
+<configuration>
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} %-5level %logger{1} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+</configuration>

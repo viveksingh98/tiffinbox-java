@@ -1,0 +1,9 @@
+target/
+.m2-demo/
+# receipts.sh working files, and the log tree every capture writes into.
+.r-*.out
+.r-*.raw
+.r-cp.txt
+.sol/
+.jq/
+logs/

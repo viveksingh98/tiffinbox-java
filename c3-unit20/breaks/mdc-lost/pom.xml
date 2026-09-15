@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.tiffinbox</groupId>
+  <artifactId>tiffinbox-core-mdc-lost</artifactId>
+  <version>1.0.0</version>
+  <name>TiffinBox Core (MDC across a thread boundary)</name>
+  <description>The same order id, handed to a pool, and where it ends up.</description>
+
+  <properties>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- overridden per run by receipts.sh; see the exec plugin below -->
+    <run.class>com.tiffinbox.kitchen.KitchenHandoff</run.class>
+    <run.arg>-Dlogback.dummy=unused</run.arg>
+  </properties>
+
+
+  <dependencies>
+
+    <!--
+      logback-classic only, and slf4j-api comes with it - the logging unit before this one
+      printed the resolved version rather than asserting it, and nothing here re-declares it.
+    -->
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.6.3</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-jdk-platform-logging</artifactId>
+      <version>2.0.19</version>
+      <scope>runtime</scope>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.15.0</version>
+      </plugin>
+      <!-- exec:exec, not exec:java: every capture in this section needs a fresh JVM. -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.6.4</version>
+        <configuration>
+          <executable>java</executable>
+          <arguments>
+            <argument>${run.arg}</argument>
+            <argument>-classpath</argument>
+            <classpath/>
+            <argument>${run.class}</argument>
+          </arguments>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

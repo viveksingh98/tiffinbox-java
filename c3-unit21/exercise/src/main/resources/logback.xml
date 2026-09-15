@@ -1,0 +1,42 @@
+<!--
+  The same events, encoded twice, in one run.
+
+    kitchen.log   a pattern layout - what a human reads
+    kitchen.json  LogstashEncoder  - one JSON object per line, what a machine queries
+
+  Both are attached to <root>, so no event can be in one and not the other. That is what
+  makes the comparison in receipts.sh a comparison of ENCODINGS rather than of two runs.
+
+  The JSON encoder turns every MDC entry into a top-level key with no configuration at all,
+  which is the single biggest practical difference: in the text log the order id is a
+  substring of a line, and in the JSON log it is a field with a name.
+-->
+<configuration>
+  <property name="LOGDIR" value="${logdir:-target/logs}"/>
+
+  <appender name="TEXT" class="ch.qos.logback.core.FileAppender">
+    <file>${LOGDIR}/kitchen.log</file>
+    <append>false</append>
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} %-5level %logger{1} %X{orderId:-} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <appender name="JSON" class="ch.qos.logback.core.FileAppender">
+    <file>${LOGDIR}/kitchen.json</file>
+    <append>false</append>
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+  </appender>
+
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} %-5level %logger{1} %X{orderId:-} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="TEXT"/>
+    <appender-ref ref="JSON"/>
+    <appender-ref ref="CONSOLE"/>
+  </root>
+</configuration>

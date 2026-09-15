@@ -1,0 +1,8 @@
+target/
+.m2-demo/
+# receipts.sh working files: one .out per block, the raw capture behind it, and the
+# throwaway copy the exercise answer is run in.
+.r-*.out
+.r-*.raw
+.r-cp.txt
+.sol/

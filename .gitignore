@@ -174,3 +174,122 @@ c3-unit10/.m2-demo/
 # THREE lines. The README and receipts.sh append a fourth and put it back; if a run
 # is interrupted, `git diff` on those two files is what tells you, which is the
 # whole reason they are tracked.
+
+# ------------------------------ Course 3 · Section 3 (Testing That Earns Trust) ---
+# Produced by a command in a c3-unit11..18 README or by that unit's receipts.sh.
+# Each of those eight units carries its own .gitignore with the same rules; these
+# are the second net, the same convention as the Course 2 and Section 1-2 blocks
+# above. Scoped per unit on purpose — `.sol/`, `.fix/`, `.q/` and friends are
+# throwaway build copies, and an unscoped rule would match real directories.
+c3-unit11/.m2-demo/
+c3-unit11/.sol/
+c3-unit11/.green/
+c3-unit11/.green2/
+c3-unit11/.capstone/
+c3-unit11/.r-cp.txt
+c3-unit12/.m2-demo/
+c3-unit12/.sol/
+c3-unit12/.zero-strict/
+c3-unit12/.assertall/
+c3-unit12/.noagent/
+c3-unit12/.space trap/
+c3-unit13/.m2-demo/
+c3-unit13/.sol/
+c3-unit13/.zero-strict/
+c3-unit13/.noagent/
+c3-unit13/.space trap/
+c3-unit14/.m2-demo/
+c3-unit14/.sol/
+c3-unit14/.zero-strict/
+c3-unit14/.noagent/
+c3-unit14/.space trap/
+c3-unit14/.amount/
+c3-unit14/.flags/
+c3-unit15/.m2-demo/
+c3-unit15/.sol/
+c3-unit15/.q/
+c3-unit15/.space trap/
+c3-unit15/.ex/
+c3-unit15/.r-cp.txt
+c3-unit16/.m2-demo/
+c3-unit16/.sol/
+c3-unit17/.m2-demo/
+c3-unit17/.sol/
+c3-unit17/.fix/
+c3-unit18/.m2-demo/
+c3-unit18/.sol/
+c3-unit18/.props/
+
+# The receipts.sh working files, in all eight. `.r-*.out` is the capture a block
+# hashes and `.r-*.raw` the unfiltered build log it came from; both are rebuilt by
+# every run, and neither belongs in a clone.
+c3-unit1[1-8]/.r-*.out
+c3-unit1[1-8]/.r-*.raw
+
+# ------------------------------- Course 3 · Section 4 (Logging & Measurement) ---
+# Everything below is produced by a command in a c3-unit19..22 README, or by that
+# unit's receipts.sh. Scoped per unit, exactly like the Course 2 and Section 2
+# blocks above, because `logs/` and `central/` are plausible source directory
+# names and a bare rule here would hide one in some future unit.
+#
+# NOT ignored, and deliberately committed: c3-unit19/central/ and
+# c3-unit22/central/ - the maven-metadata.xml and the Central directory listing
+# each unit's `receipts.sh release` derives its version chip from, with no
+# network. They are evidence, and a .gitignore that swallowed them would make
+# that block unrunnable from a clean clone.
+
+# receipts.sh working files: one .out per block, the .raw capture behind it, and
+# the throwaway trees the exercise answers and the probes are run in.
+c3-unit19/.r-*.out
+c3-unit19/.r-*.raw
+c3-unit19/.r-cp.txt
+c3-unit19/.sol/
+c3-unit20/.r-*.out
+c3-unit20/.r-*.raw
+c3-unit20/.r-cp.txt
+c3-unit20/.sol/
+c3-unit20/.gate/
+c3-unit21/.r-*.out
+c3-unit21/.r-*.raw
+c3-unit21/.r-cp.txt
+c3-unit21/.sol/
+c3-unit22/.r-*.out
+c3-unit22/.r-*.raw
+c3-unit22/.r-cp.txt
+c3-unit22/.r-cc.txt
+c3-unit22/.sol/
+
+# -Dmaven.repo.local="$PWD/.m2-demo" - the isolated local repository every Maven
+# command in this section uses, so that ~/.m2 is never the subject. `target/` is
+# already covered at the top of this file, and it is where every log file, every
+# rolled archive and every JMH jar below actually lands.
+c3-unit19/.m2-demo/
+c3-unit20/.m2-demo/
+c3-unit21/.m2-demo/
+c3-unit22/.m2-demo/
+
+# The log trees the appender unit and the structured-logging unit write into.
+# target/ already covers target/logs, but ${logdir} is overridable on the command
+# line and a viewer who points it at the project root should not commit the result.
+c3-unit20/logs/
+c3-unit21/logs/
+c3-unit22/logs/
+
+# Rolled archives, wherever they land: kitchen.1.log .. kitchen.3.log are produced
+# by the rolling appender and by the exercise's answer.
+c3-unit20/kitchen*.log
+c3-unit20/exercise/kitchen*.log
+c3-unit21/kitchen*.log
+c3-unit21/kitchen*.json
+
+# JMH: the shaded uber-jar the benchmarks run from, and every result format its
+# -rf flag can write. The jar is 5.5 MB and is rebuilt by `mvn package`.
+c3-unit22/benchmarks.jar
+c3-unit22/exercise/benchmarks.jar
+c3-unit22/breaks/no-blackhole/benchmarks.jar
+c3-unit22/jmh-result.*
+c3-unit22/exercise/jmh-result.*
+
+# JFR recordings need no rule here: the Course 2 block above already carries a
+# bare `*.jfr`, which covers c3-unit22/target/bench.jfr and anything a viewer
+# records beside it. Repeating it would be the second net twice.

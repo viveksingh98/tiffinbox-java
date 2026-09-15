@@ -1,0 +1,58 @@
+<!--
+  THE CONFIGURATION EVERY TUTORIAL SHOWS, COPIED EXACTLY - and it does not roll.
+
+  Nothing below is wrong. maxFileSize is set, the rolling policy is set, the appender
+  starts, no error is printed and the build succeeds. Run ../../receipts.sh roll and read
+  the file count.
+
+  Three things this file decides, and nothing in the Java sources knows about any of them:
+
+    WHERE a line goes ....... the appenders. Two of them here, and the same event reaches
+                              both - one to the console, one to a file that rolls.
+    WHAT a line looks like .. the pattern. Read it field by field below.
+    WHEN a file is replaced . the rolling policy.
+
+  The pattern, one token at a time:
+
+    %d{HH:mm:ss.SSS}  the clock. It moves every run, which is why every capture in this
+                      unit masks it before hashing.
+    [%thread]         the thread that wrote the line.
+    %-5level          the level, left-justified in five columns so the messages line up.
+    %logger{1}        the logger name, shortened to its last segment.
+    %X{orderId:-}     THE MDC FIELD. Whatever this thread put under "orderId", or the
+                      empty string after :- when there is nothing there.
+    %msg%n            the message, then a newline.
+-->
+<configuration>
+  <property name="LOGDIR" value="${logdir:-target/logs}"/>
+  <property name="PATTERN"
+            value="%d{HH:mm:ss.SSS} [%thread] %-5level %logger{1} %X{orderId:-} - %msg%n"/>
+
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder><pattern>${PATTERN}</pattern></encoder>
+  </appender>
+
+  <!--
+    maxFileSize is 1KB on purpose. A real service uses 100MB and rolls once a week, which
+    is impossible to show on camera; 1KB rolls in front of you and the mechanism is
+    identical. maxIndex 3 plus totalSizeCap is what stops a rolling log filling the disk -
+    the half of this configuration that people leave out and regret.
+  -->
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOGDIR}/kitchen.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+      <fileNamePattern>${LOGDIR}/kitchen.%i.log</fileNamePattern>
+      <minIndex>1</minIndex>
+      <maxIndex>3</maxIndex>
+    </rollingPolicy>
+    <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+      <maxFileSize>1KB</maxFileSize>
+    </triggeringPolicy>
+    <encoder><pattern>${PATTERN}</pattern></encoder>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="FILE"/>
+  </root>
+</configuration>

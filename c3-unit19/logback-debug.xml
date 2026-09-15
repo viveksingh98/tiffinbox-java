@@ -1,0 +1,19 @@
+<!--
+  The same file as src/main/resources/logback.xml with ONE word changed: the root
+  level reads DEBUG instead of INFO.
+
+  Nothing else differs. Point the JVM at this file instead
+  (-Dlogback.configurationFile=logback-debug.xml) and the same compiled classes
+  print more — no recompile, no code edit, no redeploy.
+-->
+<configuration>
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} %-5level %logger{1} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <root level="DEBUG">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+</configuration>

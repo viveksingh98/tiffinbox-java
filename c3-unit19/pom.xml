@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.tiffinbox</groupId>
+  <artifactId>tiffinbox-core</artifactId>
+  <version>1.0.0</version>
+  <name>TiffinBox Core</name>
+  <description>The logger you already have, given a real backend.</description>
+
+  <properties>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- overridden on the command line for the DEBUG run; see the exec plugin below -->
+    <logback.config>logback.xml</logback.config>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>6.1.3</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>2.5.250</version>
+    </dependency>
+
+    <!--
+      THE BINDING. logback-classic is the only logging artifact declared with a version
+      here, and it brings slf4j-api with it - see the comment on the bridge below.
+      Declaring slf4j-api as well is how a project ends up with a facade and a backend
+      that disagree; `mvn dependency:tree` is how you find out which one you actually got.
+
+      Pinned from the artifact's VERSION LIST on repo1.maven.org, never from the
+      maven-metadata <release> field: that field is the last entry of the version list in
+      version order (major number first), so it is neither "newest GA" nor "newest
+      published". For org.slf4j:slf4j-api it reads 2.1.0-alpha1, published 2024-01-02,
+      while the newest GA is 2.0.19, published 2026-09-04 - the field names a build from
+      two and a half years earlier. ./receipts.sh release derives that from the two
+      Central files in central/, with no network.
+    -->
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.6.3</version>
+    </dependency>
+
+    <!--
+      THE BRIDGE. This jar contains one service file and one class: an implementation of
+      java.lang.System.LoggerFinder that hands every System.Logger call to SLF4J. The JDK
+      finds it through ServiceLoader at startup. It is runtime scope because no source
+      file in this project refers to a type in it - and that is the point of the unit.
+    -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-jdk-platform-logging</artifactId>
+      <version>2.0.19</version>
+      <scope>runtime</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>3.27.7</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.15.0</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.6.0</version>
+      </plugin>
+      <!--
+        exec:exec, not exec:java. exec:java runs inside Maven's own JVM, where the
+        System.LoggerFinder has already been resolved and frozen - so the bridge would
+        never be consulted and this unit would prove nothing. exec:exec forks a fresh
+        java process, which is what every capture in this unit uses.
+      -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.6.4</version>
+        <configuration>
+          <executable>java</executable>
+          <arguments>
+            <!--
+              -Dlogback.configurationFile names the file Logback reads INSTEAD of the
+              logback.xml on the classpath. It defaults to the classpath one, so a plain
+              `mvn exec:exec` is the INFO run and `-Dlogback.config=logback-debug.xml` is
+              the DEBUG run. Same classes, same jar, one property.
+            -->
+            <argument>-Dlogback.configurationFile=${logback.config}</argument>
+            <argument>-classpath</argument>
+            <classpath/>
+            <argument>com.tiffinbox.kitchen.KitchenLog</argument>
+          </arguments>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

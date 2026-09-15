@@ -1,0 +1,12 @@
+target/
+.m2-demo/
+# receipts.sh working files, plus the throwaway copy the exercise answer is run in.
+.r-*.out
+.r-*.raw
+.r-cp.txt
+.r-cc.txt
+.sol/
+# JMH's uber-jar and its results, and every flight recording.
+benchmarks.jar
+*.jfr
+jmh-result.*
