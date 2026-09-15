@@ -1,0 +1,9 @@
+# The .gitignore this unit breaks a repository with. Every line of it is defensible on its
+# own, and together they cost a team an afternoon.
+#
+# It is not a straw man: `*.jar` is the single most common line in a Java .gitignore on the
+# internet, because people paste it to keep build output out - and `target/` and `build/`
+# already do that job. What `*.jar` adds is the wrapper.
+
+*.jar
+target/

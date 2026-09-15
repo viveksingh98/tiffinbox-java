@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+  "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+  "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<!--
+  A Checkstyle configuration small enough to read in one sitting, which is the only kind
+  a team actually keeps. Five checks, each with a reason.
+-->
+<module name="Checker">
+  <property name="severity" value="warning"/>
+
+  <!-- A file that does not end with a newline breaks `cat`, `git diff` and half of POSIX. -->
+  <module name="NewlineAtEndOfFile"/>
+
+  <!-- Tabs render differently in every tool. Spaces do not. -->
+  <module name="FileTabCharacter"/>
+
+  <module name="TreeWalker">
+    <!-- A public type with no javadoc is a decision nobody wrote down. -->
+    <module name="JavadocType">
+      <property name="scope" value="public"/>
+    </module>
+
+    <!-- `import com.foo.*` makes it impossible to tell where a name came from. -->
+    <module name="AvoidStarImport"/>
+
+    <!-- An empty catch block is where exceptions go to die. -->
+    <module name="EmptyCatchBlock"/>
+  </module>
+</module>

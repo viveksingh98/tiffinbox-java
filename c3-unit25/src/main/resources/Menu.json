@@ -1,0 +1,5 @@
+{
+  "veg":     ["dal and rice", "seasonal vegetable", "two flatbreads"],
+  "nonVeg":  ["chicken curry", "rice", "two flatbreads"],
+  "vegan":   ["chickpea curry", "rice", "salad"]
+}

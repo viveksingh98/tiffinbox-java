@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.tiffinbox</groupId>
+  <artifactId>tiffinbox-core</artifactId>
+  <version>1.0.0</version>
+  <name>TiffinBox Core</name>
+  <description>The same program as a JIT start and as an ahead-of-time start, and the one line neither can follow.</description>
+
+  <properties>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <main.class>com.tiffinbox.aot.Startup</main.class>
+
+    <!--
+      REPRODUCIBLE BUILDS, and this one property is the whole of it.
+
+      Without it, maven-jar-plugin stamps every zip entry with the wall clock of the build,
+      so two builds of byte-identical class files produce two DIFFERENT jars. With it, every
+      entry gets this fixed instant instead and the jar becomes a function of its inputs.
+      `receipts.sh reproducible` builds the same sources twice, with and without, and prints
+      the four hashes. The value is an ISO-8601 instant; Maven also accepts a Unix epoch.
+    -->
+    <project.build.outputTimestamp>2026-09-15T00:00:00Z</project.build.outputTimestamp>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>6.1.3</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!--
+      The two declared dependencies the delivered capstone had, unchanged. They resolve to
+      four jars, and the jar this unit packages needs all four at run time and none of them
+      at compile time for anything the IDE would warn you about. That gap is the unit.
+    -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>2.5.250</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>3.27.7</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.15.0</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.6.0</version>
+      </plugin>
+
+      <!--
+        THE THIN JAR. maven-jar-plugin 3.5.1 - and 3.5.1 is the newest GA even though the
+        <release> field of its maven-metadata.xml says 4.0.0-beta-1, published TWO YEARS
+        EARLIER. `./receipts.sh release` derives that from the two Central files in central/,
+        with no network.
+
+        addClasspath + classpathPrefix write a `Class-Path:` header into META-INF/MANIFEST.MF.
+        That header is a promise about directories NEXT TO the jar - and nothing verifies it,
+        at build time or at start-up. It is the unit's first break.
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.5.1</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>${main.class}</mainClass>
+              <addClasspath>true</addClasspath>
+              <classpathPrefix>lib/</classpathPrefix>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+
+      <!--
+        The four runtime jars, copied beside the thin one at prepare-package - the same goal
+        the delivered capstone bound, in the same phase, for the same reason.
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.11.0</version>
+        <executions>
+          <execution>
+            <id>copy-runtime-deps</id>
+            <phase>prepare-package</phase>
+            <goals><goal>copy-dependencies</goal></goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/lib</outputDirectory>
+              <includeScope>runtime</includeScope>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+
+  <profiles>
+    <!--
+      THE NATIVE PROFILE. It is real, it is pinned, and on the machine this unit was written
+      on it CANNOT RUN - see ./receipts.sh graalvm, which measures why rather than guessing.
+      It is shipped because it is the taught material and because a viewer who does have a
+      GraalVM JDK can run it unchanged.
+
+      native-maven-plugin 1.1.13 was published on 2026-09-15, read from the version list on
+      repo1.maven.org rather than from the <release> field.
+
+        export JAVA_HOME=/path/to/graalvm-community-jdk-25   # a GraalVM JDK, not this one
+        mvn -Pnative -Dmaven.repo.local="$PWD/.m2-demo" package
+        ./target/tiffinbox
+
+      The two json files under src/main/resources/META-INF/native-image/ are what make the
+      reflective formatter lookup survive a closed-world build. Without reflect-config.json
+      the binary compiles, starts, and dies on Class.forName with ClassNotFoundException -
+      the two formatters are not IN it, because nothing in the code refers to them.
+    -->
+    <profile>
+      <id>native</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.graalvm.buildtools</groupId>
+            <artifactId>native-maven-plugin</artifactId>
+            <version>1.1.13</version>
+            <extensions>true</extensions>
+            <executions>
+              <execution>
+                <id>build-native</id>
+                <goals><goal>compile-no-fork</goal></goals>
+                <phase>package</phase>
+              </execution>
+            </executions>
+            <configuration>
+              <imageName>tiffinbox</imageName>
+              <mainClass>${main.class}</mainClass>
+              <buildArgs>
+                <buildArg>--no-fallback</buildArg>
+                <buildArg>-H:+ReportExceptionStackTraces</buildArg>
+              </buildArgs>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

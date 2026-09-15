@@ -1,0 +1,129 @@
+# TiffinBox — the whole build, on a machine you do not own.
+#
+# Copy this file to .github/workflows/build.yml in YOUR fork and push. It is not installed
+# at the root of this repository on purpose: a workflow file in .github/ runs on every push
+# and spends real minutes, and that has to be your decision, not a side effect of cloning a
+# course repo.
+#
+# Every version below was read on 2026-09-15 from api.github.com/repos/<action>/releases/latest.
+# ../receipts.sh actions re-derives the table from the files in ../central/, with no network.
+#
+#   actions/checkout          v7   (v7.0.1, 2026-07-20)
+#   actions/setup-java        v6   (v6.0.1, 2026-09-09)
+#   actions/cache             v6   (v6.1.0, 2026-06-26)
+#   actions/upload-artifact   v7   (v7.0.1, 2026-04-10)
+#
+# A MAJOR TAG MOVES. `actions/checkout@v7` today is v7.0.1; tomorrow it can be v7.0.2, and
+# nobody tells you. A commit SHA does not move, and pinning by SHA is what a
+# security-conscious repository does:
+#
+#   - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v7.0.1
+#
+# The cost is that you now own the upgrade. Both answers are defensible; an unpinned
+# `@main` is not.
+
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+# Never write more than the job needs. The default token is read/write on everything;
+# this narrows it, and the release job widens it again for itself alone.
+permissions:
+  contents: read
+
+jobs:
+
+  # ---------------------------------------------------------------- build ----
+  # The matrix is JDK 25 - the baseline this whole course is verified on - plus ONE newer
+  # release. The newer one is a COMPATIBILITY CHECK, not a second baseline: if it goes red
+  # the answer is "Java 26 changed something", not "downgrade the project".
+  #
+  # Java 25 is the current long-term-support release. Java 26 is a feature release and is
+  # not LTS; Adoptium's own API says so (available_lts_releases ends at 25). The next LTS
+  # after 25 is Java 29.
+  build:
+    name: build · JDK ${{ matrix.java }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false          # a failure on 26 must not hide the result on 25
+      matrix:
+        java: ['25', '26']
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+          # setup-java can manage the dependency cache itself. It keys on the pom files,
+          # which is the same thing the explicit actions/cache step below would do - use
+          # ONE of them, never both, or you have two caches racing for the same key.
+          cache: maven
+
+      - name: build and test
+        working-directory: c3-unit25
+        run: mvn -B -ntp verify
+
+      # The test report is an artifact, not a scroll of log. `if: always()` is the whole
+      # point: the run you most want the report from is the one that failed.
+      - name: upload the surefire report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: surefire-jdk${{ matrix.java }}
+          path: c3-unit25/target/surefire-reports/
+          retention-days: 7
+          if-no-files-found: error    # an empty artifact is worse than no artifact
+
+      # The build produced a jar. Prove the jar RUNS - a green `mvn verify` does not.
+      # On this project, on a Linux runner, this step is the one that goes red.
+      - name: run the jar the build just made
+        working-directory: c3-unit25
+        run: java -cp target/tiffinbox-core-1.0.0.jar com.tiffinbox.ci.MenuLoader
+
+  # -------------------------------------------------------------- release ----
+  # Pays the release-engineering half: a tag is what makes a build a release.
+  #
+  # It runs only for a tag push, only after both matrix legs are green, and it is the only
+  # job allowed to write. GITHUB_TOKEN is provided by GitHub - there is no secret to create,
+  # no secret to type, and nothing to echo.
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: build the artifact being released
+        working-directory: c3-unit25
+        run: mvn -B -ntp -DskipTests package
+
+      - name: create the release and attach the jar
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "TiffinBox ${GITHUB_REF_NAME}" \
+            --notes "Built by GitHub Actions from ${GITHUB_SHA}." \
+            c3-unit25/target/tiffinbox-core-1.0.0.jar
+
+      # WHAT THIS JOB DOES NOT DO, and it is on screen rather than left silent:
+      # it does not sign or notarise anything. A macOS bundle that anyone else can open
+      # needs a paid Apple Developer certificate and a notarisation round-trip to Apple.
+      # That is an Apple step, not a Java step, and no amount of Maven configuration
+      # replaces it.

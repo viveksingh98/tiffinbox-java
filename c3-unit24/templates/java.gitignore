@@ -1,0 +1,42 @@
+# A Java .gitignore that is actually right.
+#
+# The rule behind every line: ignore what a BUILD produces, never what a build NEEDS.
+# Both halves matter. The first half keeps a repository readable. The second half is the
+# one people get wrong, and it breaks the build for everybody except the person who wrote
+# the rule - because their working copy still has the file the clone does not.
+
+# ---- what the build produces ------------------------------------------------
+target/            # Maven
+build/             # Gradle
+out/               # IntelliJ's own output directory
+bin/               # Eclipse's
+*.class            # in case anything compiles outside those
+
+# ---- what the tools leave behind --------------------------------------------
+.gradle/           # Gradle's per-project cache. NOT the same thing as gradle/
+*.log
+*.hprof            # heap dumps
+*.jfr              # flight recordings
+.DS_Store          # macOS
+.idea/             # IntelliJ project metadata
+*.iml
+
+# ---- KEEP, and these are the ones a careless rule swallows -------------------
+# gradlew and gradlew.bat            - the wrapper scripts. Executable, and tracked.
+# gradle/wrapper/gradle-wrapper.jar  - 47 KB of BINARY that gradlew runs. A `*.jar`
+#                                      rule ignores it, `git status` then says clean,
+#                                      and the next person to clone gets a gradlew that
+#                                      cannot start.
+# gradle/wrapper/gradle-wrapper.properties - the line that pins the Gradle version.
+# .mvn/                              - Maven's per-project configuration: jvm.config,
+#                                      maven.config, and the Maven wrapper if you use one.
+#
+# There is no rule to write for these. The rule is: do not write a `*.jar` rule.
+# If you must have one, exclude the wrapper explicitly, in this order:
+#
+#     *.jar
+#     !gradle/wrapper/gradle-wrapper.jar
+#
+# A `!` line only works if no parent DIRECTORY is ignored - git never looks inside an
+# ignored directory, so `gradle/` followed by `!gradle/wrapper/gradle-wrapper.jar`
+# does nothing at all.

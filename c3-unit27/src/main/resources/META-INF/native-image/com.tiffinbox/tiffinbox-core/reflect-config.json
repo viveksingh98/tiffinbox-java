@@ -1,0 +1,16 @@
+[
+  {
+    "name": "com.tiffinbox.aot.PlainFormatter",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.tiffinbox.aot.LedgerFormatter",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "org.h2.Driver",
+    "allDeclaredConstructors": true
+  }
+]

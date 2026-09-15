@@ -1,0 +1,14 @@
+<!--
+  THE ANSWER: one property, in <properties>, in exercise/pom.xml.
+
+  maven-jar-plugin (and maven-assembly-plugin, and maven-shade-plugin, and every other
+  archiver Maven ships) reads project.build.outputTimestamp. When it is absent, each zip
+  entry is stamped with the wall clock at the moment it was written, so two builds of
+  byte-identical class files produce two different files. When it is present, every entry
+  gets THIS instant instead and the jar becomes a function of its inputs.
+
+  The value is an ISO-8601 instant in UTC, or a Unix epoch in seconds. A real project sets
+  it from the commit it is building - `git log -1 --format=%cI` - so the jar is a function
+  of the source, which is the whole idea.
+-->
+<project.build.outputTimestamp>2026-09-15T00:00:00Z</project.build.outputTimestamp>

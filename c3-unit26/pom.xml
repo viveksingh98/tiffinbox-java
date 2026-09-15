@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.tiffinbox</groupId>
+  <artifactId>tiffinbox-core</artifactId>
+  <version>1.0.0</version>
+  <name>TiffinBox Core</name>
+  <description>Four tools, one build, and only one of them would have caught the bug.</description>
+
+  <properties>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <errorprone.version>2.50.0</errorprone.version>
+    <nullaway.version>0.14.1</nullaway.version>
+    <!--
+      Every check is a WARNING by default and the build still succeeds. This property is
+      what the `strict` profile flips; the default build leaves it empty on purpose so the
+      unit can show the difference rather than describe it.
+    -->
+    <errorprone.severity></errorprone.severity>
+
+    <!--
+      Checkstyle's gate, as a property of THIS project rather than of the plugin.
+
+      Writing <failOnViolation>false</failOnViolation> directly looks equivalent and is not:
+      explicit plugin configuration beats a user property, so `-Dcheckstyle.failOnViolation=true`
+      on the command line is silently ignored and the build stays green. Interpolating a
+      property is what makes the flag reachable. ./receipts.sh checkstyle shows both.
+    -->
+    <checkstyle.fail>false</checkstyle.fail>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>6.1.3</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>2.5.250</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>3.27.7</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!--
+        ERROR PRONE, AND THE FILE THAT MAKES IT RUN AT ALL ON JDK 25.
+        Error Prone is not a separate program. It REPLACES javac's own compiler class, which
+        means it needs to reach into jdk.compiler's internals - and since the module system,
+        jdk.compiler does not export them. Without ../.mvn/jvm.config this exact build dies
+        with:
+
+          java.lang.IllegalAccessError: class com.google.errorprone.BaseErrorProneJavaCompiler
+          (in unnamed module ...) cannot access class com.sun.tools.javac.api.BasicJavacTask
+          (in module jdk.compiler) because module jdk.compiler does not export
+          com.sun.tools.javac.api to unnamed module
+
+        and Maven then reports it as "An unknown compilation problem occurred", which tells
+        you nothing. `breaks/no-jvm-config/` is that project, and ./receipts.sh jvmconfig
+        runs it.
+
+        .mvn/jvm.config is TAUGHT MATERIAL in this unit, not setup trivia: it is eight
+        add-exports lines and two add-opens lines (XML comments cannot contain a double
+        hyphen, which is why they are written without one here). It belongs to the PROJECT rather than to your
+        shell, and Maven reads it before it starts its own JVM - which is why it cannot be
+        a <compilerArg>.
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.15.0</version>
+        <configuration>
+          <compilerArgs>
+            <arg>-XDcompilePolicy=simple</arg>
+            <arg>--should-stop=ifError=FLOW</arg>
+            <arg>-Xplugin:ErrorProne ${errorprone.severity}</arg>
+          </compilerArgs>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>com.google.errorprone</groupId>
+              <artifactId>error_prone_core</artifactId>
+              <version>${errorprone.version}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.6.0</version>
+      </plugin>
+
+      <!--
+        SPOTLESS - the cheapest of the four, and the only one that CHANGES your files.
+        Every step below is built into the plugin: no formatter is downloaded, nothing is
+        opinionated about brace placement, and `spotless:check` fails the build with the
+        exact file and line. `spotless:apply` fixes it.
+      -->
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>3.10.2</version>
+        <configuration>
+          <java>
+            <trimTrailingWhitespace/>
+            <endWithNewline/>
+            <indent><spaces>true</spaces><spacesPerTab>4</spacesPerTab></indent>
+            <importOrder><order>java,javax,org,com,</order></importOrder>
+          </java>
+        </configuration>
+      </plugin>
+
+      <!--
+        CHECKSTYLE - style with a rule file you own. checkstyle 14.1.0 under plugin 3.6.0.
+        One goal, one config, and it reports rather than reformats. That is the whole
+        difference from Spotless and it is why a project usually wants both.
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>3.6.0</version>
+        <dependencies>
+          <dependency>
+            <groupId>com.puppycrawl.tools</groupId>
+            <artifactId>checkstyle</artifactId>
+            <version>14.1.0</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <configLocation>config/checkstyle.xml</configLocation>
+          <consoleOutput>true</consoleOutput>
+          <failOnViolation>${checkstyle.fail}</failOnViolation>
+          <violationSeverity>warning</violationSeverity>
+          <includeTestSourceDirectory>false</includeTestSourceDirectory>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!--
+      THE PROFILE THAT MAKES THE BUILD GO RED. Error Prone reports WARNINGS by default and
+      `mvn verify` still exits 0 - which is the second measured hazard of this unit, and the
+      reason "we run Error Prone" is not the same sentence as "Error Prone stops us".
+      One check, promoted to ERROR, by name.
+    -->
+    <profile>
+      <id>strict</id>
+      <properties>
+        <errorprone.severity>-Xep:ReferenceEquality:ERROR</errorprone.severity>
+      </properties>
+    </profile>
+
+    <!--
+      NULLAWAY rides on Error Prone as one more check, so it needs the same jvm.config and
+      nothing else. AnnotatedPackages is not optional: NullAway assumes @Nullable-annotated
+      code only inside the packages you name, and with no packages named it finds nothing
+      and says nothing - which looks exactly like a clean build.
+    -->
+    <profile>
+      <id>nullaway</id>
+      <properties>
+        <errorprone.severity>-Xep:NullAway:ERROR -XepOpt:NullAway:AnnotatedPackages=com.tiffinbox</errorprone.severity>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>3.15.0</version>
+            <configuration>
+              <annotationProcessorPaths>
+                <path>
+                  <groupId>com.google.errorprone</groupId>
+                  <artifactId>error_prone_core</artifactId>
+                  <version>${errorprone.version}</version>
+                </path>
+                <path>
+                  <groupId>com.uber.nullaway</groupId>
+                  <artifactId>nullaway</artifactId>
+                  <version>${nullaway.version}</version>
+                </path>
+              </annotationProcessorPaths>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

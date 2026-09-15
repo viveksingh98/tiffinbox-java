@@ -1,0 +1,8 @@
+# The .gitignore this exercise starts with. It was written by someone who wanted build
+# output out of the repository, and it does that job. It also does one more.
+#
+# Fix it so that a CLONE of this repository has everything it needs to build, and nothing
+# it does not.
+
+*.jar
+target/

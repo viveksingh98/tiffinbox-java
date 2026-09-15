@@ -293,3 +293,97 @@ c3-unit22/exercise/jmh-result.*
 # JFR recordings need no rule here: the Course 2 block above already carries a
 # bare `*.jfr`, which covers c3-unit22/target/bench.jfr and anything a viewer
 # records beside it. Repeating it would be the second net twice.
+
+# ------------------------------- Course 3 · Section 5 (Ship the Artifact) ------
+# Everything below is produced by a command in a c3-unit23..28 README, or by that
+# unit's receipts.sh. Scoped per unit, exactly like the Section 2, 3 and 4 blocks
+# above, because `native/`, `central/`, `wrapper/` and `templates/` are all
+# plausible source directory names and a bare rule here would hide one in some
+# future unit.
+#
+# NOT ignored, and deliberately committed:
+#   c3-unit23/central/          the maven-jar-plugin metadata and directory listing
+#                               `./receipts.sh release` derives its version chip from
+#   c3-unit25/central/          the four GitHub action release documents and the
+#                               Adoptium release list `./receipts.sh actions` reads
+#   c3-unit27/central/          the native-maven-plugin metadata and the GraalVM CE
+#                               release document `./receipts.sh graalvm` reads
+#   c3-unit24/wrapper/          a REAL gradle-wrapper.jar, 47 KB of binary, which is
+#                               the whole point of that unit's second break. The root
+#                               of this file has no `*.jar` rule and must never grow
+#                               one - see c3-unit24/templates/java.gitignore.
+#   c3-unit25/workflows/        the taught workflow file. It is NOT at .github/ and
+#                               must not be moved there by a rule.
+#   c3-unit27/src/main/resources/META-INF/native-image/   reflect-config.json and
+#                               resource-config.json, which are evidence, not output.
+# All of those are tracked, and `git check-ignore -q` must keep returning non-zero
+# for every one of them or `./receipts.sh` stops working from a clean clone.
+
+# receipts.sh working files: one .out per block, the .raw build log behind it, the
+# de-duplicated finding lists two blocks derive their counts from, and the
+# throwaway trees the exercise answers and the probes run in.
+c3-unit23/.r-*.out
+c3-unit23/.r-*.raw
+c3-unit23/.r-layers.hashed
+c3-unit23/.sol/
+c3-unit23/.mi1/
+c3-unit23/.mi2/
+c3-unit23/.mi3/
+c3-unit24/.r-*.out
+c3-unit24/.r-*.raw
+c3-unit25/.r-*.out
+c3-unit25/.r-*.raw
+c3-unit25/.sol/
+c3-unit26/.r-*.out
+c3-unit26/.r-*.raw
+c3-unit26/.r-*.uniq
+c3-unit26/.sol/
+c3-unit26/.spot/
+c3-unit27/.r-*.out
+c3-unit27/.r-*.raw
+c3-unit28/.r-*.out
+c3-unit28/.r-*.raw
+
+# -Dmaven.repo.local="$PWD/.m2-demo" - the isolated local repository every Maven
+# command in this section uses, so that ~/.m2 is never the subject. `target/` is
+# already covered at the top of this file, and it is where every jar, every uber-jar
+# and every surefire report below actually lands.
+c3-unit23/.m2-demo/
+c3-unit24/.m2-demo/
+c3-unit25/.m2-demo/
+c3-unit26/.m2-demo/
+c3-unit27/.m2-demo/
+c3-unit28/.m2-demo/
+
+# The throwaway git repositories unit 24 creates, and destroys with
+# `./receipts.sh clean`. They are nested repositories: without this rule git would
+# offer to add them as gitlinks, which is a different and much more confusing mess.
+c3-unit24/.repos/
+
+# The case-sensitive disk image unit 25 makes with hdiutil to reproduce, locally,
+# the failure a Linux runner would report. It is 64 MB and it is deleted by the
+# block that makes it - this rule is for the run that was interrupted.
+c3-unit25/.r-cs.dmg
+
+# Error Prone's build under the break project, which has its own target/ one level
+# deeper than the rule at the top of this file reaches.
+c3-unit26/breaks/no-jvm-config/target/
+
+# The AOT configuration and cache units 27 and 28 record and create. Both are ~20 MB
+# and both are a function of THIS machine's JVM - an AOT cache is not portable and
+# must never be committed.
+c3-unit27/.aot.conf
+c3-unit27/.aot.cache
+c3-unit27/.aot.dir.conf
+c3-unit28/.aot.conf
+c3-unit28/.aot.cache
+
+# The jlink runtime images units 27 and 28 build. 31-37 MB each, produced in one
+# command from the JDK you already have.
+c3-unit27/.img-full/
+c3-unit27/.img-trim/
+c3-unit28/.img/
+
+# The exercise builds: unit 23's exercise/ is a second Maven project and produces a
+# target/ of its own, one level below the root rule.
+c3-unit23/exercise/target/

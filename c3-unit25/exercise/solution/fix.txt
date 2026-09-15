@@ -1,0 +1,26 @@
+THE ANSWER: rename the file, not the code.
+
+    git mv src/main/resources/Menu.json src/main/resources/menu.json
+
+Two things make the rename the right half to change, and both are worth a minute.
+
+1. A resource name is part of your API in a way a file name on your disk is not. Anything
+   that already calls MenuLoader.load() - another module, a test, a downstream project -
+   is asking for "/menu.json". Changing the code changes what every caller must pass.
+
+2. `git mv` on a case-insensitive filesystem needs care. Git tracks the name exactly, so
+   `mv Menu.json menu.json` can be a no-op as far as your shell is concerned while git
+   still records the old name. Check with:
+
+    git ls-files src/main/resources
+
+   If it still prints Menu.json, do it in two steps:
+
+    git mv src/main/resources/Menu.json src/main/resources/menu.json.tmp
+    git mv src/main/resources/menu.json.tmp src/main/resources/menu.json
+
+   That is the same class of trap as the bug itself, one layer down: your filesystem and
+   your version-control system disagree about whether two names are the same name.
+
+And the durable fix, which is neither: make the build fail when the two disagree. One test
+that loads every resource the code names, run from the JAR rather than from target/classes.
