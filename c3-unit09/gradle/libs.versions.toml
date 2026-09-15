@@ -1,0 +1,14 @@
+# The version catalog. Gradle reads this file by convention from gradle/libs.versions.toml
+# and generates a type-safe accessor for every entry: libs.h2, libs.jackson.databind.
+#
+# This is the declaration half of what the parent POM's <dependencyManagement> did in the
+# Maven build: one place where a coordinate and its version live. It is NOT the conflict
+# half - see the README, and the constraints block in tiffinbox-core/build.gradle.kts.
+
+[versions]
+h2      = "2.5.250"
+jackson = "2.22.2"
+
+[libraries]
+h2               = { module = "com.h2database:h2",                          version.ref = "h2" }
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }

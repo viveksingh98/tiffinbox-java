@@ -1,0 +1,3 @@
+Grilled Chicken|NON_VEG
+Steamed Rice|VEG
+Garden Salad|VEGAN

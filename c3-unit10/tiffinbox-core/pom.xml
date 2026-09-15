@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.tiffinbox</groupId>
+    <artifactId>tiffinbox-parent</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
+  <artifactId>tiffinbox-core</artifactId>
+  <name>TiffinBox Core</name>
+  <description>Customers, the database, the order rail and the dashboard. No HTTP in here.</description>
+
+  <dependencies>
+    <!-- No <version>. There is one, and it is in the parent's dependencyManagement. -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+    </dependency>
+  </dependencies>
+</project>

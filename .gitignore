@@ -101,3 +101,76 @@ c3-unit03/scopes/cp-*.txt
 # c3-unit06 README cmd 1: help:effective-settings -Doutput=es.xml
 # (its own README: "the file's header comment names your user and host")
 c3-unit06/es.xml
+
+# --------------------------------------------- Course 3 · Section 2 (Gradle) ---
+# Everything below is produced by a command in a c3-unit07..10 README (or by that
+# unit's receipts.sh). Scoped per unit, exactly like the Course 2 and Course 3
+# blocks above, because `build/` is a plausible source directory name and a bare
+# `build/` here would hide one in some future unit.
+#
+# NOT ignored, and deliberately committed: gradlew, gradlew.bat,
+# gradle/wrapper/gradle-wrapper.jar, gradle/wrapper/gradle-wrapper.properties,
+# mvnw, mvnw.cmd and .mvn/wrapper/maven-wrapper.properties. The wrapper being in
+# the repository IS the lesson of unit 10 - a .gitignore that swallowed it would
+# contradict the unit it belongs to.
+
+# Gradle's per-project state: the incremental-build database and the file hashes
+# behind every UP-TO-DATE in unit 08.
+c3-unit07/.gradle/
+c3-unit08/.gradle/
+c3-unit09/.gradle/
+c3-unit10/.gradle/
+c3-unit07/exercise/.gradle/
+c3-unit08/exercise/.gradle/
+c3-unit09/exercise/.gradle/
+c3-unit10/exercise/.gradle/
+c3-unit08/breaks/undeclared-input/.gradle/
+c3-unit09/conflict/.gradle/
+
+# GRADLE_USER_HOME="$PWD/.gradle-home" - line 3 of every README in this section.
+# Holds the downloaded 9.7.1 distribution (~130 MB), the dependency cache, the
+# build cache and the daemon registry. Deleting it leaves nothing of this course
+# on the machine; it must never be committed.
+c3-unit07/.gradle-home/
+c3-unit08/.gradle-home/
+c3-unit09/.gradle-home/
+c3-unit10/.gradle-home/
+
+# Throw-away Gradle homes: unit 10's sha256 demo and its older-distribution break,
+# and the same demo in unit 10's exercise.
+c3-unit10/.gh-fresh/
+c3-unit10/.gh-old/
+c3-unit10/exercise/.gh-fresh/
+
+# Gradle's output directory. `target/` is already covered at the top of this file;
+# this is its Gradle twin, and it also holds build/generated/menu (unit 08's
+# generated MenuCatalog.java) and build/libs/lib (unit 10's five runtime jars).
+c3-unit07/build/
+c3-unit08/build/
+c3-unit09/build/
+c3-unit10/build/
+c3-unit09/tiffinbox-core/build/
+c3-unit09/tiffinbox-web/build/
+c3-unit10/tiffinbox-core/build/
+c3-unit10/tiffinbox-web/build/
+c3-unit07/exercise/build/
+c3-unit08/exercise/build/
+c3-unit09/exercise/build/
+c3-unit09/exercise/tiffinbox-core/build/
+c3-unit09/exercise/tiffinbox-web/build/
+c3-unit10/exercise/build/
+c3-unit08/breaks/undeclared-input/build/
+c3-unit09/conflict/build/
+
+# -Dmaven.repo.local="$PWD/.m2-demo" - the isolated local repository every Maven
+# command in this section uses so that ~/.m2 is never the subject. In unit 10 it
+# also holds the Maven distribution ./mvnw downloads under MAVEN_USER_HOME.
+c3-unit07/.m2-demo/
+c3-unit09/conflict/.m2-demo/
+c3-unit10/.m2-demo/
+
+# Not ignored on purpose: c3-unit08/src/main/menu/menu.txt and
+# c3-unit08/breaks/undeclared-input/src/main/menu/menu.txt. Both are committed with
+# THREE lines. The README and receipts.sh append a fourth and put it back; if a run
+# is interrupted, `git diff` on those two files is what tells you, which is the
+# whole reason they are tracked.

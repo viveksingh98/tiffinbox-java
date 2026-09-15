@@ -1,0 +1,7 @@
+[versions]
+h2      = "2.5.250"
+jackson = "2.22.2"
+
+[libraries]
+h2               = { module = "com.h2database:h2",                           version.ref = "h2" }
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
