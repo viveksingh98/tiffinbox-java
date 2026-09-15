@@ -184,7 +184,8 @@ build is always skipped — it takes minutes and shows nothing the app-image doe
 **The build itself**, in `c3-unitNN/`, with the long-lived multi-module project in `c3-tiffinbox/`.
 Course playlist: *Build & Test Like a Pro*. The anchor is the same TiffinBox app for the third time:
 the Course 2 capstone, cut into a parent POM plus `tiffinbox-core` and `tiffinbox-web`, and then read,
-broken and rebuilt one Maven concept at a time.
+broken and rebuilt one build-tool concept at a time — **Maven** in section 1 (units 01-06), **Gradle
+beside it** in section 2 (units 07-10), on the same sources.
 
 | Unit | Topic | Folder |
 |---|---|---|
@@ -194,6 +195,10 @@ broken and rebuilt one Maven concept at a time.
 | 04 | Plugins: Bind Your Own Goal | `c3-unit04/` |
 | 05 | Multi-Module TiffinBox | `c3-tiffinbox/` |
 | 06 | Settings, the Repository, and Why Maven 4 Is Still Not Here | `c3-unit06/` |
+| 07 | Gradle in One Build File | `c3-unit07/` |
+| 08 | Tasks, Inputs, Outputs | `c3-unit08/` |
+| 09 | Configurations and the Version Catalog | `c3-unit09/` |
+| 10 | Maven or Gradle: the Same Project, Both Tools | `c3-unit10/` |
 
 **Unit 05 has almost nothing in `c3-unit05/` on purpose** — its code *is* `c3-tiffinbox/`, the split
 project every later unit of the course builds on, so that folder holds only the unit's exercise.
@@ -210,34 +215,73 @@ unit 01's `<maven.compiler.release>17` that a plugin `<configuration>` overrules
 failures — unit 04's annotation processor that never ran and its `copy-dependencies` bound one phase
 too late — are labelled with the artifact that gives them away, because both print `BUILD SUCCESS`.
 
-Course 3 needs **JDK 25** and Apache Maven **3.9.x** — every unit is a Maven unit.
+**Units 07-10 are the Gradle section**, and they are the same TiffinBox sources again — `c3-unit07/`
+and `c3-unit08/` hold `tiffinbox-core`'s five Java files byte for byte, `c3-unit09/` and `c3-unit10/`
+hold the two-module split, and `c3-unit10/`'s three POMs are byte-identical to `c3-tiffinbox/`'s, so a
+comparison between the two tools is a comparison of two builds and not of two projects. Every one of
+them ships its **committed wrapper** — `gradlew`, `gradlew.bat`, `gradle/wrapper/gradle-wrapper.jar`
+and a `gradle-wrapper.properties` that pins 9.7.1 **by sha256** — so Gradle itself is not a
+prerequisite: the wrapper fetches it, into a `GRADLE_USER_HOME="$PWD/.gradle-home"` beside the build
+rather than into your `~/.gradle`. Unit 10 also ships the Maven wrapper (`mvnw` → 3.9.16), because the
+difference between the two — Gradle pins a checksum, Maven pins a URL — is one of the things it
+measures. They break on purpose too: unit 08's `breaks/undeclared-input/` is the same generator with
+`@get:InputFile` removed, unit 09 flips one word from `api` to `implementation`, and unit 10 changes
+one character of a pinned checksum. And each of the four ships a **`receipts.sh`** that regenerates
+every md5 its README quotes, from the exact pipeline printed above each block.
+
+Course 3 needs **JDK 25** and Apache Maven **3.9.x**. It does **not** need Gradle installed.
 
 ```bash
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25   # or wherever your JDK 25 lives
 export PATH="$JAVA_HOME/bin:$PATH"
 ./verify_course3.sh                # runs every c3-* command and prints PASS/FAIL
 ./verify_course3.sh 03 06          # just those units
+./verify_course3.sh 08 10          # just the Gradle ones
 ./verify_course3.sh tiffinbox      # just c3-tiffinbox (that is unit 05's code)
 SKIP_SLOW=1 ./verify_course3.sh    # shorten the repeated-build hash loops
-KEEP_M2=1 ./verify_course3.sh      # keep the scratch repositories, so the next run is warm
+KEEP_M2=1 ./verify_course3.sh      # keep the scratch repositories AND the four .gradle-home/
+                                   #   directories, so the next run does not re-download 9.7.1
+OLD_GRADLE=/path/to/gradle-8.5/bin/gradle ./verify_course3.sh
+                                   # unit 10's drift beat needs a SECOND Gradle distribution,
+                                   #   which only you can supply; without it it SKIPs out loud
 ```
 
 JDK **25 exactly**, not 25-or-newer: units 01, 03 and 04 compile `--release 25 --enable-preview`, which
 JDK 26 refuses outright with `invalid source release 25 with --enable-preview`, and a bare `java` on
 this Mac is 23.0.1. The script checks the JDK before it runs anything and says which one it wants.
 
-`verify_course3.sh` runs every command in the six unit READMEs and in `c3-tiffinbox/README.md` and
+`verify_course3.sh` runs every command in the ten unit READMEs and in `c3-tiffinbox/README.md` and
 asserts the real output: the Reactor Summary row counts (never `BUILD SUCCESS` on its own — a
 single-module build prints no summary at all), the goal-line counts, the jars in `target/lib`, the
 `javap` minor version that shows the preview bit leaving, the six `curl` responses byte for byte, and
 the md5s and the `shasum` the READMEs quote. It asserts that every break beat still breaks with the
 *right* message and the *right* exit code, and for the two silent failures it asserts the artifact —
 the generated-file count, the class-file list — never the word `SUCCESS`. It checks both halves of all
-six exercises: the starter builds unedited, and `solution/pom.xml` produces the end state the exercise
-README promises. It time-boxes every command, asserts port 18425 is free before a server starts and
-free again after, puts back every `pom.xml` an exercise swaps and the one source file a break beat
-`sed`s, and deletes every `target/`, `effective-pom.xml`, `cp*.txt`, `es.xml` and scratch repository
-the READMEs create.
+ten exercises: the starter behaves as documented, and the shipped solution produces the end state the
+exercise README promises. It time-boxes every command, asserts port 18425 is free before a server
+starts and free again after, puts back every `pom.xml` an exercise swaps, the two `menu.txt` files a
+break beat appends to, the one source file another `sed`s and the checksum unit 10 corrupts, and
+deletes every `target/`, `build/`, `.gradle/`, `effective-pom.xml`, `cp*.txt`, `es.xml`, scratch
+repository and `.gradle-home/` the READMEs create.
+
+**For units 07-10 it adds four rules the Maven units did not need.** *The wrapper:* every Gradle
+command goes through the project's own `./gradlew`, and because `/opt/homebrew/bin/gradle` is also
+9.7.1 here, the check that it really was the wrapper is not the version string — it is that the
+distribution it ran came out of that project's own `GRADLE_USER_HOME`. *Your `~/.gradle` is never
+written to:* its entry count and listing hash are taken before the run and asserted unchanged at the
+end, and every group ends with `./gradlew --stop` verified by pid, because the daemon outlives the
+terminal that started it and the time-box cannot reach it. *State words are built into before they are
+named:* `UP-TO-DATE`, `FROM-CACHE`, `NO-SOURCE` and the `N executed / N up-to-date` counts are claims
+about daemon and build-cache state, so the script wipes the build cache, `rm -rf build`s, or pins
+`--no-build-cache` / `--offline` exactly where the unit pins them *before* asserting the word. *And the
+sha256 pin is checked on download, not on every run* — measured: a warm Gradle home runs happily with a
+deliberately wrong pin — so the assertion that the pin bites uses a Gradle home that has never held
+9.7.1, and the assertion that it does **not** bite on a warm one is written down beside it, because
+that is the reason the first one needs a fresh home to mean anything. Each unit's `receipts.sh` is run
+from the clean clone as well, and every hash it prints is compared against the hash its README quotes —
+with the pairs read out of the README at run time rather than copied into the script, so the check
+still fails when a README and its receipts.sh drift apart. The two blocks that need something you have
+to supply (unit 10's `OLD_GRADLE`) are asserted to **skip with a message** rather than pass quietly.
 
 **It never writes to your `~/.m2`.** Course 3 runs `install` and `deploy`, so every `mvn` the script
 runs carries a quoted `-Dmaven.repo.local=` — the one difference between it and the line printed in the

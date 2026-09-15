@@ -147,7 +147,7 @@ Gradle reads `gradle/libs.versions.toml` by convention and generates a typed acc
 Check that no build file carries a version:
 
 ```bash
-grep -rn '2\.5\.250\|2\.22\.2' --include='*.kts' --include='*.toml' . | grep -v './conflict' | grep -v './exercise'
+grep -rn '2\.5\.250\|2\.22\.2' --include='*.kts' --include='*.toml' . | grep -v './conflict' | sed 's|^\./||'
 grep -n 'libs\.' tiffinbox-*/build.gradle.kts
 ```
 
