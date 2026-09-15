@@ -1,0 +1,16 @@
+package com.tiffinbox;
+
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.Test;
+
+class BillTest {
+    @Test
+    void threeCustomersBillCorrectly() {
+        assertAll(
+            () -> assertEquals(7200, new Customer("Ravi",  2, 120, "VEG").monthlyBill()),
+            () -> assertEquals(4500, new Customer("Meera", 1, 150, "NON_VEG").monthlyBill()),
+            () -> assertEquals(9000, new Customer("Sunil", 3, 100, "VEG").monthlyBill()));
+    }
+}

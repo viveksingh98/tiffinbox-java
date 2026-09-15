@@ -1,0 +1,8 @@
+target/
+.m2-demo/
+# receipts.sh working files: one .out per block, plus the throwaway copies it runs the
+# exercise solution and the before/after coverage comparison in.
+.r-*.out
+.r-*.raw
+.sol/
+.fix/

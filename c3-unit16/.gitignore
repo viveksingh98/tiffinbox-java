@@ -1,0 +1,7 @@
+target/
+.m2-demo/
+# receipts.sh working files: one .out per block, the raw build logs it filters them from,
+# and the throwaway copy the exercise solution is run in. Everything here is regenerated.
+.r-*.out
+.r-*.raw
+.sol/

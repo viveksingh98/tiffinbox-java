@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.tiffinbox</groupId>
+  <artifactId>tiffinbox-core</artifactId>
+  <version>1.0.0</version>
+  <name>TiffinBox Core</name>
+  <description>One test, many cases: @CsvSource, @MethodSource and @TestFactory - and the one
+    surefire setting that stops your build tool throwing the case name away.</description>
+
+  <properties>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <!--
+    The BOM, not the library. junit-bom decides ONE version for the whole JUnit family;
+    every JUnit dependency below then carries no <version> of its own and cannot drift
+    apart from its siblings. In the JUnit 5 line the Jupiter artifacts were 5.x while the
+    Platform artifacts were 1.x - two numbers to keep straight. In this line they are one.
+  -->
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>6.1.3</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>2.5.250</version>
+    </dependency>
+
+    <!-- test scope: on the classpath when tests compile and run, in no shipped jar -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.15.0</version>
+      </plugin>
+      <!--
+        Pin surefire. Without this line Maven binds its own default - 3.5.4 on Maven 3.9.16 -
+        and the version that runs your tests is decided by which Maven you happen to have.
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.6.0</version>
+        <configuration>
+          <!--
+            JUnit knows the display name of every parameterised case. Surefire's CONSOLE never
+            prints it - with or without a name = pattern, the console shows the method signature
+            and an index, [4]. The XML report is the one place the name can survive, and only
+            once this reporter is asked for it. Remove this block and re-run receipts.sh names:
+            the same command prints the signature instead of the case.
+
+            The class name is JUnit5Xml30StatelessReporter. The other one - the tree reporter -
+            is JUnit5StatelessTestsetInfoReporter, and it has no usePhrasedTestCaseMethodName
+            parameter at all.
+          -->
+          <statelessTestsetReporter
+              implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
+            <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
+          </statelessTestsetReporter>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

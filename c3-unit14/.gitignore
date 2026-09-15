@@ -1,0 +1,12 @@
+target/
+.m2-demo/
+# receipts.sh working files: one .out per block, plus the throwaway copies it builds to run
+# the "before" state of a break and the exercise solution. Everything here is regenerated.
+.r-*.out
+.r-*.raw
+.sol/
+.zero-strict/
+.noagent/
+.space trap/
+.amount/
+.flags/

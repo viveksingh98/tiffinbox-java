@@ -1,0 +1,16 @@
+This is the fourth test, kept OUT of src/test/java on purpose so the project you clone is the
+green one. receipts.sh green copies it in and runs the suite again.
+
+package com.tiffinbox;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.Test;
+
+class CaughtItTest {
+
+    @Test
+    void raviIsBilledForThirtyDays() {
+        assertEquals(7200, new Customer("Ravi", 2, 120, "VEG").monthlyBill());
+    }
+}

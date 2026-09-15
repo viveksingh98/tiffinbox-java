@@ -1,0 +1,16 @@
+The halfway state, kept because the MESSAGE is the lesson rather than the green run.
+This is not a compilable file on its own - it is the one assertion, before the typo is fixed.
+
+    assertThat(roster()).extracting(Customer::name).contains("Suneel");
+
+and the report it produces:
+
+    [ERROR]   RosterTest.theKitchenKnowsAboutSunil:31
+    Expecting ArrayList:
+      ["Ravi", "Meera", "Sunil"]
+    to contain:
+      ["Suneel"]
+    but could not find the following element(s):
+      ["Suneel"]
+
+./receipts.sh solution runs all three states: the assertTrue one, this one, and the green one.
