@@ -16,14 +16,25 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ## Read this first: what this unit does not have
 
 **There is no run log in this unit, because no run of this workflow exists.**
-`./receipts.sh norun` asks this machine and records the answer:
+`./receipts.sh norun` asks `gh`, records the answer, and hashes only the half of it that is
+about the repository:
 
 ```
-gh installed .............................. yes
-gh authenticated .......................... yes
-.github/workflows/ present in this repo .... no
-workflow runs gh can list ................. 0
+NOT hashed - these two are properties of THIS machine, so they are outside it:
+  gh installed .............................. yes
+  gh authenticated .......................... yes
+HASHED - what this repository can say about runs of itself:
+  .github/workflows/ present in this repo .... no
+  workflow runs gh can list ................. 0
 ```
+
+The split is the whole point of the block. Whether `gh` is on **your** PATH and logged in is
+a fact about your Mac, so those two answers are printed *outside* the file the md5 covers and
+cannot move it. The two under them — nothing installed at `.github/workflows/`, nothing for
+`gh` to list — are the same in every clone and every fork of this repository, they are the
+lesson, and they are the only two inside the hash. Without `gh`, or without a login, or if
+`gh run list` exits non-zero, the block **stops** rather than hash an `n/a` — the same rule
+`matrix` applies when there is no second JDK.
 
 `workflows/build.yml` is **the taught material**. It is deliberately not installed at
 `.github/workflows/` in this repository: a workflow there runs on every push and spends
@@ -182,5 +193,7 @@ is its own trap, one layer down.
 | `solution` | the exercise, start state asserted before it is answered |
 | `offline` | `mvn -o test` after a warm run |
 
-**Not hashed, and it says so:** `norun`'s three yes/no answers, which are properties of the
-machine you run it on rather than of the repository.
+**Not hashed, and the block prints them outside the capture it hashes:** `norun`'s two `gh`
+answers — installed, logged in — which are properties of the machine you run it on rather
+than of the repository. The two answers that *are* about the repository are inside the md5,
+because they are the same wherever you clone it.

@@ -60,6 +60,54 @@ run_kitchen() {   # $1 = dir, $@ = extra args
   return $?
 }
 
+# The same run, and it also writes down the classpath it resolved. $1 = directory.
+# ONE MORE GOAL, NOT ONE MORE JVM: dependency:build-classpath rides in the same Maven
+# invocation that forks the kitchen, so the file it leaves in .r-cp.txt is the classpath
+# THAT run was given rather than a second resolution that might differ. mdep's
+# includeScope is runtime because exec:exec's classpathScope is runtime, so the two are
+# the same list and not two lists that usually agree - and the property really is
+# -DincludeScope, not -Dmdep.includeScope, which this goal silently ignores.
+run_kitchen_cp() {   # $1 = dir
+  local dir="$1" cpf="$PWD/.r-cp.txt"
+  rm -f "$cpf"
+  ( cd "$dir" && "${MVN[@]}" -q -Dmdep.outputFile="$cpf" -DincludeScope=runtime \
+       compile dependency:build-classpath exec:exec ) > .r-run.raw 2>&1
+  local rc=$?
+  [ -s "$cpf" ] || die "dependency:build-classpath wrote no classpath for $dir, so the binding that labels its capture could only be typed"
+  return $rc
+}
+
+# THE BINDING ON A CLASSPATH, READ OFF THE CLASSPATH. $1 = a .r-cp.txt written above.
+#
+# The three headings in the `bridge` capture below used to be three printf literals -
+# 'logback-classic 1.6.3', 'slf4j-simple 2.0.19' - typed into a file this script then
+# hashed. A version number typed into a caption is the thing rule 1 at the top of this
+# file forbids and the contract's elision section forbids in the same words: it must be
+# DERIVED, not typed. Typed, it can drift from the pom in either direction without moving
+# one byte of the capture it labels, and the md5 on the slide would go on agreeing.
+#
+# What a binding IS, is not a matter of opinion either: a jar that carries
+# META-INF/services/org.slf4j.spi.SLF4JServiceProvider, because that entry is the only
+# thing ServiceLoader looks for at startup. slf4j-api carries the SPI interface and no
+# service file, so the no-binding project's classpath answers with nothing - and that
+# empty answer is the lesson, derived rather than asserted.
+binding_of() {   # -> "<artifact> <version>" per binding jar, nothing at all when none binds
+  local jar n
+  # `|| [ -n "$jar" ]`: build-classpath writes no trailing newline, so a plain `read` loop
+  # drops the LAST entry on the classpath - which on one of these three projects is one
+  # jar away from being the binding itself.
+  while IFS= read -r jar || [ -n "$jar" ]; do
+    [ -f "$jar" ] || continue
+    # grep -c rather than grep -q: `set -o pipefail` is on at the top of this file, and a
+    # grep that quits at its first match can leave unzip holding a broken pipe - which
+    # fails the whole pipeline on a jar that DID match. Counting reads the listing out.
+    n=$(unzip -l "$jar" 2>/dev/null | grep -c 'META-INF/services/org\.slf4j\.spi\.SLF4JServiceProvider' || true)
+    [ "${n:-0}" -gt 0 ] && basename "$jar" .jar | sed -E 's/-([0-9].*)$/ \1/'
+    jar=''
+  done < <(tr ':' '\n' < "$1")
+  return 0
+}
+
 # ---------------------------------------------------------------- bridge ----
 # Three classpaths, ONE source tree. The identity is hashed, not asserted.
 run_bridge() {
@@ -72,16 +120,31 @@ run_bridge() {
   [ "$here" = "$swap" ] && [ "$here" = "$none" ] \
     || die "the three projects do not share a source tree: $here / $swap / $none"
 
-  run_kitchen .                 ; local rc1=$?
-  cp .r-run.raw .r-b1.raw
-  run_kitchen swap              ; local rc2=$?
-  cp .r-run.raw .r-b2.raw
-  run_kitchen breaks/no-binding ; local rc3=$?
-  cp .r-run.raw .r-b3.raw
+  # Each run writes its own classpath, and the binding is read off it straight away -
+  # next to the run that resolved it, not from a file some later run left behind.
+  local b1 b2 b3
+  run_kitchen_cp .                 ; local rc1=$?
+  cp .r-run.raw .r-b1.raw ; b1=$(binding_of .r-cp.txt)
+  run_kitchen_cp swap              ; local rc2=$?
+  cp .r-run.raw .r-b2.raw ; b2=$(binding_of .r-cp.txt)
+  run_kitchen_cp breaks/no-binding ; local rc3=$?
+  cp .r-run.raw .r-b3.raw ; b3=$(binding_of .r-cp.txt)
 
-  { printf 'logback-classic 1.6.3\n'; kitchen_lines < .r-b1.raw | mask_time
-    printf 'slf4j-simple 2.0.19\n';   kitchen_lines < .r-b2.raw | mask_time
-    printf 'no binding at all\n';     kitchen_lines < .r-b3.raw | mask_time
+  # One binding each on the two bound classpaths, none on the third. A second binding is
+  # a different lesson (SLF4J picks one and says so), and this block must not label a
+  # capture with the first of two.
+  local nb1 nb2 nb3
+  nb1=$(printf '%s' "$b1" | grep -c . || true)
+  nb2=$(printf '%s' "$b2" | grep -c . || true)
+  nb3=$(printf '%s' "$b3" | grep -c . || true)
+  [ "$nb1" -eq 1 ] || die "this project's runtime classpath carries $nb1 SLF4J binding(s), not 1: $b1"
+  [ "$nb2" -eq 1 ] || die "swap/'s runtime classpath carries $nb2 SLF4J binding(s), not 1: $b2"
+  [ "$nb3" -eq 0 ] || die "breaks/no-binding carries $nb3 binding(s) ($b3) - the third state is supposed to have none"
+  [ "$b1" != "$b2" ] || die "both bound classpaths report the same binding ($b1); then there is nothing swapped to show"
+
+  { printf '%s\n' "$b1";                       kitchen_lines < .r-b1.raw | mask_time
+    printf '%s\n' "$b2";                       kitchen_lines < .r-b2.raw | mask_time
+    printf '%s\n' "${b3:-no binding at all}";  kitchen_lines < .r-b3.raw | mask_time
   } > .r-bridge.out
 
   local n1 n2 n3

@@ -5062,7 +5062,7 @@ if unit 25 "CI in 20 minutes: GitHub Actions"; then
   if run_receipts 25 5400; then
     is "…and it printed seven blocks, the count the deck states" "$(receipts_blocks 25)" "7"
     is "…./receipts.sh 2>&1 | md5 -q -> the whole-run md5 the deck quotes for the seven" \
-       "$(receipts_md5 25)" "4378493339b4f4f9af56619581858978"
+       "$(receipts_md5 25)" "6a2665924cecb0845768330cc87a3e28"
     receipt_line 25 workflow "md5 6db539edc2d9b2b049df2e00fe65b410  (exit 0)"
     receipt_line 25 actions  "md5 a8dad56f75289a2d61dc5af9604f2f29  (no build, no network)"
     receipt_line 25 matrix   "md5 4aa7477c08e61a47d1588015f9c82976  (exit 0, 0)"
@@ -5079,9 +5079,9 @@ if unit 25 "CI in 20 minutes: GitHub Actions"; then
     if grep -q '^  gh installed \.* yes$' "$OUT" && grep -q '^  gh authenticated \.* yes$' "$OUT" \
        && grep -q '^  \.github/workflows/ present in this repo \.* no$' "$OUT" \
        && grep -q '^  workflow runs gh can list \.* 0$' "$OUT"; then
-      receipt_line 25 norun "md5 e7a2b6da17c47446e407223f46cae30f  (no run to have an exit code)"
+      receipt_line 25 norun "md5 2e10a193aba98a6ec55df25065a6617e  (no run to have an exit code)"
     else
-      skip "…receipts.sh norun -> md5 $(receipt_hash_of 25 norun), the hash the deck quotes as e7a2b6da17c47446e407223f46cae30f" \
+      skip "…receipts.sh norun -> md5 $(receipt_hash_of 25 norun), the hash the deck quotes as 2e10a193aba98a6ec55df25065a6617e" \
            "that block writes this machine's gh answers INTO the file it hashes (while the line under it says they are not hashed), and this machine answers differently — so the figure is not this run's to check. The two claims that are the unit's own are asserted above: no .github/workflows/ here, and nothing for gh to list"
     fi
     has "…and the block says out loud that there is no run log and this unit does not have one" \

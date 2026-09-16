@@ -61,15 +61,22 @@ Two things about that file that cost real time:
 ## Three findings. Green build.
 
 ```
-com/tiffinbox/OrderQueue.java:[27,28] [FutureReturnValueIgnored] Return value of methods returning Future must be checked...
-com/tiffinbox/OrderQueue.java:[30,27] [ReferenceEquality] Comparison using reference equality instead of value equality
-com/tiffinbox/quality/MealPlan.java:[30,29] [ReferenceEquality] Comparison using reference equality instead of value equality
+mvn verify, with Error Prone on the compiler and nothing promoted:
+  com/tiffinbox/OrderQueue.java:[27,28] [FutureReturnValueIgnored] Return value of methods returning Future must be checked. Ignoring returned Futures suppresses exceptions thrown from the code that completes the Future.
+  com/tiffinbox/OrderQueue.java:[30,27] [ReferenceEquality] Comparison using reference equality instead of value equality
+  com/tiffinbox/quality/MealPlan.java:[30,29] [ReferenceEquality] Comparison using reference equality instead of value equality
 
 findings ............................ 3
+  distinct checks ................... 2
   in code carried from Course Two ... 2
   in code written for this unit ..... 1
 Tests run: 3, Failures: 0, Errors: 0, Skipped: 0
 exit code ........................... 0
+the build said BUILD SUCCESS ........ 1 time(s)
+
+So: three real defects, a green build, and a passing test suite. Error Prone
+reports WARNINGS by default. "We run Error Prone" and "Error Prone stops us"
+are two different sentences and only one of them is about this build.
 ```
 
 **Two of the three are in the TiffinBox code the viewer wrote themselves**, in an earlier

@@ -39,9 +39,11 @@ Six events. Eight lines. The text log is **line-oriented and the events are not*
 ```
 
 ```
+the question: every event for order B-9082 at WARN or above
+
 jq -c 'select(.orderId=="B-9082" and .level_value>=30000)'
-{"@timestamp":"<time>",...,"message":"kitchen is behind - 12 slips waiting",... 
-{"@timestamp":"<time>",...,"message":"could not cook",... 
+{"@timestamp":"<time>","@version":"1","message":"kitchen is behind - 12 slips waiting","logger_name":"kitchen","thread_n ...
+{"@timestamp":"<time>","@version":"1","message":"could not cook","logger_name":"kitchen","thread_name":"main","level":"E ...
 
 grep B-9082 target/logs/kitchen.log | grep -E 'WARN|ERROR'
 <time> WARN  kitchen A-4417 - short on rice, splitting the rest of order B-9082 to tomorrow
@@ -52,6 +54,8 @@ jq matched ................. 2 event(s)
 grep matched ............... 3 line(s)
 of those, belonging to a DIFFERENT order: 1
 stack-trace lines the grep dropped: 2 (they carry no level and no id)
+the grep answer is wrong in both directions at once: it includes 1 line(s) that are not
+B-9082's, and excludes 2 line(s) that are
 ```
 
 **The grep answer is wrong in both directions at once.** It includes a line that belongs to

@@ -12,8 +12,11 @@
 #   workflow runs - the same Maven goals on the same project on both JDKs of the matrix -
 #   and prove the one thing a CI unit is really about: that a green build is not evidence.
 #
-#   `norun` is the block that says the quiet part out loud. It asks this machine whether a
-#   run log exists (`gh run list`), records the answer, and refuses to fabricate one.
+#   `norun` is the block that says the quiet part out loud. It asks whether a run log exists
+#   (`gh run list`), records the answer, and refuses to fabricate one. What it HASHES is only
+#   the half of that answer which is about the REPOSITORY - no workflow installed, no runs to
+#   list, true in every clone of it. Whether `gh` is installed and logged in is about your
+#   Mac, so those two lines are printed outside the capture and cannot move the md5.
 #
 # THE BUG THIS UNIT IS BUILT ON.
 #
@@ -286,22 +289,52 @@ run_casebug() {
 }
 
 # ------------------------------------------------------------------ norun ----
-# HASHED. The honest block. It asks whether a run log exists and records the answer.
+# HASHED - AND THE HASH COVERS THE REPOSITORY, NOT THIS MAC.
+#
+# The honest block, and it had to be made honest twice. The first version asked this
+# machine four questions, wrote all four answers into the file it hashes, and then printed
+# one line UNDER the md5 saying the yes/no answers were "not hashed". They were. The same
+# repository, on a Mac with no `gh` on the PATH, produced a different md5 - so the figure
+# on the slide was a fact about the maintainer's laptop wearing a receipt's clothes.
+#
+# The split below is the one the lesson actually wants:
+#   * `gh installed` and `gh authenticated` are properties of YOUR MACHINE. They are
+#     printed BEFORE the capture, outside it, and they cannot move the md5.
+#   * `.github/workflows/ present in this repo` and `workflow runs gh can list` are
+#     properties of THIS REPOSITORY. They are the lesson - nothing installed, zero runs -
+#     they are the same in every clone and every fork of it, and they are inside the hash.
+# And a tool that cannot answer is not allowed to be rounded down to a confident zero:
+# without `gh`, without a login, or with `gh run list` exiting non-zero, this block die()s
+# the way `matrix` die()s without a second JDK, instead of hashing 'n/a'.
 run_norun() {
   block "norun - the capture this unit does NOT have  [HASHED]"
-  local has_gh=no auth=no runs='n/a' wf_installed=no
+  local has_gh=no auth=no runs wf_installed=no
   command -v gh > /dev/null && has_gh=yes
-  if [ "$has_gh" = yes ]; then
-    gh auth status > /dev/null 2>&1 && auth=yes
-    if [ "$auth" = yes ]; then
-      runs=$(gh run list --limit 100 2>/dev/null | wc -l | tr -d ' ')
-    fi
-  fi
-  [ -d "../.github/workflows" ] && wf_installed=yes
+  [ "$has_gh" = yes ] || die "no gh on the PATH, so 'workflow runs gh can list' cannot be measured here - and this block does not hash a number no tool gave it"
+  gh auth status > /dev/null 2>&1 && auth=yes
+  [ "$auth" = yes ] || die "gh is installed but not logged in, so it cannot be asked what runs this repository has - run 'gh auth login'"
 
-  { printf 'what this machine can say about runs of this repository:\n'
-    printf '  gh installed .............................. %s\n' "$has_gh"
-    printf '  gh authenticated .......................... %s\n' "$auth"
+  # stdout only: `gh run list` says "no runs found" on stderr, and counting that as a run
+  # would be the same class of mistake as hashing this machine. The exit code is checked
+  # because outside a git repository this command FAILS, and a failure piped into wc -l is
+  # a zero that no tool ever reported.
+  # Both working files are named .r-*.raw because that is the pattern .gitignore already
+  # covers for this unit; a .err here would be the one file a receipts run leaves untracked.
+  gh run list --limit 100 > .r-runs.raw 2> .r-runs-err.raw; local rc_runs=$?
+  [ "$rc_runs" -eq 0 ] || die "gh run list exited $rc_runs, so its answer is an error and not a zero; see .r-runs-err.raw"
+  runs=$(grep -c . .r-runs.raw | tr -d ' ')
+  [ -d "../.github/workflows" ] && wf_installed=yes
+  # The two hashed answers are the two the unit teaches, so they are asserted rather than
+  # merely printed: a repository that HAS installed the workflow, or that has runs to list,
+  # is a different lesson and must not reuse this block's hash.
+  [ "$wf_installed" = no ] || die "../.github/workflows/ exists in this clone, so this repository is no longer the one this block describes"
+  [ "$runs" -eq 0 ] || die "gh listed $runs run(s) of this repository; the whole block says there are none"
+
+  printf 'NOT hashed - these two are properties of THIS machine, so they are outside it:\n'
+  printf '  gh installed .............................. %s\n' "$has_gh"
+  printf '  gh authenticated .......................... %s\n' "$auth"
+
+  { printf 'HASHED - what this repository can say about runs of itself:\n'
     printf '  .github/workflows/ present in this repo .... %s\n' "$wf_installed"
     printf '  workflow runs gh can list ................. %s\n' "$runs"
     printf '\nSo there is no run log, and this unit does not have one.\n'
@@ -317,7 +350,6 @@ run_norun() {
 
   cat .r-norun.out
   printf 'md5 %s  (no run to have an exit code)\n' "$(hash_of .r-norun.out)"
-  printf 'NOT hashed: the three yes/no answers above are properties of THIS machine, not of the repo.\n'
 }
 
 # --------------------------------------------------------------- solution ----

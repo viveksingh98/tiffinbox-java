@@ -155,6 +155,37 @@ overlaps, or if the two sizes ever agree. An overlap is §2c's legitimate answer
 not measure a difference above the noise on this machine"* — but it is not the sentence the
 video speaks over this table, so the block refuses to let the two drift apart silently.
 
+### `./receipts.sh` is not an unconditional `exit 0`, and this is the block that refuses
+
+**`scores` is load-dependent by design, so on a busy machine it will stop instead of print.**
+The three blocks whose subject is a duration — `scores`, `deadcode` and `jfr` — guard a fact
+about the machine, and a machine under load fails that guard honestly. Measured here: at rest
+the `scores` verdict came out `concat builder` on **2 of 2** attempts, exit 0; with two other
+Maven builds running in other trees it refused on **1 of 2** — one-minute load average 4.15 at
+the start of the run and 20.87 by the end of it — and what it printed was its own guard, at
+exit **1**:
+
+    rows=6    concatInALoop [158.019, 240.425]   stringBuilder [96.355, 508.041]   the intervals OVERLAP
+    the verdict at each size, smallest first: OVERLAP builder
+
+    RECEIPT FAILED (scores): an interval pair OVERLAPS on this run (OVERLAP builder). That is
+    section 2c's answer and it is a legitimate result - 'I could not measure a difference above
+    the noise on this machine' - but it is NOT the beat slide 4 speaks. Re-cut the slide to say
+    it, or re-run on a quiet machine; do not quote a different number.
+
+**That `exit 1` is the guard working, not a broken deliverable.** The error bars really did
+grow until the ordering stopped being readable, and the block's job at that point is to refuse
+rather than print a table under a sentence the table no longer supports. Nothing is wrong with
+your clone and nothing needs editing.
+
+**How to re-run it:** close the other builds, wait for the load average to come back down
+(`uptime`), and run the one block again — `./receipts.sh scores`. It does not need the rest of
+the file re-run; every block here stands alone. If you would rather see the refusal on purpose
+than meet it by accident, `RUNS=3 LOAD=8 ./receipts.sh sweep` creates the load itself and
+prints the load average beside every row. What does **not** depend on load is everything this
+unit hashes — `harness`, `release` and `offline`, plus the structure-only halves of `naive` and
+`solution` — and those reproduce on any machine.
+
 That is why `@Param({"6", "600"})` is on the class. A benchmark at one input size measures
 an algorithm at one input size, and reading the small row as a rule is exactly how folklore
 gets written down. (The small row is not a fluke either: JDK 9 onwards compiles `+` through
@@ -283,7 +314,10 @@ all. The artifact that proves the recorder ran is `target/bench.jfr`, not the ex
 | `offline` | **yes** | `mvn -o test` after one warm **package** (contract §1c) |
 | `sweep` | no | **not in the default run.** N runs, the verdict and the load average per row; `LOAD=N` adds N busy workers so §2c's noise verdict is reproducible |
 
-`./receipts.sh` runs the eight; `sweep` has to be asked for by name. **A full run takes several minutes** — six JMH forks of six
+`./receipts.sh` runs the eight; `sweep` has to be asked for by name. **The run is not
+guaranteed to exit 0:** `scores`, `deadcode` and `jfr` guard facts about the machine, and on a
+loaded one `scores` stops with its own `an interval pair OVERLAPS` message — that is the guard
+working, and re-running the single block on a quiet machine is the fix. **A full run takes several minutes** — six JMH forks of six
 one-second iterations each, twice over, plus a recorded run. That is not overhead; it is
 what a number with an error bar costs.
 

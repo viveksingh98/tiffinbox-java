@@ -93,6 +93,13 @@ where the scope is a filename, and it is consistent about it. That is the honest
 the convention that pays is the one the whole history keeps, and a changelog generator is
 only ever a `git log` over a history someone wrote for it.
 
+**The two indented rows are a live snapshot, and so is this block's md5.** The `4` and the
+`0` above them are the four throwaway commits this block writes itself and are the same
+everywhere; the `commits ....... 34` is `git log` over the repository *you are standing in*,
+on the day this page was written, and it is inside `convention`'s hash — so both the count and
+that md5 move the moment the next commit lands. **Read your own off your own run**; the
+finding is the **zero** beside it, which is what does not move.
+
 ## A tag is an object; a branch is a file with a hash in it
 
 ```

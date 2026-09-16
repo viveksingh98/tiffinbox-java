@@ -45,28 +45,32 @@ own words, in its own order, off its own closing slide. `./receipts.sh gaps` cou
 artifact for each — and prints nothing for the one this course does not close:
 
 ```
-1  "no tests - and the build says so"
-   unit directories in this course ................ 28
-   of those, carrying a src/test tree ............. 18
-   units shipping a receipts.sh that runs them .... 22
+the last course finale named four holes in the capstone. Each one, against a file:
 
-2  "one hand-wired main"
-   files that write that startup order down ....... 0   <- the one still open
+  1  "no tests - and the build says so"
+     unit directories in this course ................ 28
+     of those, carrying a src/test tree ............. 18
+     units shipping a receipts.sh that runs them .... 22
 
-3  "one pom.xml, and nothing but you runs it"
-   pom.xml files in the long-lived project ........ 3   (a parent and its modules)
-   workflow files shipped ......................... 1
+  2  "one hand-wired main"
+     files that write that startup order down ....... 0   <- the one still open
 
-4  "a bundle only YOUR machine will run"
-   reachability metadata files shipped ............ 3
+  3  "one pom.xml, and nothing but you runs it"
+     pom.xml files in the long-lived project ........ 3   (a parent and its modules)
+     workflow files shipped ......................... 1
 
-and one it DEFERRED on purpose rather than confessed - "a backend behind
-System.Logger". Not a hole; a choice it declared. Paid anyway:
-   logback configurations shipped ................. 7
+  4  "a bundle only YOUR machine will run"
+     reachability metadata files shipped ............ 3
+     and the honest half, which the packaging unit measured rather than claimed:
+     a native binary was NOT built on that machine, and its unit says so on screen.
+
+  and one it DEFERRED on purpose rather than confessed - "a backend behind
+  System.Logger". Not a hole; a choice it declared. Paid anyway:
+     logback configurations shipped ................. 7
 
 holes the last course named .......... 4
 holes with an artifact behind them ... 3
-holes handed to the next course ...... 1   (hole 2 - see `wiring`)
+holes handed to the next course ...... 1   (hole 2 - see the next block)
 ```
 
 And the honest half of the fourth, which its own unit measured rather than claimed: **a
@@ -82,24 +86,31 @@ added, renamed or removed, and the block says so in its own output.
 `./receipts.sh ship` does not assert that the course worked. It runs it:
 
 ```
-1  mvn package                                    exit 0   Tests run: 3, Failures: 0, ...
-     application jar + 1 dependency jar(s) beside it
-2  java -jar <the jar>                            exit 0
-     customers=4 monthRevenue=24300 cooked=120 cookedValue=24300
-3  java -XX:AOTMode=record  ...                   exit 0
-   java -XX:AOTMode=create  ...                   exit 0
-4  java -XX:AOTCache=<cache> ...                  exit 0
-     classes loaded 2079, of those out of the cache 2071
-5  jlink --add-modules java.base,java.sql         exit 0
-     5 of this JDK 69 modules
-6  <the image>/bin/java ...                       exit 0
-     customers=4 monthRevenue=24300 cooked=120 cookedValue=24300
+the chain, run end to end, on this machine, today:
+
+  1  mvn package                                    exit 0   Tests run: 3, Failures: 0, Errors: 0, Skipped: 0
+       application jar + 1 dependency jar(s) beside it
+  2  java -jar <the jar>                            exit 0
+       customers=4 monthRevenue=24300 cooked=120 cookedValue=24300
+       ... 1 more line(s) elided
+  3  java -XX:AOTMode=record  ...                   exit 0
+     java -XX:AOTMode=create  ...                   exit 0
+  4  java -XX:AOTCache=<cache> ...                  exit 0
+       classes loaded 2079, of those out of the cache 2071
+  5  jlink --add-modules java.base,java.sql         exit 0
+       5 of this JDK 69 modules
+  6  <the image>/bin/java ...                       exit 0
+       customers=4 monthRevenue=24300 cooked=120 cookedValue=24300
+       ... 1 more line(s) elided
 
 steps in the chain .................. 6
 commands those steps ran ............ 7   (step 3 is two)
 exit codes captured ................. 7
 commands that exited 0 .............. 7
 the two runs printed the same answer: yes
+
+And the step that is NOT in this chain, because this machine cannot do it: a
+native binary. Its own unit measures why, twice over, and says so on screen.
 ```
 
 The same four customers, the same month's revenue, out of a jar and out of a 36 MB runtime

@@ -121,8 +121,11 @@ Then the beat the unit exists for:
 ```
 step 4 - the SAME cache, running the path the training run never touched:
   PlainFormatter  loaded from ... shared objects file
-  LedgerFormatter loaded from ... <project>/target/tiffinbox-core-1.0.0.jar
+  LedgerFormatter loaded from ... file:<project>/target/tiffinbox-core-1.0.0.jar
   exit 0, and the program printed its answer
+    formatter key: ledger
+    month total: 24300
+    ok
 ```
 
 The training run only ever exercised `plain`. `LedgerFormatter` is **not in the cache** — so
