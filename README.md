@@ -169,7 +169,7 @@ it for every `mvn` and `java` it runs, and warns if the JDK is older than 25.
 
 **What makes this repo runnable rather than a code dump: `verify_course1.sh`, `verify_course2.sh` and
 `verify_course3.sh` actually run every command the READMEs give a viewer** — all 44 Course 2 units and
-the capstone — assert the real output, assert that the break-it-on-purpose files fail with the *right*
+the capstone, and all 28 Course 3 units and the shared project — assert the real output, assert that the break-it-on-purpose files fail with the *right*
 error text, time-box every command, check each port is free before use and kill by PID after, and delete
 every `target/`, `out/`, `.class`, `.db`, `.jfr`, thread dump, jlink image and jpackage bundle the
 examples create. Any of the three exits non-zero if anything is off.
@@ -185,8 +185,10 @@ build is always skipped — it takes minutes and shows nothing the app-image doe
 Course playlist: *Build & Test Like a Pro*. The anchor is the same TiffinBox app for the third time:
 the Course 2 capstone, cut into a parent POM plus `tiffinbox-core` and `tiffinbox-web`, and then read,
 broken and rebuilt one build-tool concept at a time — **Maven** in section 1 (units 01-06), **Gradle
-beside it** in section 2 (units 07-10) on the same sources, and then **tests over those same five
-classes** in section 3 (units 11-18).
+beside it** in section 2 (units 07-10) on the same sources, **tests over those same five classes** in
+section 3 (units 11-18), **logging and honest measurement** in section 4 (units 19-22), and
+**shipping the artifact** in section 5 (units 23-28). **The course is complete: 28 units, 5
+sections.**
 
 | Unit | Topic | Folder |
 |---|---|---|
@@ -208,6 +210,16 @@ classes** in section 3 (units 11-18).
 | 16 | Testing Concurrency and Time | `c3-unit16/` |
 | 17 | Coverage, and What It Does Not Tell You | `c3-unit17/` |
 | 18 | Test Architecture: Naming, Builders, Flakiness | `c3-unit18/` |
+| 19 | SLF4J, Logback and Why Not println | `c3-unit19/` |
+| 20 | Appenders, Patterns, Rolling and MDC | `c3-unit20/` |
+| 21 | Structured Logging | `c3-unit21/` |
+| 22 | JMH and JFR: Honest Measurement | `c3-unit22/` |
+| 23 | Jars, Fat Jars, Layered Jars | `c3-unit23/` |
+| 24 | Git Workflow for Real | `c3-unit24/` |
+| 25 | CI in 20 Minutes: GitHub Actions | `c3-unit25/` |
+| 26 | Static Analysis: Spotless, Checkstyle, Error Prone | `c3-unit26/` |
+| 27 | GraalVM Native Image | `c3-unit27/` |
+| 28 | What's Next: the Container, Industrialised | `c3-unit28/` |
 
 **Unit 05 has almost nothing in `c3-unit05/` on purpose** — its code *is* `c3-tiffinbox/`, the split
 project every later unit of the course builds on, so that folder holds only the unit's exercise.
@@ -259,7 +271,57 @@ units ship a **`receipts.sh`** that regenerates every number their READMEs and s
 block, with the **exit code printed beside each md5** — several of them fail on purpose, and
 `exit 1`, `exit 0 and 0` and `exit 0 then 1 then 0` are part of the claim.
 
-Course 3 needs **JDK 25** and Apache Maven **3.9.x**. It does **not** need Gradle installed.
+**Units 19-22 are section 4, "Logging & Honest Measurement"**, and the rule they add is that **a log
+line carries a clock**: every capture they hash goes through the unit's own `mask_time()` first, and
+every slide that quotes a hash shows that filter beside it. `c3-unit19/` runs **one source tree under
+three different jars** — `src/`, `swap/` and `breaks/no-binding/` hash to the same md5 and `receipts.sh
+bridge` refuses to continue if they ever stop matching — and the third state is the one to read twice:
+**exit 0, and silence.** A missing SLF4J binding is not an error; the kitchen still cooked ninety
+orders and just stopped telling anyone. `c3-unit20/breaks/mdc-lost/` is worse than losing an id: state
+2 hands Arun's order id to Bela's line, nothing throws, and every search you run afterwards gives you a
+confident wrong answer. Its rolling beat is the configuration every tutorial shows, copied exactly —
+**it does not roll**, because `SizeBasedTriggeringPolicy` asks an invocation gate first and that gate's
+default increment is one minute, read out of `logback-core-1.6.3.jar` rather than out of a blog post.
+`c3-unit21/` asks one question of both encodings and shows **grep wrong in both directions at once**: it
+includes a line belonging to another order whose message merely *mentions* this one, and excludes the
+two stack-trace lines that carry neither a level nor an id. And `c3-unit22/` is the unit whose subject
+is a duration, so it splits its own receipts: the harness's conditions, the JVM's warnings and five
+counts over a stopwatch's output are **hashed**, because none of them is a duration; every `Score`,
+every `Error` and every JFR count is **printed and never hashed**, and those blocks say so in their own
+output. Its `scores` block stops rather than let a spoken line contradict the panel underneath it —
+an overlap is a legitimate answer, and not the one the video speaks.
+
+**Units 23-28 are section 5, "Ship the Artifact"**, and three of them are about something that **does
+not exist on the machine that wrote them** — which is the honest version and is written down as such.
+`c3-unit27/` ships **no native binary, no binary file size and no start-up time**: `native-image` is
+not on that PATH, and even with it the link step could not run, because `cc`, `ld` and `xcrun` all
+answer exit **69** with the Xcode licence. What it shows instead runs on a plain JDK 25 — the **AOT
+cache** as a count (1985 of 1991 classes came out of a file instead of out of a jar), the closed-world
+problem measured with `jdeps` (**zero** edges from the entry point to either implementation, because
+their only names are in a properties file), and `jlink` as the gentle version of a closed world: two
+runtimes from one JDK, five modules against one, exit 0 against exit 1, nothing recompiled. `c3-unit25/`
+ships **no GitHub Actions run log**, because no run of that workflow exists: the file is deliberately
+not installed at `.github/workflows/`, and `receipts.sh norun` asks `gh` and records the answer rather
+than dressing the taught file up as evidence. What it does have is every command that workflow runs,
+run locally on **two real JDKs**, and the bug that makes the exercise worth doing — `Menu.json` with a
+capital M against a `MenuLoader` asking for `/menu.json`, which is green on a Mac, red from the jar the
+same green build produced, and red on a case-sensitive volume you can make in one `hdiutil` command.
+`c3-unit24/` is git, and **every repository it writes to it creates itself** under `c3-unit24/.repos/`;
+a `guard()` refuses any other working tree, `~/.gitconfig` is never read, and the one block that touches
+the repository you cloned runs `git log`, `git ls-files` and `git check-ignore` and nothing else.
+`c3-unit23/` packages one program three ways and measures what a fat jar throws away — **two licence
+files that did not survive being merged** — and `c3-unit26/` finds three real defects with a green
+build, two of them in the five sources this course has carried since the Gradle section. `c3-unit28/`
+is the finale and it does not *say* the course worked: it runs the chain — jar, run, AOT cache, runtime
+image, run again — and imports its own unit count from the series module rather than typing it.
+**Four hashes in this section are deliberately not fixed and each block says so in its own output:**
+`u28-ship` (the AOT class count moves run to run), and the live snapshots `u24-convention`,
+`u24-realrepo` and `u28-gaps`, which move as this repository grows.
+
+Course 3 needs **JDK 25** and Apache Maven **3.9.x**. It does **not** need Gradle installed. Sections 4
+and 5 also want `jq`, `ruby`, `python3`, `git`, `gh` and a **JDK 26** beside the 25 (unit 25's matrix
+runs both legs for real); without any of them the verifier SKIPs those checks out loud rather than
+passing them quietly.
 
 ```bash
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25   # or wherever your JDK 25 lives
@@ -268,8 +330,11 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ./verify_course3.sh 03 06          # just those units
 ./verify_course3.sh 08 10          # just the Gradle ones
 ./verify_course3.sh 11 17          # just the testing ones (section 3)
+./verify_course3.sh 19 22          # just the logging & measurement ones (section 4)
+./verify_course3.sh 23 28          # just the shipping ones (section 5)
 ./verify_course3.sh tiffinbox      # just c3-tiffinbox (that is unit 05's code)
-SKIP_SLOW=1 ./verify_course3.sh    # shorten the repeated-build hash loops
+SKIP_SLOW=1 ./verify_course3.sh    # shorten the repeated-build hash loops and skip unit 22's
+                                   #   second JMH sweep
 KEEP_M2=1 ./verify_course3.sh      # keep the scratch repositories AND the four .gradle-home/
                                    #   directories, so the next run does not re-download 9.7.1
 OLD_GRADLE=/path/to/gradle-8.5/bin/gradle ./verify_course3.sh
@@ -281,17 +346,19 @@ JDK **25 exactly**, not 25-or-newer: units 01, 03 and 04 compile `--release 25 -
 JDK 26 refuses outright with `invalid source release 25 with --enable-preview`, and a bare `java` on
 this Mac is 23.0.1. The script checks the JDK before it runs anything and says which one it wants.
 
-`verify_course3.sh` runs every command in the eighteen unit READMEs and in `c3-tiffinbox/README.md` and
-asserts the real output: the Reactor Summary row counts (never `BUILD SUCCESS` on its own — a
+`verify_course3.sh` runs every command in all **twenty-eight** unit READMEs and in
+`c3-tiffinbox/README.md` and asserts the real output: the Reactor Summary row counts (never `BUILD SUCCESS` on its own — a
 single-module build prints no summary at all), the goal-line counts, the jars in `target/lib`, the
 `javap` minor version that shows the preview bit leaving, the six `curl` responses byte for byte, and
 the md5s and the `shasum` the READMEs quote. It asserts that every break beat still breaks with the
 *right* message and the *right* exit code, and for the two silent failures it asserts the artifact —
 the generated-file count, the class-file list — never the word `SUCCESS`. It checks both halves of all
-eighteen exercises: the starter behaves as documented, and the shipped solution produces the end state
-the exercise README promises — including the two whose promised end state is *not* green, `c3-unit14/`
-(a captured 7200-vs-120 failure) and `c3-unit17/` (86% mutation score, because one survivor is an
-equivalent mutant that no test can kill). It time-boxes every command, asserts port 18425 is free before a server
+**twenty-seven** exercises — every unit ships one except the finale, which says so on its page and is
+asserted to have none: the starter behaves as documented, and the shipped solution produces the end
+state the exercise README promises — including the three whose promised end state is *not* green,
+`c3-unit14/` (a captured 7200-vs-120 failure), `c3-unit17/` (86% mutation score, because one survivor
+is an equivalent mutant that no test can kill) and `c3-unit22/` (*"on this machine, you cannot tell"* —
+two intervals that overlap). It time-boxes every command, asserts port 18425 is free before a server
 starts and free again after, puts back every `pom.xml` an exercise swaps, the two `menu.txt` files a
 break beat appends to, the one source file another `sed`s and the checksum unit 10 corrupts, and
 deletes every `target/`, `build/`, `.gradle/`, `effective-pom.xml`, `cp*.txt`, `es.xml`, scratch
@@ -334,6 +401,37 @@ whole-run roll-up is asserted to be the same from any checkout, because every ca
 masked to `<project>/`. The one number the script does **not** assert is `c3-unit16/`'s flake rate: that
 README declined to give one, so what is held is the claim the page makes rather than a figure it
 refused.
+
+**For units 19-22 it never re-implements a mask.** Every hash in that section is over a capture the
+unit's own `mask_time()` produced, so the script runs the unit's `receipts.sh` and compares the line it
+printed with the line the deck quotes — and, separately, compares the clock filter the README *prints*
+with the one `receipts.sh` really applies, because if those two ever part company every hash on the page
+is over something a viewer cannot reproduce and no hash comparison can see it. For unit 22 the thing
+asserted is the **split**: five blocks carry an md5 and three print `no md5:` and a reason, and a block
+that started hashing a `Score` would be the defect rather than an improvement. Its three guarded
+blocks are treated three ways, all of them honest — exit 0 *with the sentence the page speaks* is a
+pass, the block's **own** documented refusal is a labelled SKIP naming the machine, and anything else
+is a failure.
+
+**For units 23-28 it adds the rule for claims about the absent.** Unit 27's `native` profile is
+asserted to fail with the **plugin's own** refusal, named by coordinate and version; `cc`, `ld` and
+`xcrun` are each asserted to exit **69** with the licence sentence; and — the assertion no hash in that
+unit could make — **no binary size, no start-up time and no throughput figure appears anywhere on that
+page**, because every capture it takes is of something that ran, so a fabricated *"12 MB, 8 ms"* in the
+prose would move nothing at all. Unit 25's `.github/workflows/` is asserted **absent** and `gh run
+list` asserted to return nothing, and its `norun` hash is only demanded when this machine answers what
+that hash was taken under. Unit 24's whole subject is git, so the script fingerprints this repository —
+HEAD, the commit count, every ref, the object census and the working-tree status — immediately before
+its receipts run and asserts all five unchanged immediately after, plus that the three repositories the
+`branch` block builds are all under `c3-unit24/.repos/` and that `clean` removes them. Unit 23's
+`overlap` block is run **twice, from two different checkout paths**, and asserted to print one hash,
+because `maven-shade-plugin` orders its overlap warnings by directory and that block now sorts them.
+And the **four figures that are deliberately not fixed** get a labelled SKIP that names them rather
+than a green line that agrees with whatever came out: `u28-ship`, whose AOT class count moves run to
+run, and the three live snapshots. For all four the *structure* and the *derived arithmetic* are
+asserted instead — six steps and seven captured exit codes, the four-holes ledger reading **4 named, 3
+closed, 1 handed on**, and unit 28's census still reading the shipped 3 and 7 even though this run has
+just built every unit whose `target/` would otherwise inflate it.
 
 **It never writes to your `~/.m2`.** Course 3 runs `install` and `deploy`, so every `mvn` the script
 runs carries a quoted `-Dmaven.repo.local=` — the one difference between it and the line printed in the

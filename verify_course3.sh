@@ -7,8 +7,11 @@
 #   ./verify_course3.sh 03 06           # only those units
 #   ./verify_course3.sh 08 10           # the Gradle ones
 #   ./verify_course3.sh 11 17           # the testing ones (Section 3)
+#   ./verify_course3.sh 19 22           # the logging & measurement ones (Section 4)
+#   ./verify_course3.sh 23 28           # the shipping ones (Section 5)
 #   ./verify_course3.sh tiffinbox       # only c3-tiffinbox (that is unit 05's code)
-#   SKIP_SLOW=1 ./verify_course3.sh     # skip the repeated-build hash loops
+#   SKIP_SLOW=1 ./verify_course3.sh     # skip the repeated-build hash loops AND the
+#                                       #   second JMH sweep in unit 22
 #   KEEP_M2=1 ./verify_course3.sh       # keep the scratch repositories AND the four
 #                                       #   .gradle-home/ directories (warm re-runs;
 #                                       #   without it every run re-downloads 9.7.1)
@@ -25,6 +28,16 @@
 # 07-10 fetch 9.7.1 through each project's own committed wrapper.
 #   export JAVA_HOME=/opt/homebrew/opt/openjdk@25
 #   ./verify_course3.sh
+#
+# Sections 4 and 5 need five more things, and every one of them is asserted rather
+# than assumed — a missing one is a labelled SKIP, never a silent pass:
+#   * `jq`            — c3-unit21's own receipts.sh refuses to run without it
+#   * `ruby`          — c3-unit25 hands its workflow to a YAML parser
+#   * `python3`       — c3-unit25/27/28 parse json and import the series module
+#   * a **JDK 26** at /opt/homebrew/opt/openjdk@26 (JDK26= overrides) — c3-unit25's
+#     matrix runs both legs for real and its receipts.sh dies rather than fake one
+#   * `git`, and `~/Desktop/PromptVidya-Automation/java3_series.py` — c3-unit24
+#     reads the repository it ships in, and c3-unit28 imports its own unit count
 #
 # JAVA_HOME is not decoration. A bare `java` on this Mac is 23.0.1 and a default
 # Maven resolves JDK 26; c3-unit01, c3-unit03 and c3-unit04 compile
@@ -98,6 +111,44 @@
 #      says out loud that it could not be measured, so what is held is the claim the page
 #      makes rather than a figure it declined to give.
 #
+#   6. **In Section 4 a log line carries a clock, so a capture is masked before it is
+#      hashed.** Units 19-22 each ship a `mask_time()`/`mask()` and every hash they quote
+#      is over the masked capture — `<time>`, `<project>/`, `<home>/`. This script never
+#      re-implements those filters: it runs the unit's own receipts.sh and compares the
+#      line it printed with the line the deck quotes, and where a README prints a panel it
+#      compares that panel against the block's own body. Unit 22 is the one unit in the
+#      course whose subject is a duration, and the split it makes is the thing asserted:
+#      four of its eight blocks print `no md5:` and a reason, and this script asserts that
+#      they still do. **A block that started hashing a score would be the defect**, not an
+#      improvement, so the count of unhashed blocks is checked in both directions.
+#
+#   7. **Section 5 has three units whose subject is something that DOES NOT EXIST here,
+#      and they are held to exactly that.**
+#        * **c3-unit27 ships no native binary.** `native-image` is not on this PATH and
+#          `cc`, `ld` and `xcrun` all answer **69** — the Xcode licence. So the script
+#          asserts that the `native` profile's failure is the PLUGIN's own documented
+#          refusal (not a typo, not a missing dependency), that `cc` and `ld` really do
+#          exit 69, and — the assertion that keeps the page honest — that **no binary
+#          size, no start-up time and no throughput number appears anywhere in that
+#          unit's README**. A fabricated "12 MB, 8 ms" would move no hash in that unit.
+#        * **c3-unit25 ships no GitHub Actions run log.** There is no `.github/workflows/`
+#          in this repository and `gh run list` returns nothing, so the script asserts the
+#          unit's own capture of that state, asserts there is still no workflow directory,
+#          and runs every command the shipped workflow runs — locally, on both JDKs.
+#        * **c3-unit24 must never write to the shipped repository.** Its subject is git.
+#          Every demonstration happens in a throwaway repo under `c3-unit24/.repos/`, and
+#          the script takes HEAD, the commit count, the ref list and a content fingerprint
+#          of `.git` BEFORE its receipts run and asserts all four unchanged after.
+#
+#      **And four hashes in Section 5 are deliberately NOT fixed, so this script does not
+#      demand that they be.** `u28-ship` moves because the AOT class count moves run to
+#      run (three runs here gave 2070 · 2071 · 2070); `u24-convention`, `u24-realrepo` and
+#      `u28-gaps` are live snapshots of a repository that grows, and each one prints that
+#      instruction in its own output. For all four the STRUCTURE and the derived arithmetic
+#      are asserted — six steps and seven zeros, `4 named / 3 closed / 1 handed on`, the
+#      counts adding up — and the figure itself gets a labelled SKIP that names what went
+#      unchecked. A SKIP that says so beats a green line that hides it.
+#
 # The first run downloads Maven plugins and H2/Jackson/SnakeYAML/JUnit into cold
 # scratch repositories, and the four Gradle wrappers each fetch the 9.7.1
 # distribution (~130 MB) into their own `.gradle-home`, so it needs a network and
@@ -164,8 +215,25 @@ M2_U11="$REPO/c3-unit11/.m2-demo"; M2_U12="$REPO/c3-unit12/.m2-demo"
 M2_U13="$REPO/c3-unit13/.m2-demo"; M2_U14="$REPO/c3-unit14/.m2-demo"
 M2_U15="$REPO/c3-unit15/.m2-demo"; M2_U16="$REPO/c3-unit16/.m2-demo"
 M2_U17="$REPO/c3-unit17/.m2-demo"; M2_U18="$REPO/c3-unit18/.m2-demo"
+# Sections 4 and 5: the same convention again — every one of these ten READMEs prints
+# `-Dmaven.repo.local="$PWD/.m2-demo"` and every one of their receipts.sh uses the same
+# path, so a warm-up here is the repository the receipts run then reuses.
+M2_U19="$REPO/c3-unit19/.m2-demo"; M2_U20="$REPO/c3-unit20/.m2-demo"
+M2_U21="$REPO/c3-unit21/.m2-demo"; M2_U22="$REPO/c3-unit22/.m2-demo"
+M2_U23="$REPO/c3-unit23/.m2-demo"; M2_U24="$REPO/c3-unit24/.m2-demo"
+M2_U25="$REPO/c3-unit25/.m2-demo"; M2_U26="$REPO/c3-unit26/.m2-demo"
+M2_U27="$REPO/c3-unit27/.m2-demo"; M2_U28="$REPO/c3-unit28/.m2-demo"
 export M2 M2_U02 M2_U04 M2_U06 M2_CONSUMER
 export M2_U11 M2_U12 M2_U13 M2_U14 M2_U15 M2_U16 M2_U17 M2_U18
+export M2_U19 M2_U20 M2_U21 M2_U22 M2_U23 M2_U24 M2_U25 M2_U26 M2_U27 M2_U28
+
+# c3-unit25's matrix is JDK 25 PLUS ONE, and its receipts.sh dies rather than fake the
+# second leg. The real JDK home (not the Homebrew symlink) is what jlink and jmod need in
+# units 27 and 28, and the series module is the single source of unit 28's own counts.
+JDK26="${JDK26:-/opt/homebrew/opt/openjdk@26}"
+REALHOME25="$JAVA_HOME/libexec/openjdk.jdk/Contents/Home"
+SERIES="$HOME/Desktop/PromptVidya-Automation/java3_series.py"
+export JDK26 REALHOME25 SERIES
 
 TAG="c3verify$$"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/c3verify.XXXXXX")"
@@ -211,10 +279,21 @@ cleanup() {
   for g in "$GH07" "$GH08" "$GH09" "$GH10" "$GH10X" "$REPO/c3-unit10/.gh-old" "$REPO/c3-unit10/.gh-fresh"; do
     [ -n "${g:-}" ] && pkill -9 -f "$g/wrapper/dists" >/dev/null 2>&1
   done
+  # Sections 4 and 5 fork JVMs this run does not tag: JMH's uber-jar, the AOT recorder,
+  # two jlink images and the servers in nobody's process group. `timed` kills the process
+  # GROUP of its own child, which a grandchild java started by receipts.sh is not always
+  # in — so anything whose command line names one of these ten unit directories is killed
+  # here by path. Nothing outside the repository can match.
+  pkill -9 -f "$REPO/c3-unit19" >/dev/null 2>&1
+  local u
+  for u in 20 21 22 23 24 25 26 27 28; do pkill -9 -f "$REPO/c3-unit$u" >/dev/null 2>&1; done
+  # c3-unit25 attaches a case-sensitive disk image to reproduce a Linux runner. Its own
+  # block detaches it; this is for the run that was interrupted between the two.
+  hdiutil detach /Volumes/TiffinBoxCaseSensitive -quiet >/dev/null 2>&1
   restore_all
   # target/ and build/ everywhere under Course 3 (incl. c3-unit06/target/team-repo)
   local d
-  for d in "$REPO"/c3-unit0[1-9] "$REPO"/c3-unit1[0-8] "$REPO"/c3-tiffinbox; do
+  for d in "$REPO"/c3-unit0[1-9] "$REPO"/c3-unit1[0-9] "$REPO"/c3-unit2[0-8] "$REPO"/c3-tiffinbox; do
     [ -d "$d" ] || continue
     find "$d" -type d -name target -prune -exec rm -rf {} + 2>/dev/null
     find "$d" -type d -name build  -prune -exec rm -rf {} + 2>/dev/null
@@ -231,7 +310,7 @@ cleanup() {
   # throwaway copies, and each unit's OWN .gitignore is the list of them — read it here, so a
   # block that gains a new scratch directory is cleaned up without this file being edited.
   local ln
-  for d in "$REPO"/c3-unit1[1-8]; do
+  for d in "$REPO"/c3-unit1[1-9] "$REPO"/c3-unit2[0-2]; do
     [ -d "$d" ] && [ -f "$d/.gitignore" ] || continue
     while IFS= read -r ln; do
       ln="${ln%/}"
@@ -242,6 +321,41 @@ cleanup() {
       esac
     done < "$d/.gitignore"
   done
+  # Section 5 (units 23-28) ships no per-unit .gitignore: its working files are listed in
+  # the ROOT one, under the `Course 3 · Section 5` heading, as `c3-unitNN/<path>` lines.
+  # Read them from there for the same reason the loop above reads the per-unit files — a
+  # block that grows a new scratch directory is then cleaned up without editing this file.
+  # Only `.`-prefixed leaves and `target/` are removed, so a committed directory the
+  # comments in that file are careful to name (central/, wrapper/, workflows/, templates/)
+  # can never be deleted by a typo here.
+  if [ -f "$REPO/.gitignore" ]; then
+    while IFS= read -r ln; do
+      ln="${ln%/}"; ln="${ln%$'\r'}"
+      case "$ln" in
+        c3-unit2[3-8]/.m2-demo*) : ;;   # KEEP_M2=1 owns those; the block below decides
+        c3-unit2[3-8]/*)
+          case "${ln#c3-unit??/}" in
+            .*|*/.*|target|*/target) ( cd "$REPO" && rm -rf -- $ln ) 2>/dev/null ;;
+          esac ;;
+      esac
+    done < "$REPO/.gitignore"
+  fi
+  # …and every `.r-*` working file under the ten Section 4 and 5 units, by PATTERN rather than
+  # by list. A DEFECT, reported rather than fixed because this script does not own the file:
+  # c3-unit22 writes `.r-nr.txt` and `.r-sweep.txt`, and neither is named in that unit's
+  # .gitignore or in its README's teardown block — so a clone that ran its receipts is left
+  # with two untracked files `git status` reports. Cleaning by pattern here means a block that
+  # grows another one is cleaned up without this line being edited.
+  for d in "$REPO"/c3-unit19 "$REPO"/c3-unit2[0-8]; do
+    [ -d "$d" ] && rm -f "$d"/.r-* 2>/dev/null
+  done
+  # …and the four that are NOT in the .gitignore because a block always deletes them
+  # itself: the exercise trees unit 23's and 25's solution blocks copy aside, and the two
+  # jdeps output directories. Belt and braces for an interrupted run.
+  rm -rf "$REPO/c3-unit24/.repos" "$REPO/c3-unit25/.r-cs.dmg" 2>/dev/null
+  rm -rf "$REPO/c3-unit27/.img-full" "$REPO/c3-unit27/.img-trim" "$REPO/c3-unit28/.img" 2>/dev/null
+  rm -f  "$REPO/c3-unit27/.aot.conf" "$REPO/c3-unit27/.aot.cache" "$REPO/c3-unit27/.aot.dir.conf" 2>/dev/null
+  rm -f  "$REPO/c3-unit28/.aot.conf" "$REPO/c3-unit28/.aot.cache" 2>/dev/null
   remove_created
   if [ "$KEEP_M2" != "1" ]; then
     rm -rf "$M2_U02" "$M2_U04" "$M2_U06" "$M2_CONSUMER" 2>/dev/null
@@ -249,6 +363,9 @@ cleanup() {
     rm -rf "$GH07" "$GH08" "$GH09" "$GH10" 2>/dev/null
     rm -rf "${M2_U11:-}" "${M2_U12:-}" "${M2_U13:-}" "${M2_U14:-}" 2>/dev/null
     rm -rf "${M2_U15:-}" "${M2_U16:-}" "${M2_U17:-}" "${M2_U18:-}" 2>/dev/null
+    rm -rf "${M2_U19:-}" "${M2_U20:-}" "${M2_U21:-}" "${M2_U22:-}" 2>/dev/null
+    rm -rf "${M2_U23:-}" "${M2_U24:-}" "${M2_U25:-}" "${M2_U26:-}" 2>/dev/null
+    rm -rf "${M2_U27:-}" "${M2_U28:-}" 2>/dev/null
   fi
   rm -rf "$WORK"
 }
@@ -819,6 +936,223 @@ receipt_body() {
        inb { print }' "$WORK/receipts.$1" > "$OUT" 2>/dev/null
 }
 
+# ------------------------------ the Section 4 and 5 units (19-28) -----------
+# Six things change in these ten units, and the helpers below are those six things.
+#
+#   1. **A receipt trailer is not "any line beginning md5".** c3-unit19's `levels` block
+#      prints `md5 of target/classes before the two runs: …` as part of its own capture —
+#      that IS the lesson — so `block_tail` above returns three lines for it and
+#      `receipt_body` cuts the body in half at the first of them. `block_md5s` and
+#      `receipt_panel` read the trailer by SHAPE (`md5 <32 hex>`) instead.
+#   2. **Section 5's trailers are punctuated differently.** Units 19-22 print
+#      `md5 X  exit 0`; units 23-28 print `md5 X  (exit 0)`, `(no build)`, `(no write)`,
+#      `(exit 1, 2, 0)`. Nothing is normalised: the whole line is the claim, because the
+#      exit codes in it are half of what each block is asserting.
+#   3. **Four hashes are deliberately unpinned**, and `not_pinned` is how this script says
+#      so out loud instead of agreeing with whatever came out.
+#   4. **Some claims are about what a README does NOT say** — unit 27 ships no binary, so a
+#      size or a start-up time on that page would be a fabrication no hash in that unit
+#      could catch. `readme_hasnt` is that direction.
+#   5. **Unit 24's subject is git**, so `git_state` fingerprints this repository before its
+#      receipts run and asserts every part of it unchanged after.
+#   6. **Unit 22's subject is a duration**, and the split it makes — four blocks hashed,
+#      four printing `no md5:` and a reason — is itself the thing to assert. A block that
+#      started hashing a Score would be the defect. `unhashed_blocks` counts them.
+
+# block_md5s NN ID — the RECEIPT TRAILER line(s) of one block: `md5 <32 hex> …` and nothing
+# else. Matched on shape rather than on the first three characters, for the reason above.
+block_md5s() {
+  awk -v id="$2" 'BEGIN{re="^=== " id "( |$)"}
+       $0 ~ /^=== / { inb = ($0 ~ re) }
+       inb && $1 == "md5" && $2 ~ /^[0-9a-f]+$/ && length($2) == 32 { print }' \
+       "$WORK/receipts.$1" 2>/dev/null
+}
+
+# receipt_line NN ID "md5 <hash>  (exit …)" — the whole trailer, compared verbatim.
+receipt_line() {
+  local got; got="$(block_md5s "$1" "$2")"
+  is "…c3-unit$1/receipts.sh $2 -> $3" "$got" "$3"
+}
+
+# receipt_hash_of NN ID — just the 32 hex characters of that trailer.
+receipt_hash_of() { block_md5s "$1" "$2" | head -1 | awk '{print $2}'; }
+
+# receipt_panel NN ID -> $OUT — the block's body, ending at the trailer rather than at the
+# first line that happens to begin `md5 `. That is the console panel a README puts under it.
+receipt_panel() {
+  awk -v id="$2" 'BEGIN{re="^=== " id "( |$)"}
+       $0 ~ /^=== / { inb = ($0 ~ re); next }
+       inb && $1 == "md5" && $2 ~ /^[0-9a-f]+$/ && length($2) == 32 { inb=0; next }
+       inb { print }' "$WORK/receipts.$1" > "$OUT" 2>/dev/null
+}
+
+# carried_five_hash NN — the first 32-hex md5 in the header of c3-unitNN/README.md, which in
+# every unit from the Gradle section on is the five carried sources' own hash. READ OFF THE
+# PAGE rather than transcribed here: three of these ten pages put it on a line of its own with
+# no prose to anchor on, and a copy kept in this file is a claim about this script.
+carried_five_hash() { sed -n '1,14p' "$REPO/c3-unit$1/README.md" | grep -oE '[0-9a-f]{32}' | head -1; }
+
+# receipts_ids NN — the block ids c3-unitNN/receipts.sh really declares, sorted, `all` dropped.
+# Three shapes across the ten units: an `ALL=(…)` array, a `case` with one alternation line, and
+# a `case` with one label per line. All three are read, so the README's own block table can be
+# compared against the deliverable instead of against a list typed in here — the table is where
+# "./receipts.sh runs all nine" comes from, and a block that quietly left the dispatch is
+# invisible to every per-hash check.
+receipts_ids() {
+  local f="$REPO/c3-unit$1/receipts.sh"
+  [ -f "$f" ] || return 0
+  { sed -n 's/^ALL=(\(.*\))$/\1/p' "$f" | tr ' ' '\n'
+    sed -n 's/^ *\([a-z][a-z|-]*\)) *"run_\$b".*/\1/p' "$f" | tr '|' '\n'
+    sed -n 's/^ *\([a-z][a-z-]*\)) *run_[a-z_]*.*/\1/p' "$f"
+    sed -n 's/^ *all) *//p' "$f" | tr ';' '\n' | sed -n 's/^ *run_\([a-z][a-z-]*\).*/\1/p'
+  } | grep -E '^[a-z][a-z-]*$' | grep -vx 'all' | LC_ALL=C sort -u | tr '\n' ' '
+}
+# readme_block_ids NN — the ids the `| `id` | …` table in c3-unitNN/README.md lists, sorted.
+readme_block_ids() {
+  grep -oE '^\| *`[a-z][a-z-]*` *\|' "$REPO/c3-unit$1/README.md" \
+    | tr -d '|` ' | LC_ALL=C sort -u | tr '\n' ' '
+}
+
+# panel_unelide — drop the `... N line(s) elided: …` markers a README panel carries where the
+# page cut something. Sections 4 and 5 elide a lot (a thirty-row dependency tree, eight sweep
+# rows, four jdeps edges), and every one of those markers is a line the BLOCK never printed —
+# so a contiguity check over them is measuring the cut rather than the claim. Use with
+# out_has_lines, which asks the honest question: did every line the page kept really come back,
+# in that order?
+panel_unelide() {
+  grep -vE '^[[:space:]]*\.\.\. .*(elided|more line)' "$WORK/panel" > "$WORK/panel.u" \
+    && mv "$WORK/panel.u" "$WORK/panel"
+}
+
+# panel_indent N — prepend N spaces to every line of the selected panel. Most Section 5 blocks
+# print their panels through `sed 's/^/  /'`, and the pages print the same lines two columns to
+# the left. Indenting the PAGE is the comparison that has meaning; stripping the block's indent
+# instead would throw away the one thing the block did to its own output.
+panel_indent() {
+  local pad; pad="$(printf '%*s' "$1" '')"
+  sed "s/^/$pad/" "$WORK/panel" > "$WORK/panel.i" && mv "$WORK/panel.i" "$WORK/panel"
+}
+
+# out_has_lines_lax LABEL — as out_has_lines, but with leading and trailing whitespace removed
+# from both sides first. Several Section 5 panels are a page's RE-INDENTED copy of a block whose
+# own indentation is not uniform: c3-unit27's jdeps panel has one indented line and three
+# un-indented ones, from a block that indents all four, and c3-unit28's four-holes panel is the
+# same ledger three columns over. A strict comparison there is measuring the markdown rather
+# than the claim. Where the whitespace IS the evidence — every hashed capture, which keeps it —
+# the strict forms above are used instead, and most of these panels still get one.
+out_has_lines_lax() {
+  sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//' "$WORK/panel" > "$WORK/panel.l"
+  sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//' "$OUT"        > "$WORK/out.l"
+  if [ ! -s "$WORK/panel.l" ]; then bad "$1" "the README has no such panel to check"; return 1; fi
+  if awk 'NR==FNR{nd[++N]=$0;next}
+          { if (k<N && $0==nd[k+1]) k++ }
+          END{ exit (k==N ? 0 : 1) }' "$WORK/panel.l" "$WORK/out.l"; then
+    ok "$1"
+  else
+    bad "$1" "this run did not print all $(wc -l <"$WORK/panel.l" | tr -d ' ') of the README's lines in that order, indentation ignored; first is: $(head -1 "$WORK/panel.l")"
+  fi
+}
+
+# panel_drop_re REGEX — drop the lines of the selected panel that match REGEX. For the one case
+# where a page prints a genuinely variable figure inside an otherwise fixed panel: c3-unit28's
+# `ship` panel carries `classes loaded N, of those out of the cache M`, and that pair moves run
+# to run. Everything else on that panel is structure, and dropping one line is how the structure
+# gets checked without the figure being demanded — the caller then asserts the arithmetic and
+# says out loud, as a labelled SKIP, that the figure itself went unchecked.
+panel_drop_re() { grep -vE "$1" "$WORK/panel" > "$WORK/panel.d" && mv "$WORK/panel.d" "$WORK/panel"; }
+
+# jmh_guarded LABEL TIMEOUT NN ID PATTERN — one of c3-unit22's three unhashed blocks, whose
+# guard is a fact about the MACHINE rather than about the deliverable. `scores` stops if an
+# interval pair overlaps, `deadcode` if the discarded call stops being indistinguishable from an
+# empty method, `jfr` if the compilation rate does not fall by four; and unit 22's README says in
+# so many words that an overlap is section 2c's legitimate answer — "I could not measure a
+# difference above the noise on this machine" — and that the block stops rather than let a spoken
+# line contradict the panel. Measured: on a machine running two other Maven builds, `scores`
+# stopped exactly there, twice.
+#
+# So three outcomes, and all three are honest: exit 0 WITH the sentence the page speaks is a
+# PASS; the block's OWN documented refusal is a labelled SKIP naming the machine; anything else
+# is a FAIL, because a break that is not the guard is a break.
+jmh_guarded() {
+  local label="$1" t="$2" n="$3" id="$4" pat="$5"
+  timed "$t" bash -c "cd \"$REPO/c3-unit$n\" && ./receipts.sh $id"
+  if [ "$RC" -eq 124 ]; then bad "$label" "timed out after ${t}s"; return 1; fi
+  if [ "$RC" -eq 0 ]; then
+    if grep -qE "$pat" "$OUT"; then ok "$label"; return 0
+    else bad "$label" "exit 0, but no line matching the sentence the page speaks: $pat"; return 1; fi
+  fi
+  if grep -qE "^RECEIPT FAILED \($id\):" "$OUT"; then
+    skip "$label" "the block stopped with its OWN documented refusal, which is section 2c's legitimate answer on a machine under load: $(grep -m1 -oE "RECEIPT FAILED \($id\).{0,130}" "$OUT")"
+    return 2
+  fi
+  bad "$label" "exit $RC, and NOT with the block's own guard message — that is a break, not a noisy machine"
+  return 1
+}
+
+# receipts_says NN LABEL REGEX — a sentence the unit's receipts.sh prints about its own
+# numbers. Searched over the WHOLE run rather than over one block's body, because the three
+# snapshot warnings and unit 22's four `no md5:` reasons are printed BELOW the trailer,
+# where receipt_panel cannot see them.
+receipts_says() {
+  local n="$1" label="$2" re="$3"
+  if grep -qE "$re" "$WORK/receipts.$n" 2>/dev/null; then ok "$label"
+  else cp "$WORK/receipts.$n" "$OUT" 2>/dev/null
+       bad "$label" "c3-unit$n/receipts.sh printed no line matching: $re"; fi
+}
+
+# unhashed_blocks NN — blocks that printed `no md5:` and a reason, which in unit 22 is a
+# deliberate design decision and not a gap.
+unhashed_blocks() { grep -cE '^no md5:' "$WORK/receipts.$1" 2>/dev/null | tr -d ' '; }
+
+# not_pinned LABEL WHAT — one of the four Section 5 figures this script must NOT demand.
+# `u28-ship` moves because the JVM's AOT class count moves run to run (three runs here gave
+# 2070 · 2071 · 2070); `u24-convention`, `u24-realrepo` and `u28-gaps` are live snapshots of
+# a repository that grows, and each block prints that instruction itself. The STRUCTURE and
+# the derived arithmetic are asserted above every one of these; the figure is not, and a
+# labelled SKIP naming it beats a green line that agrees with whatever came out.
+not_pinned() { skip "$1" "not pinned by this run: $2"; }
+
+# readme_hasnt LABEL NN REGEX — nothing in c3-unitNN/README.md matches. The direction unit 27
+# needs: that page's whole framing is that no native binary exists here, so a binary size, a
+# start-up time or a throughput figure on it would be an invention — and not one hash in that
+# unit is a function of the README's prose, so nothing else would notice.
+readme_hasnt() {
+  local label="$1" n="$2" re="$3" hit
+  hit="$(grep -nE "$re" "$REPO/c3-unit$n/README.md" 2>/dev/null | head -3 | tr '\n' ' ')"
+  if [ -z "$hit" ]; then ok "$label"
+  else bad "$label" "c3-unit$n/README.md carries: $hit"; fi
+}
+# xreadme_quotes LABEL NN TEXT — as readme_quotes, but of c3-unitNN/exercise/README.md. Three
+# exercises in Sections 4 and 5 make their headline claim on their own page rather than on the
+# unit page, and c3-unit22's is the one that matters most: "on this machine, you cannot tell".
+xreadme_quotes() {
+  if grep -qF "$3" "$REPO/c3-unit$2/exercise/README.md"; then ok "$1"
+  else bad "$1" "c3-unit$2/exercise/README.md does not quote: $3"; fi
+}
+# …and the same question of an exercise page.
+xreadme_hasnt() {
+  local label="$1" n="$2" re="$3" hit
+  hit="$(grep -nE "$re" "$REPO/c3-unit$n/exercise/README.md" 2>/dev/null | head -3 | tr '\n' ' ')"
+  if [ -z "$hit" ]; then ok "$label"
+  else bad "$label" "c3-unit$n/exercise/README.md carries: $hit"; fi
+}
+
+# git_state — HEAD, the commit count, every ref, the object-store census and the working-tree
+# status of the repository this script lives in, on one line. c3-unit24's whole subject is git:
+# its receipts.sh creates every repository it writes to under `c3-unit24/.repos/` and has a
+# `guard()` that refuses anything else, and this is the assertion that the guard held. Taken
+# immediately before that receipts run and compared immediately after, so the window is exactly
+# that run and nothing else in this script can be blamed for a difference.
+git_state() {
+  ( cd "$REPO" 2>/dev/null || return 0
+    printf '%s|%s|%s|%s|%s' \
+      "$(git rev-parse HEAD 2>/dev/null)" \
+      "$(git rev-list --count HEAD 2>/dev/null)" \
+      "$(git for-each-ref --format='%(refname) %(objectname)' 2>/dev/null | LC_ALL=C sort | shasum | cut -d' ' -f1)" \
+      "$(git count-objects -v 2>/dev/null | LC_ALL=C sort | shasum | cut -d' ' -f1)" \
+      "$(git status --porcelain 2>/dev/null | LC_ALL=C sort | shasum | cut -d' ' -f1)" )
+}
+
 # derived_unprobed NN — say out loud that this unit's derived counts are hashed but not PROBED.
 #
 # A `$(grep -c …)` and the literal it happens to equal today produce identical bytes, an identical
@@ -966,7 +1300,7 @@ EOF
 # compare it with itself at the end: that is literally "as this run found it".
 tree_fingerprint() {
   local d f
-  { for d in "$REPO"/c3-unit0[1-9] "$REPO"/c3-unit1[0-8] "$REPO"/c3-tiffinbox; do
+  { for d in "$REPO"/c3-unit0[1-9] "$REPO"/c3-unit1[0-9] "$REPO"/c3-unit2[0-8] "$REPO"/c3-tiffinbox; do
       [ -d "$d" ] || continue
       find "$d" -type f \
            -not -path '*/target/*'      -not -path '*/.m2-demo/*' \
@@ -983,7 +1317,17 @@ tree_fingerprint() {
            -not -path '*/.space trap/*' -not -path '*/.amount/*' \
            -not -path '*/.flags/*'      -not -path '*/.q/*' \
            -not -path '*/.ex/*'         -not -path '*/.fix/*' \
-           -not -path '*/.props/*' 2>/dev/null
+           -not -path '*/.props/*' \
+           -not -path '*/logs/*'        -not -path '*/.gate/*' \
+           -not -path '*/.jq/*'         -not -path '*/.spot/*' \
+           -not -path '*/.repos/*'      -not -path '*/.mi[123]/*' \
+           -not -path '*/.img/*'        -not -path '*/.img-full/*' \
+           -not -path '*/.img-trim/*' \
+           -not -name 'benchmarks.jar'  -not -name '*.jfr' \
+           -not -name 'jmh-result.*'    -not -name 'kitchen*.log' \
+           -not -name 'kitchen*.json'   -not -name '.r-cs.dmg' \
+           -not -name '.aot.conf'       -not -name '.aot.cache' \
+           -not -name '.aot.dir.conf' 2>/dev/null
     done | LC_ALL=C sort | while IFS= read -r f; do
       printf '%s  %s\n' "$(shasum "$f" | cut -d' ' -f1)" "${f#"$REPO"/}"
     done; } | shasum | cut -d' ' -f1
@@ -1000,14 +1344,14 @@ if [ ${#UNITS[@]} -ne 0 ]; then
   for u in "${UNITS[@]}"; do
     case "$u" in
       tiffinbox|05) ;;   # unit 05's code IS c3-tiffinbox; c3-unit05/ holds only the exercise
-      0[1-9]|1[0-8]) [ -d "$REPO/c3-unit$u" ] || { echo "unknown unit: $u (no c3-unit$u/ in $REPO)" >&2; exit 2; } ;;
+      0[1-9]|1[0-9]|2[0-8]) [ -d "$REPO/c3-unit$u" ] || { echo "unknown unit: $u (no c3-unit$u/ in $REPO)" >&2; exit 2; } ;;
       # A unit that has landed but that this script does not cover yet gets its own sentence. The
       # folder is right there, so "no such unit" would be a lie, and the report's
       # "not covered by this script yet" line is the thing to read instead.
       *) if [ -d "$REPO/c3-unit$u" ]; then
            echo "c3-unit$u/ exists but verify_course3.sh does not cover it yet — run with no arguments and read the 'not covered by this script yet' line" >&2
          else
-           echo "unknown unit: $u (use two digits, 01-18, or 'tiffinbox')" >&2
+           echo "unknown unit: $u (use two digits, 01-28, or 'tiffinbox')" >&2
          fi
          exit 2 ;;
     esac
@@ -1033,9 +1377,19 @@ printf 'local repositories (never ~/.m2): %s\n' "$M2"
 printf '                                  c3-unit02/.m2-demo · c3-unit04/.m2-unit04 · c3-unit06/.m2-unit06 · %s\n' "$M2_CONSUMER"
 printf '                                  c3-unit07/.m2-demo · c3-unit09/conflict/.m2-demo · c3-unit10/.m2-demo\n'
 printf '                                  c3-unit11..18/.m2-demo — one per testing unit, the path each README prints\n'
+printf '                                  c3-unit19..28/.m2-demo — one per logging and shipping unit, same convention\n'
 printf 'Gradle homes (never ~/.gradle):   c3-unit07..10/.gradle-home — each project'"'"'s committed wrapper fetches 9.7.1 into its own\n'
 [ -n "${OLD_GRADLE:-}" ] && printf 'OLD_GRADLE=%s — unit 10'"'"'s drift beat runs for real\n' "$OLD_GRADLE"
 [ "$SKIP_SLOW" = "1" ] && printf '%sSKIP_SLOW=1 — the repeated-build hash loops are shortened%s\n' "$YLW" "$OFF"
+# Sections 4 and 5 reach for five tools the Maven sections did not. Say which are here
+# BEFORE anything runs, so a SKIP later on reads as a missing tool and not as a defect.
+S45=""
+for t in jq ruby python3 git gh; do
+  command -v "$t" >/dev/null 2>&1 && S45="$S45 $t" || S45="$S45 ${t}(MISSING)"
+done
+[ -x "$JDK26/bin/java" ] && S45="$S45 jdk26" || S45="$S45 jdk26(MISSING)"
+[ -s "$SERIES" ]         && S45="$S45 java3_series.py" || S45="$S45 java3_series.py(MISSING)"
+printf 'sections 4-5 also need:          %s\n' "${S45# }"
 if [ -e "$HOME/.m2/repository/com/tiffinbox" ]; then
   printf '%sNOTE: ~/.m2/repository/com/tiffinbox already exists — something before this run installed it.%s\n' "$YLW" "$OFF"
 fi
@@ -3092,40 +3446,30 @@ if unit 14 "Test doubles, and Mockito doing the one job it is for"; then
   # ---- receipts.sh: eight blocks, seven hashes on the deck (14-test-doubles-and-mockito.md),
   # plus the whole-run number. c3-unit14/README.md quotes none of them, so these are the deck's.
   #
-  # A DEFECT, found by this script, reported rather than fixed — it lives in a file this script
-  # does not own. `run_spacetrap` cannot run from a checkout whose OWN path contains a space, and
-  # this tree's does (`Youtube Content`) — which is the very hazard that block exists to teach.
-  # It builds its trap by symlinking the local repository under a directory called `m2 demo`, then
-  # requires surefire's `Command was …` line to show
+  # RECENTLY FIXED, SO VERIFIED HERE RATHER THAN REDISCOVERED. `run_spacetrap` used to be unable
+  # to run from a checkout whose OWN path contains a space — and this tree's does (`Youtube
+  # Content`), which is the very hazard that block exists to teach. It builds its trap by
+  # symlinking the local repository under a directory called `m2 demo`, and its guard required
+  # surefire's `Command was …` line to show
   #     '-javaagent:<…>.space' 'trap/m2'
   # — the `-javaagent:` token ITSELF ending in `.space`. From a path that already has a space in
   # it, surefire tears the argument at the FIRST space instead, somewhere inside the checkout
-  # path, so that token ends in `Youtube`, the guard does not match and the block dies with
-  # "this failure is not the space trap" — on a run where the trap fired exactly as designed.
-  # Widening the guard to `'[^']*\.space' 'trap/m2'` — the same two adjacent tokens, without
-  # insisting the first is the agent's own — is true from either kind of path, and is a one-line
-  # change. Measured both ways: from a path with no space the block prints
-  # c34582e7e4035b1e925c475eaba03461 and `exit 1 then 0`, which are the deck's own numbers.
+  # path, so that token ended in `Youtube`, the guard did not match, and the block died with
+  # "this failure is not the space trap" on a run where the trap had fired exactly as designed.
   #
-  # So when this checkout's path has a space in it, the block is asserted to die with THAT exact
-  # message and no other, the in-place run is labelled for what it is, and the receipts are then
-  # run from a copy under $WORK — TMPDIR, no space — where every number is measured for real.
+  # The guard is now the two ADJACENT tokens — `'[^']*\.space' 'trap/m2'` — without insisting the
+  # first is the agent's own, which is true from either kind of path. So the block runs IN PLACE
+  # here, and two things are asserted rather than assumed: that the widened form is what
+  # receipts.sh really carries on its `split=` line (the narrow one cannot come back without this
+  # failing), and that the block completes from this spaced path with the deck's own hash and its
+  # `exit 1 then 0` — which is the whole claim the fix makes.
+  is "receipts.sh spacetrap's guard is the PATH-INDEPENDENT form: two ADJACENT tokens, not the agent's own token ending in .space" \
+     "$(grep -F "'[^']*\\.space' 'trap/m2'" "$REPO/c3-unit14/receipts.sh" | grep -c '^ *split=' | tr -d ' ')" "1"
+  expect_ok "receipts.sh spacetrap, run IN PLACE from this checkout — and this checkout's own path is the hazard" 1800 \
+      '^md5 c34582e7e4035b1e925c475eaba03461  exit 1 then 0$' \
+      bash -c "cd \"$REPO/c3-unit14\" && ./receipts.sh spacetrap"
   U14DIR="$REPO/c3-unit14"
-  case "$REPO" in
-    *\ *)
-      expect_rc "receipts.sh spacetrap IN PLACE: a DEFECT pinned, not a pass — its guard is path-dependent and this checkout's path has a space in it, so the block dies on a run where the trap fired exactly as designed" 900 1 \
-          "RECEIPT FAILED \(spacetrap\): surefire's command line does not show the agent path split at the space" \
-          bash -c "cd \"$REPO/c3-unit14\" && ./receipts.sh spacetrap"
-      case "$WORK" in
-        *\ *) U14DIR=""; skip "c3-unit14/receipts.sh — every block" \
-                  "run_spacetrap's guard is path-dependent (above) and TMPDIR has a space in it too, so there is nowhere here to measure it from; set TMPDIR to a path without one" ;;
-        *)    U14DIR="$WORK/u14"; rm -rf "$U14DIR"; cp -R "$REPO/c3-unit14" "$U14DIR"
-              printf '  %sNOTE%s  c3-unit14 receipts run from %s — a path with no space, because of the defect above\n' \
-                     "$YLW" "$OFF" "$U14DIR" ;;
-      esac
-      ;;
-  esac
-  if [ -n "$U14DIR" ] && expect_ok "c3-unit14/receipts.sh — every block, from a clean copy" 3600 '' \
+  if expect_ok "c3-unit14/receipts.sh — every block, from this clone" 3600 '' \
       bash -c "cd \"$U14DIR\" && ./receipts.sh"; then
     cp "$OUT" "$WORK/receipts.14"
     is "…and it printed eight blocks" "$(receipts_blocks 14)" "8"
@@ -3154,7 +3498,6 @@ if unit 14 "Test doubles, and Mockito doing the one job it is for"; then
     readme_quotes "…and c3-unit14/README.md prints that same derived sentence" 14 \
         "3 test(s) ran; 1 failed; the 2 that passed, re-run against a third wrong amount, noticed it 0 time(s)"
   fi
-  rm -rf "$WORK/u14"
 
   offline_test 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" -o test' 900 "$REPO/c3-unit14" "$M2_U14"
 fi
@@ -3727,6 +4070,1528 @@ PYEOF
   offline_test 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" -o test' 900 "$REPO/c3-unit18" "$M2_U18"
 fi
 
+# ============================================================= c3-unit19 ====
+# Section 4 opens, and its rule is its own: A LOG LINE CARRIES A CLOCK. Every capture this
+# unit hashes goes through its own `mask_time()` first, and every hash its slides quote is over
+# the masked form — so this script does not re-implement that filter. It runs the unit's own
+# receipts.sh, compares each trailer with the number the deck quotes, and holds every console
+# panel on the page to the block that produced it. The one place a clock is unmasked is the
+# README's own "Run it" panel, and that one is masked HERE with the very sed the page prints
+# two lines under it.
+if unit 19 "SLF4J, Logback and why not println"; then
+  U19H="$(carried_five_hash 19)"
+  is "README quotes a 32-hex md5 for the five carried sources" "$(printf '%s' "$U19H" | wc -c | tr -d ' ')" "32"
+  is "md5 -q <the five named files> | sort | md5 -q -> the hash c3-unit19/README.md prints" \
+     "$(src_hash5 "$REPO/c3-unit19/src/main/java/com/tiffinbox")" "$U19H"
+  is "…and c3-tiffinbox/tiffinbox-core answers with the same one — byte-identical, not 'the same idea'" \
+     "$(src_hash5 "$REPO/c3-tiffinbox/tiffinbox-core/src/main/java/com/tiffinbox")" "$U19H"
+  # …and the new class really is one package DOWN, which is what keeps that five-file hash true
+  # of this unit. Move KitchenLog.java up into com/tiffinbox/ and `md5 -q *.java` is six files
+  # against a five-file hash, while every other check in the unit stays green.
+  is "…and src/main/java holds those five plus com/tiffinbox/kitchen/KitchenLog.java, and nothing else" \
+     "$(src_files "$REPO/c3-unit19/src/main/java")" \
+     "./com/tiffinbox/Customer.java ./com/tiffinbox/CustomerRepository.java ./com/tiffinbox/Dashboard.java ./com/tiffinbox/Database.java ./com/tiffinbox/OrderQueue.java ./com/tiffinbox/kitchen/KitchenLog.java "
+  is "…and the README's block table names exactly the ids receipts.sh declares" \
+     "$(readme_block_ids 19)" "$(receipts_ids 19)"
+  # The mask is a DELIVERABLE in this section, and the page prints it. If receipts.sh's filter
+  # and the one the README shows ever part company, every hash on the page is over a capture the
+  # viewer cannot reproduce — and no hash comparison can see that, because both halves move
+  # together. So the two are compared with each other.
+  U19M="s/^[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3} /<time> /"
+  if grep -qF -- "$U19M" "$REPO/c3-unit19/README.md" && grep -qF -- "$U19M" "$REPO/c3-unit19/receipts.sh"; then
+    ok "the clock filter c3-unit19/README.md prints is the one receipts.sh really applies before it hashes"
+  else
+    bad "c3-unit19's clock filter" "the README and receipts.sh do not both carry: sed -E '$U19M'"
+  fi
+
+  # ---- "Run it": the command the page hands the viewer, and the panel under it
+  timed 1800 bash -c 'cd "$REPO/c3-unit19" && mvn -B -q "-Dmaven.repo.local=$M2_U19" compile exec:exec \
+      | sed -E "s/^[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3} /<time> /"'
+  if [ "$RC" -eq 0 ]; then
+    has "mvn -B -q compile exec:exec -> INFO tiffinbox - orders cooked:  90" '^<time> INFO  tiffinbox - orders cooked: +90$'
+    has "…kitchen value:  26700" '^<time> INFO  tiffinbox - kitchen value: +26700$'
+    is "…and TWO lines, not five: the per-customer lines are DEBUG and this config's root is INFO" \
+       "$(countq '^<time> ')" "2"
+    panel 19 '^## Run it' 2
+    sed -E 's/^[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3} /<time> /' "$WORK/panel" > "$WORK/panel.m" && mv "$WORK/panel.m" "$WORK/panel"
+    out_has_panel "…and that is the two-line panel c3-unit19/README.md prints, once the clock the page says moves is masked"
+  else
+    bad "mvn -B -q compile exec:exec" "exit $RC"
+  fi
+
+  # ---- the same classes, a different level. One word in one XML file.
+  timed 1800 bash -c 'cd "$REPO/c3-unit19" && mvn -B -q "-Dmaven.repo.local=$M2_U19" -Dlogback.config=logback-debug.xml exec:exec \
+      | sed -E "s/^[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3} /<time> /"'
+  if [ "$RC" -eq 0 ]; then
+    is "-Dlogback.config=logback-debug.xml -> FIVE lines where the same classes gave two" \
+       "$(countq '^<time> ')" "5"
+    is "…three of them DEBUG" "$(countq '^<time> DEBUG ')" "3"
+    panel 19 '^## The same classes, a different level' 2
+    out_has_panel "…and the five-line panel c3-unit19/README.md prints under that command is what came back"
+  else
+    bad "mvn -q -Dlogback.config=logback-debug.xml exec:exec" "exit $RC"
+  fi
+
+  # ---- the three bindings, and the third one. THE assertion of this unit is an EXIT CODE OF
+  # ZERO over silence: a missing binding is not an error, it is a program that stopped telling
+  # you anything, and `expect_ok` with no kitchen line is the only honest way to say that.
+  expect_ok "breaks/no-binding: mvn -B -q compile exec:exec -> exit 0, and the kitchen still cooked" 1800 \
+      'SLF4J\(W\): No SLF4J providers were found\.' \
+      bash -c 'cd "$REPO/c3-unit19/breaks/no-binding" && mvn -B -q "-Dmaven.repo.local=$M2_U19" compile exec:exec'
+  is "…three SLF4J warning lines on stderr, which is the whole warning you get" "$(countq '^SLF4J\(W\): ')" "3"
+  hasnt "…and NOT ONE kitchen line reached the console" 'tiffinbox - |^orders cooked|^kitchen value'
+  # …and the three source trees really are one source tree. The README calls them
+  # byte-identical; `bridge` dies if they are not, and this is the same question asked here so
+  # that the claim is not only true inside the block that depends on it.
+  U19T="$( cd "$REPO/c3-unit19/src/main/java" && find . -name '*.java' | LC_ALL=C sort | xargs md5 -q | md5 -q )"
+  is "src/main/java, swap/src/main/java and breaks/no-binding/src/main/java are ONE tree: swap" \
+     "$( cd "$REPO/c3-unit19/swap/src/main/java" && find . -name '*.java' | LC_ALL=C sort | xargs md5 -q | md5 -q )" "$U19T"
+  is "…and breaks/no-binding" \
+     "$( cd "$REPO/c3-unit19/breaks/no-binding/src/main/java" && find . -name '*.java' | LC_ALL=C sort | xargs md5 -q | md5 -q )" "$U19T"
+  readme_quotes "…and it is the hash c3-unit19/README.md prints in its bridge panel" 19 "$U19T"
+
+  # ---- the exercise's START state, run in place: the page's own command, and its own panel.
+  # `../.m2-demo` is this unit's .m2-demo, which is the repository every command above warmed.
+  expect_ok "exercise: mvn -B -q compile exec:exec unedited -> exit 0 and three warnings" 1800 \
+      'SLF4J\(W\): No SLF4J providers were found\.' \
+      bash -c 'cd "$REPO/c3-unit19/exercise" && mvn -B -q "-Dmaven.repo.local=../.m2-demo" compile exec:exec'
+  xpanel 19 '^## The start state' 2
+  out_has_panel "…and those are the three lines c3-unit19/exercise/README.md prints, verbatim"
+  hasnt "…not one kitchen line: four logging calls, all of them into the NOP logger" 'tiffinbox - '
+
+  # ---- receipts.sh, all nine blocks, and the nine hashes the deck (19-slf4j-logback-why-not-
+  # println.md) quotes. c3-unit19/README.md quotes none of them in the `receipts.sh <id> → md5`
+  # shape, so these are the deck's numbers with the deck named beside them.
+  if run_receipts 19 3600; then
+    is "…and it printed nine blocks, the count c3-unit19/README.md states" "$(receipts_blocks 19)" "9"
+    is "…./receipts.sh 2>&1 | md5 -q -> the whole-run md5 the deck quotes for the nine" \
+       "$(receipts_md5 19)" "7a4b561ed17d4e756fc23ef4baa24f14"
+    is "…and md5 of the receipts.sh FILE is a DIFFERENT number, which the deck is careful to call a receipt of nothing" \
+       "$( [ "$(md5of "$REPO/c3-unit19/receipts.sh")" != "$(receipts_md5 19)" ] && echo different || echo "the same" )" "different"
+    receipt_line 19 bridge    "md5 f223a0a5bac6a7db751411877ee4f656  exit 0 then 0 then 0"
+    receipt_line 19 levels    "md5 4fbc27f7700c84cd10c0b00377a0db0e  exit 0 then 0"
+    receipt_line 19 tree      "md5 78ffea1b0c2e3e62398a575c628f8588  exit 0 then 0"
+    receipt_line 19 println   "md5 8237b0d1d16f31a5adc1ecadcd4b83b2  exit 0 then 0"
+    receipt_line 19 nobinding "md5 6f91730c4f6e78933ea3bd0495246449  exit 0"
+    receipt_line 19 cost      "md5 b1cb78e200ad3b615a8b4fcde21579dc  exit 0"
+    receipt_line 19 release   "md5 091e674687c615245199a2de87ab815b  (no build)"
+    receipt_line 19 solution  "md5 52ac5d500ab11a7e362adad01b143530  exit 0 then 0"
+    receipt_line 19 offline   "md5 5752d5e6f631c8e90e17e9f084414cf0  exit 0"
+    derived_unprobed 19
+
+    # every console panel on the page, against the block that made it
+    receipt_panel 19 bridge
+    panel 19 '^## The same source, three bindings' 2
+    out_has_panel "…README's bridge panel — three bindings, the third silent at exit 0 — is what that block printed"
+    receipt_panel 19 levels
+    panel 19 '^## The same classes, a different level' 3
+    out_has_panel "…README's levels panel is what that block printed, target/classes hash and all"
+    receipt_panel 19 tree
+    panel 19 'did you actually get' 2
+    out_has_panel "…README's two dependency trees are that block's, elision counts included"
+    panel 19 'did you actually get' 3
+    out_has_panel "…and the four version lines under them"
+    receipt_panel 19 cost
+    panel 19 'What a switched-off DEBUG call costs' 2
+    out_has_panel "…README's cost panel — 1000 renders against 0 — is what the test really logged"
+    receipt_panel 19 release
+    panel 19 'trap, on this unit' 2
+    out_has_panel "…README's <release> panel is derived from central/ and reproduces character for character"
+    # the exercise's END state, which is the exercise page's own acceptance
+    receipt_panel 19 solution
+    xpanel 19 '^## The end state you are reaching' 1
+    out_has_lines "…and the five lines c3-unit19/exercise/README.md promises are what the answer really produced"
+    has "…with src/main/java untouched: the answer changed 0 lines of Java" \
+        '^lines of src/main/java the answer changed: 0$'
+    # the two derived sentences that are the unit's headline, asserted where they are derived
+    receipt_panel 19 println
+    has "…receipts.sh println: the SAME switch that moved Logback moved the println output by 0 lines" \
+        'moved the println output by: 0 line\(s\)$'
+    has "…and of those five lines, 0 carry a level word and 0 name a source" \
+        '^of those 5 lines, 0 carry a level word and 0 name a source$'
+    receipt_panel 19 nobinding
+    has "…receipts.sh nobinding: 3 warning lines, 0 kitchen lines, exit code 0" '^the process exit code: 0$'
+  fi
+
+  offline_test 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" -o test' 1800 "$REPO/c3-unit19" "$M2_U19"
+fi
+
+# ============================================================= c3-unit20 ====
+# Appenders, patterns, rolling and MDC. Two things here are assertions nothing else in this
+# script makes: the file appender's OUTPUT is compared with the console's (the README's claim is
+# "character for character once the clock is masked", and a `diff` is the only way to say it),
+# and the rolling beat is asserted to DISCARD — a rolling appender is a bounded buffer, the page
+# says 48 lines of 61 survived, and "it rolled" without that count is the half nobody mentions.
+if unit 20 "Appenders, patterns, rolling and MDC"; then
+  is "README quotes the five carried sources' hash, and it is the course's own" \
+     "$(src_hash5 "$REPO/c3-unit20/src/main/java/com/tiffinbox")" "$(carried_five_hash 20)"
+  is "…and everything this unit adds is under com/tiffinbox/kitchen/" \
+     "$(src_files "$REPO/c3-unit20/src/main/java/com/tiffinbox/kitchen")" \
+     "./KitchenLog.java ./KitchenMdc.java ./KitchenPool.java ./KitchenRoll.java ./Mdc.java "
+  is "…and the README's block table names exactly the ids receipts.sh declares" \
+     "$(readme_block_ids 20)" "$(receipts_ids 20)"
+  is "logback.xml attaches TWO appenders to the root — the count the whole first beat rests on" \
+     "$(grep -c '<appender-ref' "$REPO/c3-unit20/src/main/resources/logback.xml" | tr -d ' ')" "2"
+
+  # ---- one event, two destinations. The README's command, and then the FILE, which is the
+  # evidence: a console line proves a console appender and nothing else.
+  timed 1800 bash -c 'cd "$REPO/c3-unit20" && rm -rf target/logs && mvn -B -q "-Dmaven.repo.local=$M2_U20" compile exec:exec \
+      | grep " kitchen " | sed -E "s/^[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3} /<time> /"'
+  if [ "$RC" -eq 0 ]; then
+    is "mvn -B -q compile exec:exec -> the console shows SEVEN lines, as the README says" "$(countq '^<time> ')" "7"
+    cp "$OUT" "$WORK/u20.console"
+    exists "…and target/logs/kitchen.log was written, which is the half a console line cannot prove" \
+        "$REPO/c3-unit20/target/logs/kitchen.log"
+    grep ' kitchen ' "$REPO/c3-unit20/target/logs/kitchen.log" 2>/dev/null \
+      | sed -E 's/^[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3} /<time> /' > "$WORK/u20.file"
+    if diff -q "$WORK/u20.console" "$WORK/u20.file" >/dev/null 2>&1; then
+      ok "…and the two renderings are identical once the clock is masked — one event, two destinations"
+    else
+      cp "$WORK/u20.file" "$OUT"
+      bad "console against target/logs/kitchen.log" "the two appenders rendered the same events differently: $(diff "$WORK/u20.console" "$WORK/u20.file" | tr '\n' ' ' | cut -c1-200)"
+    fi
+  else
+    bad "mvn -B -q compile exec:exec (c3-unit20)" "exit $RC"
+  fi
+
+  # ---- the MDC's headline, read out of the source rather than described: not one logging call
+  # passes the order id, and there is exactly one MDC.put.
+  is "KitchenMdc.java carries exactly one MDC.put(…) call" \
+     "$(grep -vE '^[[:space:]]*(\*|//|/\*)' "$REPO/c3-unit20/src/main/java/com/tiffinbox/kitchen/KitchenMdc.java" | sed -E 's#[[:space:]]*//.*$##' | grep -c 'MDC.put(' | tr -d ' ')" "1"
+  is "…and ZERO of its log.info(…) call sites pass the order id — that is the whole mechanism" \
+     "$(grep -vE '^[[:space:]]*(\*|//|/\*)' "$REPO/c3-unit20/src/main/java/com/tiffinbox/kitchen/KitchenMdc.java" | sed -E 's#[[:space:]]*//.*$##' | grep 'log\.info(' | grep -c 'orderId' | tr -d ' ')" "0"
+  is "…while the LAYOUT names it, which is where the id comes from — counted in the pattern PROPERTY, not in the comment above it" \
+     "$(grep -c 'value=".*%X{orderId:-}.*"' "$REPO/c3-unit20/src/main/resources/logback.xml" | tr -d ' ')" "1"
+
+  # ---- the break: an id at a thread boundary. Exit 0 in both states, and the second state is
+  # worse than the first — asserted as the artifact (one line carrying another request's id),
+  # never as a build result, because nothing here fails.
+  expect_ok "breaks/mdc-lost: mvn -B -q compile exec:exec -> exit 0, and one line is a confident lie" 1800 \
+      'state 2: copy the map in, forget to take it out' \
+      bash -c 'cd "$REPO/c3-unit20/breaks/mdc-lost" && mvn -B -q "-Dmaven.repo.local=$M2_U20" compile exec:exec'
+  is "…state 1: BOTH cooking lines reached the pool thread with no id at all" \
+     "$(sed -n "/state 1/,/state 2/p" "$OUT" | grep -c 'pool-1-thread-1.*kitchen \.\.\. - cooking' | tr -d ' ')" "2"
+  is "…state 2: ONE cooking line carries another request's id — Arun's, on Bela's line" \
+     "$(sed -n "/state 2/,\$p" "$OUT" | grep -c 'pool-1-thread-1.*A-4417 - cooking Bela' | tr -d ' ')" "1"
+  hasnt "…and nothing threw: no exception reached the console" 'Exception|BUILD FAILURE'
+
+  # ---- rolling. `roll` is the one beat where the FILE COUNT is the claim and the LINE COUNT is
+  # the half nobody mentions, so both are taken from disk after the run rather than from a log.
+  expect_ok "breaks/no-roll: the configuration every tutorial shows -> exit 0" 1800 '' \
+      bash -c 'cd "$REPO/c3-unit20/breaks/no-roll" && rm -rf target/logs && mvn -B -q "-Dmaven.repo.local=$M2_U20" compile exec:exec'
+  is "…and it produced ONE file: a 1KB roller that did not roll" \
+     "$(ls -1 "$REPO/c3-unit20/breaks/no-roll/target/logs" 2>/dev/null | wc -l | tr -d ' ')" "1"
+  is "…and the tutorial configuration really does set maxFileSize to 1KB, so that is not the cause" \
+     "$(grep -c '<maxFileSize>1KB</maxFileSize>' "$REPO/c3-unit20/breaks/no-roll/src/main/resources/logback.xml" | tr -d ' ')" "1"
+  is "…while this unit's own logback.xml adds ONE element the tutorial's has not" \
+     "$(grep -c '<checkIncrement>' "$REPO/c3-unit20/src/main/resources/logback.xml" | tr -d ' ')" "1"
+
+  # ---- receipts.sh: nine blocks, and the nine hashes on the deck (20-appenders-patterns-mdc.md)
+  if run_receipts 20 3600; then
+    is "…and it printed nine blocks, the count c3-unit20/README.md states" "$(receipts_blocks 20)" "9"
+    is "…./receipts.sh 2>&1 | md5 -q -> the whole-run md5 the deck quotes for the nine" \
+       "$(receipts_md5 20)" "0c85d0a2d34f00c7c3d901396269b3b9"
+    receipt_line 20 appenders "md5 205f6364153a422705a54f24acce40f6  exit 0"
+    receipt_line 20 pattern   "md5 388fd72e4ba7e14e170654616e003b34  exit 0"
+    receipt_line 20 mdc       "md5 1ca820dcdb9d16f42a3eb81eeaae378b  exit 0"
+    receipt_line 20 handoff   "md5 c53fc8c078f1f0a8d92e0f7afd231bc3  exit 0"
+    receipt_line 20 pool      "md5 a64d33f95dc65b51b7f8101c0386221d  exit 0"
+    receipt_line 20 roll      "md5 a95ad56ea5eed3d9f21c8c852a91a8d7  exit 0 then 0"
+    receipt_line 20 gate      "md5 873e2f6750e68591d6d32aaebb3afe31  exit 0"
+    receipt_line 20 solution  "md5 96d8c3e98fdd4893ccd304266c78445e  exit 0 then 0"
+    receipt_line 20 offline   "md5 9eea88dc8bea20c1f216134741799357  exit 0"
+    derived_unprobed 20
+
+    receipt_panel 20 pattern
+    panel 20 'checks each token against the field it produced' 1
+    out_has_panel "…README's pattern panel — every token against the field it produced — is that block's own"
+    receipt_panel 20 mdc
+    panel 20 'Which lines belong to [*]this[*] order' 2
+    out_has_panel "…README's mdc panel, ending in 'sites passing an order id: 0', is what the run printed"
+    receipt_panel 20 roll
+    panel 20 'the reason a 1 KB roller does not roll' 2
+    out_has_panel "…README's roll panel — 1 file against 4, and 48 lines of 61 — is what the two runs measured"
+    has "…and the discarded count is DERIVED, not described: a rolling appender deletes" \
+        '^lines the window discarded: [0-9]+$'
+    receipt_panel 20 gate
+    panel 20 'read out of the jar rather than out of a blog post' 2
+    out_has_lines "…README's gate panel is read out of logback-core-1.6.3.jar, not out of documentation"
+    receipt_panel 20 handoff
+    has "…receipts.sh handoff: state 1 lost the id on 2 of 2 cooking lines" \
+        '^state 1 - cooking lines that reached the pool with NO id: 2 of 2$'
+    has "…state 2 mislabelled exactly 1 of 2, which is worse than losing it" \
+        "^state 2 - cooking lines labelled with another request's id: 1 of 2$"
+    has "…and both states exited 0" '^the process exit code, in both states: 0$'
+    receipt_panel 20 pool
+    has "…receipts.sh pool: the repair carries 2 of 2 ids and 0 stale ones" '^cooking lines carrying a stale id: 0$'
+    has "…and a pooled thread that had an id offers none to the task that has none" \
+        '^tasks submitted with an empty MDC that came back with an empty MDC: 1 of 1$'
+    # the exercise, both halves, against its own page
+    receipt_panel 20 solution
+    has "…the exercise's start state is 1 file, and the answer more than one" '^start state: 1 file\(s\), [0-9]+ line\(s\) on disk$'
+    has "…and the answer DISCARDED lines, which is the trade the exercise is about" \
+        '^lines rolled off the end and deleted: [0-9]+ of [0-9]+$'
+    xpanel 20 '^## The end state you are reaching' 1
+    is "…and c3-unit20/exercise/README.md's end state names FOUR log files" \
+       "$(grep -c '^kitchen' "$WORK/panel" | tr -d ' ')" "4"
+    is "…which is what its answer's <maxIndex> and the <checkIncrement> the starter has not add up to" \
+       "$(grep -c '<checkIncrement>' "$REPO/c3-unit20/exercise/solution/logback.xml" | tr -d ' ')-$(grep -c '<checkIncrement>' "$REPO/c3-unit20/exercise/src/main/resources/logback.xml" | tr -d ' ')" \
+       "2-0"
+    # A SIZE IS NOT A CONSTANT, and that is this unit's own rule: the per-file byte sizes are
+    # printed OUTSIDE the hash. A block that started hashing them would reproduce once.
+    receipts_says 20 "…and the per-file byte sizes are printed OUTSIDE the hash, with the reason on screen" \
+        '^outside the hash, because a byte size is not a constant:'
+  fi
+
+  offline_test 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" -o test' 1800 "$REPO/c3-unit20" "$M2_U20"
+fi
+
+# ============================================================= c3-unit21 ====
+# Structured logging. The claim worth checking here is the one the page makes about GREP being
+# wrong in BOTH directions at once — a false positive it includes and two stack-trace lines it
+# excludes — so both halves are counted, and the false positive is decided by the id FIELD at
+# its position in the layout rather than by looking for a particular order.
+if unit 21 "Structured logging"; then
+  if ! command -v jq >/dev/null 2>&1; then
+    skip "c3-unit21 — every check" "this unit needs jq on the PATH; its own receipts.sh refuses to run without it"
+  else
+  is "README quotes the five carried sources' hash, and it is the course's own" \
+     "$(src_hash5 "$REPO/c3-unit21/src/main/java/com/tiffinbox")" "$(carried_five_hash 21)"
+  is "…and the source root holds those five plus the two classes this unit adds" \
+     "$(src_files "$REPO/c3-unit21/src/main/java")" \
+     "./com/tiffinbox/Customer.java ./com/tiffinbox/CustomerRepository.java ./com/tiffinbox/Dashboard.java ./com/tiffinbox/Database.java ./com/tiffinbox/OrderQueue.java ./com/tiffinbox/kitchen/KitchenEvents.java ./com/tiffinbox/kitchen/Mdc.java "
+  is "…and the README's block table names exactly the ids receipts.sh declares" \
+     "$(readme_block_ids 21)" "$(receipts_ids 21)"
+  # THE design of the unit, asserted before any of its numbers: both encodings come from ONE run,
+  # because two runs would let any difference be blamed on the runs.
+  is "logback.xml attaches the TEXT and the JSON appender to the SAME <root> — so no event can be in one file and not the other" \
+     "$(sed -n '/<root /,/<\/root>/p' "$REPO/c3-unit21/src/main/resources/logback.xml" \
+        | grep -oE 'ref="[A-Z]+"' | LC_ALL=C sort | tr '\n' ' ')" 'ref="CONSOLE" ref="JSON" ref="TEXT" '
+  is "…and the JSON appender names orderId ZERO times: an MDC entry becomes a key with no configuration" \
+     "$(sed -n '/<appender name="JSON"/,/<\/appender>/p' "$REPO/c3-unit21/src/main/resources/logback.xml" | grep -c 'orderId' | tr -d ' ')" "0"
+
+  # ---- one run, two files. The README's own command, and then the two files it wrote.
+  timed 1800 bash -c 'cd "$REPO/c3-unit21" && rm -rf target/logs && mvn -B -q "-Dmaven.repo.local=$M2_U21" compile exec:exec'
+  if [ "$RC" -eq 0 ]; then
+    exists "mvn -B -q compile exec:exec -> target/logs/kitchen.log" "$REPO/c3-unit21/target/logs/kitchen.log"
+    exists "…and target/logs/kitchen.json, from the same run" "$REPO/c3-unit21/target/logs/kitchen.json"
+    TL="$(grep -c . "$REPO/c3-unit21/target/logs/kitchen.log" | tr -d ' ')"
+    JE="$(jq -s 'length' "$REPO/c3-unit21/target/logs/kitchen.json" 2>/dev/null)"
+    is "…every line of the JSON log parses as one object per line, which is what makes jq's answer a measurement" \
+       "$(jq -e . "$REPO/c3-unit21/target/logs/kitchen.json" >/dev/null 2>&1 && echo ok)" "ok"
+    is "…8 lines in the text log" "$TL" "8"
+    is "…6 objects in the JSON log — the text log is line-oriented and the events are not" "$JE" "6"
+    # THE question, asked of both, exactly as the page asks it — and grep wrong in both
+    # directions at once. `$4` is the id field at its position in the layout, which is how the
+    # page decides which hits are false; a grep for the order id would agree with itself.
+    JN="$(jq -c 'select(.orderId=="B-9082" and .level_value>=30000)' "$REPO/c3-unit21/target/logs/kitchen.json" | grep -c .)"
+    GN="$(grep 'B-9082' "$REPO/c3-unit21/target/logs/kitchen.log" | grep -cE 'WARN|ERROR' | tr -d ' ')"
+    FP="$(grep 'B-9082' "$REPO/c3-unit21/target/logs/kitchen.log" | grep -E 'WARN|ERROR' | awk '$4 != "B-9082" { c++ } END { print c+0 }')"
+    TR="$(grep -cE '^(java\.|\s+at )' "$REPO/c3-unit21/target/logs/kitchen.log" | tr -d ' ')"
+    is "jq 'select(.orderId==\"B-9082\" and .level_value>=30000)' -> 2 events" "$JN" "2"
+    is "…grep B-9082 | grep -E 'WARN|ERROR' -> 3 lines, which is the wrong answer twice over" "$GN" "3"
+    is "…one of those three belongs to a DIFFERENT order, decided by the id field at its position" "$FP" "1"
+    is "…and two lines that ARE B-9082's are missing, because a stack-trace line carries no level and no id" "$TR" "2"
+  else
+    bad "mvn -B -q compile exec:exec (c3-unit21)" "exit $RC"
+  fi
+
+  # ---- receipts.sh: seven blocks, and the seven hashes on the deck (21-structured-logging.md)
+  if run_receipts 21 3600; then
+    is "…and it printed seven blocks, the count c3-unit21/README.md states" "$(receipts_blocks 21)" "7"
+    is "…./receipts.sh 2>&1 | md5 -q -> the whole-run md5 the deck quotes for the seven" \
+       "$(receipts_md5 21)" "c721452e39f57dc1b8c3a832d1d32ecb"
+    receipt_line 21 both     "md5 9716f83c319f8ecc911b85f929feb2f8  exit 0"
+    receipt_line 21 query    "md5 d164a83ddeb39cccaaaa5bd0b2e14a57  exit 0"
+    receipt_line 21 fields   "md5 df250d771a99d2b88ea69eafb78e8842  exit 0"
+    receipt_line 21 truncate "md5 af3a6212e942b190e5e428fb70fe06ac  exit 0"
+    receipt_line 21 cost     "md5 0644e9d40df3d41736a7771b4ddb0fd3  exit 0"
+    receipt_line 21 solution "md5 0b06995fc4f22b38d5e221b57c9ce29e  exit 0 then 0"
+    receipt_line 21 offline  "md5 9ff76e632a99d4e98edd0e647da2fb68  exit 0"
+    derived_unprobed 21
+
+    receipt_panel 21 both
+    panel 21 '^## One run, two encodings' 2
+    out_has_lines "…README's 8-against-6 panel is what that block really counted"
+    receipt_panel 21 query
+    panel 21 '^## One question, asked of both' 2
+    panel_unelide
+    # The page re-cuts the two JSON lines by hand ("…,\"message\":…,… ") where the block cuts them
+    # at 120 characters, so those two are dropped and the rest of the panel — the query itself,
+    # the three grep hits and the four derived counts — is what the page is held to.
+    panel_drop_re '^\{"@timestamp"'
+    out_has_lines "…README's query panel — jq 2, grep 3, one of them somebody else's order — is that block's"
+    is "…and the page shortens exactly TWO of that block's lines by hand: the two jq matched" \
+       "$(grep -c '^{\"@timestamp\":\"<time>\",' "$OUT" | tr -d ' ')" "2"
+    is "…each of which the block itself cut at 120 characters and marked with an ellipsis" \
+       "$(grep -cE '^\{\"@timestamp\".{95,120}\.\.\.$' "$OUT" | tr -d ' ')" "2"
+    receipt_panel 21 truncate
+    panel 21 '^## The delimiter is not yours alone' 2
+    out_has_panel "…README's truncate panel, and the 19 characters the layout's own separator cost"
+    receipt_panel 21 fields
+    panel 21 '^## Fields, and the one that is not there' 2
+    out_has_lines "…README's fields panel — five events with the key, one with no such key at all"
+    receipt_panel 21 cost
+    panel 21 '^## What it costs — the honest other half' 2
+    out_has_lines "…README's cost panel: three jackson rows, two groupIds, and the bytes per event"
+    has "…and Jackson 3 really arrives under tools.jackson.*, beside Jackson 2 rather than against it" \
+        'under tools\.jackson\.\* \(Jackson 3\) \.+ [0-9]+'
+    # the exercise, both halves: the query answers 0 before and more than 0 after, with no
+    # logback.xml change — which is the page's whole claim about a new field costing no config.
+    receipt_panel 21 solution
+    has "…the exercise's start state answers the query 0 times" \
+        '^start state: jq select\(\.customer=="Bela"\) matched 0 of [0-9]+ event\(s\)$'
+    has "…and the answer answers it, with the new key on the event" '^answer:      jq select\(\.customer=="Bela"\) matched [1-9]'
+    # "Do NOT change logback.xml. The point is that a new field costs no configuration." The
+    # receipt for that sentence is what the answer SHIPS: one Java file and no XML at all.
+    is "…and the answer it ships is ONE file — the events class, with no logback.xml beside it" \
+       "$(ls "$REPO/c3-unit21/exercise/solution" | tr '\n' ' ')" "KitchenEvents.java "
+    is "…which reaches for StructuredArguments.kv, the tool the exercise page names, twice" \
+       "$(grep -c 'StructuredArguments' "$REPO/c3-unit21/exercise/solution/KitchenEvents.java" | tr -d ' ')" "2"
+    is "…and the starter reaches for it not at all, which is why the query answers nothing" \
+       "$(grep -c 'StructuredArguments' "$REPO/c3-unit21/exercise/src/main/java/com/tiffinbox/kitchen/KitchenEvents.java" | tr -d ' ')" "0"
+  fi
+
+  offline_test 'mvn -B -Dmaven.repo.local="$PWD/.m2-demo" -o test' 1800 "$REPO/c3-unit21" "$M2_U21"
+  fi
+fi
+
+# ============================================================= c3-unit22 ====
+# The one unit in this course whose subject IS a duration, and the split it makes is the thing
+# to assert: four blocks hashed because nothing in them is a duration, and four printing
+# `no md5:` and a reason because everything in them is. A block that started hashing a Score
+# would be the defect, not an improvement.
+#
+# And the three unhashed blocks guard a fact about the MACHINE. `scores` stops if an interval
+# pair overlaps, `deadcode` if the discarded call stops being indistinguishable from an empty
+# method, `jfr` if the compilation rate does not fall by four — and the README says in so many
+# words that an overlap is section 2c's legitimate answer ("I could not measure a difference
+# above the noise on this machine"). So the default `./receipts.sh` CAN exit 1 here through no
+# fault of the deliverable, which is why the five hashed blocks are run on their own first and
+# the three guarded ones one at a time after: each of those is a PASS when it clears its guard,
+# a labelled SKIP when it stops with its OWN documented refusal, and a FAIL on anything else.
+if unit 22 "JMH and JFR: honest measurement"; then
+  is "README quotes the five carried sources' hash, and it is the course's own" \
+     "$(src_hash5 "$REPO/c3-unit22/src/main/java/com/tiffinbox")" "$(carried_five_hash 22)"
+  is "…and the source root holds those five plus the three classes this unit adds" \
+     "$(src_files "$REPO/c3-unit22/src/main/java")" \
+     "./com/tiffinbox/Customer.java ./com/tiffinbox/CustomerRepository.java ./com/tiffinbox/Dashboard.java ./com/tiffinbox/Database.java ./com/tiffinbox/OrderQueue.java ./com/tiffinbox/bench/NaiveTimer.java ./com/tiffinbox/bench/ReceiptBench.java ./com/tiffinbox/bench/Receipts.java "
+  is "…and the README's block table names exactly the ids receipts.sh declares, sweep included" \
+     "$(readme_block_ids 22)" "$(receipts_ids 22)"
+  # THE contract this unit is auditing, read out of the page's own table: which blocks are
+  # hashed and which are not. A row that changed its answer is the defect.
+  is "README's table marks \`scores\`, \`deadcode\` and \`jfr\` as NOT hashed" \
+     "$(grep -cE '^\| `(scores|deadcode|jfr)` \| no \|' "$REPO/c3-unit22/README.md" | tr -d ' ')" "3"
+  is "…and \`harness\`, \`release\` and \`offline\` as hashed" \
+     "$(grep -cE '^\| `(harness|release|offline)` \| \*\*yes\*\* \|' "$REPO/c3-unit22/README.md" | tr -d ' ')" "3"
+  is "…and \`naive\` and \`solution\` as structure only" \
+     "$(grep -cE '^\| `(naive|solution)` \| \*\*structure only\*\* \|' "$REPO/c3-unit22/README.md" | tr -d ' ')" "2"
+  # the pins the harness block reads back out of the benchmark, so the Cnt column on the page
+  # is arithmetic rather than a memory: forks x measurement iterations.
+  is "ReceiptBench declares @Fork(2) and @Measurement(iterations = 3), so Cnt on a full run must be 6" \
+     "$(( $(grep -oE '@Fork\([0-9]+\)' "$REPO/c3-unit22/src/main/java/com/tiffinbox/bench/ReceiptBench.java" | head -1 | tr -cd '0-9') * $(grep -oE '@Measurement\(iterations = [0-9]+' "$REPO/c3-unit22/src/main/java/com/tiffinbox/bench/ReceiptBench.java" | head -1 | tr -cd '0-9') ))" "6"
+  is "…and @Param({\"6\", \"600\"}), which is why the small row cannot be read as a rule" \
+     "$(grep -oE '@Param\(\{[^}]*\}\)' "$REPO/c3-unit22/src/main/java/com/tiffinbox/bench/ReceiptBench.java" | grep -oE '[0-9]+' | tr '\n' ' ')" "6 600 "
+
+  # ---- the five blocks whose content is not a duration
+  if expect_ok "c3-unit22/receipts.sh harness naive release solution offline — the five with a hash" 5400 '' \
+      bash -c "cd \"$REPO/c3-unit22\" && ./receipts.sh harness naive release solution offline"; then
+    cp "$OUT" "$WORK/receipts.22"
+    is "…five blocks" "$(receipts_blocks 22)" "5"
+    receipt_line 22 harness  "md5 fec852069415f845b2b42123de949c67  exit 0"
+    receipt_line 22 naive    "md5 5f476dc39b6b360d1ab374dcc17041fe  exit 0"
+    receipt_line 22 release  "md5 cc9b7bd93d0523bd3f0a79c3166ef3bb  (no build)"
+    receipt_line 22 solution "md5 e311f7bfc86e275fe255b60e33f76c9d  exit 0 then 0"
+    receipt_line 22 offline  "md5 b0e0f803461c1733a1749dd53939d6ce  exit 0"
+    is "…and TWO of those five also printed \`no md5:\` and a reason — naive's numbers and the answer's scores" \
+       "$(unhashed_blocks 22)" "2"
+
+    receipt_panel 22 harness
+    panel 22 '^## What the harness tells you before' 2
+    out_has_panel "…README's conditions panel is the eight lines JMH printed, whether you ask or not"
+    panel 22 '^## What the harness tells you before' 3
+    out_has_panel "…and the three lines the -f 0 on that command line costs, in the harness's own words"
+    has "…four sun.misc.Unsafe warnings on JDK 25, which are real and are not a reason to distrust the numbers" \
+        '^WARNING lines the JVM printed: 4$'
+    has "…and the header printed twice, once per @Param size, with the cut counted rather than pasted" \
+        '^configuration headers JMH printed in this one run: 2 - one per @Param size,$'
+    readme_quotes "…and the README carries JMH's own sentence about its own numbers" 22 \
+        "Do not assume the numbers tell you what you want them to tell."
+    receipt_panel 22 naive
+    panel 22 '^## The stopwatch, and what it cannot tell you' 2
+    out_has_panel "…README's five-count panel over the stopwatch's result lines is that block's own"
+    has "…and four of the five counts are ZERO, which are the four conditions this course requires" \
+        '^  lines carrying an error term \.+ 0$'
+    has "…while the fifth is not, which is what makes the four zeroes a measurement" \
+        '^  lines carrying a unit \.+ 9$'
+    receipt_panel 22 release
+    has "…receipts.sh release: JMH 1.37 is the last entry of its own version list" \
+        '^  last entry of the version list \.\. 1\.37  \(the same string: yes\)$'
+    has "…and no rc or milestone sits above it" '^no rc and no milestone sits above it'
+    # the exercise, both halves: an empty Error column, then Cnt 6 with a ± on every row. The
+    # scores themselves are durations and the exercise page says so; the two COUNTS are not.
+    receipt_panel 22 solution
+    has "…the exercise's start state prints Cnt = 2 and ZERO error terms" \
+        '^start state: Cnt = 2 ; result rows carrying an error term: 0$'
+    has "…and the answer Cnt = 6 with an error term on every row" \
+        '^answer:      Cnt = 6 ; result rows carrying an error term: 2 of 2$'
+    xreadme_hasnt "…and the exercise page never claims one of the two is faster: no such verdict on it" 22 \
+        '(concatenation|concat) is (faster|quicker) than'
+    xreadme_quotes "…what its own page says instead is that you cannot tell" 22 \
+        "**on this machine, you cannot tell.**"
+  fi
+
+  # ---- and the three whose guard is a fact about this machine
+  jmh_guarded "receipts.sh scores — the score table, and the verdict at each size" 5400 22 scores \
+      '^the verdict at each size, smallest first: concat builder$'
+  # …and the GUARD, which is what makes that verdict a claim rather than a print. Measured: take
+  # the `die` out of the OVERLAP arm and the block prints "OVERLAP builder" and carries on — and on
+  # a quiet machine NOTHING in this script moves, because the overlap only happens under load. The
+  # behaviour needs a loaded machine; the wiring does not, so the wiring is read out of the
+  # deliverable, exactly as unit 10's drift block is.
+  S22="$(sed -n '/^ *verdicts=\$(printf/,/^  esac$/p' "$REPO/c3-unit22/receipts.sh")"
+  is "receipts.sh scores still DIES on an OVERLAP rather than printing one — the guard is what makes that verdict a claim" \
+     "$(printf '%s\n' "$S22" | grep -A1 '[*]OVERLAP[*])' | grep -c '^ *die "an interval pair OVERLAPS on this run' | tr -d ' ')" "1"
+  is "…and the arm that PASSES is the matched pair alone, with anything else dying too — two die()s in that case, not one" \
+     "$(printf '%s\n' "$S22" | grep -c '^ *die ' | tr -d ' ')" "2"
+  is "…and the sentence it dies with is section 2c's, so a viewer is told the answer is legitimate rather than that the block is broken" \
+     "$(printf '%s\n' "$S22" | grep -c "I could not measure a difference above the noise on this machine" | tr -d ' ')" "1"
+  case "$?" in
+    0) U22R="$(grep -cE '^ReceiptBench\.' "$OUT" | tr -d ' ')"
+       is "…six result rows: three benchmarks at two input sizes, which is the arithmetic above" "$U22R" "6"
+       is "…and every one of them carries an error term, which JMH refuses to print with fewer than three samples" \
+          "$(grep -cE '^ReceiptBench\..*±' "$OUT" | tr -d ' ')" "6" ;;
+  esac
+  jmh_guarded "receipts.sh deadcode — the same call four ways, and the one that measures nothing" 5400 22 deadcode \
+      '^what is left of the discarded call, as a fraction of the work measured: 0\.[0-4][0-9]  \(the guard: below 0\.50\)$'
+  jmh_guarded "receipts.sh jfr — the warm-up, as a count of compilations rather than a duration" 5400 22 jfr \
+      '^the first interval compiled at least four times what the last one did: yes$'
+  exists "…and the artifact that proves the recorder ran is the recording, not the exit code" \
+      "$REPO/c3-unit22/target/bench.jfr"
+
+  # ---- sweep, which the README calls the block that decides whether any of it is worth quoting
+  if [ "$SKIP_SLOW" = "1" ]; then
+    skip "RUNS=2 ./receipts.sh sweep" "SKIP_SLOW=1 — two more JMH runs; the README documents the RUNS knob"
+  else
+    if expect_ok "RUNS=2 ./receipts.sh sweep (not in the default run — the README says so)" 5400 \
+        '^of 4 readings \(2 runs x 2 input sizes\) on one machine in one session:$' \
+        bash -c "cd \"$REPO/c3-unit22\" && RUNS=2 ./receipts.sh sweep"; then
+      is "…and it printed NO md5 at all: N readings of a duration cannot be byte-identical" \
+         "$(countq '^md5 ')" "0"
+      has "…it records the load average beside every row, because machine load is a flag" \
+          '^ *[0-9]+ +[0-9.]+ +(6|600) '
+      has "…and the verdicts add up to the readings it took" \
+          '^[0-9]+ said the two overlap, [0-9]+ said they are separated$'
+      has "…with a \`no md5:\` line saying why there is none" '^no md5: N runs of a duration on one machine'
+    fi
+  fi
+fi
+
+# ============================================================= c3-unit23 ====
+# Section 5 opens. Two things here are assertions nothing else in this script makes.
+#
+#   * **The overlap capture must hash the same from two different directories.** maven-shade-
+#     plugin walks its overlap groups in an order that is stable inside one directory and
+#     DIFFERENT between directories — three copies of this tree gave three hashes — so the block
+#     now `LC_ALL=C sort`s the three warning lines before it hashes them. A fix like that is
+#     only a fix if it is measured, so this runs the block twice: in place, and again from a
+#     copy under $TMPDIR, and asserts ONE hash.
+#   * **The Class-Path header is a promise nothing checks**, and the lesson is a FAILURE. The
+#     assertion is the failing run and the zero lines of warning beside it — never `BUILD
+#     SUCCESS`, which is what the build that wrote that header printed.
+if unit 23 "Jars, fat jars, layered jars"; then
+  is "README quotes the five carried sources' hash, and it is the course's own" \
+     "$(src_hash5 "$REPO/c3-unit23/src/main/java/com/tiffinbox")" "$(carried_five_hash 23)"
+  is "…and the source root holds those five plus the one class this unit adds, one package down" \
+     "$(src_files "$REPO/c3-unit23/src/main/java")" \
+     "./com/tiffinbox/Customer.java ./com/tiffinbox/CustomerRepository.java ./com/tiffinbox/Dashboard.java ./com/tiffinbox/Database.java ./com/tiffinbox/OrderQueue.java ./com/tiffinbox/ship/TiffinBoxApp.java "
+  is "…and the README's block table names exactly the ids receipts.sh declares" \
+     "$(readme_block_ids 23)" "$(receipts_ids 23)"
+
+  # ---- one program, three files. The entry counts are the README's own table, and they are
+  # read out of the ARCHIVES: a green `mvn package` says nothing about what is in a jar.
+  expect_ok "mvn -B clean package -> the thin jar and its four libs" 1800 'BUILD SUCCESS' \
+      bash -c 'cd "$REPO/c3-unit23" && mvn -B "-Dmaven.repo.local=$M2_U23" clean package'
+  is "unzip -l target/tiffinbox-core-1.0.0.jar -> 18 entries, the number the README's table states" \
+     "$(unzip -l "$REPO/c3-unit23/target/tiffinbox-core-1.0.0.jar" 2>/dev/null | tail -1 | awk '{print $2}')" "18"
+  readme_quotes "…and the page really does say 18" 23 "**18 entries**"
+  is "…and four jars landed in target/lib, which is what the thin jar needs beside it" \
+     "$(ls -1 "$REPO/c3-unit23/target/lib"/*.jar 2>/dev/null | wc -l | tr -d ' ')" "4"
+  expect_ok "mvn -B -Pfat package -> the uber jar" 1800 'BUILD SUCCESS' \
+      bash -c 'cd "$REPO/c3-unit23" && mvn -B "-Dmaven.repo.local=$M2_U23" -Pfat package'
+  is "unzip -l target/tiffinbox-fat.jar -> 2354 entries, the number the README's table states" \
+     "$(unzip -l "$REPO/c3-unit23/target/tiffinbox-fat.jar" 2>/dev/null | tail -1 | awk '{print $2}')" "2354"
+  readme_quotes "…and the page really does say 2354" 23 "**2354 entries**"
+  # "Layered is not a third archive format" — the README's own sentence, and the receipt for it
+  # is that there is no third FILE. Two artifacts in target/, and the layered one is the thin
+  # jar plus a directory.
+  is "…and 'layered' really is not a third archive: target/ holds the thin jar and the fat jar, and no other" \
+     "$(ls -1 "$REPO/c3-unit23/target"/*.jar 2>/dev/null | wc -l | tr -d ' ')" "2"
+
+  # ---- the header nothing checks. Exit 0, then exit 1, the SAME jar, nothing rebuilt.
+  expect_ok "java -jar target/tiffinbox-core-1.0.0.jar (with target/lib beside it)" 300 '' \
+      bash -c 'cd "$REPO/c3-unit23" && "$JAVA" "-D$TAG=u23" -jar target/tiffinbox-core-1.0.0.jar'
+  mv "$REPO/c3-unit23/target/lib" "$REPO/c3-unit23/target/lib-verify-moved" 2>/dev/null
+  expect_fail "…one directory renamed, nothing rebuilt: the SAME jar now dies" 300 \
+      'NoClassDefFoundError: com/fasterxml/jackson/databind/ObjectMapper' \
+      bash -c 'cd "$REPO/c3-unit23" && "$JAVA" "-D$TAG=u23" -jar target/tiffinbox-core-1.0.0.jar'
+  mv "$REPO/c3-unit23/target/lib-verify-moved" "$REPO/c3-unit23/target/lib" 2>/dev/null
+  timed 120 bash -c 'cd "$REPO/c3-unit23" && unzip -p target/tiffinbox-core-1.0.0.jar META-INF/MANIFEST.MF | tr -d "\r"'
+  has "…and the manifest really does name four jars it never checks" 'Class-Path: lib/h2-2\.5\.250\.jar'
+  is "…four of them, counted with the continuation line unfolded — a folded header undercounts" \
+     "$(unzip -p "$REPO/c3-unit23/target/tiffinbox-core-1.0.0.jar" META-INF/MANIFEST.MF | tr -d '\r' \
+        | awk '/^Class-Path:/{f=1;print;next} f&&/^ /{print;next} {f=0}' | grep -o 'lib/' | wc -l | tr -d ' ')" "4"
+
+  # ---- receipts.sh: eight blocks, and the eight hashes the deck (23-jars-fat-jars-layered-
+  # jars.md) quotes. c3-unit23/README.md quotes none of them in the `→ md5` shape.
+  if run_receipts 23 5400; then
+    is "…and it printed eight blocks, the count c3-unit23/README.md's table states" "$(receipts_blocks 23)" "8"
+    receipt_line 23 three     "md5 1190c8b5bfe13a08bab8a15bdc73f081  (exit 0)"
+    receipt_line 23 classpath "md5 c47ee3540a9fb2f4671472fd22a4370e  (exit 0 with lib present, exit 1 without)"
+    receipt_line 23 overlap   "md5 ece50c68d852a1238fbe28f9bf08f65e  (exit 0 then 0)"
+    receipt_line 23 jdeps     "md5 e89fc0168d976861d1f040f4a3728de7  (exit 1, 2, 0)"
+    receipt_line 23 layers    "md5 4c26626bfcb4c0b933a3491a8fb75aff  (over the block above with the byte-size line removed - 1 line elided, counted)"
+    receipt_line 23 release   "md5 70b715d9acd4c4a15402f6f8639fe3fc  (no build)"
+    receipt_line 23 solution  "md5 8dd5d7029554f3bf112d9ffa808c2b10  (exit 0 then 0)"
+    receipt_line 23 offline   "md5 f29bccc4bc3de9f2164bd7b1f439362b  (exit 0)"
+    derived_unprobed 23
+
+    # THE fix this unit shipped, measured rather than believed. The three warning lines are
+    # shade's, character for character; only their ORDER is the block's, and the whole reason
+    # for sorting them is that shade's own order is a property of the directory. So: the same
+    # block, from a second checkout on a different path, has to print the same hash.
+    U23H="$(receipt_hash_of 23 overlap)"
+    case "$WORK" in
+      *\ *) skip "receipts.sh overlap from a SECOND checkout path" \
+                 "TMPDIR has a space in it, so there is no second path here to compare against; set TMPDIR to one without" ;;
+      *)
+        rm -rf "$WORK/u23"
+        ( cd "$REPO/c3-unit23" && tar cf - pom.xml src exercise central receipts.sh ) | ( mkdir -p "$WORK/u23" && cd "$WORK/u23" && tar xf - ) 2>/dev/null
+        ln -s "$M2_U23" "$WORK/u23/.m2-demo" 2>/dev/null
+        if expect_ok "receipts.sh overlap, run again from a copy on a DIFFERENT path" 1800 '^md5 ' \
+            bash -c "cd \"$WORK/u23\" && ./receipts.sh overlap"; then
+          is "…and it is ONE hash across the two paths — which is the whole point of LC_ALL=C sorting shade's warnings" \
+             "$(sed -n 's/^md5 \([0-9a-f]*\).*/\1/p' "$OUT" | head -1)" "$U23H"
+        fi
+        rm -rf "$WORK/u23"
+        ;;
+    esac
+    is "…and the sort really is in the block: receipts.sh pipes shade's warnings through LC_ALL=C sort" \
+       "$(grep -c 'LC_ALL=C sort > \.r-warn\.raw' "$REPO/c3-unit23/receipts.sh" | tr -d ' ')" "1"
+    receipt_panel 23 overlap
+    # …the THREE warning lines, and only those: the block prints a fourth, indented, copy of
+  # the widest one under its own elision count, and a sort over all four is a different question.
+  W23="$(grep -E '^[^ ].*define [0-9]+ overlapping' "$OUT")"
+    is "…and the three warning lines in the capture really are in C order, not shade's" \
+       "$(printf '%s\n' "$W23" | LC_ALL=C sort | md5in)" "$(printf '%s\n' "$W23" | md5in)"
+    panel 23 'the honest half, which matters more than the folklore' 1
+    out_has_lines "…README's services panel — 14 bytes against 13, one byte and nothing breaks — is that block's"
+    panel 23 '^## What a fat jar throws away' 1
+    panel_unelide
+    out_has_lines "…and its licence arithmetic: 3 input jars carry it, 1 survives, 2 gone"
+    has "…two licence files did not survive the merge, derived rather than described" \
+        '^licence files that did not survive being merged: 2$'
+    has "…and the fat jar still carries a Class-Path header for a lib/ it does not need" \
+        '^Class-Path entries in a jar that needs none: 4$'
+
+    # layering, which is not a file format: which bytes move when one line moves.
+    receipt_panel 23 layers
+    panel 23 '^## One program, three files' 1
+    out_has_lines "…README's layers panel — the application layer moved, the dependency layer did not"
+    has "…1 of 2 layers changed" '^layers whose bytes changed: 1 of 2$'
+    has "…and the ratio that is the whole argument for layering: 3 bytes in a thousand" \
+        '^bytes of application layer per 1000 bytes of the two layers together: 3$'
+    # …and the ONE count in that block a literal could impersonate. `jars in the dependency
+    # layer: 4` is right today, and `"4"` in its place is the same bytes, the same block md5 and
+    # the same whole-run md5 — measured: that substitution left this entire script green until
+    # this probe was written. No hash can tell a measurement from a caption; only moving the
+    # input can. So a copy of the unit is given MORE jars in its dependency layer — junit-jupiter
+    # promoted out of test scope, which is already in this unit's own repository because its own
+    # tests use it, so nothing is downloaded — and the block is re-run there. A derived count
+    # follows the input; a literal keeps saying 4.
+    case "$WORK" in
+      *\ *) skip "…c3-unit23/receipts.sh layers: its dependency-layer count PROBED rather than hashed" \
+                 "TMPDIR has a space in it, and this probe needs a second directory to build in; set TMPDIR to one without" ;;
+      *)
+        D23="$WORK/d23"; rm -rf "$D23"; mkdir -p "$D23"
+        ( cd "$REPO/c3-unit23" && tar cf - pom.xml src receipts.sh ) | ( cd "$D23" && tar xf - ) 2>/dev/null
+        ln -s "$M2_U23" "$D23/.m2-demo"
+        if python3 - "$D23/pom.xml" <<'PY23'
+import sys
+p = sys.argv[1]
+a = """      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>"""
+b = """      <artifactId>junit-jupiter</artifactId>"""
+s = open(p, encoding='utf-8').read()
+if s.count(a) != 1:
+    sys.exit(3)
+open(p, "w", encoding='utf-8').write(s.replace(a, b))
+PY23
+        then
+          if expect_ok "receipts.sh layers, re-run in a copy whose dependency layer has MORE jars in it" 1800 \
+              '^jars in the dependency layer: [0-9]+$' bash -c "cd \"$D23\" && ./receipts.sh layers"; then
+            N23="$(grep -oE '^jars in the dependency layer: [0-9]+' "$OUT" | grep -oE '[0-9]+$')"
+            is "…and that count FOLLOWED the input, which a literal 4 could not" \
+               "$( [ -n "$N23" ] && [ "$N23" -gt 4 ] && echo "more than 4" || echo "still ${N23:-nothing}" )" "more than 4"
+            is "…and it is exactly the number of jars that copy's build really put there" \
+               "$N23" "$(ls "$D23"/target/lib/*.jar 2>/dev/null | wc -l | tr -d ' ')"
+          fi
+        else
+          bad "c3-unit23 layers: the dependency-layer probe" \
+              "the edit did not apply exactly once to the copy's pom.xml — the probe would prove nothing"
+        fi
+        rm -rf "$D23"
+        ;;
+    esac
+    # jdeps: the exit codes ARE the lesson, and the module-info it finally wrote
+    receipt_panel 23 jdeps
+    has "…receipts.sh jdeps: two of the three attempts failed" '^attempts that failed: 2 of 3$'
+    has "…and the line to remember is requires transitive java.sql" 'requires transitive java\.sql;'
+    panel 23 '^## .jdeps --generate-module-info.' 2
+    panel_indent 2
+    out_has_lines "…and the module-info c3-unit23/README.md prints is the one jdeps really generated"
+    receipt_panel 23 release
+    panel 23 '^## .<release>. is not' 1
+    panel_indent 2
+    out_has_lines "…README's <release> panel is derived from central/ with no network"
+    # the exercise's END state, and the sentence that makes its START state a start state
+    receipt_panel 23 solution
+    has "…the exercise's two start-state builds do NOT agree" '^  the two builds agree: no$'
+    has "…and its two answered builds do" '^  the two builds agree: yes$'
+    has "…with 0 lines of Java changed" '^lines of Java changed to get there: 0$'
+    receipts_says 23 "…and the four jar hashes under it are printed OUTSIDE the hash, with the reason: the start state moves on purpose" \
+        '^no md5 on these four: the start state is non-reproducible ON PURPOSE'
+  fi
+
+  # ---- the exercise's START state, run with the page's own two commands: the same build
+  # twice, and two different files. This is the one beat in the unit whose evidence is that a
+  # hash does NOT reproduce, so it is measured here as well as inside the receipts block.
+  is "exercise/pom.xml really is missing the property — otherwise there is nothing to fix" \
+     "$(grep -c 'outputTimestamp' "$REPO/c3-unit23/exercise/pom.xml" | tr -d ' ')" "0"
+  U23A=""; U23B=""
+  if expect_ok "exercise: mvn -B clean package -DskipTests (build 1 of 2)" 1800 '' \
+      bash -c 'cd "$REPO/c3-unit23/exercise" && mvn -B -q "-Dmaven.repo.local=../.m2-demo" clean package -DskipTests'; then
+    U23A="$(md5of "$REPO/c3-unit23/exercise/target/tiffinbox-core-1.0.0.jar" 2>/dev/null)"
+    sleep 1
+    if expect_ok "exercise: …and again, with nothing changed between them" 1800 '' \
+        bash -c 'cd "$REPO/c3-unit23/exercise" && mvn -B -q "-Dmaven.repo.local=../.m2-demo" clean package -DskipTests'; then
+      U23B="$(md5of "$REPO/c3-unit23/exercise/target/tiffinbox-core-1.0.0.jar" 2>/dev/null)"
+      is "…and the two hashes DIFFER: the jar's entry timestamps are a wall clock, which is not a build input you control" \
+         "$( [ -n "$U23A" ] && [ "$U23A" != "$U23B" ] && echo different || echo "the same" )" "different"
+    fi
+  fi
+  is "…and the answer is ONE property, in exercise/solution/pom-fragment.xml" \
+     "$(grep -c '<project\.build\.outputTimestamp>' "$REPO/c3-unit23/exercise/solution/pom-fragment.xml" | tr -d ' ')" "1"
+  xreadme_hasnt "…and the exercise page quotes neither of those two hashes, because they move every run" 23 '[0-9a-f]{32}'
+fi
+
+# ============================================================= c3-unit24 ====
+# The unit whose subject is git, which makes it the one place in this script where a receipts
+# run could do real damage. So this section is built the other way round from every other: the
+# FIRST thing it does is fingerprint the repository it is standing in — HEAD, the commit count,
+# every ref, the object-store census and the working-tree status — and the last thing it does is
+# assert all five unchanged. The unit's own defence is a `guard()` that refuses to run a write
+# command against any tree whose top level is not under `c3-unit24/.repos/`, and that guard is
+# checked in both directions: statically, that it is there and what it refuses, and dynamically,
+# that a block which creates three repositories left this one alone.
+if unit 24 "Git workflow for real"; then
+  if ! command -v git >/dev/null 2>&1 || ! ( cd "$REPO" && git rev-parse --git-dir >/dev/null 2>&1 ); then
+    skip "c3-unit24 — every check" "this unit reads the repository it ships in, and this is not a git checkout"
+  else
+  is "README quotes the five carried sources' hash, and it is the course's own" \
+     "$(src_hash5 "$REPO/c3-unit24/src/main/java/com/tiffinbox")" "$(carried_five_hash 24)"
+  is "…and the README's block table names exactly the ids receipts.sh declares" \
+     "$(readme_block_ids 24)" "$(receipts_ids 24)"
+
+  # ---- the guard, read out of the deliverable
+  is "receipts.sh carries a guard() that REFUSES a write outside .repos/" \
+     "$(grep -c 'REFUSING to write to .* - it is not under' "$REPO/c3-unit24/receipts.sh" | tr -d ' ')" "1"
+  is "…and every throwaway repository it makes is created under \$PLAY, which is c3-unit24/.repos" \
+     "$(grep -c '^PLAY="\$PWD/\.repos"$' "$REPO/c3-unit24/receipts.sh" | tr -d ' ')" "1"
+  is "…and the one block that touches THIS repository runs no write command at all — 0 of commit, push, rebase, reset, tag, add, rm, checkout, merge, init, clone" \
+     "$(sed -n '/^run_realrepo() {/,/^}$/p' "$REPO/c3-unit24/receipts.sh" \
+        | grep -cE '(^|[ 	(`$])(git|G)( +-[cC] +[^ ]+)* +(commit|push|rebase|reset|tag|add|rm|checkout|merge|init|clone)\b' | tr -d ' ')" "0"
+  # …and that the count above can go up. A regex that matches nothing is not a finding, so the
+  # same regex is run over a block that DOES write, and has to see it.
+  is "…and that zero is a measurement: the same regex over run_branch, which does write, counts nine" \
+     "$(sed -n '/^run_branch() {/,/^}$/p' "$REPO/c3-unit24/receipts.sh" \
+        | grep -cE '(^|[ 	(`$])(git|G)( +-[cC] +[^ ]+)* +(commit|push|rebase|reset|tag|add|rm|checkout|merge|init|clone)\b' | tr -d ' ')" "9"
+  # ~/.gitconfig is never read and never written: every commit sets its identity through the
+  # environment and every git invocation carries -c user.name / -c core.hooksPath=/dev/null.
+  is "…and every git invocation goes through -c core.hooksPath=/dev/null, so ~/.gitconfig and your hooks are never read" \
+     "$(grep -c 'core\.hooksPath=/dev/null' "$REPO/c3-unit24/receipts.sh" | tr -d ' ')" "1"
+  is "…and the eight fields a commit id is made of are pinned through the environment, not through ~/.gitconfig" \
+     "$(grep -cE '^ *export GIT_(AUTHOR|COMMITTER)_(NAME|EMAIL|DATE)' "$REPO/c3-unit24/receipts.sh" | tr -d ' ')" "4"
+  if [ -f "$HOME/.gitconfig" ]; then GC24="$(md5of "$HOME/.gitconfig")"; else GC24="absent"; fi
+
+  # ---- the dynamic half. One block that creates three repositories, and this one untouched.
+  G24="$(git_state)"
+  rm -rf "$REPO/c3-unit24/.repos"
+  if expect_ok "receipts.sh branch, run on its own: it creates its own repositories" 1800 '^md5 ' \
+      bash -c "cd \"$REPO/c3-unit24\" && ./receipts.sh branch"; then
+    is "…three of them, all of them under c3-unit24/.repos/ and none anywhere else" \
+       "$(find "$REPO/c3-unit24/.repos" -maxdepth 2 -type d -name '.git' 2>/dev/null | wc -l | tr -d ' ')" "3"
+    is "…and there is no .git anywhere else under c3-unit24/ — not one repository outside .repos" \
+       "$(find "$REPO/c3-unit24" -type d -name '.git' -not -path "$REPO/c3-unit24/.repos/*" 2>/dev/null | wc -l | tr -d ' ')" "0"
+    is "…and THIS repository is byte-identical: HEAD, the commit count, every ref, the object census and the working tree" \
+       "$(git_state)" "$G24"
+  fi
+  if expect_ok "receipts.sh clean -> it removes the repositories it made" 300 'removed' \
+      bash -c "cd \"$REPO/c3-unit24\" && ./receipts.sh clean"; then
+    absent "…and c3-unit24/.repos is gone" "$REPO/c3-unit24/.repos"
+  fi
+
+  # ---- receipts.sh: nine blocks plus clean, and the seven hashes the deck (24-git-workflow-
+  # for-real.md) quotes. TWO of them are live snapshots of a repository that grows, and this
+  # script does not demand either — see not_pinned below.
+  G24="$(git_state)"
+  if run_receipts 24 3600; then
+    is "…and it printed nine blocks (clean prints no header of its own)" "$(receipts_blocks 24)" "9"
+    is "…and after all nine, THIS repository is still byte-identical — the guard held" \
+       "$(git_state)" "$G24"
+    if [ "$GC24" = absent ]; then
+      absent "…and ~/.gitconfig was not created" "$HOME/.gitconfig"
+    else
+      is "…and ~/.gitconfig is unchanged" "$(md5of "$HOME/.gitconfig")" "$GC24"
+    fi
+    absent "…and .repos is gone again, because the default run ends with clean" "$REPO/c3-unit24/.repos"
+
+    receipt_line 24 branch   "md5 049d00ea4d8c52aa02c43bf3a02e69d0  (exit 0)"
+    receipt_line 24 tag      "md5 82193ccd6148bcfa9121d984724973d4  (exit 0)"
+    receipt_line 24 hashes   "md5 dccf45d14f25a2a05ce72e4907725443  (exit 0)"
+    receipt_line 24 ignored  "md5 bbb767466752863a9ed7ab7e0255f4ed  (exit 0)"
+    receipt_line 24 wrapper  "md5 86413d3d1d5235f1bee78832ee47ca48  (exit 1 from ./gradlew in the clone)"
+    receipt_line 24 solution "md5 ee12aa67a26f4d1ea9e6c11607b206d4  (exit 0 then 0)"
+    derived_unprobed 24
+
+    # THE TWO THAT MOVE. `convention`'s second half and the whole of `realrepo` are find(1) and
+    # git(1) over this repository as it stands right now — the commit count grows, the author
+    # count can change, the dates move — and both blocks print that instruction themselves. So
+    # the STRUCTURE is asserted and the figure is not.
+    receipts_says 24 "…receipts.sh realrepo says its own md5 is a SNAPSHOT and is SUPPOSED to move" \
+        'and that md5 is a SNAPSHOT, not a constant'
+    not_pinned "…receipts.sh realrepo -> md5 $(receipt_hash_of 24 realrepo)" \
+        "every number in that block is a property of this repository as it stands right now (36 commits today, 34 on the page), and the block says so in its own output; what is asserted instead is the structure below"
+    not_pinned "…receipts.sh convention -> md5 $(receipt_hash_of 24 convention), the hash the deck quotes as e7fea4ee19b0453f32c32bd75a327de8" \
+        "its second half counts the commits of the repository it ships in, so it moved the moment the next commit landed — the four throwaway commits and the ZERO conventional ones in the real history are asserted below instead"
+    receipt_panel 24 convention
+    has "…and the throwaway history it built is four commits, four of them classifiable" \
+        '^commits in this history \.+ 4$'
+    has "…with one marked breaking by the !" '^commits marked breaking by the ! \.+ 1$'
+    has "…and the arithmetic holds: 4 classifiable, 0 it cannot" '^commits it cannot \.+ 0$'
+    # THE finding, and it is a zero that means something: this repository does NOT use
+    # conventional commits, and the same parser that read four out of four reads none here.
+    has "…and asked of the repository this unit ships in, that parser reads ZERO" \
+        '^  commits a conventional-commit parser can read \.+ 0$'
+    has "…over a history that is not empty, which is what makes the zero a finding" '^  commits \.+ [1-9][0-9]*$'
+    panel 24 '^## A message shape a command can read' 1
+    panel_drop_re '^  commits \.+ [0-9]+$'
+    out_has_lines "…and the rest of that panel is what the block really printed"
+    receipt_panel 24 realrepo
+    has "…receipts.sh realrepo: target/ paths tracked anywhere is 0" '^  target/ paths tracked anywhere \.+ 0$'
+    has "…and build/ paths 0 — this repository ships no build output" '^  build/ paths tracked anywhere \.+ 0$'
+    has "…while the gradle wrapper IS tracked here, which is the unit's own rule applied to itself" \
+        '^  tracked wrapper jars \.+ [1-9]'
+
+    # the three beats whose evidence is an object, a count or an exit code
+    receipt_panel 24 hashes
+    has "…receipts.sh hashes: the same commit in two directories is the same id" '^  identical: yes$'
+    has "…one field changed by one second and the id is different" '^  identical to the first: no$'
+    has "…over three identical trees, which is the whole point" '^  all three trees identical: yes$'
+    receipt_panel 24 ignored
+    has "…receipts.sh ignored: git rm --cached removed 0 objects" '^objects the un-commit removed \.+ 0$'
+    has "…and ADDED two — the repository got bigger" '^objects it ADDED \.+ 2   \(one commit, one tree\)$'
+    has "…and the blob is still reachable in the history, forever" 'HEAD~1:target/tiffinbox-core-1\.0\.0\.jar -> blob$'
+    receipt_panel 24 wrapper
+    has "…receipts.sh wrapper: git status reports nothing at all" '^  git status --porcelain lines \.+ 0   \(nothing to report\)$'
+    has "…the jar is present in YOUR copy" '^  gradle/wrapper/gradle-wrapper\.jar \.+ present$'
+    has "…and absent in a real clone, which is the only honest test of a \.gitignore" \
+        '^  gradle/wrapper/gradle-wrapper\.jar \.+ absent$'
+    has "…where ./gradlew cannot start" 'Unable to access jarfile'
+    has "…0 jar files tracked against 1 in the working copy — that gap IS the bug" \
+        '^jar files TRACKED in the repository \.+ 0$'
+    receipt_panel 24 tag
+    has "…receipts.sh tag: the annotated tag is a tag OBJECT, not a commit" '^  annotated tag         -> tag object$'
+    has "…the lightweight one IS the commit" '^  lightweight tag       -> commit object$'
+    has "…and a branch moves under you while a tag does not" '^  they are the same commit: no$'
+    receipt_panel 24 solution
+    has "…the exercise's start state tracks 0 wrapper jars" '^  wrapper jars tracked \.+ 0$'
+    has "…and the answer tracks exactly one" '^  wrapper jars tracked \.+ 1$'
+    has "…with 0 target/ paths either way" '^  target/ paths tracked \.+ 0$'
+    not_pinned "…./receipts.sh 2>&1 | md5 -q -> $(receipts_md5 24), against the 1005857d715575fdfec065487b369d1a the deck quotes" \
+        "the whole-run hash contains the two snapshot blocks above, so it moves with the repository; the deck's figure is over a different subset (the seven blocks that run anywhere, plus clean)"
+  fi
+
+  # ---- the exercise, both halves, read out of the two files it ships
+  is "exercise/gitignore.broken is the two-line rule: *.jar and target/" \
+     "$(grep -vE '^\s*(#|$)' "$REPO/c3-unit24/exercise/gitignore.broken" | tr '\n' ' ')" "*.jar target/ "
+  is "…and the answer does not write a *.jar rule at all, which is what its own comments say the rule is" \
+     "$(grep -vE '^\s*(#|$)' "$REPO/c3-unit24/exercise/solution/.gitignore" | grep -c '^\*\.jar' | tr -d ' ')" "0"
+  # …and where it DOES discuss the two-line form, the order is the one that works. A `!` line
+  # cannot rescue a file inside an ignored directory, so the order is the whole content of the
+  # advice, and a page that printed it the other way round would be teaching a no-op.
+  is "…and where it explains the two-line form, *.jar comes BEFORE the ! that rescues the wrapper" \
+     "$(grep -nE '^#? *(\*\.jar|!gradle/wrapper/gradle-wrapper\.jar)$' "$REPO/c3-unit24/exercise/solution/.gitignore" \
+        | sed -E 's/:.*(\*\.jar|!gradle.*)$/ \1/' | awk '{print $2}' | tr '\n' ' ')" "*.jar !gradle/wrapper/gradle-wrapper.jar "
+  is "…and templates/java.gitignore is the same file the answer is" \
+     "$(cmp -s "$REPO/c3-unit24/templates/java.gitignore" "$REPO/c3-unit24/exercise/solution/.gitignore" && echo identical || echo differs)" "identical"
+  fi
+fi
+
+# ============================================================= c3-unit25 ====
+# A CI unit with NO RUN LOG, which is the honest version and is the thing to hold it to. There
+# is no `.github/workflows/` in this repository — on purpose, because a workflow there runs on
+# every push and spends real minutes — so `gh run list` has nothing to list. Three assertions
+# follow from that and nothing else in this script makes them: that the directory really is
+# absent, that `gh` really does list nothing, and that the unit's own capture of that state is
+# what its page prints. What it DOES have is every command the workflow runs, run here, on two
+# real JDKs, and the bug that makes the exercise worth doing: a green build whose artifact
+# cannot start.
+if unit 25 "CI in 20 minutes: GitHub Actions"; then
+  is "README quotes the five carried sources' hash, and it is the course's own" \
+     "$(src_hash5 "$REPO/c3-unit25/src/main/java/com/tiffinbox")" "$(carried_five_hash 25)"
+  is "…and the README's block table names exactly the ids receipts.sh declares" \
+     "$(readme_block_ids 25)" "$(receipts_ids 25)"
+
+  # ---- THE claim about the absent. Both halves, measured.
+  absent "there is no .github/workflows/ in this repository, which is why this unit has no run log" \
+      "$REPO/.github/workflows"
+  is "…and the taught workflow lives at c3-unit25/workflows/build.yml instead, where nothing runs it" \
+     "$( [ -f "$REPO/c3-unit25/workflows/build.yml" ] && echo there || echo missing )" "there"
+  if command -v gh >/dev/null 2>&1; then
+    timed 300 bash -c 'gh run list --limit 100 2>/dev/null; true'
+    is "…and gh run list --limit 100 returns NOTHING, asked of this machine rather than assumed" \
+       "$(grep -c . "$OUT" | tr -d ' ')" "0"
+  else
+    skip "gh run list --limit 100 -> 0 runs" "there is no gh on this machine to ask"
+  fi
+
+  # ---- every command the workflow runs, run here. The parser first, because "it looks right"
+  # is not a check — and the `on:` key is the finding only a parser makes.
+  if ! command -v ruby >/dev/null 2>&1; then
+    skip "the workflow, handed to a YAML parser" "no ruby on this machine; the unit's own receipts.sh dies without it"
+  else
+    timed 300 bash -c 'cd "$REPO/c3-unit25" && ruby -ryaml -rjson -e "
+      d = YAML.safe_load(File.read(ARGV[0]), aliases: true)
+      puts((d.key?(\"on\") ? \"string\" : (d.key?(true) ? \"boolean\" : \"absent\")))
+      puts d[\"jobs\"].keys.length
+      puts d[\"jobs\"][\"build\"][\"strategy\"][\"matrix\"][\"java\"].join(\",\")
+      puts d[\"jobs\"][\"build\"][\"strategy\"][\"fail-fast\"]
+      puts d[\"permissions\"][\"contents\"]
+      puts d[\"jobs\"][\"release\"][\"permissions\"][\"contents\"]
+    " workflows/build.yml'
+    if [ "$RC" -eq 0 ]; then
+      is "workflows/build.yml parses, and the top-level \`on:\` key is the BOOLEAN true to a YAML 1.1 parser" \
+         "$(sed -n '1p' "$OUT")" "boolean"
+      is "…two jobs"                          "$(sed -n '2p' "$OUT")" "2"
+      is "…a matrix of 25 and one newer"      "$(sed -n '3p' "$OUT")" "25,26"
+      is "…fail-fast false, so a red 26 cannot hide a green 25" "$(sed -n '4p' "$OUT")" "false"
+      is "…contents: read at the top level"   "$(sed -n '5p' "$OUT")" "read"
+      is "…and contents: write only in the release job" "$(sed -n '6p' "$OUT")" "write"
+    else
+      bad "workflows/build.yml, handed to a YAML parser" "ruby could not read it: exit $RC"
+    fi
+    # the secret half. Exactly one reference, and it is the token GitHub provides.
+    is "…exactly ONE secret reference in the whole file" \
+       "$(grep -cE '\$\{\{ *secrets\.' "$REPO/c3-unit25/workflows/build.yml" | tr -d ' ')" "1"
+    is "…and it is secrets.GITHUB_TOKEN, with nothing typed, echoed or committed" \
+       "$(grep -oE '\$\{\{ *secrets\.[A-Za-z_]+' "$REPO/c3-unit25/workflows/build.yml" | grep -vc 'secrets.GITHUB_TOKEN' | tr -d ' ')" "0"
+    is "…and no action is pinned to a branch or to @main" \
+       "$(grep -cE 'uses: .*@(main|master)$' "$REPO/c3-unit25/workflows/build.yml" | tr -d ' ')" "0"
+  fi
+
+  # ---- the bug, and the three places the same classes give two answers. (b) needs nothing at
+  # all — a zip entry name is an exact byte string — so the jar of a green build is the evidence.
+  expect_ok "mvn -B -ntp clean package -> BUILD SUCCESS, Tests run: 2" 1800 'BUILD SUCCESS' \
+      bash -c 'cd "$REPO/c3-unit25" && mvn -B -ntp "-Dmaven.repo.local=$M2_U25" clean package'
+  has "…Tests run: 2, Failures: 0" 'Tests run: 2, Failures: 0, Errors: 0, Skipped: 0'
+  is "…and the file on disk is Menu.json while the code asks for /menu.json — the two spellings do NOT agree" \
+     "$(ls "$REPO/c3-unit25/src/main/resources" | head -1)::$(grep -oE 'RESOURCE = "[^"]+"' "$REPO/c3-unit25/src/main/java/com/tiffinbox/ci/MenuLoader.java" | grep -oE '/[^"]+')" \
+     "Menu.json::/menu.json"
+  expect_ok "(a) java -cp target/classes …MenuLoader -> ok, exit 0 on this case-insensitive volume" 300 \
+      '^ok$' bash -c 'cd "$REPO/c3-unit25" && "$JAVA" "-D$TAG=u25" -cp target/classes com.tiffinbox.ci.MenuLoader'
+  has "…meal types declared: 3" '^meal types declared: 3$'
+  expect_fail "(b) java -cp target/tiffinbox-core-1.0.0.jar …MenuLoader -> exit 1, from the SAME build" 300 \
+      'java\.io\.IOException: menu resource not found on the classpath: /menu\.json' \
+      bash -c 'cd "$REPO/c3-unit25" && "$JAVA" "-D$TAG=u25" -cp target/tiffinbox-core-1.0.0.jar com.tiffinbox.ci.MenuLoader'
+  is "…and the jar really carries the capital M, which is why (b) needs no Linux runner at all" \
+     "$(unzip -l "$REPO/c3-unit25/target/tiffinbox-core-1.0.0.jar" 2>/dev/null | grep -cE ' Menu\.json$' | tr -d ' ')" "1"
+  is "…and no entry named menu.json" \
+     "$(unzip -l "$REPO/c3-unit25/target/tiffinbox-core-1.0.0.jar" 2>/dev/null | grep -cE ' menu\.json$' | tr -d ' ')" "0"
+
+  # ---- EVERY COMMAND THE SHIPPED WORKFLOW RUNS, RUN HERE. The set of them is read out of the
+  # YAML first, so a command added to that file later cannot slip past this script unrun — the
+  # whole reason this unit exists is that it has no run log, and "we ran the commands" has to
+  # mean all of them.
+  if command -v ruby >/dev/null 2>&1; then
+    timed 300 bash -c 'cd "$REPO/c3-unit25" && ruby -ryaml -e "
+      d = YAML.safe_load(File.read(ARGV[0]), aliases: true)
+      d[\"jobs\"].each_value { |j| j[\"steps\"].each { |st| next unless st[\"run\"]
+        puts st[\"run\"].strip.gsub(/\\s+/, \" \") } }
+    " workflows/build.yml'
+    is "the shipped workflow runs FOUR shell commands across its two jobs, read out of the YAML" \
+       "$(grep -c . "$OUT" | tr -d ' ')" "4"
+    has "…the build job's own goal"       '^mvn -B -ntp verify$'
+    has "…the step that proves the jar RUNS, which a green verify does not" \
+        '^java -cp target/tiffinbox-core-1\.0\.0\.jar com\.tiffinbox\.ci\.MenuLoader$'
+    has "…the release job's build"        '^mvn -B -ntp -DskipTests package$'
+    has "…and the one that publishes"     '^gh release create '
+  else
+    skip "the four shell commands the workflow runs, read out of the YAML" "no ruby on this machine to parse it"
+  fi
+  # three of the four run here. The fourth is the one command this unit must NOT run.
+  expect_ok "the release job's own build: mvn -B -ntp -DskipTests package" 1800 'BUILD SUCCESS' \
+      bash -c 'cd "$REPO/c3-unit25" && mvn -B -ntp "-Dmaven.repo.local=$M2_U25" -DskipTests package'
+  exists "…and it produced the jar that job would attach to a release" \
+      "$REPO/c3-unit25/target/tiffinbox-core-1.0.0.jar"
+  skip "gh release create \"\${GITHUB_REF_NAME}\" … (the fourth command)" \
+       "it creates a public GitHub release from a tag that does not exist, so it is the one command in this workflow nothing here may run — and saying so is the point of this unit: there is no run log because no run happened"
+
+  # ---- the matrix, both legs, for real. The unit's own receipts.sh dies rather than fake one.
+  if [ ! -x "$JDK26/bin/java" ]; then
+    skip "the matrix, both legs" "no JDK 26 at $JDK26 — set JDK26= to one; this unit's receipts.sh refuses to fake the second leg"
+  else
+    is "…and the two legs really are two different JDKs" \
+       "$( [ "$("$JAVA" -version 2>&1 | head -1)" != "$("$JDK26/bin/java" -version 2>&1 | head -1)" ] && echo different || echo "the same" )" "different"
+    expect_ok "the workflow's own goal on JDK 26: mvn -B -ntp verify" 1800 'BUILD SUCCESS' \
+        bash -c 'cd "$REPO/c3-unit25" && JAVA_HOME="$JDK26" PATH="$JDK26/bin:$PATH" mvn -B -ntp "-Dmaven.repo.local=$M2_U25" clean verify'
+    has "…Tests run: 2 on the second leg too" 'Tests run: 2, Failures: 0, Errors: 0, Skipped: 0'
+  fi
+
+  # ---- receipts.sh: seven blocks, and the six hashes the deck (25-ci-github-actions.md) quotes
+  if run_receipts 25 5400; then
+    is "…and it printed seven blocks, the count the deck states" "$(receipts_blocks 25)" "7"
+    is "…./receipts.sh 2>&1 | md5 -q -> the whole-run md5 the deck quotes for the seven" \
+       "$(receipts_md5 25)" "4378493339b4f4f9af56619581858978"
+    receipt_line 25 workflow "md5 6db539edc2d9b2b049df2e00fe65b410  (exit 0)"
+    receipt_line 25 actions  "md5 a8dad56f75289a2d61dc5af9604f2f29  (no build, no network)"
+    receipt_line 25 matrix   "md5 4aa7477c08e61a47d1588015f9c82976  (exit 0, 0)"
+    receipt_line 25 casebug  "md5 9ffcb073395d6aa61c1a7dd2f06372d9  (exit 0, 1, 1)"
+    receipt_line 25 solution "md5 e69c361aad41443e39996c97bcac9f65  (exit 1 then 0)"
+    receipt_line 25 offline  "md5 a7fb8c2eec158bb6d5dfc5cf6121d7e1  (exit 0)"
+    derived_unprobed 25
+
+    # `norun` is the block whose hash is a fact about the MACHINE, and a DEFECT worth naming:
+    # the three yes/no answers are written into .r-norun.out and therefore ARE inside the hash,
+    # while the line under it says "NOT hashed". So the deck's figure only reproduces where gh
+    # is installed, authenticated and has nothing to list — and that is asserted, not assumed.
+    receipt_panel 25 norun
+    if grep -q '^  gh installed \.* yes$' "$OUT" && grep -q '^  gh authenticated \.* yes$' "$OUT" \
+       && grep -q '^  \.github/workflows/ present in this repo \.* no$' "$OUT" \
+       && grep -q '^  workflow runs gh can list \.* 0$' "$OUT"; then
+      receipt_line 25 norun "md5 e7a2b6da17c47446e407223f46cae30f  (no run to have an exit code)"
+    else
+      skip "…receipts.sh norun -> md5 $(receipt_hash_of 25 norun), the hash the deck quotes as e7a2b6da17c47446e407223f46cae30f" \
+           "that block writes this machine's gh answers INTO the file it hashes (while the line under it says they are not hashed), and this machine answers differently — so the figure is not this run's to check. The two claims that are the unit's own are asserted above: no .github/workflows/ here, and nothing for gh to list"
+    fi
+    has "…and the block says out loud that there is no run log and this unit does not have one" \
+        '^So there is no run log, and this unit does not have one\.$'
+    has "…naming what would produce one" '^  \$ gh run list --limit 1$'
+
+    receipt_panel 25 workflow
+    panel 25 '^## The workflow, checked by a parser' 1
+    out_has_lines "…README's parser panel is what ruby really answered about that file"
+    # the finding only a parser makes. The page prints that one JSON member on its own, so what
+    # is compared is the member itself — the block has it four columns in and with a comma after.
+    has "…including the finding only a parser makes: the \`on:\` key is the BOOLEAN true" \
+        '"on_key_read_as": "the BOOLEAN true \(YAML 1\.1\)"'
+    readme_quotes "…and that is the line c3-unit25/README.md prints" 25 \
+        '"on_key_read_as": "the BOOLEAN true (YAML 1.1)"'
+    receipt_panel 25 actions
+    panel 25 '^## Pins, and what a pin is worth' 1
+    panel_indent 2
+    out_has_panel "…README's pin table is derived from central/ with no network, actions/cache included"
+    has "…and actions/cache is in the header comment and in NO step, which the block says out loud" \
+        'actions/cache +NOT USED in this workflow'
+    # the Adoptium answer lives in `actions`, not in `matrix`, though the page prints the two
+    # panels one under the other — so it is compared against the block that really made it.
+    panel 25 '^## The matrix, run here' 2
+    out_has_lines_lax "…and the Adoptium answer that makes the matrix 25-plus-one, read from central/"
+    receipt_panel 25 matrix
+    panel 25 '^## The matrix, run here' 1
+    out_has_lines_lax "…README's matrix panel is two real JDKs, both green, with fail-fast false"
+    receipt_panel 25 casebug
+    panel 25 '^## The bug' 1
+    panel_indent 2
+    out_has_panel "…README's build panel: Tests run: 2 and exit 0, over a jar that cannot start"
+    has "…three states run, two of them failed" '^states run: 3 ; states that failed: 2$'
+    has "…and the build that produced all three said BUILD SUCCESS once" \
+        '^and the build that produced all of them said BUILD SUCCESS: 1$'
+    has "…state (c) is a case-sensitive volume made here in one command, no privileges and no network" \
+        '^\(c\) the SAME classes, on a case-sensitive volume made here in one command:$'
+    receipt_panel 25 solution
+    has "…the exercise's start state exits 1 from the shipped jar" '^  exit 1$'
+    has "…the answer exits 0" '^  exit 0$'
+    has "…with 0 Java files changed — the answer is the rename, not the code" \
+        '^Java files that differ between the two trees: 0$'
+    has "…and the answered jar carries an entry named menu.json" \
+        '^entries in the answered jar whose name is menu\.json: 1$'
+  fi
+  # …and the answer's own second half, which is the trap one layer down: `git mv` on a
+  # case-insensitive filesystem can be a no-op while git keeps the old name.
+  is "exercise/solution/fix.txt names the rename, and the git mv trap under it" \
+     "$(grep -c 'git mv src/main/resources/Menu\.json src/main/resources/menu\.json\.tmp' "$REPO/c3-unit25/exercise/solution/fix.txt" | tr -d ' ')" "1"
+  is "…and the durable fix, which is neither half: one test that loads every resource FROM THE JAR" \
+     "$(grep -c 'run from the JAR rather than from target/classes' "$REPO/c3-unit25/exercise/solution/fix.txt" | tr -d ' ')" "1"
+fi
+
+# ============================================================= c3-unit26 ====
+# Static analysis, and the thing it keeps proving five different ways: a tool that is CONFIGURED
+# is not a tool that is RUNNING, and a tool that is running is not a tool that can STOP you. So
+# no assertion here is `BUILD SUCCESS`: each beat names the artifact that separates the three
+# states — a warning line, an exit code, a changed file. Two of the three defects it finds are
+# in the five sources this course has carried since the Gradle section, and it does not touch
+# them, which is why the carried hash has to be the same before and after.
+if unit 26 "Static analysis: Spotless, Checkstyle, Error Prone"; then
+  is "README quotes the five carried sources' hash, and it is the course's own" \
+     "$(src_hash5 "$REPO/c3-unit26/src/main/java/com/tiffinbox")" "$(carried_five_hash 26)"
+  is "…and the README's block table names exactly the ids receipts.sh declares" \
+     "$(readme_block_ids 26)" "$(receipts_ids 26)"
+
+  # ---- ten flags, or Error Prone does not run at all. The break ships an EMPTY .mvn/jvm.config
+  # rather than none, because Maven finds .mvn by walking UP and would otherwise inherit this
+  # unit's ten flags and pass — and a break that passes is not a break.
+  is ".mvn/jvm.config is ten lines: eight --add-exports and two --add-opens" \
+     "$(grep -c . "$REPO/c3-unit26/.mvn/jvm.config" | tr -d ' ')-$(grep -c '^--add-exports' "$REPO/c3-unit26/.mvn/jvm.config" | tr -d ' ')-$(grep -c '^--add-opens' "$REPO/c3-unit26/.mvn/jvm.config" | tr -d ' ')" \
+     "10-8-2"
+  exists "…and breaks/no-jvm-config ships an EMPTY .mvn/jvm.config rather than none" \
+      "$REPO/c3-unit26/breaks/no-jvm-config/.mvn/jvm.config"
+  is "…empty, so the break cannot inherit this unit's flags by Maven walking up" \
+     "$(wc -c < "$REPO/c3-unit26/breaks/no-jvm-config/.mvn/jvm.config" | tr -d ' ')" "0"
+  expect_fail "breaks/no-jvm-config: mvn -B -ntp clean compile -> exit 1, and Maven tells you nothing useful" 1800 \
+      'IllegalAccessError' \
+      bash -c 'cd "$REPO/c3-unit26/breaks/no-jvm-config" && mvn -B -ntp "-Dmaven.repo.local=$M2_U26" clean compile'
+  has "…jdk.compiler does not export com.sun.tools.javac.api to an unnamed module" \
+      'module jdk\.compiler does not export com\.sun\.tools\.javac\.api'
+  has "…and what Maven makes of that: An unknown compilation problem occurred" \
+      '^\[ERROR\] An unknown compilation problem occurred'
+
+  # ---- three findings, a green build, and a passing suite. BUILD SUCCESS is the thing being
+  # warned about, so the assertion is the findings and the exit code together.
+  expect_ok "mvn -B -ntp clean verify -> exit 0, with three real defects reported as WARNINGS" 1800 \
+      'BUILD SUCCESS' \
+      bash -c 'cd "$REPO/c3-unit26" && mvn -B -ntp "-Dmaven.repo.local=$M2_U26" clean verify'
+  is "…three Error Prone findings" "$(countq '^\[WARNING\].*\.java:\[[0-9]+,[0-9]+\] \[[A-Za-z]+\]')" "3"
+  is "…TWO of them in the code this course has carried since Course Two, which this unit does not touch" \
+     "$(grep -E '^\[WARNING\].*\.java:\[[0-9]+,[0-9]+\] \[[A-Za-z]+\]' "$OUT" | grep -c '/com/tiffinbox/[A-Z]' | tr -d ' ')" "2"
+  has "…and every test passed under them" 'Tests run: 3, Failures: 0, Errors: 0, Skipped: 0'
+
+  # ---- the red build, and the finding that is correct about the syntax and wrong about the code
+  expect_fail "mvn -B -ntp -Pstrict clean compile -> exit 1, on TWO files" 1800 \
+      '\[ReferenceEquality\]' \
+      bash -c 'cd "$REPO/c3-unit26" && mvn -B -ntp "-Dmaven.repo.local=$M2_U26" -Pstrict clean compile'
+  # Maven prints each compilation ERROR twice — once where it happens and once in the failure
+  # summary — so a bare grep -c answers 4 for two findings. Deduplicated on file:line:check.
+  is "…TWO distinct findings, deduplicated: a bare grep -c answers 4 because Maven prints each one twice" \
+     "$(grep -hE '^\[ERROR\].*\.java:\[[0-9]+,[0-9]+\] \[ReferenceEquality\]' "$OUT" | sed -E 's#^\[ERROR\] ##' | sort -u | wc -l | tr -d ' ')" "2"
+  is "…and one of the two is a SENTINEL compared by identity, which is correct code: OrderQueue.java:30" \
+     "$(sed -n '30p' "$REPO/c3-unit26/src/main/java/com/tiffinbox/OrderQueue.java" | sed 's/^ *//')" "if (o == CLOSED) {"
+  is "…while the other compares a database string with a literal, which is a bug: MealPlan.java:30" \
+     "$(sed -n '30p' "$REPO/c3-unit26/src/main/java/com/tiffinbox/quality/MealPlan.java" | sed 's/^ *//')" 'return c.mealType() == "VEGAN";'
+
+  # ---- the flag that does nothing. Three runs of the same goal, and the middle one is the trap.
+  expect_ok "mvn -B -ntp checkstyle:check -> exit 0 over four violations" 1800 '' \
+      bash -c 'cd "$REPO/c3-unit26" && mvn -B -ntp "-Dmaven.repo.local=$M2_U26" checkstyle:check'
+  is "…four of them, and all four in the carried Customer record" \
+     "$(countq '^\[WARN\] .*\[JavadocType\]')" "4"
+  expect_ok "mvn -B -ntp -Dcheckstyle.failOnViolation=true checkstyle:check -> STILL exit 0. That is the trap." 1800 \
+      'violations detected but failOnViolation set to false' \
+      bash -c 'cd "$REPO/c3-unit26" && mvn -B -ntp "-Dmaven.repo.local=$M2_U26" -Dcheckstyle.failOnViolation=true checkstyle:check'
+  expect_fail "mvn -B -ntp -Dcheckstyle.fail=true checkstyle:check -> exit 1, because the pom left THAT switch reachable" 1800 \
+      'You have [0-9]+ Checkstyle violation' \
+      bash -c 'cd "$REPO/c3-unit26" && mvn -B -ntp "-Dmaven.repo.local=$M2_U26" -Dcheckstyle.fail=true checkstyle:check'
+  is "…and the pom is why: it writes \${checkstyle.fail} into the element rather than a literal false" \
+     "$(grep -c '<failOnViolation>\${checkstyle\.fail}</failOnViolation>' "$REPO/c3-unit26/pom.xml" | tr -d ' ')" "1"
+
+  # ---- receipts.sh: eight blocks, and the eight hashes the deck (26-static-analysis.md) quotes
+  if run_receipts 26 5400; then
+    is "…and it printed eight blocks, the count the deck states" "$(receipts_blocks 26)" "8"
+    is "…./receipts.sh 2>&1 | md5 -q -> the whole-run md5 the deck quotes for the eight" \
+       "$(receipts_md5 26)" "a5b26959b285de3b523c28069480993b"
+    receipt_line 26 jvmconfig  "md5 0797b831ffdb5cb7ca3eeaf9c428d72a  (exit 1 without, exit 0 with)"
+    receipt_line 26 warnings   "md5 98f221916a06a7c4d56415b704749c4e  (exit 0)"
+    receipt_line 26 strict     "md5 9a9bbaedf49445f6c2df86c63db56903  (exit 1)"
+    receipt_line 26 nullaway   "md5 5d306eca649376e7b482d326856cc37b  (exit 1 configured, exit 1 misconfigured)"
+    receipt_line 26 spotless   "md5 c66690f4a8a1564493d994bb79afbe17  (exit 1 then 0)"
+    receipt_line 26 checkstyle "md5 cf8de0a2a1332a809d20e93b62b99d26  (exit 0, 0, 1)"
+    receipt_line 26 solution   "md5 18636b3b782a46fe28ba8980533c8331  (exit 1 then 0)"
+    receipt_line 26 offline    "md5 9193626e559859df6113227749428222  (exit 0)"
+    derived_unprobed 26
+
+    receipt_panel 26 jvmconfig
+    panel 26 '^## Ten flags, or Error Prone' 3
+    panel_indent 2
+    out_has_panel "…README's jvm.config panel — ten lines, eight and two, exit 0 and three findings"
+    receipt_panel 26 warnings
+    panel 26 '^## Three findings' 1
+    # the page truncates Error Prone's first message with an ellipsis, so that one line is
+    # dropped and asserted on its own; the other two are quoted in full and are held to it.
+    panel_drop_re 'FutureReturnValueIgnored'
+    out_has_lines_lax "…README's findings panel is what Error Prone really reported"
+    has "…including the FutureReturnValueIgnored the page abbreviates, at the line it names" \
+        'OrderQueue\.java:\[27,28\] \[FutureReturnValueIgnored\]'
+    has "…two in carried code, one in this unit's own" '^  in code carried from Course Two \.+ 2$'
+    has "…and the build said BUILD SUCCESS once, which is the thing being warned about" \
+        '^the build said BUILD SUCCESS \.+ 1 time\(s\)$'
+    receipt_panel 26 strict
+    panel 26 '^## The red build' 2
+    panel_indent 2
+    out_has_panel "…README's two flagged lines are read out of the sources, not retyped"
+    has "…two promoted to ERROR, one a genuine defect and one correct code" '^of those, correct code \.+ 1$'
+    receipt_panel 26 nullaway
+    panel 26 '^## NullAway' 1
+    out_has_lines_lax "…README's NullAway panel: one unboxing of a @Nullable expression, exit 1"
+    has "…and 0 lines of Java were added to make it fire" \
+        '^lines of Java the check needed \.+ 0   \(no annotations were added to make it fire\)$'
+    has "…and the misconfiguration prints the SAME useless Maven sentence as the jvm.config failure" \
+        '^    \[ERROR\] An unknown compilation problem occurred$'
+    receipt_panel 26 spotless
+    panel 26 '^## Spotless' 2
+    panel_indent 2
+    out_has_lines "…README's spotless panel: two files changed, three imports reordered, nothing else"
+    has "…and it touched ZERO of the carried Course Two sources" \
+        '^  carried Course Two sources it touched: 0$'
+    receipt_panel 26 checkstyle
+    panel 26 '^## Checkstyle' 1
+    panel_indent 2
+    out_has_panel "…README's three runs of the same goal, and the middle one that does nothing"
+    has "…and all four violations are in code this unit did not write" \
+        '^and every one of them is in code carried from Course Two: 4 of 4$'
+    receipt_panel 26 solution
+    has "…the exercise's start state is exit 1 with one NullAway error" '^  exit 1$'
+    has "…and the answer is exit 0 with none" '^  distinct NullAway errors now \.+ 0$'
+    has "…and 0 ReferenceEquality errors under -Pstrict, one fixed and one suppressed with its reason" \
+        '^  distinct ReferenceEquality errors now 0'
+    has "…with the tests still green" '^  tests: Tests run: 3, Failures: 0, Errors: 0, Skipped: 0$'
+  fi
+  # ---- and the shipped sources are still the shipped sources. spotless:apply RE-WRITES files;
+  # the unit runs it in a copy for exactly that reason, and this is the receipt for that choice.
+  is "…and after all eight blocks the five carried sources are byte-identical: spotless:apply ran in a copy" \
+     "$(src_hash5 "$REPO/c3-unit26/src/main/java/com/tiffinbox")" "$(carried_five_hash 26)"
+  is "…and MealPlan.java still carries the import order spotless would change, so the demonstration stays runnable" \
+     "$(grep -m1 '^import ' "$REPO/c3-unit26/src/main/java/com/tiffinbox/quality/MealPlan.java")" \
+     "import com.tiffinbox.Customer;"
+  absent "…and the copy it used is gone" "$REPO/c3-unit26/.spot"
+fi
+
+# ============================================================= c3-unit27 ====
+# THE unit that ships nothing. There is no GraalVM here, `native-image` is not on this PATH, and
+# even with one the link step could not run: `cc`, `ld` and `xcrun` all answer **69** — the Xcode
+# licence. So this section asserts three things nothing else in this script asserts.
+#
+#   1. The `native` profile's failure is the PLUGIN's own documented refusal, named by
+#      coordinate and version — not a typo, not a missing dependency, not a stale pom.
+#   2. `cc`, `ld` and `xcrun` really do exit 69, with the licence sentence, because that is the
+#      SECOND and independent reason the page gives.
+#   3. **No binary size, no start-up time and no throughput figure appears anywhere on that
+#      page.** That is the one claim in the unit no hash can protect: every capture it takes is
+#      of something that ran, so a fabricated "12 MB, 8 ms" in the prose would move nothing at
+#      all. `readme_hasnt` is the only assertion that can see it.
+if unit 27 "GraalVM native image" ; then
+  is "README quotes the five carried sources' hash, and it is the course's own" \
+     "$(src_hash5 "$REPO/c3-unit27/src/main/java/com/tiffinbox")" "$(carried_five_hash 27)"
+  is "…and the README's block table names exactly the ids receipts.sh declares" \
+     "$(readme_block_ids 27)" "$(receipts_ids 27)"
+
+  # ---- 1. the absent toolchain, and the plugin's own words
+  is "native-image is NOT on this PATH, which is the unit's whole framing" \
+     "$(command -v native-image >/dev/null 2>&1 && echo present || echo absent)" "absent"
+  is "…and GRAALVM_HOME is unset" "${GRAALVM_HOME:-<unset>}" "<unset>"
+  is "…and there is no GraalVM JDK installed anywhere this unit looks" \
+     "$(ls -d /Library/Java/JavaVirtualMachines/*graal* "$HOME"/Library/Java/JavaVirtualMachines/*graal* /opt/homebrew/opt/*graal* 2>/dev/null | wc -l | tr -d ' ')" "0"
+  expect_fail "mvn -B -ntp -Pnative package -> exit 1, and it is the PLUGIN's own refusal" 1800 \
+      'org\.graalvm\.buildtools:native-maven-plugin:1\.1\.13:compile-no-fork' \
+      bash -c 'cd "$REPO/c3-unit27" && mvn -B -ntp "-Dmaven.repo.local=$M2_U27" -Pnative package'
+  has "…in the plugin's own sentence: native-image is not installed in your JAVA_HOME" \
+      'native-image is not installed in your'
+  has "…naming the JDK it was handed, which is why a viewer with GraalVM runs this profile unchanged" \
+      'is not a GraalVM distribution'
+  is "…and the profile really pins 1.1.13, the newest in its own version list" \
+     "$(grep -A2 'native-maven-plugin' "$REPO/c3-unit27/pom.xml" | grep -oE '<version>[^<]*' | sed 's/<version>//' | head -1)" \
+     "$(grep -o '<version>[^<]*' "$REPO/c3-unit27/central/native-maven-plugin-maven-metadata.xml" | sed 's/<version>//' | tail -1)"
+
+  # ---- 2. the linker. native-image shells out to it for its last step, and it answers 69.
+  printf 'int main(void){return 0;}\n' > "$WORK/u27.c"
+  expect_rc "cc <a two-line C file> -o <binary> -> exit 69" 120 69 \
+      'You have not agreed to the Xcode license agreements' \
+      bash -c "cc \"$WORK/u27.c\" -o \"$WORK/u27.bin\""
+  expect_rc "/usr/bin/ld -v -> exit 69, the same sentence" 120 69 \
+      'You have not agreed to the Xcode license agreements' /usr/bin/ld -v
+  expect_rc "xcrun -f cc -> exit 69 as well, which is the third of the three the README names" 120 69 \
+      'You have not agreed to the Xcode license agreements' xcrun -f cc
+  rm -f "$WORK/u27.c" "$WORK/u27.bin"
+
+  # ---- 3. THE assertion that keeps that page honest. Three shapes of number, none of them
+  # measurable here, none of them on the page. (The 16 GB in the verification header is the
+  # machine, and the 339188208 bytes is the GraalVM DOWNLOAD read out of central/ — neither is
+  # a property of a binary that does not exist, so both are excluded by anchoring on the noun.)
+  readme_hasnt "c3-unit27/README.md quotes no BINARY size — there is no binary here to have one" 27 \
+      '(binar(y|ies)|executable|image)[^.]{0,60}[0-9]+([.,][0-9]+)? *(MB|KB|GB|MiB|KiB|GiB)|[0-9]+([.,][0-9]+)? *(MB|KB|GB|MiB|KiB|GiB)[^.]{0,40}(binar(y|ies)|executable)'
+  readme_hasnt "…and no start-up time: not one millisecond, microsecond or nanosecond figure on the page" 27 \
+      '[0-9]+([.,][0-9]+)? *(ms|milliseconds?|µs|us|nanoseconds?|ns)\b'
+  readme_hasnt "…and no throughput figure either" 27 \
+      '(ops|requests?|req)/s|[0-9]+ *(ops|rps|qps)\b|throughput of'
+  xreadme_hasnt "…nor on its exercise page" 27 \
+      '[0-9]+([.,][0-9]+)? *(MB|KB|GB|ms|µs|us|ns)\b'
+  readme_quotes "…and the page says so itself, in one sentence" 27 \
+      "**So there is no native binary in this unit, no binary file size, and no start-up time.**"
+
+  # ---- what DOES run here: the closed-world problem, measured with the JDK's own tool
+  is "formatters.properties names two implementation classes" \
+     "$(grep -c '^[a-z]*=com\.tiffinbox\.aot\.' "$REPO/c3-unit27/src/main/resources/formatters.properties" | tr -d ' ')" "2"
+  is "…and ZERO Java source files outside the classes themselves name either one — that is the closed world, in one number" \
+     "$(grep -rlE 'PlainFormatter|LedgerFormatter' "$REPO/c3-unit27/src/main/java" --include='*.java' \
+        | grep -vE '(PlainFormatter|LedgerFormatter)\.java$' | wc -l | tr -d ' ')" "0"
+  is "…and the reachability metadata ships at the path a closed-world build looks in" \
+     "$( [ -f "$REPO/c3-unit27/src/main/resources/META-INF/native-image/com.tiffinbox/tiffinbox-core/reflect-config.json" ] \
+        && [ -f "$REPO/c3-unit27/src/main/resources/META-INF/native-image/com.tiffinbox/tiffinbox-core/resource-config.json" ] \
+        && echo both || echo missing )" "both"
+  # the half people forget, and the reason the page gives for it: a resource is not carried
+  # either, and the failure is one line EARLIER with a message about a null stream.
+  # …and the resource half, checked as a REGEX rather than as a string. That file spells the
+  # pattern `formatters\\.properties`, so a grep for the file name does not find it — and a grep
+  # for the escaped form would pass over a pattern that no longer matched anything.
+  is "…and resource-config.json's include pattern really MATCHES formatters.properties, which is the half people forget" \
+     "$(python3 -c "
+import json,re
+d=json.load(open('$REPO/c3-unit27/src/main/resources/META-INF/native-image/com.tiffinbox/tiffinbox-core/resource-config.json'))
+print(sum(1 for i in d['resources']['includes'] if re.fullmatch(i['pattern'], 'formatters.properties')))")" "1"
+
+  # ---- receipts.sh: seven blocks, and the six hashes the deck (27-graalvm-native-image.md)
+  # quotes. The deck says in so many words that there is NO whole-script hash for this unit and
+  # that the blocks say why themselves — and that is asserted rather than worked around.
+  if run_receipts 27 5400; then
+    is "…and it printed seven blocks, the count the README's table states" "$(receipts_blocks 27)" "7"
+    receipt_line 27 closedworld  "md5 8b369d156ae270ca70df59514b19b5e0  (exit 0)"
+    receipt_line 27 aot          "md5 f4dd3ce4630f795b0476fc625adc11fa  (exit 0 / 0 / 0 / 0)"
+    receipt_line 27 jlink        "md5 293e584d48412834224ffd8f9321b846  (exit 0 full, exit 1 trimmed)"
+    receipt_line 27 graalvm      "md5 979c016353f3cb84197afd46bb610803  (exit 1 from mvn -Pnative, 69 from cc, 69 from ld)"
+    receipt_line 27 nativeconfig "md5 7c9ad3b1cf4bee7278bc9c9b3960ca99  (no build)"
+    receipt_line 27 solution     "md5 fe2edae3b575cd2d6074996d18db686e  (no build - the answer is data, and this machine cannot run the build that consumes it)"
+    derived_unprobed 27
+    # THE reason there is no whole-script hash: three blocks print a byte size OUTSIDE the hash,
+    # with the reason on screen. A block that started hashing one would reproduce exactly once.
+    is "…and TWO blocks printed a \`no md5:\` line for their byte sizes, which is part of why this unit has no whole-script hash" \
+       "$(unhashed_blocks 27)" "2"
+    # …and the deck says there is no whole-script hash for this unit. A run's md5 taken anyway
+    # would be a number nobody can reproduce, because those two lines carry an AOT cache size
+    # and two image sizes. So it is named here rather than quietly omitted.
+    not_pinned "…./receipts.sh 2>&1 | md5 -q -> $(receipts_md5 27)" \
+        "two of the seven blocks print a byte size outside their hash, so the whole-run number moves with the JDK build and the compression level; the deck quotes none for this unit and says the blocks say why themselves"
+    receipts_says 27 "…the AOT block says its three sizes go on a slide only after they have repeated" \
+        '^no md5: the three sizes below are bytes'
+    receipts_says 27 "…and the jlink block says image sizes move with the compression level and the JDK build" \
+        '^no md5: image sizes vary with the compression level'
+
+    receipt_panel 27 graalvm
+    has "…receipts.sh graalvm: native-image on PATH ... no" '^  native-image on PATH \.+ no$'
+    has "…GRAALVM_HOME unset" '^  GRAALVM_HOME \.+ <unset>$'
+    has "…0 GraalVM JDKs installed" '^  GraalVM JDKs installed \.+ 0$'
+    has "…exit 69 from cc" '^    exit 69$'
+    has "…and the GraalVM CE release and asset are read out of central/ with no network" \
+        '^  GraalVM CE release \.+ graal-'
+    panel 27 '^## Read this first' 2
+    panel_indent 2
+    out_has_panel "…and README's pinned-and-shipped panel is what that block derived from central/"
+    receipt_panel 27 closedworld
+    panel 27 '^## The one line no compiler can follow' 3
+    out_has_lines_lax "…README's jdeps panel — 0 edges into either formatter — is that block's own"
+    has "…and jdeps' own module answer includes java.sql, because it reads the ARCHIVE and not the reachable graph" \
+        'jdeps --print-module-deps over the whole jar \.+ .*java\.sql'
+    receipt_panel 27 aot
+    panel 27 '^## The AOT path, counted rather than timed' 1
+    out_has_lines_lax "…README's step-0 panel: the recorder refuses an exploded directory"
+    panel 27 '^## The AOT path, counted rather than timed' 3
+    # the page drops the `file:` scheme the class loader really printed, so that one line is
+    # dropped here and asserted in full on its own two lines below.
+    panel_drop_re 'LedgerFormatter loaded from'
+    out_has_lines_lax "…and its step-4 panel, which is the beat the unit exists for"
+    has "…the training run only ever exercised plain, so LedgerFormatter came out of the JAR" \
+        '^  LedgerFormatter loaded from \.+ file:<project>/target/tiffinbox-core-1\.0\.0\.jar$'
+    has "…while PlainFormatter came out of the cache, even on the ledger run" \
+        '^  PlainFormatter  loaded from \.+ shared objects file$'
+    # and the ARITHMETIC of the AOT beat, which is a count and not a duration: almost every
+    # class came out of a file instead of out of a jar, and the JIT path used no cache at all.
+    U27T="$(grep -m1 -E '^  classes loaded \.+ [0-9]+$' "$OUT" | grep -oE '[0-9]+$')"
+    is "…over a program that really loads a JDK's worth of classes, so the cache count is not a count of nothing" \
+       "$( [ -n "$U27T" ] && [ "$U27T" -gt 1500 ] && echo "more than 1500" || echo "only $U27T" )" "more than 1500"
+    is "…and the JIT path loaded ZERO classes from a cache, which is what makes the AOT count mean something" \
+       "$(grep -m1 -E '^  of those, out of a cache \.+ [0-9]+$' "$OUT" | grep -oE '[0-9]+$')" "0"
+    is "…while the AOT path loaded all but six of its classes out of the cache" \
+       "$(grep -m1 -E '^  loaded from somewhere else \.+ [0-9]+$' "$OUT" | grep -oE '[0-9]+$')" "6"
+    receipt_panel 27 jlink
+    panel 27 '^## A closed world you can build here' 1
+    out_has_lines_lax "…README's jlink panel: 69 modules in the JDK, 5 in the full image, 1 in the trimmed one"
+    has "…and the trimmed image dies at start-up on java/sql/DriverManager, nothing recompiled" \
+        'NoClassDefFoundError: java/sql/DriverManager'
+    receipt_panel 27 nativeconfig
+    has "…receipts.sh nativeconfig: three entries, two formatter classes, both covered" \
+        '^of those, covered by reflect-config\.json \.+ 2$'
+    has "…and both files parsed rather than eyeballed" '^valid JSON \(parsed, not eyeballed\) \.+ both files$'
+    receipt_panel 27 solution
+    has "…the exercise's start state covers ONE of the two formatter classes" '^  of those, covered \.+ 1$'
+    has "…the answer covers both" '^  of 2 formatter classes, covered \.+ 2$'
+    has "…with 0 lines of Java changed, because the fix is DATA" '^  lines of Java changed \.+ 0$'
+    has "…and the block says so: the answer is data, and this machine cannot run the build that consumes it" \
+        'That is eight lines of Python, it runs in CI, and it costs no minutes\.'
+  fi
+fi
+
+# ============================================================= c3-unit28 ====
+# The finale, and the last unit of the course. Two of its four blocks are deliberately NOT
+# pinned and both say so in their own output: `gaps` is a find(1) census of a repository that
+# grows, and `ship`'s AOT class count moves run to run (2070 · 2071 · 2070 measured here). So
+# for both the STRUCTURE and the DERIVED ARITHMETIC are asserted — the four-holes ledger reading
+# 4 named / 3 closed / 1 handed on, six steps and seven captured exit codes — and the figures
+# themselves get a labelled SKIP naming what went unchecked.
+#
+# **There is no exercise in this unit, by design**, and that is asserted rather than assumed:
+# every other unit in the course ships one, and a missing exercise directory would otherwise be
+# indistinguishable from an oversight.
+if unit 28 "What's next: the container, industrialised"; then
+  is "README quotes the five carried sources' hash, and it is the course's own" \
+     "$(src_hash5 "$REPO/c3-unit28/src/main/java/com/tiffinbox")" "$(carried_five_hash 28)"
+  is "…and the README's block table names exactly the ids receipts.sh declares" \
+     "$(readme_block_ids 28)" "$(receipts_ids 28)"
+  absent "there is no exercise/ in this unit, and the page says the finale's task is the hand-off" \
+      "$REPO/c3-unit28/exercise"
+  readme_quotes "…in those words" 28 "**There is no exercise in this unit.**"
+  # …and that absence is a decision rather than an omission: every OTHER c3 unit that ships one.
+  is "…while all 27 of the other units do ship one" \
+     "$(ls -d "$REPO"/c3-unit0[1-9]/exercise "$REPO"/c3-unit1[0-9]/exercise "$REPO"/c3-unit2[0-7]/exercise 2>/dev/null | wc -l | tr -d ' ')" "27"
+
+  # ---- the counts, which are IMPORTED rather than typed. A finale that types its own unit
+  # count is the failure mode of every roadmap video on the internet.
+  if [ ! -s "$SERIES" ]; then
+    skip "receipts.sh counts — the numbers imported from java3_series.py" \
+         "no $SERIES on this machine, and this unit is forbidden to type its own counts"
+  else
+    is "receipts.sh imports its counts from java3_series.py rather than typing them" \
+       "$(grep -c 'importlib.util.spec_from_file_location("java3_series"' "$REPO/c3-unit28/receipts.sh" | tr -d ' ')" "1"
+    is "…and the module really declares 28 units across 5 sections, which is what the page says" \
+       "$(python3 -c "
+import importlib.util,sys
+spec=importlib.util.spec_from_file_location('j','$SERIES'); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+print(len(m.TITLES), len(m.SECTIONS))")" "28 5"
+  fi
+
+  # ---- the chain, run rather than claimed, and the wiring gap the course leaves open
+  is "Wiring.java is the one gap: nothing in the project writes that startup order down" \
+     "$(ls "$REPO/c3-unit28/src/main/java/com/tiffinbox/wiring" | tr '\n' ' ')" "Wiring.java "
+  is "…and WiringOrderTest is the three tests that say out loud that the order is load-bearing" \
+     "$(grep -cE '^[[:space:]]+void [a-zA-Z]+\(' "$REPO/c3-unit28/src/test/java/com/tiffinbox/WiringOrderTest.java" | tr -d ' ')" "3"
+  is "…and there is no container spec, no compose file and no DI descriptor anywhere in Course 3 — the zero under hole 2 is a measurement" \
+     "$(find "$REPO" -maxdepth 4 -path '*/c3-unit[0-9][0-9]/*' -not -path '*/target/*' -not -path '*/build/*' \
+          \( -name 'Dockerfile' -o -name 'compose.yaml' -o -name 'docker-compose.yml' -o -name 'beans.xml' -o -name 'applicationContext*.xml' \) 2>/dev/null | wc -l | tr -d ' ')" "0"
+
+  # ---- receipts.sh: five blocks, and the three hashes the deck (28-whats-next-the-container.md)
+  # quotes as fixed. `gaps` and `ship` are the two it does not.
+  if run_receipts 28 5400; then
+    is "…and it printed five blocks, the count the README's table states" "$(receipts_blocks 28)" "5"
+    receipt_line 28 counts  "md5 089c0e4b375d444e20044e387231958f  (no build)"
+    receipt_line 28 wiring  "md5 44cb43bf1330236cc962d8d79192654c  (exit 0)"
+    receipt_line 28 offline "md5 3d6831ca22fb5b3ec1ed0f1c3971d214  (exit 0)"
+    derived_unprobed 28
+
+    receipt_panel 28 counts
+    panel 28 '^## Every count here is re-read' 1
+    panel_indent 2
+    out_has_panel "…README's counts panel is what importing java3_series.py really answered"
+    has "…and the five sections account for every unit, asserted inside the block rather than typed" \
+        '^  units accounted for by the five sections: 28$'
+
+    # ---- gaps: the ledger is DERIVED from the four rows, and that arithmetic is the claim.
+    # The md5 is not: every count in it is a find(1) over a repository that grows, and the block
+    # prints that instruction itself. THE guard this unit shipped is NOTGEN — without it, running
+    # c3-unit27/receipts.sh (which is exactly what this course tells the viewer to do) puts a
+    # generated copy of reflect-config.json under target/ and the reachability count goes 2 -> 3,
+    # taking the block's md5 with it. Units 19-27 have all just been built by this script, so
+    # this run is the adverse condition, and the ledger has to be the same anyway.
+    receipt_panel 28 gaps
+    has "…receipts.sh gaps: four holes named" '^holes the last course named \.+ 4$'
+    has "…three with an artifact behind them" '^holes with an artifact behind them \.+ 3$'
+    has "…and ONE handed to the next course, which is hole 2" \
+        '^holes handed to the next course \.+ 1   \(hole 2 - see the next block\)$'
+    has "…hole 2's count is a zero that MOVES the day a container spec is added, not a rhetorical one" \
+        '^     files that write that startup order down \.+ 0   <- the one still open$'
+    has "…28 unit directories, 18 with a test tree, 22 with a receipts.sh" \
+        '^     of those, carrying a src/test tree \.+ 18$'
+    # THE NOTGEN receipt: this run has just built units 19-27, so target/ is full of generated
+    # copies of exactly the files this census counts. The reachability count has to be 3 anyway.
+    is "…and the NOTGEN guard held under the adverse condition this run creates: units 19-27 have just been BUILT, and the reachability count is still the shipped 3" \
+       "$(grep -m1 -oE 'reachability metadata files shipped \.+ [0-9]+' "$OUT" | grep -oE '[0-9]+$')" "3"
+    is "…and the logback count is still the shipped 7, for the same reason" \
+       "$(grep -m1 -oE 'logback configurations shipped \.+ [0-9]+' "$OUT" | grep -oE '[0-9]+$')" "7"
+    U28N="$(grep -oE "[-]not [-]path '[^']*'" "$REPO/c3-unit28/receipts.sh" | LC_ALL=C sort -u | tr '\n' ' ')"
+    is "…and the five NOTGEN exclusions are all there: target, build, out, .gradle and .m2-demo" \
+       "$U28N" "-not -path '*/.gradle/*' -not -path '*/.m2-demo/*' -not -path '*/build/*' -not -path '*/out/*' -not -path '*/target/*' "
+    panel 28 '^## The four holes' 1
+    # the page's last line points the reader at the `wiring` block by name where the block says
+    # "the next block", so that one line is dropped and the number in it is asserted above.
+    panel_drop_re '^holes handed to the next course'
+    out_has_lines_lax "…and README's four-holes panel is what the census really printed"
+    receipts_says 28 "…and the block says out loud that its md5 is a SNAPSHOT and is supposed to move" \
+        'and that md5 is a SNAPSHOT, not a constant'
+    not_pinned "…receipts.sh gaps -> md5 $(receipt_hash_of 28 gaps)" \
+        "every count in it is a find(1) over this repository as it stands right now, so it moves the day a unit is added, renamed or removed — the ledger arithmetic above is asserted instead"
+
+    # ---- ship: the chain, and the two numbers in it that move
+    receipt_panel 28 wiring
+    panel 28 '^## The one gap this course leaves' 1
+    panel_indent 2
+    out_has_panel "…README's wiring panel — 18 lines, 4 objects, 3 constants, 0 places the order is written"
+    panel 28 '^## The one gap this course leaves' 2
+    panel_indent 2
+    out_has_panel "…and the three tests that are what '0 things check it' means"
+    # …and those three tests CONSTRAIN what the wiring returns. Measured: weaken
+    # theWiringAsWrittenWorks to `.isNotNull()` and nothing moves — the block reads the METHOD
+    # NAMES out of the file, surefire still prints `Tests run: 3`, and the md5 is untouched,
+    # because not one of them is a function of what the test asserts. So the thing the tests
+    # watch is moved in a scratch copy and the count that notices is the claim.
+    sensitive_to "…and WiringOrderTest CONSTRAINS the answer it names: add one to the customer count and 1 of the 3 notices" \
+        28 "$M2_U28" src/main/java/com/tiffinbox/wiring/Wiring.java \
+        '"customers=" + view.customers().size()' '"customers=" + (view.customers().size() + 1)' \
+        "Tests run: 3, Failures: 1, Errors: 0, Skipped: 0"
+    receipt_panel 28 ship
+    has "…receipts.sh ship: six steps in the chain" '^steps in the chain \.+ 6$'
+    has "…seven commands, because step 3 is two" '^commands those steps ran \.+ 7   \(step 3 is two\)$'
+    has "…seven exit codes CAPTURED, not six booleans that were already guarded" '^exit codes captured \.+ 7$'
+    has "…and seven of seven exited 0" '^commands that exited 0 \.+ 7$'
+    has "…the jar and the 5-module runtime image printed the SAME answer" \
+        '^the two runs printed the same answer: yes$'
+    has "…out of 5 of this JDK's 69 modules" '^       5 of this JDK 69 modules$'
+    # the AOT pair is the one figure in this unit that moves run to run, so what is asserted is
+    # the ARITHMETIC — almost everything came out of the cache, and the cache is not bigger than
+    # the run — and never the integers.
+    U28T="$(grep -m1 -oE 'classes loaded [0-9]+, of those out of the cache [0-9]+' "$OUT" | grep -oE '[0-9]+' | head -1)"
+    U28C="$(grep -m1 -oE 'classes loaded [0-9]+, of those out of the cache [0-9]+' "$OUT" | grep -oE '[0-9]+' | tail -1)"
+    is "…and its AOT arithmetic holds: the cache served fewer classes than the run loaded, and more than two thousand of them" \
+       "$( [ -n "$U28T" ] && [ "$U28C" -le "$U28T" ] && [ "$U28C" -gt 2000 ] && echo sound || echo "loaded=$U28T cached=$U28C" )" "sound"
+    is "…and SEVEN \`exit 0\`s are on the panel itself, one per command — six at the end of a line and step 1's ahead of its Tests run:" \
+       "$(grep -cE ' exit 0( |$)' "$OUT" | tr -d ' ')" "7"
+    panel 28 '^## The chain, run' 1
+    panel_drop_re 'classes loaded [0-9]+, of those out of the cache [0-9]+|Tests run: 3, Failures: 0, \.\.\.'
+    out_has_lines_lax "…and the rest of README's chain panel — every step, every exit code, both answers — is what the run printed"
+    # …and the one thing the panel cannot show: that step 6 ran in the IMAGE. Measured: point that
+    # line at the JDK's own `java` instead of `.img/bin/java` and every number above is identical —
+    # six steps, seven captured zeros, both answers the same — while the runtime image the whole
+    # chain exists to build is never executed. So the chain's last command is read out of the
+    # deliverable, and so is the module count beside it.
+    is "…and step 6 really runs the program INSIDE the jlink image: the chain's last command is .img/bin/java, not the JDK again" \
+       "$(sed -n '/^run_ship() {/,/^}$/p' "$REPO/c3-unit28/receipts.sh" \
+          | grep -c '^  \.img/bin/java -cp "\$CP" "\$MAIN" > \.r-ship7\.raw' | tr -d ' ')" "1"
+    is "…and the 5 on that panel is the IMAGE's module count, taken from the image's own java" \
+       "$(sed -n '/^run_ship() {/,/^}$/p' "$REPO/c3-unit28/receipts.sh" \
+          | grep -c 'mods=\$(\.img/bin/java --list-modules' | tr -d ' ')" "1"
+    not_pinned "…receipts.sh ship -> md5 $(receipt_hash_of 28 ship)" \
+        "the AOT class count inside it moves run to run (2070 · 2071 · 2070 measured here), so the deck quotes no figure for this block and neither does this script; the six steps, the seven captured exit codes and the two identical answers are asserted above"
+    receipts_says 28 "…and the three sizes under it are printed OUTSIDE the hash, with the reason" \
+        '^no md5: sizes, which move:'
+    not_pinned "…./receipts.sh 2>&1 | md5 -q -> $(receipts_md5 28)" \
+        "the whole-run hash contains both moving blocks above, so the deck quotes none for this unit either"
+  fi
+fi
+
 # =============================================================== teardown ===
 cd "$REPO"
 printf '\n%steardown%s\n' "$DIM" "$OFF"
@@ -3768,17 +5633,24 @@ fi
 # ------------------------------------------------------------------ report ---
 printf '\n---------------------------------------------\n'
 # Units that have landed since this script was last extended: say so instead of
-# quietly passing, so nobody mistakes "not checked" for "checked and green".
+# quietly passing, so nobody mistakes "not checked" for "checked and green". All 28
+# of Course 3 are covered now, so this prints nothing — and the sentence under it is
+# what the reader gets instead, because "no line at all" and "nothing uncovered" are
+# not the same statement.
 if [ ${#UNITS[@]} -eq 0 ]; then
   UNCHECKED=""
   for d in "$REPO"/c3-*/; do
     n="$(basename "$d")"
     case "$n" in
-      c3-unit0[1-9]|c3-unit1[0-8]|c3-tiffinbox) continue ;;
+      c3-unit0[1-9]|c3-unit1[0-9]|c3-unit2[0-8]|c3-tiffinbox) continue ;;
       *) UNCHECKED="$UNCHECKED $n" ;;
     esac
   done
-  [ -n "$UNCHECKED" ] && printf '%snot covered by this script yet:%s%s\n' "$YLW" "$OFF" "$UNCHECKED"
+  if [ -n "$UNCHECKED" ]; then
+    printf '%snot covered by this script yet:%s%s\n' "$YLW" "$OFF" "$UNCHECKED"
+  else
+    printf 'not covered by this script yet: nothing — c3-tiffinbox and all 28 units of Course 3 are covered.\n'
+  fi
 fi
 printf '%sPASS %d%s   %sFAIL %d%s   %sSKIP %d%s\n' "$GRN" "$PASS" "$OFF" "$RED" "$FAIL" "$OFF" "$YLW" "$SKIP" "$OFF"
 if [ "$FAIL" -gt 0 ]; then
