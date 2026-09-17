@@ -5275,33 +5275,83 @@ if unit 26 "Static analysis: Spotless, Checkstyle, Error Prone"; then
 fi
 
 # ============================================================= c3-unit27 ====
-# THE unit that ships nothing. There is no GraalVM here, `native-image` is not on this PATH, and
-# even with one the link step could not run: `cc`, `ld` and `xcrun` all answer **69** — the Xcode
-# licence. So this section asserts three things nothing else in this script asserts.
+# THE unit that was re-cut when the machine changed under it, and this section is the record of
+# that. Until 2026-09-16 there was no GraalVM here and `cc`, `ld` and `xcrun` all answered **69**
+# — the Xcode licence had never been accepted — and the unit's `graalvm` block HASHED that state.
+# The licence was accepted at 22:06 that day. The state moved, the hash moved, and a receipt
+# exists to stop precisely that. So the unit was re-cut: machine state went into `native`, which
+# builds two real images and SKIPS when it cannot, and `graalvm` was reduced to pins read out of
+# files that ship in the unit, so it hashes the same everywhere.
 #
-#   1. The `native` profile's failure is the PLUGIN's own documented refusal, named by
-#      coordinate and version — not a typo, not a missing dependency, not a stale pom.
-#   2. `cc`, `ld` and `xcrun` really do exit 69, with the licence sentence, because that is the
-#      SECOND and independent reason the page gives.
-#   3. **No binary size, no start-up time and no throughput figure appears anywhere on that
-#      page.** That is the one claim in the unit no hash can protect: every capture it takes is
-#      of something that ran, so a fabricated "12 MB, 8 ms" in the prose would move nothing at
-#      all. `readme_hasnt` is the only assertion that can see it.
+# Ten assertions in this section went stale in that same hour and five more went on passing while
+# saying something that was no longer true. What replaces them keeps four rules:
+#
+#   1. The `native` profile's failure — under a NON-GraalVM JAVA_HOME, which is asserted rather
+#      than assumed — is the PLUGIN's own documented refusal, named by coordinate and version.
+#   2. `cc`, `ld` and `xcrun` are still probed, because `native-image` shells out to them for its
+#      last step, but for exit **0** now, with the licence refusal asserted ABSENT.
+#   3. `./receipts.sh native` is asserted on its SKIP path, under a controlled environment, three
+#      ways — because the skip is what a viewer without GraalVM actually gets. The build path is
+#      asserted only when a GraalVM is really available, and is a labelled SKIP otherwise: the
+#      shape c3-unit10's `drift` beat uses for OLD_GRADLE.
+#   4. **No binary size, no start-up time and no throughput figure appears anywhere on that
+#      page** — still true, and still the one claim in the unit no hash can protect, because
+#      every capture it takes is of something that ran. `readme_hasnt` is the only assertion that
+#      can see a fabricated "12 MB, 8 ms" in the prose.
 if unit 27 "GraalVM native image" ; then
   is "README quotes the five carried sources' hash, and it is the course's own" \
      "$(src_hash5 "$REPO/c3-unit27/src/main/java/com/tiffinbox")" "$(carried_five_hash 27)"
   is "…and the README's block table names exactly the ids receipts.sh declares" \
      "$(readme_block_ids 27)" "$(receipts_ids 27)"
 
-  # ---- 1. the absent toolchain, and the plugin's own words
-  is "native-image is NOT on this PATH, which is the unit's whole framing" \
-     "$(command -v native-image >/dev/null 2>&1 && echo present || echo absent)" "absent"
-  is "…and GRAALVM_HOME is unset" "${GRAALVM_HOME:-<unset>}" "<unset>"
-  is "…and there is no GraalVM JDK installed anywhere this unit looks" \
-     "$(ls -d /Library/Java/JavaVirtualMachines/*graal* "$HOME"/Library/Java/JavaVirtualMachines/*graal* /opt/homebrew/opt/*graal* 2>/dev/null | wc -l | tr -d ' ')" "0"
-  expect_fail "mvn -B -ntp -Pnative package -> exit 1, and it is the PLUGIN's own refusal" 1800 \
+  # ---- 1. how this unit FINDS a GraalVM, and the refusal you get without one.
+  #
+  # THREE ASSERTIONS USED TO STAND HERE and all three still PASSED after the re-cut, which is
+  # worse than failing: `native-image is NOT on this PATH, which is the unit's whole framing`,
+  # `GRAALVM_HOME is unset`, and `there is no GraalVM JDK installed anywhere this unit looks`.
+  # Every one of them was true by accident.
+  #
+  #   * The GraalVM this unit was measured against lives in a Downloads folder, which is NONE of
+  #     the three directories that third assertion globbed. Its `0` was a fact about those three
+  #     directories, read as a fact about the machine — and `anywhere this unit looks` was never
+  #     true of any of them, because `graalvm_home()` in receipts.sh looks at $GRAALVM_HOME, then
+  #     $JAVA_HOME, and nowhere else at all.
+  #   * `GRAALVM_HOME is unset` passed because THIS SCRIPT never exports it. It was asserting its
+  #     own environment and calling it the machine's; it would have gone on passing with a
+  #     GraalVM in every one of those directories.
+  #   * And the unit's framing is no longer absence: it ships a native binary beat now.
+  #
+  # So what is asserted instead are three properties of the REPOSITORY, which is where this
+  # unit's claims actually live, and none of which can be true by accident.
+  is "receipts.sh looks for a GraalVM in exactly two places, \$GRAALVM_HOME then \$JAVA_HOME, and nowhere else" \
+     "$(awk '/^graalvm_home\(\) \{/,/^\}/' "$REPO/c3-unit27/receipts.sh" \
+        | grep -oE '(GRAALVM_HOME|JAVA_HOME)' | LC_ALL=C sort -u | tr '\n' ' ')" \
+     "GRAALVM_HOME JAVA_HOME "
+  is "…and not one shipped file in this unit writes a path to a GraalVM down — which is why that block takes a variable" \
+     "$(grep -rIlE '/[A-Za-z0-9_.-]*graalvm[A-Za-z0-9_.-]*/' "$REPO/c3-unit27" \
+          --exclude-dir=target --exclude-dir=.m2-demo --exclude-dir=central 2>/dev/null | wc -l | tr -d ' ')" "0"
+  # (The boundary is not decoration: `run_nativeconfig` IS on that line and contains `run_native`
+  # as a substring, so a bare grep for `run_native` answers 1 and this assertion would have
+  # passed for the wrong reason the day someone put the real build back into `all`.)
+  is "…and \`native\` is deliberately NOT in \`./receipts.sh all\`, so a bare run never starts a minutes-long build" \
+     "$(grep -E '^  all\)' "$REPO/c3-unit27/receipts.sh" | grep -cE 'run_native([^a-z_]|$)' | tr -d ' ')" "0"
+
+  # …and THE PRECONDITION the next assertion rests on, which is the thing that made it
+  # misleading. `mvn -Pnative package` exits 1 here because NOTHING hands the plugin a GraalVM —
+  # and that is a property of the ENVIRONMENT, not of the unit. Two variables decide it, not one:
+  # native-maven-plugin reads $GRAALVM_HOME as well as $JAVA_HOME, so the old assertion was
+  # passing for two accidental reasons at once (this script runs on openjdk@25, AND it never
+  # exported GRAALVM_HOME). Measured: with GRAALVM_HOME exported the identical command exits
+  # **0** and builds the image, and this assertion failed for the first time.
+  #
+  # So the refusal is now provoked DELIBERATELY, with GRAALVM_HOME stripped for this one command,
+  # which makes it true on a maintainer's machine with GraalVM installed as well as on a
+  # viewer's without — the same `env -u` discipline as the skip probes below.
+  is "…and \$JAVA_HOME is not a GraalVM, which is half of why the next command is refused" \
+     "$( [ -x "$JAVA_HOME/bin/native-image" ] && echo "a GraalVM" || echo "not a GraalVM" )" "not a GraalVM"
+  expect_fail "mvn -B -ntp -Pnative package with NEITHER variable naming a GraalVM -> exit 1, the PLUGIN's own refusal" 1800 \
       'org\.graalvm\.buildtools:native-maven-plugin:1\.1\.13:compile-no-fork' \
-      bash -c 'cd "$REPO/c3-unit27" && mvn -B -ntp "-Dmaven.repo.local=$M2_U27" -Pnative package'
+      env -u GRAALVM_HOME bash -c 'cd "$REPO/c3-unit27" && mvn -B -ntp "-Dmaven.repo.local=$M2_U27" -Pnative package'
   has "…in the plugin's own sentence: native-image is not installed in your JAVA_HOME" \
       'native-image is not installed in your'
   has "…naming the JDK it was handed, which is why a viewer with GraalVM runs this profile unchanged" \
@@ -5310,16 +5360,77 @@ if unit 27 "GraalVM native image" ; then
      "$(grep -A2 'native-maven-plugin' "$REPO/c3-unit27/pom.xml" | grep -oE '<version>[^<]*' | sed 's/<version>//' | head -1)" \
      "$(grep -o '<version>[^<]*' "$REPO/c3-unit27/central/native-maven-plugin-maven-metadata.xml" | sed 's/<version>//' | tail -1)"
 
-  # ---- 2. the linker. native-image shells out to it for its last step, and it answers 69.
+  # ---- 2. the linker. native-image shells out to it for its last step, so whether it works is
+  # the difference between `./receipts.sh native` building an image and refusing to.
+  #
+  # THESE THREE ASSERTED EXIT **69** until the Xcode licence was accepted on 2026-09-16, and all
+  # three went stale in that hour. They are kept — the link step is still the second reason the
+  # page gives — but turned the right way round: exit 0, a binary that really appeared, and the
+  # licence refusal asserted ABSENT. A machine where the licence has not been accepted now FAILS
+  # here and says so, instead of passing on a sentence nobody re-read.
   printf 'int main(void){return 0;}\n' > "$WORK/u27.c"
-  expect_rc "cc <a two-line C file> -o <binary> -> exit 69" 120 69 \
-      'You have not agreed to the Xcode license agreements' \
-      bash -c "cc \"$WORK/u27.c\" -o \"$WORK/u27.bin\""
-  expect_rc "/usr/bin/ld -v -> exit 69, the same sentence" 120 69 \
-      'You have not agreed to the Xcode license agreements' /usr/bin/ld -v
-  expect_rc "xcrun -f cc -> exit 69 as well, which is the third of the three the README names" 120 69 \
-      'You have not agreed to the Xcode license agreements' xcrun -f cc
+  expect_rc "cc <a two-line C file> -o <binary> -> exit 0: the link step native-image shells out to really works here" 120 0 \
+      '' bash -c "cc \"$WORK/u27.c\" -o \"$WORK/u27.bin\""
+  hasnt "…with not one word of the Xcode licence refusal that used to come back instead" \
+      'You have not agreed to the Xcode license agreements'
+  exists "…and it really produced the binary, which is the only proof the linker ran" "$WORK/u27.bin"
+  expect_rc "/usr/bin/ld -v -> exit 0, and it names the linker that would do it" 120 0 \
+      '^@\(#\)PROGRAM:ld' /usr/bin/ld -v
+  expect_rc "xcrun -f cc -> exit 0, resolving to a real cc — the third of the three the README used to record as 69" 120 0 \
+      '/cc$' xcrun -f cc
   rm -f "$WORK/u27.c" "$WORK/u27.bin"
+
+  # ---- 2b. ./receipts.sh native — the eighth block, which is the one that needs a GraalVM.
+  #
+  # THE SKIP PATH IS WHAT MOST VIEWERS GET, so it is what gets asserted, and it is asserted under
+  # a CONTROLLED environment rather than under whatever this machine happens to have. That is
+  # exactly the mistake the old `GRAALVM_HOME is unset` assertion made: it passed because this
+  # script never exported the variable, and it would have gone on passing with a GraalVM sitting
+  # right there. `env -u GRAALVM_HOME` is what makes these mean something on a machine that HAS
+  # one installed.
+  U27SKIP='^native +skipped - this block builds a REAL native image and needs a GraalVM JDK\.$'
+  expect_ok "receipts.sh native with GRAALVM_HOME unset -> SKIPS out loud (no hash for a build that did not happen)" 300 \
+      "$U27SKIP" \
+      env -u GRAALVM_HOME bash -c 'cd "$REPO/c3-unit27" && ./receipts.sh native'
+  hasnt "…and it printed no md5 whatsoever, which is the whole point of skipping rather than failing" \
+      '^md5 [0-9a-f]{32}'
+  hasnt "…and never even opened the block, so there is no === native === panel to mistake for one" \
+      '^=== native'
+  has "…naming the variable to set, and no path into anybody's home directory" \
+      'export GRAALVM_HOME=/path/to/a/graalvm-jdk'
+  # …and it is the `bin/native-image` that decides, not the variable being set. A GRAALVM_HOME
+  # pointing at a perfectly good NON-GraalVM JDK has to skip too, or the block would try to run
+  # `native-image` out of a directory that has none.
+  expect_ok "…GRAALVM_HOME pointing at a non-GraalVM JDK -> the same skip, because it probes for bin/native-image rather than trusting the name" 300 \
+      "$U27SKIP" \
+      env GRAALVM_HOME="$JAVA_HOME" bash -c 'cd "$REPO/c3-unit27" && ./receipts.sh native'
+  # …and the JAVA_HOME fallback leg, asserted as the REASON for the skip rather than as a
+  # coincidence: receipts.sh pins its own JAVA_HOME at the top, and that JDK has no native-image,
+  # which is the second half of graalvm_home() answering no.
+  is "…and the JAVA_HOME fallback really is a probe: the JDK receipts.sh pins for itself carries no bin/native-image" \
+     "$( [ -x "$(grep -m1 -oE '^export JAVA_HOME=\S+' "$REPO/c3-unit27/receipts.sh" | cut -d= -f2)/bin/native-image" ] \
+        && echo "it has one" || echo "no native-image" )" "no native-image"
+
+  # THE BUILD PATH, and it is asserted only when a GraalVM is really here — the shape c3-unit10's
+  # drift beat uses for OLD_GRADLE. Two full native builds take minutes, so this never runs by
+  # accident, and when it cannot run the NUMBER that went unchecked is named out loud rather than
+  # quietly skipped past.
+  if [ -n "${GRAALVM_HOME:-}" ] && [ -x "${GRAALVM_HOME:-}/bin/native-image" ]; then
+    expect_ok "receipts.sh native with a real GraalVM -> both images build and the A/B hash is the one the page quotes" 5400 \
+        '^md5 e2dc36e7ee472e413f0b227a367c687e  \(exit 0 build / 0 0 runs, then exit 0 build / 1 1 runs\)$' \
+        bash -c 'cd "$REPO/c3-unit27" && ./receipts.sh native'
+    has "…the project as it ships built GREEN and its binary answered both keys" \
+        '^  BUILD SUCCESS lines in the log \.+ 1$'
+    has "…and the no-metadata build was GREEN TOO, which is the whole lesson" \
+        '^  BUILD SUCCESS lines in the log \.+ 1   <- THE BUILD IS GREEN$'
+    has "…while its binary could not find the formatter, at run time, on both keys" \
+        '^  exception type \.+ java\.lang\.ClassNotFoundException$'
+    has "…and the guard that the deletion really reached the jar held: 0 reachability files inside it" \
+        '^  reachability files inside its jar \.+ 0'
+  else
+    skip "receipts.sh native -> md5 e2dc36e7ee472e413f0b227a367c687e, the A/B this unit was re-cut for" \
+         "not measured by this run: it builds two REAL native images and needs a GraalVM JDK, so that hash and the reflection-count drop behind it are the numbers on the page nothing here checks — set GRAALVM_HOME=/path/to/a/graalvm-jdk to run it for real"
+  fi
 
   # ---- 3. THE assertion that keeps that page honest. Three shapes of number, none of them
   # measurable here, none of them on the page. (The 16 GB in the verification header is the
@@ -5333,8 +5444,15 @@ if unit 27 "GraalVM native image" ; then
       '(ops|requests?|req)/s|[0-9]+ *(ops|rps|qps)\b|throughput of'
   xreadme_hasnt "…nor on its exercise page" 27 \
       '[0-9]+([.,][0-9]+)? *(MB|KB|GB|ms|µs|us|ns)\b'
+  # …and the page's own headline sentence. It used to read "**So there is no native binary in this
+  # unit, no binary file size, and no start-up time.**" — which became FALSE the day the unit was
+  # re-cut against a real GraalVM, and was deliberately removed. The three `readme_hasnt` lines
+  # above are what still hold: there is a binary now, but its SIZE and its START-UP TIME are
+  # still nowhere on the page, because a size goes on a slide only after it has repeated and a
+  # duration is never a fact (contract §2a). So the sentence asserted here is the one that
+  # replaced it, and it is the opposite claim.
   readme_quotes "…and the page says so itself, in one sentence" 27 \
-      "**So there is no native binary in this unit, no binary file size, and no start-up time.**"
+      "**There is a native binary in this unit, and the second one is the point.**"
 
   # ---- what DOES run here: the closed-world problem, measured with the JDK's own tool
   is "formatters.properties names two implementation classes" \
@@ -5365,9 +5483,18 @@ print(sum(1 for i in d['resources']['includes'] if re.fullmatch(i['pattern'], 'f
     receipt_line 27 closedworld  "md5 8b369d156ae270ca70df59514b19b5e0  (exit 0)"
     receipt_line 27 aot          "md5 f4dd3ce4630f795b0476fc625adc11fa  (exit 0 / 0 / 0 / 0)"
     receipt_line 27 jlink        "md5 293e584d48412834224ffd8f9321b846  (exit 0 full, exit 1 trimmed)"
-    receipt_line 27 graalvm      "md5 979c016353f3cb84197afd46bb610803  (exit 1 from mvn -Pnative, 69 from cc, 69 from ld)"
+    # THE REWRITTEN BLOCK. This was `md5 979c016353f3cb84197afd46bb610803  (exit 1 from
+    # mvn -Pnative, 69 from cc, 69 from ld)` — a hash over THIS MACHINE's Xcode-licence state,
+    # which is why it moved when the licence was accepted. The block now reads pins out of
+    # pom.xml and central/, so its trailer says `(no build)` and the hash is the same on a
+    # machine with GraalVM and one without.
+    receipt_line 27 graalvm      "md5 44c4435849eafc03e408d6ab50c33665  (no build)"
     receipt_line 27 nativeconfig "md5 7c9ad3b1cf4bee7278bc9c9b3960ca99  (no build)"
-    receipt_line 27 solution     "md5 fe2edae3b575cd2d6074996d18db686e  (no build - the answer is data, and this machine cannot run the build that consumes it)"
+    # …and the one trailer whose md5 did NOT move: the capture is identical, and only the
+    # parenthetical changed, because "this machine cannot run the build that consumes it" stopped
+    # being true. `./receipts.sh native` IS that build. Compared verbatim, so the wording is held
+    # to as tightly as the hash.
+    receipt_line 27 solution     "md5 fe2edae3b575cd2d6074996d18db686e  (no build - the answer is data; ./receipts.sh native is the build that consumes it, and it costs minutes)"
     derived_unprobed 27
     # THE reason there is no whole-script hash: three blocks print a byte size OUTSIDE the hash,
     # with the reason on screen. A block that started hashing one would reproduce exactly once.
@@ -5384,10 +5511,33 @@ print(sum(1 for i in d['resources']['includes'] if re.fullmatch(i['pattern'], 'f
         '^no md5: image sizes vary with the compression level'
 
     receipt_panel 27 graalvm
-    has "…receipts.sh graalvm: native-image on PATH ... no" '^  native-image on PATH \.+ no$'
-    has "…GRAALVM_HOME unset" '^  GRAALVM_HOME \.+ <unset>$'
-    has "…0 GraalVM JDKs installed" '^  GraalVM JDKs installed \.+ 0$'
-    has "…exit 69 from cc" '^    exit 69$'
+    # FOUR ASSERTIONS STOOD HERE and every one of them was about this machine:
+    # `native-image on PATH ... no`, `GRAALVM_HOME ... <unset>`, `GraalVM JDKs installed ... 0`
+    # and `exit 69`. The block does not measure the machine any more, so all four are replaced by
+    # assertions over the PINS — and each one is compared against the FILE it was read out of,
+    # not against a literal kept here, so a block that started typing its own answers fails.
+    is "…receipts.sh graalvm: the imageName it prints is the one pom.xml really names" \
+       "$(grep -m1 -E '^  the image it names \.+ ' "$OUT" | sed -E 's/^.*\.\.+ //')" \
+       "$(grep -oE '<imageName>[^<]*' "$REPO/c3-unit27/pom.xml" | sed 's/<imageName>//' | head -1)"
+    # …and this one counts the buildArgs a DIFFERENT way from the block on purpose. receipts.sh
+    # uses `grep -c '<buildArg>'`, which counts LINES THAT CONTAIN one, not elements; this counts
+    # the elements with `grep -o`. They agree at 2 today because the pom puts one per line, and
+    # they diverge the moment two share a line — which is the drift worth catching, and which a
+    # copy of the block's own expression could never see.
+    is "…and the buildArg count it prints is really how many <buildArg> ELEMENTS that pom has" \
+       "$(grep -m1 -oE '^  build arguments \.+ [0-9]+' "$OUT" | grep -oE '[0-9]+$')" \
+       "$(grep -o '<buildArg>' "$REPO/c3-unit27/pom.xml" | wc -l | tr -d ' ')"
+    is "…and the asset size is the one in central/graalvm-ce-builds-latest.json rather than a number typed anywhere" \
+       "$(grep -m1 -oE '^  its size, in bytes \.+ [0-9]+' "$OUT" | grep -oE '[0-9]+$')" \
+       "$(python3 -c "
+import json
+d=json.load(open('$REPO/c3-unit27/central/graalvm-ce-builds-latest.json'))
+print(next(a['size'] for a in d['assets'] if 'macos-aarch64' in a['name'] and a['name'].endswith('.tar.gz')))")"
+    # THE ASSERTION THAT KEEPS THE RE-CUT HONEST: not one word about the machine reading it. If
+    # any of those four old lines ever comes back, this block is hashing machine state again and
+    # the next licence change moves its md5 for the second time.
+    hasnt "…and it prints nothing at all about THIS machine — no PATH probe, no GRAALVM_HOME, no installed-JDK count, no exit 69" \
+        'native-image on PATH|GRAALVM_HOME|GraalVM JDKs installed|exit 69'
     has "…and the GraalVM CE release and asset are read out of central/ with no network" \
         '^  GraalVM CE release \.+ graal-'
     panel 27 '^## Read this first' 2
@@ -5432,7 +5582,13 @@ print(sum(1 for i in d['resources']['includes'] if re.fullmatch(i['pattern'], 'f
     has "…the exercise's start state covers ONE of the two formatter classes" '^  of those, covered \.+ 1$'
     has "…the answer covers both" '^  of 2 formatter classes, covered \.+ 2$'
     has "…with 0 lines of Java changed, because the fix is DATA" '^  lines of Java changed \.+ 0$'
-    has "…and the block says so: the answer is data, and this machine cannot run the build that consumes it" \
+    # THE LABEL WAS THE FALSEHOOD, NOT THE GREP. This read "…and the block says so: the answer is
+    # data, and this machine cannot run the build that consumes it" — and went on PASSING, because
+    # the pattern it actually greps for is about the CI check being cheap and has nothing to do
+    # with what this machine can build. The machine can build it: that is what `native` does. So
+    # the label now says what the pattern proves, and the claim about the build moved to the
+    # trailer assertion above, where it is compared verbatim.
+    has "…and the block names the check that would have caught it with no GraalVM at all: eight lines of Python, in CI, costing no minutes" \
         'That is eight lines of Python, it runs in CI, and it costs no minutes\.'
   fi
 fi

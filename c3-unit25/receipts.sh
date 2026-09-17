@@ -71,6 +71,26 @@ of_total() {  # $1 = file, $2 = how many lines were shown
   [ -s "$1" ] || die "of_total: $1 is missing or empty"
   printf '(%s line(s) shown of %s in the whole capture)\n' "$2" "$(wc -l < "$1" | tr -d ' ')"
 }
+# A DIE BEHIND A PIPE IS NOT A GUARD.
+#
+# `casebug` and `solution` build their panels inside `{ … } > .r-<id>.out 2>&1` and elide their
+# captures as `trim <file> <n> | sed 's/^/  /'`. The left-hand side of a pipeline runs in a
+# SUBSHELL: `trim`'s `die` exits THAT shell, the pipeline's status is sed's 0, nobody tests the
+# pipeline so `set -o pipefail` never comes into it - and the RECEIPT FAILED line goes to
+# stderr, which the `2>&1` puts INSIDE the capture being hashed. Measured here: with the
+# captures emptied, `casebug` fired both of its "would be a lie" guards and still printed
+# `md5 84e01016f3804058d3acc0b01fb9a8ac  (exit 0, 1, 1)`, `solution` did the same for
+# `md5 c43f75d75c6fe339e2779ad8649a26b7  (exit 1 then 0)`, and both times ./receipts.sh
+# exited 0 over a capture with RECEIPT FAILED written in it.
+#
+# So the condition is asserted HERE: current shell, no pipeline, no redirect, where `die` is
+# fatal and visible. The pipelines are untouched, so no panel's bytes move.
+have_capture() {  # $@ = the captures a panel is about to elide
+  local f
+  for f in "$@"; do
+    [ -s "$f" ] || die "trim: $f is missing or empty, so any elision count over it would be a lie"
+  done
+}
 
 count_in() {
   [ -s "$1" ] || die "$3: $1 is missing or empty, so any count over it would be a lie"
@@ -246,11 +266,17 @@ run_casebug() {
     cs_available=yes
     cp -R target/classes "/Volumes/$CSVOL/classes"
     java -cp "/Volumes/$CSVOL/classes" com.tiffinbox.ci.MenuLoader > .r-c.raw 2>&1; rc_c=$?
-    cs_out=$(trim .r-c.raw 2)
+    # `$(trim …)` is a subshell too: without the `|| exit 1` a dying trim left cs_out EMPTY
+    # and this block carried on to print a blank line in state (c)'s panel and hash it.
+    cs_out=$(trim .r-c.raw 2) || exit 1
     hdiutil detach "/Volumes/$CSVOL" -quiet 2>/dev/null || true
     rm -f "$CSIMG"
     [ "$rc_c" -ne 0 ] || die "state (c) passed on a case-sensitive volume, which cannot be right"
   fi
+
+  # …and the captures the panel elides, checked before the panel is built rather than inside a
+  # pipeline that cannot report it. See have_capture above.
+  have_capture .r-a.raw .r-b.raw
 
   { printf 'the build, first:\n'
     printf '  %s\n' "$tests"
@@ -367,6 +393,9 @@ run_solution() {
   ( cd .sol && mvn -B -ntp -q -Dmaven.repo.local="$REPO" clean package ) > .r-sa.raw 2>&1 \
     || die "the answered build failed; see .r-sa.raw"
   local after; java -cp ".sol/$JAR" com.tiffinbox.ci.MenuLoader > .r-sc.raw 2>&1; after=$?
+
+  # …and the two captures the panel elides. See have_capture above.
+  have_capture .r-sb.raw .r-sc.raw
 
   { printf 'start state - the jar the shipped build produces:\n'
     trim .r-sb.raw 2 | sed 's/^/  /'

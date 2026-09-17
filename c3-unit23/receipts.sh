@@ -71,6 +71,25 @@ trim() {  # $1 = file, $2 = lines to keep, $3 = optional extra sed program for t
 # The same rule for a capture that is SELECTED by pattern rather than cut at a line number:
 # say how many lines the whole capture had, so "one line of a stack trace" is never mistaken
 # for "the whole of the failure".
+# A DIE BEHIND A PIPE IS NOT A GUARD.
+#
+# Every panel here is built inside `{ … } > .r-<id>.out 2>&1`, and the elided captures in it
+# are printed as `trim <file> <n> | sed 's/^/  /'`. The left-hand side of a pipeline runs in a
+# SUBSHELL: `trim`'s `die` exits THAT shell, the pipeline's status is sed's 0, nobody tests the
+# pipeline so `set -o pipefail` never comes into it - and the RECEIPT FAILED line goes to
+# stderr, which the `2>&1` puts INSIDE the capture being hashed. Measured here: with `.r-j1.raw`
+# and `.r-j2.raw` emptied and `.mi3/…/module-info.java` truncated, `jdeps` fired SIX guards of
+# its own and still printed `md5 6fa1b8b7ef7cfd07d35bff30e695860b  (exit 1, 2, 0)`, and
+# ./receipts.sh exited 0.
+#
+# So the condition is asserted HERE: current shell, no pipeline, no redirect, where `die` is
+# fatal and visible. The pipelines are untouched, so no panel's bytes move.
+have_capture() {  # $@ = the captures a panel is about to elide
+  local f
+  for f in "$@"; do
+    [ -s "$f" ] || die "trim: $f is missing or empty, so any elision count over it would be a lie"
+  done
+}
 of_total() {  # $1 = file, $2 = how many lines were shown
   [ -s "$1" ] || die "of_total: $1 is missing or empty"
   printf '(%s line(s) shown of %s in the whole capture)\n' "$2" "$(wc -l < "$1" | tr -d ' ')"
@@ -130,9 +149,18 @@ run_three() {
   [ -f "$FAT" ] || die "no $FAT after -Pfat package"
 
   local thin_e fat_e sum_e
+  local j
+  # A DIE BEHIND A SUBSTITUTION IS NOT A GUARD EITHER (see have_capture above). The panel
+  # below asks `$(entries "$j")` for every jar, and `$(…)` is a subshell: a jar that is not
+  # there killed only that subshell, and the row printed with its count simply MISSING.
+  # Measured: a `target/lib/ghost.jar` that matches the glob but is not a file fired
+  # `no such jar: target/lib/ghost.jar` and this block still printed
+  # `md5 4ef28a6b39da77c33bdd3c1138f74e25  (exit 0)`, exit 0. So every jar the panel is about
+  # to ask about is asked HERE first, in the current shell, where `entries`' die is fatal.
+  # ($THIN and $FAT need no such pre-pass: `[ -f … ] || die` above already covers both.)
+  for j in target/lib/*.jar; do entries "$j" > /dev/null; done
   thin_e=$(entries "$THIN"); fat_e=$(entries "$FAT")
   sum_e=$thin_e
-  local j
   for j in target/lib/*.jar; do sum_e=$(( sum_e + $(entries "$j") )); done
 
   { printf 'the same program, packaged three ways\n'
@@ -154,8 +182,13 @@ run_three() {
 
   cat .r-three.out
   printf 'md5 %s  (exit 0)\n' "$(hash_of .r-three.out)"
+  # …and the same rule for this line's two sizes: read them in the current shell, so that a
+  # `bytes` that dies stops the script instead of printing `thin  bytes`.
+  local sz_thin sz_fat
+  sz_thin=$(bytes "$THIN") || exit 1
+  sz_fat=$(bytes "$FAT")   || exit 1
   printf 'NOT hashed, because a byte size is not a state word: thin %s bytes, libs %s bytes, fat %s bytes\n' \
-    "$(bytes "$THIN")" "$(cat target/lib/*.jar | wc -c | tr -d ' ')" "$(bytes "$FAT")"
+    "$sz_thin" "$(cat target/lib/*.jar | wc -c | tr -d ' ')" "$sz_fat"
 }
 
 # --------------------------------------------------------------- classpath ----
@@ -303,6 +336,14 @@ run_jdeps() {
   done
   [ "$mrj" -gt 0 ] || die "no multi-release jar on the module path, so attempt 2 cannot fail the way it does"
 
+  # The two captures the panel elides, and the two counts it takes over the generated
+  # module-info, all resolved HERE - outside the pipelines and outside the `> .r-jdeps.out 2>&1`
+  # that was swallowing their RECEIPT FAILED lines. See have_capture above.
+  have_capture .r-j1.raw .r-j2.raw
+  local n_req n_exp
+  n_req=$(count_positive "$out" '^[[:space:]]*requires' 'requires clauses') || exit 1
+  n_exp=$(count_positive "$out" '^[[:space:]]*exports'  'exports clauses')  || exit 1
+
   { printf 'attempt 1 - the jar on its own\n'
     printf '  $ jdeps --generate-module-info <dir> %s\n' "$(basename "$THIN")"
     trim .r-j1.raw 4 | sed 's/^/  /'
@@ -324,8 +365,8 @@ run_jdeps() {
     printf '\nwritten to %s:\n' "$(printf '%s' "$out" | sed 's#^\.mi3/#<dir>/#')"
     sed 's/^/  /' "$out"
     printf '\nattempts that failed: %s of 3\n' "$(( (rc1!=0) + (rc2!=0) + (rc3!=0) ))"
-    printf 'requires clauses generated: %s\n' "$(count_positive "$out" '^[[:space:]]*requires' 'requires clauses')"
-    printf 'exports clauses generated: %s\n'  "$(count_positive "$out" '^[[:space:]]*exports'  'exports clauses')"
+    printf 'requires clauses generated: %s\n' "$n_req"
+    printf 'exports clauses generated: %s\n'  "$n_exp"
     printf '\nand what the jar says about itself before any of that:\n'
     jar --describe-module --file "$THIN" 2>&1 | sed '/^$/d' | sed 's/^/  /'
     printf '  -- the SAME question, of jackson-databind:\n'

@@ -1,45 +1,76 @@
 #!/bin/bash
 # receipts.sh - regenerate every number this unit puts on a slide.
 #
-#   ./receipts.sh            run every block
+#   ./receipts.sh            run every block EXCEPT `native`
 #   ./receipts.sh aot        run one block
+#   ./receipts.sh native     the two real native builds - minutes long, needs GRAALVM_HOME
 #
 # READ THIS FIRST. IT IS THE HONEST VERSION AND IT DECIDES THE WHOLE UNIT.
 #
 #   This unit is about ahead-of-time compilation, and a GraalVM native image is its most
-#   famous form. **A native image cannot be built on the machine this unit was written on.**
-#   Two independent reasons, both measured by `./receipts.sh graalvm` rather than asserted:
+#   famous form. **This unit builds one, and then builds it wrong on purpose.**
 #
-#     1. There is no GraalVM here. `native-image` is not on PATH, no GraalVM JDK is
-#        installed, and `mvn -Pnative package` fails with the plugin's own words.
-#     2. Even with one, the link step could not run: this Mac's C toolchain answers
-#        `cc`, `ld` and `xcrun` with exit 69 and "You have not agreed to the Xcode license
-#        agreements". native-image shells out to the system linker for its last step.
+#   The `native` block is the spine and it is not part of a bare `./receipts.sh` run, for
+#   two reasons that are both about honesty rather than convenience:
 #
-#   So this unit does NOT show you a native binary, a binary's size, or a binary's start-up
-#   time. It shows you the two things that are actually being taught, both of which run
-#   here, on a plain JDK 25:
+#     1. IT NEEDS A GRAALVM JDK, AND IT DOES NOT GUESS WHERE. `GRAALVM_HOME` first, then
+#        `JAVA_HOME` when that contains a `bin/native-image`, and otherwise a SKIP that
+#        names the variable to set. No path to anybody's Downloads folder is written down
+#        here. A viewer without GraalVM gets an explanation, never a failure, and never a
+#        hash for a build that did not happen.
+#     2. IT TAKES MINUTES, NOT SECONDS. Two full native builds, so that the second one can
+#        be the same project with its two reachability files deleted. `./receipts.sh` with
+#        no arguments stays a thing you can run while you watch it.
 #
-#     - THE AOT PATH IS REAL ON THIS JDK. `-XX:AOTMode=record` / `create` and a cache that
-#       1985 of 1991 classes come out of. That is JEP 483 and JEP 515, in the JDK you have.
-#     - THE CLOSED-WORLD PROBLEM IS REAL AND MEASURABLE. jdeps reports zero references from
-#       the entry point to either formatter, because the only place their names exist is a
-#       properties file. That is exactly what a closed-world compiler cannot see.
+#           export GRAALVM_HOME=/path/to/a/graalvm-jdk
+#           ./receipts.sh native
 #
-#   And then the honest contrast, which is the unit's point: the JDK's AOT cache FALLS BACK
-#   - the class it never saw is loaded from the jar and the program works. A native image
-#   has no jar to fall back to. `aot` measures the fallback; `graalvm` measures why the
-#   other half cannot be measured here.
+#   WHAT THAT BLOCK MEASURES, AND IT IS THE WHOLE UNIT. The project as it ships builds a
+#   binary that answers both of its keys, exit 0. Delete
+#   `src/main/resources/META-INF/native-image/` - two json files, no Java touched - and the
+#   build is still BUILD SUCCESS, still exit 0, and the binary it produced is broken:
+#   `ClassNotFoundException` on the formatter, exit 1, on both keys. **A green build that
+#   produced a broken artifact.** The metadata this unit has always shipped and never
+#   consumed is proved load-bearing by deleting it.
+#
+#   And the three beats that need no GraalVM at all still run on a plain JDK 25, because
+#   they are the reason the binary behaves that way:
+#
+#     - THE CLOSED WORLD IS MEASURABLE WITHOUT A COMPILER. jdeps reports zero references
+#       from the entry point to either formatter, because the only place their names exist
+#       is a properties file. That is exactly what a closed-world compiler cannot see.
+#     - THE AOT PATH IS REAL ON THIS JDK, as a COUNT. `-XX:AOTMode=record` / `create` and a
+#       cache that 1985 of 1991 classes come out of. JEP 483 and JEP 515, in the JDK you
+#       have - and it FALLS BACK: the class the training run never saw is loaded from the
+#       jar and the program works. A native image has no jar to fall back to, which the
+#       `native` block now demonstrates rather than asserts.
+#     - JLINK IS THE GENTLE CLOSED WORLD. Two images, five modules against one, same jar,
+#       exit 0 against NoClassDefFoundError. It tells you at start-up; a native image
+#       decided at build time and has nothing left to tell you with.
+#
+#   WHAT IS NOT HERE, AND WILL NOT BE: no throughput claim, no start-up-time claim, and no
+#   binary-vs-jar size comparison. The native build's wall clock is not a number on any
+#   slide either - a state word and a count instead (contract 2a/2b/2d). The binary's byte
+#   size is printed OUTSIDE the hash with its reason, like every other size in this file.
 
 set -u
 set -o pipefail
 cd "$(dirname "$0")" || exit 1
 
+# A viewer's own JAVA_HOME is captured BEFORE this script overwrites it, because
+# graalvm_home() below offers it as a fallback and the overwrite made that fallback
+# unreachable: the script set JAVA_HOME to the plain JDK on line 60, so by the time any
+# block ran, "JAVA_HOME containing bin/native-image" could never be true and a viewer who
+# had pointed JAVA_HOME at a GraalVM still got the skip — while this file, the README and
+# the deck all said that path worked. Documenting a route the code cannot take is the same
+# defect this unit is about, so the route is real now.
+VIEWER_JAVA_HOME="${JAVA_HOME:-}"
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
 export PATH="$JAVA_HOME/bin:$PATH"
 # jlink and jmod read $JAVA_HOME/jmods, which the Homebrew symlink does not expose.
 REALHOME=/opt/homebrew/opt/openjdk@25/libexec/openjdk.jdk/Contents/Home
 
+UNIT="$PWD"
 REPO="$PWD/.m2-demo"
 MVN=(mvn -B -ntp -Dmaven.repo.local="$REPO")
 JAR=target/tiffinbox-core-1.0.0.jar
@@ -60,6 +91,7 @@ nohash() { printf 'no md5: %s\n' "$1"; }
 # and the block hashed to two different values. The file: URL is normalised FIRST, by a rule
 # that does not care what is in the middle of it.
 mask() { sed -E -e 's#file:[^ ]*/(tiffinbox-core-1\.0\.0\.jar)#file:<project>/target/\1#g' \
+                -e 's#[^ ]*/u27ab\.[A-Za-z0-9]+/proj/#<copy>/#g' \
                 -e "s#${PWD}/#<project>/#g" -e 's#.*/c3-unit27/#<project>/#g' \
                 -e 's#/Users/[^/]*/#<home>/#g' \
                 -e 's/^\[[0-9]+\.[0-9]+s\]/[<t>]/' \
@@ -86,6 +118,26 @@ trim() {  # $1 = file, $2 = lines to keep, $3 = optional extra sed program for t
 of_total() {  # $1 = file, $2 = how many lines were shown
   [ -s "$1" ] || die "of_total: $1 is missing or empty"
   printf '(%s line(s) shown of %s in the whole capture)\n' "$2" "$(wc -l < "$1" | tr -d ' ')"
+}
+# A DIE BEHIND A PIPE IS NOT A GUARD, and this block is where that was caught.
+#
+# Every panel below is built inside `{ … } > .r-<id>.out 2>&1`, and the elided captures in it
+# are printed as `trim <file> <n> | sed 's/^/  /'`. The left-hand side of a pipeline runs in a
+# SUBSHELL: `trim`'s `die` exits THAT shell, the pipeline's status is sed's 0, `set -o pipefail`
+# is never consulted because nobody tests the pipeline at all - and the RECEIPT FAILED line,
+# being on stderr, lands INSIDE the capture through the `2>&1`. The block then cats the file
+# and prints an md5 over it. Measured, in this unit: with `.r-trim.raw` emptied, `jlink` fired
+# its own "would be a lie" guard and still printed `md5 07ebe29235285bf2e819ab491dc7e2f6
+# (exit 0 full, exit 1 trimmed)`, and ./receipts.sh exited 0.
+#
+# So the condition `trim` and `of_total` guard is asserted HERE instead: in the current shell,
+# outside every pipeline and outside that redirect, where `die` is both fatal and visible on
+# the terminal. The pipelines themselves are left exactly as they were, so no hash moves.
+have_capture() {  # $@ = the captures a panel is about to elide
+  local f
+  for f in "$@"; do
+    [ -s "$f" ] || die "trim: $f is missing or empty, so any elision count over it would be a lie"
+  done
 }
 
 count_in() {
@@ -236,7 +288,16 @@ run_aot() {
 
   cat .r-aot.out
   printf 'md5 %s  (exit %s / %s / %s / %s)\n' "$(hash_of .r-aot.out)" "$rc_rec" "$rc_cre" "$rc_aot" "$rc_led"
-  nohash "the three sizes below are bytes, and a byte size goes on a slide only after it has repeated (C2 finding #3). AOT configuration $(bytes .aot.conf), AOT cache $(bytes .aot.cache), jar $(bytes "$JAR")."
+  # THE SAME DEFECT AS THE PIPELINES, IN A COMMAND SUBSTITUTION: `nohash "… $(bytes X) …"` runs
+  # `bytes` in a subshell, so its `die` killed only that subshell and the line printed with the
+  # number simply MISSING. Measured: with both files removed this printed
+  # `AOT configuration , AOT cache , jar 18844.` and exited 0. The three sizes are read first,
+  # in the current shell, and a `bytes` that dies now stops the script.
+  local sz_conf sz_cache sz_jar
+  sz_conf=$(bytes .aot.conf)   || exit 1
+  sz_cache=$(bytes .aot.cache) || exit 1
+  sz_jar=$(bytes "$JAR")       || exit 1
+  nohash "the three sizes below are bytes, and a byte size goes on a slide only after it has repeated (C2 finding #3). AOT configuration $sz_conf, AOT cache $sz_cache, jar $sz_jar."
   rm -f .aot.conf .aot.cache
 }
 
@@ -265,6 +326,9 @@ run_jlink() {
   .img-trim/bin/java -cp "$CP" "$MAIN" ledger > .r-trim.raw 2>&1; rc_trim=$?
   [ "$rc_full" -eq 0 ] || die "the full image could not run the program (exit $rc_full)"
   [ "$rc_trim" -ne 0 ] || die "the trimmed image ran the program; the closed-world cost did not reproduce"
+  # …and the capture the panel elides, checked before the panel is built rather than inside a
+  # pipeline that cannot report it. See have_capture above.
+  have_capture .r-trim.raw
 
   { printf 'two runtimes, from the same JDK, built in one command each:\n'
     printf '  $ jlink --add-modules java.base,java.sql --output <img>\n'
@@ -294,30 +358,39 @@ run_jlink() {
 }
 
 # ---------------------------------------------------------------- graalvm ----
-# HASHED. The block that says what this machine cannot do, and proves each claim.
+# HASHED, and it runs anywhere. What the native profile PINS, all of it read out of files
+# that ship with this unit - so this block hashes the same on a machine with GraalVM and on
+# a machine without one. The old version of this block hashed THIS Mac's Xcode-licence state
+# (exit 69 from cc) and the state changed under it, which is exactly the failure mode a
+# receipt is supposed to prevent. Machine state belongs in `native`, which says when it
+# cannot run; a pin belongs here, where it cannot move without a file moving.
 run_graalvm() {
-  block "graalvm - why there is no binary in this unit  [HASHED]"
-  need_jdk25; build_once
-
-  local ni_on_path graal_home rc_native rc_cc rc_ld
-  ni_on_path=$(command -v native-image > /dev/null 2>&1 && echo yes || echo no)
-  graal_home="${GRAALVM_HOME:-<unset>}"
-  [ "$ni_on_path" = no ] || die "native-image IS on PATH - this unit's whole framing must be re-measured"
-
-  "${MVN[@]}" -Pnative package > .r-native.raw 2>&1; rc_native=$?
-  [ "$rc_native" -ne 0 ] || die "mvn -Pnative package SUCCEEDED - re-measure everything below"
-
-  # The C toolchain. native-image shells out to it for the final link.
-  printf 'int main(void){return 0;}\n' > .r-cc.c
-  cc .r-cc.c -o .r-cc.bin > .r-cc.raw 2>&1; rc_cc=$?
-  /usr/bin/ld -v > .r-ld.raw 2>&1; rc_ld=$?
-  rm -f .r-cc.c .r-cc.bin
+  block "graalvm - what the native profile pins  [HASHED]"
 
   local plugin_pinned plugin_latest plugin_pub graal_tag graal_date asset asset_bytes
+  local goal phase image nargs args
   plugin_pinned=$(grep -A2 'native-maven-plugin' pom.xml | grep -oE '<version>[^<]*' | sed 's/<version>//' | head -1)
   plugin_latest=$(grep -o '<version>[^<]*' central/native-maven-plugin-maven-metadata.xml | sed 's/<version>//' | tail -1)
   plugin_pub=$(grep -oE "<a href=\"$plugin_latest/\"[^>]*>[^<]*</a>[^0-9]*[0-9]{4}-[0-9]{2}-[0-9]{2}" \
                central/native-maven-plugin-directory-listing.html | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | tail -1)
+  [ -n "$plugin_pinned" ] || die "no native-maven-plugin version in pom.xml"
+  [ -n "$plugin_latest" ] || die "no version list in central/native-maven-plugin-maven-metadata.xml"
+  [ -n "$plugin_pub" ]    || die "no publication date for $plugin_latest in the directory listing"
+
+  # The profile's SHAPE, derived from the pom rather than described. A viewer who edits the
+  # profile moves these three lines and therefore moves the hash.
+  # SCOPED TO THE NATIVE PROFILE'S OWN EXECUTION. A bare grep for the first <goal> in this
+  # pom answers `copy-dependencies` - maven-dependency-plugin's, four plugins earlier - and
+  # the first run of this block printed exactly that. The execution's id is the anchor.
+  local nx; nx=$(sed -n '/<id>build-native<\/id>/,/<\/execution>/p' pom.xml)
+  goal=$(printf '%s' "$nx" | grep -oE '<goal>[^<]*' | sed 's/<goal>//' | head -1)
+  phase=$(printf '%s' "$nx" | grep -oE '<phase>[^<]*' | sed 's/<phase>//' | head -1)
+  image=$(grep -oE '<imageName>[^<]*' pom.xml | sed 's/<imageName>//' | head -1)
+  args=$(grep -oE '<buildArg>[^<]*' pom.xml | sed 's/<buildArg>//' | tr '\n' ' ' | sed 's/ $//')
+  nargs=$(grep -c '<buildArg>' pom.xml | tr -d ' ')
+  [ -n "$goal" ] && [ -n "$phase" ] && [ -n "$image" ] && [ "$nargs" -gt 0 ] \
+    || die "could not read the native profile's goal/phase/imageName/buildArgs out of pom.xml"
+
   graal_tag=$(python3 -c "import json;print(json.load(open('central/graalvm-ce-builds-latest.json'))['tag_name'])")
   graal_date=$(python3 -c "import json;print(json.load(open('central/graalvm-ce-builds-latest.json'))['published_at'][:10])")
   read -r asset asset_bytes <<EOF
@@ -331,38 +404,235 @@ for a in d['assets']:
 EOF
   [ -n "$asset_bytes" ] || die "no macos-aarch64 asset in the GraalVM release json"
 
-  { printf 'is a native image possible on this machine? Asked, not assumed:\n'
-    printf '  native-image on PATH ............... %s\n' "$ni_on_path"
-    printf '  GRAALVM_HOME ....................... %s\n' "$graal_home"
-    printf '  GraalVM JDKs installed ............. %s\n' \
-      "$(ls -d /Library/Java/JavaVirtualMachines/*graal* ~/Library/Java/JavaVirtualMachines/*graal* /opt/homebrew/opt/*graal* 2>/dev/null | wc -l | tr -d ' ')"
-    printf '\n  $ mvn -Pnative package\n'
-    grep -m1 -E '^\[ERROR\] Failed to execute goal org\.graalvm\.buildtools' .r-native.raw \
-      | sed -E 's/^\[ERROR\] //' | mask | fold -w 92 -s | sed 's/^/  /'
-    printf '  exit %s\n' "$rc_native"
-    printf '\nand the second, independent reason - the linker native-image would shell out to:\n'
-    printf '  $ cc <a two-line C file> -o <binary>\n'
-    trim .r-cc.raw 1 | sed 's/^/    /'
-    printf '    exit %s\n' "$rc_cc"
-    printf '  $ /usr/bin/ld -v\n'
-    trim .r-ld.raw 1 | sed 's/^/    /'
-    printf '    exit %s\n' "$rc_ld"
-    printf '  Accepting that licence needs sudo and changes a machine-wide setting, so this\n'
-    printf '  unit does not do it. It records the state and designs around it.\n'
-    printf '\nwhat IS pinned and shipped, derived from central/ with no network:\n'
+  { printf 'the native profile and what runs it - every line read out of a file in this unit:\n'
     printf '  native-maven-plugin pinned in pom.xml ... %s\n' "$plugin_pinned"
     printf '  newest in its version list .............. %s, published %s\n' "$plugin_latest" "$plugin_pub"
+    printf '  the goal it binds ....................... %s, at the %s phase\n' "$goal" "$phase"
+    printf '  the image it names ...................... %s\n' "$image"
+    printf '  build arguments ......................... %s   %s\n' "$nargs" "$args"
     printf '  GraalVM CE release ...................... %s, published %s\n' "$graal_tag" "$graal_date"
     printf '  the macOS arm64 asset ................... %s\n' "$asset"
     printf '  its size, in bytes ...................... %s\n' "$asset_bytes"
-    printf '\nSo the profile in pom.xml is real, pinned, and unrunnable here. A viewer with a\n'
-    printf 'GraalVM JDK runs it unchanged. Nothing in this unit shows a binary that does not\n'
-    printf 'exist, and nothing quotes a start-up time nobody measured.\n'
+    printf '\nEvery line above is a property of this REPOSITORY, not of the machine reading it,\n'
+    printf 'so this block hashes the same for a viewer with GraalVM and a viewer without one.\n'
+    printf 'What the machine can do is ./receipts.sh native - and that block builds a real\n'
+    printf 'binary, takes minutes rather than seconds, and is therefore not part of a bare\n'
+    printf './receipts.sh run. It says so itself when you ask for it.\n'
   } > .r-graalvm.out 2>&1
 
   cat .r-graalvm.out
-  printf 'md5 %s  (exit %s from mvn -Pnative, %s from cc, %s from ld)\n' \
-    "$(hash_of .r-graalvm.out)" "$rc_native" "$rc_cc" "$rc_ld"
+  printf 'md5 %s  (no build)\n' "$(hash_of .r-graalvm.out)"
+}
+
+# ----------------------------------------------------------------- native ----
+# HASHED, MINUTES LONG, AND NOT PART OF `all`. The A/B this unit now turns on: the project
+# as it ships builds a binary that works, and the same project with its two reachability
+# files deleted builds a binary that is GREEN and BROKEN.
+#
+# WHERE THE GRAALVM COMES FROM, and it is not hardcoded. GRAALVM_HOME first, then JAVA_HOME
+# if it happens to contain a native-image, and otherwise a SKIP that names the variable to
+# set - the same shape c3-unit10's `drift` block uses for OLD_GRADLE. A viewer without
+# GraalVM gets an explanation, never a failure and never a fabricated hash.
+graalvm_home() {
+  if [ -n "${GRAALVM_HOME:-}" ] && [ -x "$GRAALVM_HOME/bin/native-image" ]; then
+    printf '%s\tGRAALVM_HOME' "$GRAALVM_HOME"; return 0
+  fi
+  # VIEWER_JAVA_HOME, not JAVA_HOME: line 60 has already overwritten the latter with the
+  # plain JDK this unit's other blocks need, so testing it here could never succeed.
+  if [ -n "${VIEWER_JAVA_HOME:-}" ] && [ -x "$VIEWER_JAVA_HOME/bin/native-image" ]; then
+    printf '%s\tJAVA_HOME' "$VIEWER_JAVA_HOME"; return 0
+  fi
+  return 1
+}
+
+run_native() {
+  local gh_line gh src
+  gh_line=$(graalvm_home) || gh_line=""
+  if [ -z "$gh_line" ]; then
+    printf '\nnative       skipped - this block builds a REAL native image and needs a GraalVM JDK.\n'
+    printf '             Set GRAALVM_HOME to one and re-run:\n'
+    printf '               export GRAALVM_HOME=/path/to/a/graalvm-jdk\n'
+    printf '               ./receipts.sh native\n'
+    printf '             JAVA_HOME is used instead when it contains bin/native-image. Nothing\n'
+    printf '             is guessed and no hash is printed for a build that did not happen.\n'
+    return 0
+  fi
+  gh=${gh_line%%$'\t'*}; src=${gh_line##*$'\t'}
+
+  block "native - the binary, and the same binary without its reachability metadata  [HASHED]"
+
+  local ni_ver
+  ni_ver=$("$gh/bin/native-image" --version 2>&1 | head -1)
+  [ -n "$ni_ver" ] || die "$gh/bin/native-image printed no version"
+
+  # ---- step 1: the project exactly as it ships.
+  local rc_a rc_ap rc_al
+  ( export JAVA_HOME="$gh" GRAALVM_HOME="$gh" PATH="$gh/bin:$PATH"
+    mvn -B -ntp -Pnative "-Dmaven.repo.local=$PWD/.m2-demo" clean package ) > .r-nat-a.raw 2>&1; rc_a=$?
+  [ "$rc_a" -eq 0 ] || die "the shipped project's native build exited $rc_a; see .r-nat-a.raw"
+  [ -x target/tiffinbox ] || die "no target/tiffinbox after a BUILD SUCCESS"
+  ./target/tiffinbox plain  > .r-nat-ap.raw 2>&1; rc_ap=$?
+  ./target/tiffinbox ledger > .r-nat-al.raw 2>&1; rc_al=$?
+  [ "$rc_ap" -eq 0 ] && [ "$rc_al" -eq 0 ] \
+    || die "the shipped binary failed (plain=$rc_ap ledger=$rc_al); re-measure before anything goes on a slide"
+  local bytes_a; bytes_a=$(bytes target/tiffinbox)
+
+  # ---- step 2: the same project, minus the two files, built in a THROW-AWAY COPY so the
+  # shipped json files are never deleted even if this run is interrupted.
+  local cp_dir; cp_dir=$(mktemp -d "${TMPDIR:-/tmp}/u27ab.XXXXXX") || die "could not make a scratch copy"
+  # shellcheck disable=SC2064
+  trap "rm -rf '$cp_dir'" EXIT INT TERM
+  local meta=src/main/resources/META-INF/native-image
+  local removed; removed=$(find "$meta" -name '*.json' -type f | wc -l | tr -d ' ')
+  [ "$removed" -eq 2 ] || die "expected 2 reachability json files under $meta, found $removed"
+  local names; names=$(find "$meta" -name '*.json' -type f -exec basename {} \; | LC_ALL=C sort | tr '\n' ' ' | sed 's/ $//')
+  mkdir -p "$cp_dir/proj"
+  cp pom.xml "$cp_dir/proj/"
+  cp -R src "$cp_dir/proj/"
+  rm -rf "$cp_dir/proj/$meta"
+
+  local rc_b rc_bp rc_bl
+  ( cd "$cp_dir/proj" && export JAVA_HOME="$gh" GRAALVM_HOME="$gh" PATH="$gh/bin:$PATH"
+    mvn -B -ntp -Pnative "-Dmaven.repo.local=$UNIT/.m2-demo" clean package ) > .r-nat-b.raw 2>&1; rc_b=$?
+  [ "$rc_b" -eq 0 ] || die "the no-metadata native build exited $rc_b, and the whole point is that it SUCCEEDS; see .r-nat-b.raw"
+  [ -x "$cp_dir/proj/target/tiffinbox" ] || die "no binary from the no-metadata build"
+
+  # THE GUARD, and it cost this block its first run. maven-resources-plugin does not delete
+  # stale resources, so `mvn package` WITHOUT `clean` leaves the previous run's copy of
+  # reflect-config.json in target/classes, packages it into the jar, and the deletion becomes
+  # invisible: the "broken" binary works, 51,018,376 bytes and all. Both builds above are
+  # `clean package`, and this counts what actually reached the jar rather than trusting it.
+  local in_jar
+  in_jar=$(unzip -l "$cp_dir/proj/target/tiffinbox-core-1.0.0.jar" 2>/dev/null | grep -c 'native-image/.*\.json' || true)
+  [ "$in_jar" -eq 0 ] || die "$in_jar reachability file(s) still inside the no-metadata jar - the A/B is a false negative"
+
+  "$cp_dir/proj/target/tiffinbox" plain  > .r-nat-bp.raw 2>&1; rc_bp=$?
+  "$cp_dir/proj/target/tiffinbox" ledger > .r-nat-bl.raw 2>&1; rc_bl=$?
+  [ "$rc_bp" -ne 0 ] && [ "$rc_bl" -ne 0 ] \
+    || die "the no-metadata binary ran (plain=$rc_bp ledger=$rc_bl); the closed-world cost did not reproduce"
+  local bytes_b; bytes_b=$(bytes "$cp_dir/proj/target/tiffinbox")
+
+  # ---- every count below is DERIVED from the two build logs.
+  stages() { grep -cE '^\[[0-9]+/[0-9]+\] ' "$1" || true; }
+  # the total native-image ANNOUNCES in its own [x/N] labels, so "8 of 8" is two derived
+  # numbers rather than one number printed twice.
+  stage_total() { grep -m1 -oE '^\[[0-9]+/[0-9]+\]' "$1" | grep -oE '/[0-9]+' | tr -d '/'; }
+  green() { grep -c '^\[INFO\] BUILD SUCCESS' "$1" || true; }
+  reach()  { grep -m1 -E '[0-9,]+ types,.*found reachable' "$1" | grep -oE '^[ ]*[0-9,]+' | tr -d ' ,'; }
+  refl()   { grep -m1 -E '[0-9,]+ types,.*registered for reflection' "$1" | grep -oE '^[ ]*[0-9,]+' | tr -d ' ,'; }
+  local st_a st_b re_a re_b rf_a rf_b tot_a tot_b gr_a gr_b
+  st_a=$(stages .r-nat-a.raw); st_b=$(stages .r-nat-b.raw)
+  tot_a=$(stage_total .r-nat-a.raw); tot_b=$(stage_total .r-nat-b.raw)
+  gr_a=$(green .r-nat-a.raw); gr_b=$(green .r-nat-b.raw)
+  [ "$st_a" = "$tot_a" ] && [ "$st_b" = "$tot_b" ] \
+    || die "native-image announced $tot_a/$tot_b stages and printed $st_a/$st_b; the 'N of N' line would be a lie"
+  [ "$gr_a" -eq 1 ] && [ "$gr_b" -eq 1 ] \
+    || die "expected exactly one BUILD SUCCESS per log, got $gr_a and $gr_b"
+  re_a=$(reach  .r-nat-a.raw); re_b=$(reach  .r-nat-b.raw)
+  rf_a=$(refl   .r-nat-a.raw); rf_b=$(refl   .r-nat-b.raw)
+  for v in "$st_a" "$st_b" "$re_a" "$re_b" "$rf_a" "$rf_b"; do
+    [ -n "$v" ] && [ "$v" -gt 0 ] || die "a derived native-image count came out empty or zero; see .r-nat-a.raw / .r-nat-b.raw"
+  done
+  [ "$st_a" -eq "$st_b" ] || die "the two builds printed $st_a and $st_b stages; they are supposed to be the same eight"
+  [ "$rf_b" -lt "$rf_a" ] || die "deleting the metadata did not reduce the reflection count ($rf_a -> $rf_b)"
+
+  # THE FAILURE RECEIPT (contract 2e as amended for Course 4, and the same logic here):
+  # exit code, exception TYPE, first line of the MESSAGE. That trio is the same on every
+  # machine; the capture around it is not - it carries a JDK-internal frame list whose depth
+  # is an implementation detail. So the trio is what gets hashed, and every frame not shown
+  # is counted from wc(1) rather than waved at.
+  receipt_type() { grep -m1 -oE 'Exception in thread "main" [a-zA-Z0-9_.$]+' "$1" | sed -E 's/.*main" //'; }
+  receipt_msg()  { grep -m1 -E 'Exception in thread "main" ' "$1" | sed -E 's/.*Exception: //'; }
+  local ty_p ty_l msg_p msg_l fr_p fr_l
+  ty_p=$(receipt_type .r-nat-bp.raw); ty_l=$(receipt_type .r-nat-bl.raw)
+  msg_p=$(receipt_msg .r-nat-bp.raw); msg_l=$(receipt_msg .r-nat-bl.raw)
+  [ -n "$ty_p" ] && [ -n "$ty_l" ] && [ -n "$msg_p" ] && [ -n "$msg_l" ] \
+    || die "could not extract a failure receipt from the no-metadata runs"
+  [ "$ty_p" = "$ty_l" ] || die "the two failures are different types ($ty_p / $ty_l); the receipt would be two receipts"
+  fr_p=$(grep -c '^	at ' .r-nat-bp.raw || true)
+  fr_l=$(grep -c '^	at ' .r-nat-bl.raw || true)
+  [ "$fr_p" -gt 0 ] || die "no stack frames in the plain failure, so any elision count would be a lie"
+
+  # TWO of the eight frames are kept, and they are the two that explain the failure rather
+  # than decorate it: Substrate VM's OWN Class.forName - a native image does not use the
+  # JDK's, it consults a registry built at image-build time, and that registry is what the
+  # deleted json files were filling in - and the line in this project that called it. The
+  # remaining six are three java.base Class.forName overloads, one more ClassForNameSupport
+  # frame and a generated LambdaForm holder whose name carries a per-build suffix; none of
+  # them is the lesson and the last one would not even hash twice. GraalVM's own line number
+  # is masked because it moves with the GraalVM version; Startup.java:43 is NOT masked,
+  # because it is this project's line and slide one shows it.
+  fail_panel() {  # $1 = capture, $2 = frame count from wc
+    grep -m1 '^formatter key' "$1" | sed 's/^/    /'
+    grep -m1 'Exception in thread' "$1" | sed 's/^/    /' | mask
+    grep -m1 'ClassForNameSupport\.forName' "$1" \
+      | sed -E 's#^\t*at [a-z.]*/##; s#(ClassForNameSupport\.java):[0-9]+#\1:<line>#' | sed 's/^/      at /'
+    grep -m1 'com\.tiffinbox\.aot\.Startup\.formatterNamed' "$1" \
+      | sed -E 's#^\t*at ##' | sed 's/^/      at /'
+    printf '    ... %s of the %s frames elided\n' "$(( $2 - 2 ))" "$2"
+  }
+
+  { printf 'step 1 - the project exactly as it ships:\n'
+    printf '  $ export GRAALVM_HOME=<a GraalVM JDK> ; export JAVA_HOME="$GRAALVM_HOME"\n'
+    printf '  $ mvn -B -Pnative -Dmaven.repo.local="$PWD/.m2-demo" clean package\n'
+    printf '  native-image stages it printed ....... %s of the %s it announces\n' "$st_a" "$tot_a"
+    printf '  BUILD SUCCESS lines in the log ....... %s\n' "$gr_a"
+    printf '  mvn exit code ........................ %s\n' "$rc_a"
+    printf '  types found reachable ................ %s\n' "$re_a"
+    printf '  types registered for reflection ...... %s\n' "$rf_a"
+    printf '  $ ./target/tiffinbox plain\n'
+    sed 's/^/    /' .r-nat-ap.raw | mask
+    printf '    exit %s\n' "$rc_ap"
+    printf '  $ ./target/tiffinbox ledger\n'
+    sed 's/^/    /' .r-nat-al.raw | mask
+    printf '    exit %s\n' "$rc_al"
+    printf '\nstep 2 - the SAME project with the two reachability files deleted, nothing else\n'
+    printf 'changed, built in a throw-away copy so the shipped files are never touched:\n'
+    printf '  files removed ........................ %s   %s\n' "$removed" "$names"
+    printf '  reachability files inside its jar .... %s   <- the guard: `package` without `clean`\n' "$in_jar"
+    printf '                                             leaves a stale copy in target/classes,\n'
+    printf '                                             packages it, and the deletion becomes\n'
+    printf '                                             invisible. Both builds here are clean.\n'
+    printf '  native-image stages it printed ....... %s of the %s it announces\n' "$st_b" "$tot_b"
+    printf '  BUILD SUCCESS lines in the log ....... %s   <- THE BUILD IS GREEN\n' "$gr_b"
+    printf '  mvn exit code ........................ %s\n' "$rc_b"
+    printf '  types found reachable ................ %s   (%s fewer than step 1)\n' "$re_b" "$(( re_a - re_b ))"
+    printf '  types registered for reflection ...... %s   (%s fewer than step 1)\n' "$rf_b" "$(( rf_a - rf_b ))"
+    printf '  $ ./target/tiffinbox plain\n'
+    fail_panel .r-nat-bp.raw "$fr_p"
+    printf '    exit %s\n' "$rc_bp"
+    printf '  $ ./target/tiffinbox ledger\n'
+    fail_panel .r-nat-bl.raw "$fr_l"
+    printf '    exit %s\n' "$rc_bl"
+    printf '\nTHE FAILURE RECEIPT - the three parts of a failure that do not move between runs\n'
+    printf 'or between machines, which is why this is the trio that gets hashed and the raw\n'
+    printf 'capture around it does not:\n'
+    printf '  exit code .......................... %s\n' "$rc_bp"
+    printf '  exception type ..................... %s\n' "$ty_p"
+    printf '  first line of the message (plain) .. %s\n' "$msg_p"
+    printf '  first line of the message (ledger) . %s\n' "$msg_l"
+    printf '  frames each failure printed ........ %s and %s, from wc - 2 shown above, %s elided\n' \
+      "$fr_p" "$fr_l" "$(( fr_p - 2 ))"
+    printf '\nA GREEN BUILD THAT PRODUCED A BROKEN ARTIFACT. Nothing failed at build time. The\n'
+    printf 'two class names live only in a properties file, the closed-world compiler could\n'
+    printf 'not see them, and the two json files are the only reason it ever could. Delete\n'
+    printf 'them and the reflection count falls by %s types - and the program that used to\n' "$(( rf_a - rf_b ))"
+    printf 'print its answer now names the class it cannot find.\n'
+    printf '\nAND THE TWO COSTS ARE NOT THE SAME KIND OF THING. The build printed %s stages and\n' "$st_a"
+    printf 'you wait through every one of them, twice over to get this A/B - which is why this\n'
+    printf 'block is not part of a bare ./receipts.sh run. The failure cost no build at all: it\n'
+    printf 'is in the artifact the green build already produced, and it arrives on the first\n'
+    printf 'run. No wall-clock number for either appears here or on any slide (contract 2a).\n'
+  } > .r-native.out 2>&1
+
+  cat .r-native.out
+  printf 'md5 %s  (exit %s build / %s %s runs, then exit %s build / %s %s runs)\n' \
+    "$(hash_of .r-native.out)" "$rc_a" "$rc_ap" "$rc_al" "$rc_b" "$rc_bp" "$rc_bl"
+  # NO HARDCODED HISTORY HERE. An earlier draft of this line listed the three sizes three runs
+  # had given; a fourth run gave a size that was not in the list. A script cannot know its own
+  # past, so it states the rule and this run's two numbers, and README.md records the spread.
+  nohash "two byte sizes, printed outside the hash because a size goes on a slide only after it has repeated, and this one does not - README.md records the spread measured across runs (C2 finding #3). As shipped $bytes_a bytes, without the metadata $bytes_b. Built by: $ni_ver, resolved from \$$src."
+  rm -rf "$cp_dir"; trap - EXIT INT TERM
 }
 
 # ----------------------------------------------------------- nativeconfig ----
@@ -449,7 +719,10 @@ print(len(want & names))" "$1"; }
   } > .r-solution.out 2>&1
 
   cat .r-solution.out
-  printf 'md5 %s  (no build - the answer is data, and this machine cannot run the build that consumes it)\n' \
+  # The trailer is printed AFTER the hash is taken over .r-solution.out, so its wording is not
+  # part of fe2edae3...; it said "this machine cannot run the build that consumes it", which was
+  # true until 2026-09-16 and is not any more. ./receipts.sh native IS that build.
+  printf 'md5 %s  (no build - the answer is data; ./receipts.sh native is the build that consumes it, and it costs minutes)\n' \
     "$(hash_of .r-solution.out)"
   [ "$after" -eq "$want" ] || die "the answer covers $after of $want formatter classes"
 }
@@ -475,9 +748,11 @@ case "${1:-all}" in
   aot)          run_aot ;;
   jlink)        run_jlink ;;
   graalvm)      run_graalvm ;;
+  native)       run_native ;;
   nativeconfig) run_nativeconfig ;;
   solution)     run_solution ;;
   offline)      run_offline ;;
+  # `native` is NOT in `all`: it needs a GraalVM JDK and it takes minutes. Ask for it.
   all) run_closedworld; run_aot; run_jlink; run_graalvm; run_nativeconfig; run_solution; run_offline ;;
   *) echo "unknown block: $1" >&2; exit 2 ;;
 esac

@@ -72,6 +72,25 @@ of_total() {  # $1 = file, $2 = how many lines were shown
   [ -s "$1" ] || die "of_total: $1 is missing or empty"
   printf '(%s line(s) shown of %s in the whole capture)\n' "$2" "$(wc -l < "$1" | tr -d ' ')"
 }
+# A DIE BEHIND A PIPE IS NOT A GUARD.
+#
+# The `ship` panel is built inside `{ … } > .r-ship.out 2>&1` and elides its two runs as
+# `trim <file> 1 | sed 's/^/       /'`. The left-hand side of a pipeline runs in a SUBSHELL:
+# `trim`'s `die` exits THAT shell, the pipeline's status is sed's 0, nobody tests the pipeline
+# so `set -o pipefail` never comes into it - and the RECEIPT FAILED line goes to stderr, which
+# the `2>&1` puts INSIDE the capture being hashed. Measured here: with both captures emptied,
+# `ship` fired both of its "would be a lie" guards and still printed
+# `md5 ff2b6b7b142eaf9769643dce130b62da  (exit 0 / 0 / 0 / 0 / 0 / 0 / 0)`, and the script
+# exited 0. This is the same tautology the `steps that exited 0` line was removed for.
+#
+# So the condition is asserted HERE: current shell, no pipeline, no redirect, where `die` is
+# fatal and visible. The pipelines are untouched, so the panel's bytes cannot move.
+have_capture() {  # $@ = the captures a panel is about to elide
+  local f
+  for f in "$@"; do
+    [ -s "$f" ] || die "trim: $f is missing or empty, so any elision count over it would be a lie"
+  done
+}
 
 count_in() {
   [ -s "$1" ] || die "$3: $1 is missing or empty, so any count over it would be a lie"
@@ -328,6 +347,9 @@ run_ship() {
   local steps zeros=0 r
   steps=$(printf '%s\n' "${STEP[@]}" | sort -u | wc -l | tr -d ' ')
   for r in "${RC[@]}"; do [ "$r" -eq 0 ] && zeros=$(( zeros + 1 )); done
+  # …and the two captures the panel elides, checked before the panel is built rather than
+  # inside a pipeline that cannot report it. See have_capture above.
+  have_capture .r-ship2.raw .r-ship7.raw
 
   { printf 'the chain, run end to end, on this machine, today:\n\n'
     printf '  1  mvn package                                    exit %s   %s\n' "$rc_pkg" "$tests"
@@ -357,7 +379,13 @@ run_ship() {
   # `create`'s and jlink's - a receipt line that under-reports what it measured.
   printf 'md5 %s  (exit %s)\n' "$(hash_of .r-ship.out)" \
     "$(printf '%s / ' "${RC[@]}" | sed 's| / $||')"
-  nohash "sizes, which move: jar $(bytes "$JAR") bytes, AOT cache $(bytes .aot.cache) bytes, runtime image $(du -sk .img | awk '{print $1}') KB."
+  # THE SAME DEFECT IN A COMMAND SUBSTITUTION: `$(bytes X)` inside this string ran in a
+  # subshell, so a `die` killed only that subshell and the line printed with the number
+  # MISSING - measured: `AOT cache  bytes`, and exit 0. Read first, in the current shell.
+  local sz_jar sz_cache
+  sz_jar=$(bytes "$JAR")       || exit 1
+  sz_cache=$(bytes .aot.cache) || exit 1
+  nohash "sizes, which move: jar $sz_jar bytes, AOT cache $sz_cache bytes, runtime image $(du -sk .img | awk '{print $1}') KB."
   rm -rf .img .aot.conf .aot.cache
 }
 
