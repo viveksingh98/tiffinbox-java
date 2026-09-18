@@ -18,6 +18,15 @@
 #   `gaps` ticks off the four holes the last course's finale confessed - each against a file
 #   that exists in this repository, counted, not claimed. `wiring` is the one gap this course
 #   leaves, counted in the same way.
+#
+#   THE CHAIN STOPS AT THE RUNTIME IMAGE, AND THAT IS A CHOICE RATHER THAN A LIMIT.
+#   `ship` runs on a stock JDK 25 and nothing else, so anybody who can run this repository can
+#   reproduce all seven of its exit codes. A native image needs a second JDK, takes minutes and
+#   is not reproducible for a viewer without one - so it lives in the closed-world unit, which
+#   builds one, breaks it on purpose, and skips cleanly when no GraalVM is present. An earlier
+#   cut of this script said this machine COULD NOT build one. That was measured and true when
+#   it was written; it stopped being true, and a finale that keeps a stale excuse in its own
+#   output is the exact failure this block exists to prevent.
 
 set -u
 set -o pipefail
@@ -173,7 +182,7 @@ run_gaps() {
   local NOTGEN=( -not -path '*/target/*' -not -path '*/build/*' -not -path '*/out/*'
                  -not -path '*/.gradle/*' -not -path '*/.m2-demo/*' )
 
-  local tests units workflow native logging modules receipts
+  local tests units workflow native logging modules receipts consumers
   units=$(dir_count 'course 3 unit directories' "$DELIV" -maxdepth 1 -type d -name 'c3-unit*')
   tests=$(dir_count 'unit directories carrying a test tree' "$DELIV" -maxdepth 3 -type d -path '*/c3-unit[0-9][0-9]/src/test' "${NOTGEN[@]}")
   receipts=$(dir_count 'receipts.sh files' "$DELIV" -maxdepth 2 -name 'receipts.sh' -path '*/c3-unit[0-9][0-9]/*' "${NOTGEN[@]}")
@@ -183,6 +192,20 @@ run_gaps() {
   # levels down, so `-maxdepth 8` excluded the real file and included the generated copy.
   # Narrow a pattern until the number is pretty and this is the number you get.
   native=$(dir_count 'reachability metadata files' "$DELIV" -maxdepth 12 -name 'reflect-config.json' -path '*/c3-unit[0-9][0-9]/*' "${NOTGEN[@]}")
+  # AND THE HALF THAT WAS MISSING WHEN THIS BLOCK WAS FIRST WRITTEN. Hole 4's artifact was
+  # three descriptors that NOTHING IN THIS REPOSITORY READ - so the row carried a sentence
+  # saying no native binary had been built here, and the slide called it half an answer.
+  # That is no longer true: a GraalVM is available and the closed-world unit's `native`
+  # profile builds the image, deletes the descriptors and builds again. So the thing that
+  # was prose is now a count, derived the same way as every other row - the shipped poms
+  # that declare that profile. It is a `find` with a `grep` behind it because a build
+  # profile is a fact inside a file rather than a filename; no build runs here, and the
+  # GraalVM path is neither read nor written down. `dir_count` cannot express it, so the
+  # zero guard is stated here instead: if nothing consumes them, the sentence above the
+  # ledger is wrong and the block must stop rather than print it.
+  consumers=$(find "$DELIV" -maxdepth 2 -name 'pom.xml' -path '*/c3-unit[0-9][0-9]/*' "${NOTGEN[@]}" \
+                -exec grep -l '<id>native</id>' {} + 2>/dev/null | wc -l | tr -d ' ')
+  [ "$consumers" -gt 0 ] || die "no shipped pom declares a profile that consumes the reachability metadata"
   logging=$(dir_count 'logback configurations' "$DELIV" -maxdepth 6 -name 'logback.xml' -path '*/c3-unit[0-9][0-9]/*' "${NOTGEN[@]}")
   modules=$(dir_count 'modules in the long-lived project' "$DELIV/c3-tiffinbox" -maxdepth 2 -name 'pom.xml' "${NOTGEN[@]}")
 
@@ -213,6 +236,11 @@ run_gaps() {
                   \( -name 'Dockerfile' -o -name 'compose.yaml' -o -name 'docker-compose.yml' \
                      -o -name 'beans.xml' -o -name 'applicationContext*.xml' \) 2>/dev/null | wc -l | tr -d ' ')
 
+  # AND IT DOES NOT MOVE WHEN A HEDGE DOES. Hole 4's term is `native>0` and always was:
+  # the ledger asks whether a hole has a file behind it, not whether anything downstream
+  # had got round to reading that file. So the day the descriptors stopped being unread,
+  # `closed` stayed 3 and `handed` stayed 1 - the row above says so in the same output,
+  # rather than leaving a reader to wonder why a better fact bought no better number.
   local named=${#HOLE[@]}
   local closed=$(( (tests>0 && receipts>0) + (order_files>0) + (modules>1 && workflow>0) + (native>0) ))
   local handed=$(( named - closed ))
@@ -229,8 +257,9 @@ run_gaps() {
     printf '     workflow files shipped ......................... %s\n' "$workflow"
     printf '\n  4  "%s"\n' "${HOLE[3]}"
     printf '     reachability metadata files shipped ............ %s\n' "$native"
-    printf '     and the honest half, which the packaging unit measured rather than claimed:\n'
-    printf '     a native binary was NOT built on that machine, and its unit says so on screen.\n'
+    printf '     build profiles here that consume them .......... %s   <- the other half\n' "$consumers"
+    printf "     that profile's unit deletes them and builds again: the build stays green, and\n"
+    printf '     the binary stops. The ledger counts files behind a hole, so it does not move.\n'
     printf '\n  and one it DEFERRED on purpose rather than confessed - "a backend behind\n'
     printf '  System.Logger". Not a hole; a choice it declared. Paid anyway:\n'
     printf '     logback configurations shipped ................. %s\n' "$logging"
@@ -370,8 +399,8 @@ run_ship() {
     printf 'commands that exited 0 .............. %s\n' "$zeros"
     printf 'the two runs printed the same answer: %s\n' \
       "$([ "$(head -1 .r-ship2.raw)" = "$(head -1 .r-ship7.raw)" ] && echo yes || echo no)"
-    printf '\nAnd the step that is NOT in this chain, because this machine cannot do it: a\n'
-    printf 'native binary. Its own unit measures why, twice over, and says so on screen.\n'
+    printf '\nAnd the step that is NOT in this chain, left out on purpose: a native binary. It\n'
+    printf 'needs a second JDK this chain does not, and the unit that owns it builds one.\n'
   } > .r-ship.out 2>&1
 
   cat .r-ship.out

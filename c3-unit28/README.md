@@ -3,7 +3,8 @@
 Course 3 · Build & Test Like a Pro · Section 5 "Ship the Artifact" · **the last unit of the
 course.**
 Verified on **JDK 25.0.4.1, Apache Maven 3.9.16**, macOS 27.0, 8-core / 16 GB Apple silicon,
-on 2026-09-15.
+on 2026-09-15, with `gaps` and `ship` re-measured on 2026-09-19 — see *The four holes* and
+*The chain, run* below for what moved and why.
 
 `src/main/java/com/tiffinbox/` holds the same five carried classes —
 `fdb1643d622615f3c331d75deaebb9da`. They have been carried, unchanged, since the start of
@@ -61,8 +62,9 @@ the last course finale named four holes in the capstone. Each one, against a fil
 
   4  "a bundle only YOUR machine will run"
      reachability metadata files shipped ............ 3
-     and the honest half, which the packaging unit measured rather than claimed:
-     a native binary was NOT built on that machine, and its unit says so on screen.
+     build profiles here that consume them .......... 1   <- the other half
+     that profile's unit deletes them and builds again: the build stays green, and
+     the binary stops. The ledger counts files behind a hole, so it does not move.
 
   and one it DEFERRED on purpose rather than confessed - "a backend behind
   System.Logger". Not a hole; a choice it declared. Paid anyway:
@@ -73,9 +75,13 @@ holes with an artifact behind them ... 3
 holes handed to the next course ...... 1   (hole 2 - see the next block)
 ```
 
-And the honest half of the fourth, which its own unit measured rather than claimed: **a
-native binary was not built on this machine**, and that unit says so on screen with two
-independent pieces of evidence.
+The fourth hole's second line is the one that changed. Those three descriptors sat in the
+repository for a whole cut with **nothing that read them** — which is why the row used to
+end in a sentence rather than a count, and why the slide called it half an answer. The
+closed-world unit's `native` profile reads them now: it builds the image, deletes the
+descriptors, builds again to `BUILD SUCCESS` and gets a binary that dies. **The ledger
+above still says 4 / 3 / 1**, because it counts holes with a file behind them and this one
+always had three — the hedge moved, not the arithmetic, and the block prints that itself.
 
 **Every count above excludes generated paths** — `target/`, `build/`, `out/` — so the ledger
 does not move when you build the project. It *is* still a snapshot: it moves when a unit is
@@ -109,12 +115,17 @@ exit codes captured ................. 7
 commands that exited 0 .............. 7
 the two runs printed the same answer: yes
 
-And the step that is NOT in this chain, because this machine cannot do it: a
-native binary. Its own unit measures why, twice over, and says so on screen.
+And the step that is NOT in this chain, left out on purpose: a native binary. It
+needs a second JDK this chain does not, and the unit that owns it builds one.
 ```
 
 The same four customers, the same month's revenue, out of a jar and out of a 36 MB runtime
 image that contains five of this JDK's sixty-nine modules.
+
+**The chain stops at the runtime image on purpose.** Every command above runs on a stock
+JDK 25, so anyone who can run this repository reproduces all seven exit codes. A native
+image needs a second JDK and takes minutes, so it lives in the closed-world unit — which
+builds one, breaks it on purpose, and skips cleanly when no GraalVM is present.
 
 ## The one gap this course leaves
 
@@ -151,7 +162,7 @@ course leaves open.
 | `counts` | every number on a slide, imported from `java3_series.py` on the day |
 | `gaps` | the four holes the last course named — three against a counted artifact, one handed on |
 | `wiring` | the one gap left, counted out of the source, with a test for each ordering rule |
-| `ship` | the chain — jar, run, AOT cache, runtime image, run again — six steps, six zeros |
+| `ship` | the chain — jar, run, AOT cache, runtime image, run again — six steps, seven captured exit codes, seven zeros |
 | `offline` | `mvn -o test` after a warm `package` |
 
 **Not hashed, and it says so:** every byte size — the jar, the AOT cache and the runtime
