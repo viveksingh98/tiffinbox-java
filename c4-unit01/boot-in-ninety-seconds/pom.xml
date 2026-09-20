@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!--
+    THE ONLY SPRING BOOT POM IN THIS COURSE, and it is here for ninety seconds of Unit 01.
+    It is shipped rather than generated so the capture reproduces offline for ever: there is
+    no start.spring.io in this course, and the generator is the next course's subject.
+    Nothing else in Course 4 has a starter, an application.yaml or an @SpringBootApplication.
+  -->
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.1.1</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.tiffinbox</groupId>
+  <artifactId>boot-in-ninety-seconds</artifactId>
+  <version>1.0.0</version>
+  <name>the destination, not the material</name>
+
+  <properties>
+    <java.version>25</java.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!--
+        The parent manages this plugin's VERSION; it does not bind it. Without this block
+        `mvn package` produces a plain jar and `java -jar` answers
+        `no main manifest attribute` - measured, exit 1. Even Boot's own parent does not
+        make an executable jar happen by itself.
+      -->
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

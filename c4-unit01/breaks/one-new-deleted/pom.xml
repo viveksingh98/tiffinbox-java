@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.tiffinbox</groupId>
+  <artifactId>c4-unit01-break-one-new-deleted</artifactId>
+  <version>1.0.0</version>
+  <packaging>jar</packaging>
+  <name>break - one new deleted from the hand-written wiring</name>
+  <!-- No Spring here on purpose. This is the BEFORE state: the compiler is the only thing
+       that checks the wiring, and this project exists to show what it can and cannot see. -->
+  <properties>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+  <dependencies>
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>2.5.250</version>
+    </dependency>
+  </dependencies>
+</project>

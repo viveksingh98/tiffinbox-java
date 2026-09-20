@@ -387,3 +387,161 @@ c3-unit28/.img/
 # The exercise builds: unit 23's exercise/ is a second Maven project and produces a
 # target/ of its own, one level below the root rule.
 c3-unit23/exercise/target/
+
+# ---------------------------------------------- Course 4 · Section 1 (The Container) ---
+# Spring Framework Core, units 01-06. Scoped per unit, exactly like the Course 2 and
+# Course 3 blocks above, so a rule can never reach a folder it was not written for.
+#
+# What is DELIBERATELY NOT ignored, and must stay tracked, because a clean clone has to be
+# able to run `ContextReport` and read the evidence: every src/ tree, every pom.xml, every
+# README.md, every exercise/solution/*, c4-unit01/ledger.sh, c4-unit01/boot-in-ninety-seconds/
+# (the one Boot pom in the course), c4-unit02/legacy/applicationContext.xml and the copy of it
+# under src/main/resources/legacy/, chain.py where a unit ships one, and every breaks/ project.
+
+# -Dmaven.repo.local="$PWD/.m2-demo" - the isolated local repository every Maven command in
+# this section uses, so that ~/.m2 is never the subject. `target/` is already covered at the
+# top of this file. boot-in-ninety-seconds keeps its OWN repository because it resolves a
+# parent (spring-boot-starter-parent) the rest of the section does not hold.
+c4-unit01/.m2-demo/
+c4-unit01/boot-in-ninety-seconds/.m2-demo/
+c4-unit02/.m2-demo/
+c4-unit03/.m2-demo/
+c4-unit04/.m2-demo/
+c4-unit05/.m2-demo/
+c4-unit06/.m2-demo/
+c4-tiffinbox/.m2-demo/
+
+# The resolved runtime classpath, written by `dependency:build-classpath` so the java -cp line
+# in each README is one short command. It is a file full of absolute paths into .m2-demo, so it
+# is machine-local by construction and must never be committed.
+c4-unit01/.cp
+c4-unit02/.cp
+c4-unit03/.cp
+c4-unit04/.cp
+c4-unit05/.cp
+c4-unit06/.cp
+
+# Capture working files: one .out per named capture, the .raw behind it (a raw run still
+# carries the JUL timestamp line, which is why the .out beside it exists), and the .exit file
+# holding that run's exit code. Three of each, per capture, per the three-runs rule.
+c4-unit01/.r-*
+c4-unit01/exercise/.r-*
+c4-unit01/boot-in-ninety-seconds/.r-*
+c4-unit01/breaks/one-new-deleted/.r-*
+c4-unit01/breaks/one-bean-deleted/.r-*
+c4-unit02/.r-*
+c4-unit02/exercise/.r-*
+c4-unit03/.r-*
+c4-unit03/exercise/.r-*
+c4-unit04/.r-*
+c4-unit04/exercise/.r-*
+c4-unit04/breaks/one-segment-wrong/.r-*
+c4-unit05/.r-*
+c4-unit05/exercise/.r-*
+c4-unit06/.r-*
+c4-unit06/exercise/.r-*
+c4-unit06/breaks/primary-on-both/.r-*
+
+# The shared TiffinBoxConfig every unit after the first starts from. It is an authoring
+# convenience in unit 01's folder, not a file any unit compiles.
+c4-unit01/.shared-TiffinBoxConfig.java
+
+# Second-level build output. `target/` at the top of this file does not reach a project
+# nested inside a unit, and every exercise/ and breaks/ project here is its own Maven project.
+c4-unit01/exercise/target/
+c4-unit01/boot-in-ninety-seconds/target/
+c4-unit01/breaks/one-new-deleted/target/
+c4-unit01/breaks/one-bean-deleted/target/
+c4-unit02/exercise/target/
+c4-unit03/exercise/target/
+c4-unit04/exercise/target/
+c4-unit04/breaks/one-segment-wrong/target/
+c4-unit05/exercise/target/
+c4-unit06/exercise/target/
+c4-unit06/breaks/primary-on-both/target/
+
+# The module-path probe unit 04's module slide shows (`c4-unit04/modpath/`). It is NOT a Maven
+# project: `run.sh` compiles the module with `javac -d out` off the `.cp` one level up, and writes
+# one `.out` and one `.exit` per run, three runs, exactly like every other capture in this section.
+# `modpath/src/` and `modpath/run.sh` are DELIBERATELY NOT ignored: the panel head on that slide is
+# a command a viewer is meant to be able to run, and a capture nobody can regenerate is not
+# evidence. `modpath/src/module-info.java` carries `exports` and no `opens` on purpose - the other
+# half of that slide is the `opens` the scan does not need.
+c4-unit04/modpath/out/
+c4-unit04/modpath/.r-*
+
+# The long-lived project this course keeps changing. Its modules build into their own
+# target/ directories, one level below the root rule.
+c4-tiffinbox/tiffinbox-core/target/
+c4-tiffinbox/tiffinbox-web/target/
+
+# ============================================================================================
+# Course 4 · Spring Framework Core · Section 2 "Lifecycle and Scope" (units 07-12)
+# Appended, never edited. Every rule below begins `c4-`, so nothing here can reach another
+# course's folder. Same shape as the Section 1 block above it, scoped per unit.
+# ============================================================================================
+
+# The isolated local repository each unit resolves into. `~/.m2/repository` and
+# `~/.m2/settings.xml` are never written: every Maven run in this section carried
+# -Dmaven.repo.local="$PWD/.m2-demo", with the quotes, because this tree's path has a space in
+# it. `target/` is already covered at the top of this file; a nested project's is not.
+c4-unit07/.m2-demo/
+c4-unit08/.m2-demo/
+c4-unit09/.m2-demo/
+c4-unit10/.m2-demo/
+c4-unit11/.m2-demo/
+c4-unit12/.m2-demo/
+c4-unit07/exercise/.m2-demo/
+c4-unit08/exercise/.m2-demo/
+c4-unit09/exercise/.m2-demo/
+c4-unit10/exercise/.m2-demo/
+c4-unit11/exercise/.m2-demo/
+c4-unit12/exercise/.m2-demo/
+
+# The resolved runtime classpath written by `dependency:build-classpath`, so the `java -cp`
+# line in each README stays one short command. It is a file of absolute paths into .m2-demo,
+# machine-local by construction, and must never be committed.
+c4-unit07/.cp
+c4-unit08/.cp
+c4-unit09/.cp
+c4-unit10/.cp
+c4-unit11/.cp
+c4-unit12/.cp
+c4-unit07/exercise/.cp
+c4-unit08/exercise/.cp
+c4-unit09/exercise/.cp
+c4-unit10/exercise/.cp
+c4-unit11/exercise/.cp
+c4-unit12/exercise/.cp
+
+# Capture working files: one .out per named capture, the .raw behind it where a filter ran,
+# and the .exit holding that run's exit code. Three of each, per capture, per the three-runs
+# rule. A .raw exists wherever the run carries a java.util.logging record - either because the
+# refresh was cancelled (chain.py removes that record and counts it) or because the log line
+# IS the lesson (stamp.py masks the timestamp and counts what it masked).
+c4-unit07/.r-*
+c4-unit08/.r-*
+c4-unit09/.r-*
+c4-unit10/.r-*
+c4-unit11/.r-*
+c4-unit12/.r-*
+c4-unit07/exercise/.r-*
+c4-unit08/exercise/.r-*
+c4-unit09/exercise/.r-*
+c4-unit10/exercise/.r-*
+c4-unit11/exercise/.r-*
+c4-unit12/exercise/.r-*
+
+# Second-level build output. The root `target/` rule does not reach a project nested inside a
+# unit, and every exercise/ here is its own Maven project.
+c4-unit07/exercise/target/
+c4-unit08/exercise/target/
+c4-unit09/exercise/target/
+c4-unit10/exercise/target/
+c4-unit11/exercise/target/
+c4-unit12/exercise/target/
+
+# DELIBERATELY NOT IGNORED, and this list is the point of the block: every README.md, every
+# pom.xml, every src/ tree, every exercise/solution/*, `c4-unit08/lifecycle-rows.sh`,
+# `c4-unit11/stamp.py` and each unit's `chain.py`. A capture nobody can regenerate is not
+# evidence, so the thing that produced it ships beside it.
