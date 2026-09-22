@@ -18,6 +18,10 @@ CFG=src/main/java/com/tiffinbox/TiffinBoxConfig.java
 ONE='@PropertySource("classpath:rails-one.properties")'
 TWO='@PropertySource("classpath:rails-two.properties")'
 MODE=${1:-}
+# Receipts are named per MODE. They were not, once: running ./flip.sh and then ./flip.sh sysprop
+# wrote both modes to .r-flip-A.out, so the second run silently destroyed the first run's evidence
+# and only one of the two sets of hashes the README quotes could exist on disk at a time.
+TAG=${MODE:-files}
 
 restore() { cp "$CFG.orig" "$CFG" 2>/dev/null && rm -f "$CFG.orig"; }
 trap restore EXIT INT TERM          # the file goes back even if a compile fails
@@ -30,12 +34,12 @@ CP="target/classes:$(cat cp.txt)"
 
 run() {   # $1 = label
   mvn -q -Dmaven.repo.local="$PWD/.m2-demo" compile
-  java -cp "$CP" com.tiffinbox.Sources $MODE > ".r-flip-$1.out" 2>&1
-  echo "$?" > ".r-flip-$1.exit"
+  java -cp "$CP" com.tiffinbox.Sources $MODE > ".r-flip-$TAG-$1.out" 2>&1
+  echo "$?" > ".r-flip-$TAG-$1.exit"
   # the FIRST @PropertySource ANNOTATION -- not the import line, which also contains the word
   printf '%s  declared first: %s\n' "$1" \
      "$(grep -m1 '^@PropertySource' "$CFG" | sed 's/.*classpath://;s/".*//')"
-  grep -E 'class path resource|WINNER' ".r-flip-$1.out" | sed 's/^/     /'
+  grep -E 'class path resource|WINNER' ".r-flip-$TAG-$1.out" | sed 's/^/     /'
 }
 
 swap() {  # put the two annotation lines in the order named: $1 first
@@ -55,7 +59,7 @@ swap one ; run A
 swap two ; run B
 swap one ; run "A-prime"
 
-a=$(md5 -q .r-flip-A.out); b=$(md5 -q .r-flip-B.out); c=$(md5 -q .r-flip-A-prime.out)
+a=$(md5 -q ".r-flip-$TAG-A.out"); b=$(md5 -q ".r-flip-$TAG-B.out"); c=$(md5 -q ".r-flip-$TAG-A-prime.out")
 echo
 echo "A  md5 $a"
 echo "B  md5 $b"
@@ -66,7 +70,7 @@ echo "A' md5 $c"
 
 # THE QUESTION THAT MATTERS, asked separately -- because "the output changed" and "the answer
 # changed" are different claims, and this unit exists because they can come apart.
-wa=$(grep WINNER .r-flip-A.out); wb=$(grep WINNER .r-flip-B.out)
+wa=$(grep WINNER ".r-flip-$TAG-A.out"); wb=$(grep WINNER ".r-flip-$TAG-B.out")
 echo
 echo "  A  $wa"
 echo "  B  $wb"
