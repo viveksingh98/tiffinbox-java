@@ -525,12 +525,18 @@ c4-unit09/.r-*
 c4-unit10/.r-*
 c4-unit11/.r-*
 c4-unit12/.r-*
+c4-unit13/.r-*
+c4-unit13/.m2-demo/
+c4-unit13/cp.txt
+c4-unit13/exercise/.m2-demo/
+c4-unit13/exercise/cp.txt
 c4-unit07/exercise/.r-*
 c4-unit08/exercise/.r-*
 c4-unit09/exercise/.r-*
 c4-unit10/exercise/.r-*
 c4-unit11/exercise/.r-*
 c4-unit12/exercise/.r-*
+c4-unit13/exercise/.r-*
 
 # Second-level build output. The root `target/` rule does not reach a project nested inside a
 # unit, and every exercise/ here is its own Maven project.
@@ -540,8 +546,9 @@ c4-unit09/exercise/target/
 c4-unit10/exercise/target/
 c4-unit11/exercise/target/
 c4-unit12/exercise/target/
+c4-unit13/exercise/target/
 
 # DELIBERATELY NOT IGNORED, and this list is the point of the block: every README.md, every
 # pom.xml, every src/ tree, every exercise/solution/*, `c4-unit08/lifecycle-rows.sh`,
-# `c4-unit11/stamp.py` and each unit's `chain.py`. A capture nobody can regenerate is not
+# `c4-unit11/stamp.py`, `c4-unit13/flip.sh` and each unit's `chain.py`. A capture nobody can regenerate is not
 # evidence, so the thing that produced it ships beside it.
