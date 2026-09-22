@@ -18,12 +18,12 @@ CP="target/classes:$(cat cp.txt)"
 java -cp "$CP" com.tiffinbox.ThreePlaces
 ```
 
-`.r-three.out` · md5 `dca2c5e03d9098b8b33f49cf53ff4ac3` · exit 0 · 3 of 3.
+`.r-three.out` · md5 `beaa792174d3517909092eafafc381a0` · exit 0 · 3 of 3.
 
 ```
-  classpath:  class path resource [menu.csv]                      md5 5a758f068bfd2e5a5f1df63e49c5d26d
-  file:       URL [file:<tmp>/tiffinbox-menu.csv]                 md5 5a758f068bfd2e5a5f1df63e49c5d26d
-  http:       URL [http://127.0.0.1:<port>/menu.csv]              md5 5a758f068bfd2e5a5f1df63e49c5d26d
+  classpath:  class path resource [menu.csv]                      md5 e04ce085234886d96497eb5288bb78b2
+  file:       URL [file:<tmp>/tiffinbox-menu.csv]                 md5 e04ce085234886d96497eb5288bb78b2
+  http:       URL [http://127.0.0.1:<port>/menu.csv]              md5 e04ce085234886d96497eb5288bb78b2
 locations=3  identical bytes=3
 ```
 
@@ -48,13 +48,13 @@ It is stopped in a `finally`, so a second run does not meet a port the first one
 is exactly where it feels like it belongs.
 
 ```
-java -cp "src/main/java:$CP" com.tiffinbox.WorksInTheIde   # .r-ide.out       023263350e64cfcf46e1eb031ce56c82  exit 0
+java -cp "src/main/java:$CP" com.tiffinbox.WorksInTheIde   # .r-ide.out       d9447f948214bb72759469cac79f210f  exit 0
 java -cp "$CP"               com.tiffinbox.WorksInTheIde   # .r-artefact.out  0b5aedf739de0913f7989555d6582713  exit 1
 ```
 
 | class path | `exists()` | then what |
 |---|---|---|
-| source root included (what many IDEs give you) | `true` | 34 bytes, exit 0 |
+| source root included (what many IDEs give you) | `true` | bytes read, exit 0 |
 | `target/classes` only (what you ship) | `false` | `FileNotFoundException`, exit **1** |
 
 `src/main/java` is a **source** directory and `src/main/resources` is a **resource** directory, and
