@@ -530,6 +530,11 @@ c4-unit14/.r-*
 c4-unit15/.r-*
 c4-unit16/.r-*
 c4-unit17/.r-*
+c4-unit18/.r-*
+c4-unit18/.m2-demo/
+c4-unit18/cp.txt
+c4-unit18/exercise/.m2-demo/
+c4-unit18/exercise/cp.txt
 c4-unit17/.m2-demo/
 c4-unit17/cp.txt
 c4-unit17/exercise/.m2-demo/
@@ -565,6 +570,7 @@ c4-unit14/exercise/.r-*
 c4-unit15/exercise/.r-*
 c4-unit16/exercise/.r-*
 c4-unit17/exercise/.r-*
+c4-unit18/exercise/.r-*
 
 # Second-level build output. The root `target/` rule does not reach a project nested inside a
 # unit, and every exercise/ here is its own Maven project.
@@ -579,8 +585,9 @@ c4-unit14/exercise/target/
 c4-unit15/exercise/target/
 c4-unit16/exercise/target/
 c4-unit17/exercise/target/
+c4-unit18/exercise/target/
 
 # DELIBERATELY NOT IGNORED, and this list is the point of the block: every README.md, every
 # pom.xml, every src/ tree, every exercise/solution/*, `c4-unit08/lifecycle-rows.sh`,
-# `c4-unit11/stamp.py`, `c4-unit13/flip.sh`, `c4-unit14/receipts.sh`, `c4-unit15/receipts.sh`, `c4-unit16/receipts.sh`, `c4-unit16/jul.sh`, `c4-unit17/receipts.sh` and each unit's `chain.py`. **`c4-unit17/src/main/java/com/tiffinbox/specials.csv` and `c4-unit17/exercise/src/main/java/com/tiffinbox/menu.csv` are committed ON PURPOSE in the wrong directory: they are that unit's break.** A capture nobody can regenerate is not
+# `c4-unit11/stamp.py`, `c4-unit13/flip.sh`, `c4-unit14/receipts.sh`, `c4-unit15/receipts.sh`, `c4-unit16/receipts.sh`, `c4-unit16/jul.sh`, `c4-unit17/receipts.sh`, `c4-unit18/receipts.sh` and each unit's `chain.py`. **`c4-unit17/src/main/java/com/tiffinbox/specials.csv` and `c4-unit17/exercise/src/main/java/com/tiffinbox/menu.csv` are committed ON PURPOSE in the wrong directory: they are that unit's break.** A capture nobody can regenerate is not
 # evidence, so the thing that produced it ships beside it.
