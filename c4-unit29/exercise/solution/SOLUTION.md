@@ -26,7 +26,7 @@ fixed.scheduleAtFixedRate(() -> {
 ```
 SEVERE: heartbeat beat failed
 java.lang.IllegalStateException: printer out of paper on beat 2
-	at com.tiffinbox.Heartbeat.beat(Heartbeat.java:11)
+	at com.tiffinbox.Heartbeat.beat(Heartbeat.java:15)
 	…
 fixed, beats in 0.7 s: more than 3 - alive
 ```
