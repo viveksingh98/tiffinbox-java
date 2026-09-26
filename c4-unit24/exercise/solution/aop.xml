@@ -1,0 +1,9 @@
+<!DOCTYPE aspectj PUBLIC "-//AspectJ//DTD//EN" "https://eclipse.dev/aspectj/dtd/aspectj.dtd">
+<aspectj>
+  <aspects>
+    <aspect name="com.tiffinbox.Counter"/>
+  </aspects>
+  <weaver>
+    <include within="com.tiffinbox..*"/>   <!-- Kitchen is in com.tiffinbox, not a kitchen sub-package -->
+  </weaver>
+</aspectj>

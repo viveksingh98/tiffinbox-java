@@ -1,0 +1,12 @@
+<!DOCTYPE aspectj PUBLIC "-//AspectJ//DTD//EN" "https://eclipse.dev/aspectj/dtd/aspectj.dtd">
+<aspectj>
+  <aspects>
+    <aspect name="com.tiffinbox.Counter"/>
+  </aspects>
+  <!-- THE BREAK: one letter wrong in the package (tiffinbx). The agent loads, reads this, weaves
+       nothing, and says nothing. Weave ONLY our own classes. The weaver reads every class that loads; this line is what stops it
+       touching the JDK and every library jar on the class path. -->
+  <weaver>
+    <include within="com.tiffinbx..*"/>
+  </weaver>
+</aspectj>
