@@ -36,8 +36,8 @@ One JVM flag, no Spring at all, and every limit is gone: the inside call, the `f
 Spring never created. **The aspect class did not change** — the same `@Aspect` Spring used.
 `META-INF/aop.xml` names the aspect and limits weaving to `com.tiffinbox..*`.
 
-**What it prints, every run:** three `sun.misc.Unsafe::objectFieldOffset` warnings naming AspectJ's
-weaver, *"will be removed in a future release"*. Not Course 3's `Dynamic loading of agents` warning — that
+**What it prints, every run:** four `WARNING` lines — three naming `sun.misc.Unsafe`, one asking you to
+report it to AspectJ's maintainers — *"will be removed in a future release"*. Not Course 3's `Dynamic loading of agents` warning — that
 one comes from an agent attached at run time, and this one is attached at startup, which is exactly the fix
 Course 3 taught. The jar path in them is masked by `mask.sh` and counted.
 
