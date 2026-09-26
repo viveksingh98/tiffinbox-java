@@ -11,4 +11,11 @@ mvn -q -Dmaven.repo.local="$PWD/.m2-demo" -Dmdep.outputFile=cp.txt dependency:bu
 java -cp "target/classes:$(cat cp.txt)" com.tiffinbox.Loyalty
 ```
 
+`Edges` sees injected dependencies only — a kitchen that fetches the book with `ctx.getBean(...)` would still
+print `[]`. So prove the second half by reading the class, the way the unit counted `SmsNotifier`:
+
+```
+sed -n '/class Kitchen/,/^    }/p' src/main/java/com/tiffinbox/Loyalty.java | grep -c LoyaltyBook    # must print 0
+```
+
 Solution in `solution/`.

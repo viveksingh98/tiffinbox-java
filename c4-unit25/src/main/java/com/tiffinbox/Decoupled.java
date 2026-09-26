@@ -1,5 +1,6 @@
 package com.tiffinbox;
 
+import org.springframework.context.event.SimpleApplicationEventMulticaster;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.*;
 import org.springframework.context.event.EventListener;
@@ -45,15 +46,31 @@ public final class Decoupled {
         @Bean SmsListener smsListener(SmsNotifier s) { return new SmsListener(s); }
     }
 
+    /**
+     * THE REMEDY for the break (added after the section's RED review): one bean. Name it
+     * applicationEventMulticaster and give it an error handler - a failing listener is then reported to the
+     * handler instead of thrown at the publisher, and the listeners after it still run.
+     */
+    @Configuration
+    static class Handled extends Cfg {
+        @Bean SimpleApplicationEventMulticaster applicationEventMulticaster() {
+            SimpleApplicationEventMulticaster m = new SimpleApplicationEventMulticaster();
+            m.setErrorHandler(t -> System.out.println("  [handler] a listener failed: " + t.getMessage()));
+            return m;
+        }
+    }
+
     public static void main(String[] args) {
-        try (var ctx = new AnnotationConfigApplicationContext(Cfg.class)) {
+        boolean handled = args.length > 0 && args[0].equals("handled");
+        try (var ctx = new AnnotationConfigApplicationContext(handled ? Handled.class : Cfg.class)) {
             Kitchen k = ctx.getBean(Kitchen.class);
             k.place("Ravi", 340);
             Edges.print(ctx, "kitchen");
-            if (args.length > 0 && args[0].equals("break")) {
-                System.out.println("an order for nobody:");
+            if (args.length > 0 && (args[0].equals("break") || handled)) {
+                System.out.println(handled ? "an order for nobody, with an error handler on the multicaster:" : "an order for nobody:");
                 try { k.place("nobody", 340); }
-                catch (IllegalStateException ex) { System.out.println("  [caller ] got " + ex.getClass().getSimpleName() + ": " + ex.getMessage()); }
+                catch (IllegalStateException ex) { System.out.println("  [caller ] got " + ex.getClass().getSimpleName() + ": " + ex.getMessage()); return; }
+                System.out.println("  [caller ] no exception");
             }
         }
     }

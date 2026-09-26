@@ -14,9 +14,12 @@ final class Edges {
                 ctx.getBeanNamesForAnnotation(org.springframework.context.annotation.Configuration.class)));
         String[] mine = Arrays.stream(deps).filter(d -> !d.startsWith("org.springframework.") && !cfg.contains(d))
                               .sorted().toArray(String[]::new);
-        long infra = Arrays.stream(deps).filter(d -> d.startsWith("org.springframework.")).count();
+        // Spring's own edges are NAMED, not just counted (RED 2026-09-26): for the decoupled kitchen it is the
+        // application context itself - the ApplicationEventPublisher the kitchen was given. Identity hash masked.
+        String[] infra = Arrays.stream(deps).filter(d -> d.startsWith("org.springframework."))
+                               .map(d -> d.replaceAll("@[0-9a-f]+$", "@<id>")).sorted().toArray(String[]::new);
         long conf = Arrays.stream(deps).filter(cfg::contains).count();
         System.out.println("  beans " + bean + " depends on (yours): " + Arrays.toString(mine)
-                + "   (" + infra + " of Spring's own, " + conf + " configuration class excluded)");
+                + "   (Spring's own: " + Arrays.toString(infra) + ", " + conf + " configuration class excluded)");
     }
 }
