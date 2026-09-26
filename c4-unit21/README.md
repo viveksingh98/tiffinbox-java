@@ -17,7 +17,9 @@ CP="target/classes:$(cat cp.txt)"
 
 `@Around (entering)` → `@Before` → the method → `@AfterReturning` → `@After` → `@Around (leaving)`.
 **`@After` fires after `@AfterReturning`**, not before. Make the call throw and `@AfterThrowing` takes
-`@AfterReturning`'s place — a real exception, not a claim.
+`@AfterReturning`'s place — a real exception, not a claim. **This is the order inside ONE aspect.** Across two
+aspects, `@Order` decides which one wraps the other — an `@Before` in an `@Order(1)` aspect fires before an
+`@Around` in an `@Order(2)` one.
 
 ## Three things only @Around can do — each one run
 
@@ -29,15 +31,18 @@ CP="target/classes:$(cat cp.txt)"
 
 ## The break — @Around that forgets proceed()
 
-`java -cp "$CP" com.tiffinbox.ForgotProceed` · md5 `682e45ea990f94c684c64014898da9b5`
+`java -cp "$CP" com.tiffinbox.ForgotProceed` · md5 `b8ce5e7665bb7fbaf1d68fc8ce6df8ed`
 
 | return type | what the caller sees |
 |---|---|
 | `int` | `AopInvocationException: Null return value from advice does not match primitive return type` |
+| `Integer` | `null` — nothing reported a problem |
 | `String` | `null` — nothing reported a problem |
 | `void` | nothing — nothing reported a problem |
 
-The method never ran in any of the three. **Only the primitive one is loud**, and that is luck.
+The method never ran in any of the four. **Only the primitive one is loud**, and that is luck. The `int` and
+`Integer` rows differ in one thing — boxing — and that one thing decides whether you hear about it. "A number
+throws" is the wrong rule: `Integer`, `Long` and `BigDecimal` all come back `null`.
 
 ## Timing — and the number is never the lesson
 

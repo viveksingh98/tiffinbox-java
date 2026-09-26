@@ -62,7 +62,9 @@ echo "  raw durations across three runs (they must differ, or the lesson is fake
 for i in 1 2 3; do printf "    run %s: %s\n" "$i" "$(grep -o 'took [0-9.]* ms' .r-timing-raw.$i | sed 's/took //;s/ ms//' | paste -sd' ' -)"; done
 d=$(cat .r-timing-raw.* | grep -o 'took [0-9.]* ms' | sort -u | wc -l | tr -d ' ')
 [ "$d" -ge 2 ] && echo "  distinct durations: $d  -> a single duration is not a fact" || { echo "  *** durations identical ***"; exit 1; }
-grep -q "AopInvocationException" .r-forgot.out && grep -c "nothing reported a problem" .r-forgot.out | sed 's/^/  forgot proceed: loud for int, silent in /;s/$/ other return type(s)/'
+[ "$(grep -c "AopInvocationException" .r-forgot.out)" = 1 ] && [ "$(grep -c "nothing reported a problem" .r-forgot.out)" = 3 ] \
+  && sed -n '/return type Integer:/{n;p;}' .r-forgot.out | grep -q "caller got: null" \
+  && echo "  forgot proceed: loud ONLY for int; Integer, String and void are silent (Integer -> null)" || { echo "  *** forgot-proceed shape changed ***"; exit 1; }
 if sed -n '/skip the call/,/change the arguments/p' .r-three-powers.out | grep -q "the real method ran"; then
   echo "  *** skip ran the method ***"; exit 1
 else

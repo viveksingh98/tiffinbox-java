@@ -6,7 +6,8 @@ import org.springframework.context.annotation.*;
 
 /**
  * THE BREAK: an @Around that never calls proceed(). The method never runs. What the caller sees
- * depends ENTIRELY on the return type - loud for a primitive, silent for a reference or void.
+ * depends ENTIRELY on the return type - loud for a primitive, silent for any object or void. The int and
+ * Integer rows differ in ONE thing, boxing: the same number, one loud, one silent.
  */
 public final class ForgotProceed {
 
@@ -14,11 +15,13 @@ public final class ForgotProceed {
 
     public interface Kitchen {
         int portions(String c);
+        Integer portionsBoxed(String c);
         String label(String c);
         void record(String c);
     }
     public static class RealKitchen implements Kitchen {
         public int portions(String c) { System.out.println("      (real portions ran)"); return 2; }
+        public Integer portionsBoxed(String c) { System.out.println("      (real portionsBoxed ran)"); return 2; }
         public String label(String c) { System.out.println("      (real label ran)");    return "BILL-" + c; }
         public void record(String c)  { System.out.println("      (real record ran)"); }
     }
@@ -34,12 +37,13 @@ public final class ForgotProceed {
     public static void main(String[] args) {
         try (var ctx = new AnnotationConfigApplicationContext(Cfg.class)) {
             Kitchen k = ctx.getBean(Kitchen.class);
-            String[] kinds = {"int", "String", "void"};
+            String[] kinds = {"int", "Integer", "String", "void"};
             for (String kind : kinds) {
                 System.out.println("  return type " + kind + ":");
                 try {
                     Object r = switch (kind) {
                         case "int"    -> k.portions("Ravi");
+                        case "Integer" -> k.portionsBoxed("Ravi");
                         case "String" -> k.label("Ravi");
                         default       -> { k.record("Ravi"); yield "(nothing - it is void)"; }
                     };
