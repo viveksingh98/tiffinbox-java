@@ -11,9 +11,10 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
  * THE BREAK. One letter wrong in the pointcut - "prise" for "price". It compiles, the context
  * starts, exit 0, and the advice never runs.
  *
- * THE DETECTOR: Spring only builds a proxy for a bean that some advisor matched. So the bean's own
- * class name is the receipt - still the plain class means your pointcut matched NOTHING, and you
- * can see that before calling anything.
+ * THE DETECTOR: Spring only builds a proxy for a bean that some advisor COULD match. So a bean
+ * that is still its plain class matched NOTHING, and you can see that before calling anything.
+ * The converse is not safe: a runtime-checked pointcut (args, this, target) can proxy a bean it
+ * never advises. Unit 22 shows it.
  */
 public final class NoMatch {
 

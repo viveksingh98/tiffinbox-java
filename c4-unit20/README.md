@@ -71,8 +71,8 @@ advice ran    : 0 time(s)
 ```
 
 One letter. Compiles, starts, exit 0, advice never runs. **The detector: the bean's own class name.**
-Spring only proxies a bean some advisor matched, so a plain class name means your pointcut matched
-nothing — visible before you call anything.
+Spring only proxies a bean some advisor *could* match, so a plain class name means your pointcut
+matched nothing. (The converse is not safe for runtime-checked pointcuts such as `args()` — unit 22.) — visible before you call anything.
 
 ## Files
 
