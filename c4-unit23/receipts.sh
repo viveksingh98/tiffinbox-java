@@ -28,9 +28,16 @@ for f in jdk cglib; do
 done
 # Count EVERY warning, not warnings containing words I guessed. If the only warning in the whole run is
 # the one about the final method, then the self-invocation trap produced none - a claim this can FAIL.
-all=$(grep -c '^WARNING' .r-jdk.out || true); fin=$(grep -c '^WARNING.*cannot get proxied via CGLIB' .r-jdk.out || true)
-echo "  WARNING lines in the whole run: $all, of which about the final method: $fin"
-[ "$all" = "1" ] && [ "$fin" = "1" ] && echo "  -> final is IGNORABLE (one warning at startup); self-invocation is SILENT (none)" \
-                                    || { echo "  *** warning count changed - re-read the capture ***"; exit 1; }
+all=$(grep -c '^WARNING' .r-jdk.out || true); fin=$(grep -c '^WARNING: Public final method .*\$FinalBilling\.price' .r-jdk.out || true)
+quiet=$(grep -c '^WARNING.*QuietFinalBilling' .r-jdk.out || true)
+echo "  WARNING lines in the whole run: $all, of which about the PUBLIC final method: $fin, about the non-public one: $quiet"
+[ "$all" = "1" ] && [ "$fin" = "1" ] && [ "$quiet" = "0" ] \
+  && grep -q 'final, and NOT public               : advice ran 0' .r-jdk.out \
+  && echo "  -> a PUBLIC final method gets one warning; a non-public final one and self-invocation get NONE" \
+  || { echo "  *** warning count changed - re-read the capture ***"; exit 1; }
+# @Proxyable (new in 7): one interface bean asks for a subclass, under the DEFAULT setting
+grep -q 'interface bean, @Proxyable(TARGET_CLASS) -> .*PerBeanBilling\$\$SpringCGLIB\$\$<n>' .r-jdk.out \
+  && echo "  @Proxyable(TARGET_CLASS): that one interface bean became a subclass without the global flag" \
+  || { echo "  *** @Proxyable row changed ***"; exit 1; }
 w=$(grep -o 'advice ran [0-9]*' .r-ways-out.out | sort -u)
 [ "$w" = "advice ran 2" ] && echo "  all three ways out: advice ran 2 (the two inner calls)" || { echo "  *** a way out failed: $w ***"; exit 1; }

@@ -30,11 +30,24 @@ public final class TwoMechanisms {
         public final int price(String c) { return 340; }                  // CGLIB cannot override final
     }
 
+    /** FinalBilling again, ONE difference: the final method is not public. Spring warns only about the public one. */
+    public static class QuietFinalBilling {
+        final int price(String c) { return 340; }                         // package-private AND final
+    }
+
+    /** An interface bean like InterfaceBilling, but it asks, per bean, for a subclass (new in Spring Framework 7). */
+    public static class PerBeanBilling implements Billing {
+        public int price(String c) { return 340; }
+        public int priceTwice(String c) { return price(c) + price(c); }
+    }
+
     @Configuration @EnableAspectJAutoProxy
     static class JdkDefault {
         @Bean Billing billing() { return new InterfaceBilling(); }
         @Bean ClassBilling classBilling() { return new ClassBilling(); }
         @Bean FinalBilling finalBilling() { return new FinalBilling(); }
+        @Bean QuietFinalBilling quietFinalBilling() { return new QuietFinalBilling(); }
+        @Bean @Proxyable(ProxyType.TARGET_CLASS) PerBeanBilling perBeanBilling() { return new PerBeanBilling(); }
         @Bean Counted counted() { return new Counted(); }
     }
 
@@ -43,6 +56,8 @@ public final class TwoMechanisms {
         @Bean Billing billing() { return new InterfaceBilling(); }
         @Bean ClassBilling classBilling() { return new ClassBilling(); }
         @Bean FinalBilling finalBilling() { return new FinalBilling(); }
+        @Bean QuietFinalBilling quietFinalBilling() { return new QuietFinalBilling(); }
+        @Bean @Proxyable(ProxyType.TARGET_CLASS) PerBeanBilling perBeanBilling() { return new PerBeanBilling(); }
         @Bean Counted counted() { return new Counted(); }
     }
 
@@ -54,10 +69,11 @@ public final class TwoMechanisms {
         boolean force = args.length > 0 && args[0].equals("force");
         System.out.println("proxyTargetClass = " + force);
         try (var ctx = new AnnotationConfigApplicationContext(force ? ForceCglib.class : JdkDefault.class)) {
-            Billing b = ctx.getBean(Billing.class);
+            Billing b = ctx.getBean("billing", Billing.class);
             ClassBilling k = ctx.getBean(ClassBilling.class);
             System.out.println("  interface-typed bean -> " + mask(b.getClass().getName()));
             System.out.println("  class-typed bean     -> " + mask(k.getClass().getName()));
+            System.out.println("  interface bean, @Proxyable(TARGET_CLASS) -> " + mask(ctx.getBean("perBeanBilling").getClass().getName()));
             Counted.hits = 0; b.price("Ravi");
             System.out.println("  one price() from outside            : advice ran " + Counted.hits);
             Counted.hits = 0; int t = b.priceTwice("Ravi");
@@ -68,6 +84,10 @@ public final class TwoMechanisms {
             Counted.hits = 0; f.price("Ravi");
             System.out.println("  the same price(), declared final    : advice ran " + Counted.hits
                     + "   (bean: " + mask(f.getClass().getName()) + ")");
+            QuietFinalBilling q = ctx.getBean(QuietFinalBilling.class);
+            Counted.hits = 0; q.price("Ravi");
+            System.out.println("  final, and NOT public               : advice ran " + Counted.hits
+                    + "   (bean: " + mask(q.getClass().getName()) + ")");
         }
     }
 }
