@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.tiffinbox</groupId>
+  <artifactId>c4-unit27-exercise</artifactId>
+  <version>1.0.0</version>
+  <packaging>jar</packaging>
+  <name>@Async and the TaskExecutor</name>
+
+  <properties>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <h2.version>2.5.250</h2.version>
+  </properties>
+
+  <!--
+    This course has no framework parent POM to inherit, so the track's rule "pin the parent,
+    never the library" is applied one level down: ONE version number, here in
+    dependencyManagement, moves the whole framework together. Every Spring artefact below
+    therefore carries no <version> of its own.
+    Read the resolved numbers off `mvn dependency:tree`, never off a slide - a documentation
+    endpoint for this framework currently reports the version BELOW this one as current.
+  -->
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>spring-framework-bom</artifactId>
+        <version>7.0.9</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- @PostConstruct / @PreDestroy. Jakarta Annotations 3.0.0, pinned exactly: no BOM
+         covers it, and it is not transitive from spring-context. -->
+    <dependency>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
+      <version>3.0.0</version>
+    </dependency>
+    <!-- No <version>. The BOM above decided it. -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-context</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>${h2.version}</version>
+    </dependency>
+  </dependencies>
+</project>
