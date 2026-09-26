@@ -45,8 +45,11 @@ public final class WhatItSwitchesOn {
 
     public static void main(String[] args) {
         List<String> a = names(Without.class), b = names(With.class);
-        System.out.println("bean definitions WITHOUT the annotation : " + a.size());
-        System.out.println("bean definitions WITH it                : " + b.size());
+        // Only YOUR beans are printed by name. Spring's own internal definitions are counted in the diff but not
+        // listed as a total: how many there are is a property of the Spring version, not of this lesson.
+        System.out.println("your beans, in both runs : " + a.stream().filter(x -> !x.startsWith("org.springframework")).toList()
+                + (a.stream().filter(x -> !x.startsWith("org.springframework")).toList()
+                    .equals(b.stream().filter(x -> !x.startsWith("org.springframework")).toList()) ? "  (identical)" : "  (DIFFERENT)"));
         System.out.println("added by one annotation:");
         b.stream().filter(x -> !a.contains(x)).forEach(x -> System.out.println("  + " + x));
         long removed = a.stream().filter(x -> !b.contains(x)).count();

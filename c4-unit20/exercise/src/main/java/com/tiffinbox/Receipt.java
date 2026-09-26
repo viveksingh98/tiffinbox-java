@@ -12,8 +12,8 @@ public class Receipt {
     static int logged = 0;
 
     @Aspect public static class ReceiptLog {
-        @AfterReturning(pointcut = "execution(* com.tiffinbox.Billing.bill(..))", returning = "total")
-        public void log(JoinPoint jp, Object total) { logged++; System.out.println("  receipt: " + total); }
+        @Before("execution(* com.tiffinbox.Billing.bill(..))")
+        public void log(JoinPoint jp) { logged++; System.out.println("  receipt for: " + jp.getArgs()[0]); }
     }
 
     @Configuration @EnableAspectJAutoProxy

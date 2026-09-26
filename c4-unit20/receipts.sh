@@ -51,14 +51,26 @@ cap four-words    java -cp "$CP" com.tiffinbox.FourWords
 cap switches-on   java -cp "$CP" com.tiffinbox.WhatItSwitchesOn
 cap no-match      java -cp "$CP" com.tiffinbox.NoMatch
 cap no-weaver     java -cp "$NOWEAVER" com.tiffinbox.FourWords
+cap no-weaver-plain java -cp "$NOWEAVER" com.tiffinbox.WhatItSwitchesOn
+cap early         sh -c 'java -cp "$0" com.tiffinbox.EarlyBean 2>&1 | ./jul.sh' "$CP"
 
 # DERIVED, not asserted.
 echo
+# EXACT, and able to fail: one added bean; the no-weaver failure names that exact bean (RED 2026-09-26 #16
+# showed the old `|| grep internalAutoProxyCreator` fallback made this check impossible to fail).
+[ "$(grep -c '^  + ' .r-switches-on.out)" = 1 ] || { echo "  *** expected exactly one added bean ***"; exit 1; }
 added=$(grep '^  + ' .r-switches-on.out | sed 's/^  + //')
 echo "  the one bean @EnableAspectJAutoProxy adds : $added"
-grep -q "$added" .r-no-weaver.out 2>/dev/null || grep -q "internalAutoProxyCreator" .r-no-weaver.out \
-  && echo "  ...and the bean the missing weaver kills  : the same one" \
+grep -qF "Error creating bean with name '$added'" .r-no-weaver.out \
+  && echo "  ...and the bean the missing library kills : the same one" \
   || { echo "  *** the no-weaver failure is about a different bean ***"; exit 1; }
+grep -qF "Error creating bean with name 'auditAspect'" .r-no-weaver-plain.out && grep -q "NoClassDefFoundError: org/aspectj/lang/JoinPoint" .r-no-weaver-plain.out \
+  && echo "  without the annotation too: the aspect CLASS itself needs AspectJ (auditAspect, JoinPoint)" \
+  || { echo "  *** the aspect-class claim failed ***"; exit 1; }
+grep -q "matches BillingService.price? true" .r-early.out && grep -q "^WARNING: Bean 'billing' .*not eligible for auto-proxying" .r-early.out \
+  && grep -q "the bean I got: com.tiffinbox.BillingService$" .r-early.out && grep -q "advice ran    : 0" .r-early.out \
+  && echo "  early bean: the rule MATCHES, yet plain class and advice 0 - and a WARNING names billing" \
+  || { echo "  *** early-bean claim failed ***"; exit 1; }
 cls=$(grep 'the bean I got' .r-no-match.out | sed 's/.*: //')
 case "$cls" in *Proxy*|*CGLIB*) echo "  *** no-match bean IS proxied - the detector claim fails ***"; exit 1;;
-  *) echo "  no-match bean class: $cls  (not a proxy -> nothing matched)";; esac
+  *) echo "  no-match bean class: $cls  (not a proxy -> no advice attached; here, the rule matched nothing)";; esac

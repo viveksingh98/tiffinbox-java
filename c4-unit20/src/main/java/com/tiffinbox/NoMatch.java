@@ -12,7 +12,9 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
  * starts, exit 0, and the advice never runs.
  *
  * THE DETECTOR: Spring only builds a proxy for a bean that some advisor COULD match. So a bean
- * that is still its plain class matched NOTHING, and you can see that before calling anything.
+ * that is still its plain class had NO ADVICE ATTACHED, and you can see that before calling anything.
+ * The usual reason is a rule that matched nothing (this program). The other is a bean built before
+ * the proxy maker existed - EarlyBean shows it, with the WARNING that names it.
  * The converse is not safe: a runtime-checked pointcut (args, this, target) can proxy a bean it
  * never advises. Unit 22 shows it.
  */
