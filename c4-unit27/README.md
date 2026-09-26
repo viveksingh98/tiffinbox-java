@@ -14,7 +14,7 @@ never by number (contract §2g); `T.name()` masks the counter.
 
 ## Whose thread is this?
 
-`java -cp "$CP" com.tiffinbox.WhoseThread` · md5 `a99733fcd3e14e6d36ad806b85253c24`
+`java -cp "$CP" com.tiffinbox.WhoseThread` · md5 `17892a8f8785650d042ae3d53f8e7dc0`
 
 ```
   [caller] on main
@@ -23,10 +23,15 @@ INFO: No task executor bean found for async processing: no bean of type TaskExec
   [cook ] cooking for Ravi on SimpleAsyncTaskExecutor-<n>
 self-invocation:
   [inner] on main
+an @Async method that returns a String:
+  [caller] IllegalArgumentException: Invalid return type for async method (only Future and void supported): class java.lang.String
 ```
 
-`cook()` returns **before** it cooks (a latch, not a sleep — asserted). And called from inside the same bean,
-`@Async` runs **on main**: the self-invocation trap from the AOP section, again.
+`cook()` returns **before** it cooks (a latch, not a sleep — asserted). The `INFO` line is logged at the **first
+async call**, not at startup (asserted: it follows `[caller] on main`). And two limits, both measured: called
+from inside the same bean, `@Async` runs **on main** — the self-invocation trap from the AOP section, again —
+and on a method that returns a plain `String`, the **call itself throws**: `@Async` takes `void` or a `Future`.
+It also needs `@EnableAsync` on the configuration (unit 26 measured what happens without it).
 
 ## The default is not a pool
 
@@ -44,7 +49,7 @@ Virtual threads are one-per-task **by design** — cheap, and the 2026 default w
 
 ## The break — and the skeleton had it half wrong
 
-`java -cp "$CP" com.tiffinbox.Failures` · md5 `1e52aecdc85becb0e14b88131bb215e1`
+`java -cp "$CP" com.tiffinbox.Failures` · md5 `96618788069757af1c77c44ad0640c51`
 
 ```
 INFO: No task executor bean found for async processing: no bean of type TaskExecutor and no bean named 'taskExecutor' either
@@ -52,11 +57,11 @@ INFO: No task executor bean found for async processing: no bean of type TaskExec
 SEVERE: Unexpected exception occurred invoking async method: public void com.tiffinbox.Failures$Kitchen.burn()
 java.lang.IllegalStateException: the oven caught fire
 
-  [caller] price().get() -> IllegalStateException: price failed
+  [caller] price().get() threw ExecutionException, cause IllegalStateException: price failed
 ```
 
 A `void @Async` that throws is **not unlogged** — `SEVERE` says so. What is true: **the caller never knows**.
-Two ways back into code: return a `CompletableFuture` (the exception is reachable from `get()`), or install an
+Two ways back into code: return a `CompletableFuture` (`get()` throws `ExecutionException`, and the real exception is its cause), or install an
 `AsyncUncaughtExceptionHandler` — `java -cp "$CP" com.tiffinbox.Failures handler` · md5 `ce14e8e88a1938b5de1a3bdf9514d0f1`.
 
 ## Files

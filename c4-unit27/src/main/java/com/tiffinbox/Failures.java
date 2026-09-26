@@ -37,7 +37,8 @@ public final class Failures {
             if (withHandler) handled.await(2, TimeUnit.SECONDS); else Thread.sleep(300);
             if (!withHandler) {
                 try { k.price().get(); }
-                catch (ExecutionException e) { System.out.println("  [caller] price().get() -> " + e.getCause().getClass().getSimpleName() + ": " + e.getCause().getMessage()); }
+                catch (ExecutionException e) { System.out.println("  [caller] price().get() threw " + e.getClass().getSimpleName()
+                        + ", cause " + e.getCause().getClass().getSimpleName() + ": " + e.getCause().getMessage()); }
             }
         }
     }

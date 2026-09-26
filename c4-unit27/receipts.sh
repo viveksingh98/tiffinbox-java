@@ -22,5 +22,10 @@ d=$(grep 'the default' .r-pools.out | grep -o '[0-9]* distinct' | awk '{print $1
 echo "  default: $d threads for 20 tasks (not a pool)   sized pool: $s"; [ "$d" = "20" ] && [ "$s" = "2" ] || exit 1
 grep -q '^SEVERE: Unexpected exception occurred invoking async method' .r-failure.out && grep -q 'does not know' .r-failure.out \
   && echo "  void @Async that throws: SEVERE in the log, caller unaware" || exit 1
-grep -q 'price().get() -> IllegalStateException' .r-failure.out && echo "  CompletableFuture: the exception is reachable from code" || exit 1
+grep -q 'price().get() threw ExecutionException, cause IllegalStateException' .r-failure.out && echo "  CompletableFuture: get() throws ExecutionException, and the cause is reachable from code" || exit 1
+grep -q '\[caller\] IllegalArgumentException: Invalid return type for async method (only Future and void supported)' .r-threads.out \
+  && echo "  @Async on a String-returning method: the call throws IllegalArgumentException - void or Future only" || exit 1
+# the INFO line is logged on the FIRST async call, not at startup (RED #7): it comes after "[caller] on main"
+awk '/\[caller\] on main/{c=NR} /No task executor bean found/{i=NR} END{exit !(c && i>c)}' .r-threads.out \
+  && echo "  the 'no task executor' INFO line appears at the first async call, not at startup" || exit 1
 grep -q '\[handler\] burn() threw' .r-handler.out && ! grep -q '^SEVERE' .r-handler.out && echo "  with a handler: caught in code, no SEVERE" || exit 1
