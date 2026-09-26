@@ -4,9 +4,10 @@ import org.springframework.context.annotation.*;
 import org.springframework.context.event.EventListener;
 
 /**
- * Solution: #a0 names the first argument by POSITION, which is in every class file.
- * whole kitchen falls over on the very first order. Fix the condition WITHOUT touching the build file, so
- * a 900 order gets the call and a 340 order does not.
+ * Solution: "#a0.total > 500" names the first argument by POSITION, which Spring can always see - no build
+ * setting needed. The one build setting that would ALSO have fixed "#order.total > 500": compile with
+ * -parameters (Spring Boot's parent POM turns it on), so the parameter's NAME is available to reflection.
+ * A 900 order gets the call; a 340 order does not.
  */
 public class BigOrders {
     static int calls;

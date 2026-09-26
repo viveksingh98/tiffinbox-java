@@ -11,12 +11,14 @@ CP="target/classes:$(cat cp.txt)"
 
 `./receipts.sh` regenerates everything and **asserts** each claim below.
 
-## The break — the condition the documentation uses
+## The break — the documentation's first example
 
-`java -cp "$CP" com.tiffinbox.Conditions` · md5 `dc5bc2beca259e4816ca8f44473f8bde`
+`java -cp "$CP" com.tiffinbox.Conditions` · md5 `e30587dd8e36492fc579c2237a2eedb5`
 
 ```
-  parameter names in the class file (-parameters)? false
+  parameter names for reflection (-parameters)? false
+  the name e in the class file's debug table?   true
+  Spring 7's reader of that debug table present? false
   ByName   total 900  -> SpelEvaluationException: EL1007E: Property or field 'total' cannot be found on null
   ByName   total 340  -> SpelEvaluationException: EL1007E: Property or field 'total' cannot be found on null
   ByA0     total 900  -> ran
@@ -28,15 +30,34 @@ CP="target/classes:$(cat cp.txt)"
 ```
 
 `condition = "#e.total > 500"` names the parameter. **Maven does not pass `-parameters` by default**, so the
-name is not in the class file, `#e` is null, and the condition **throws on every publish** — even the one it
-should simply skip. `#a0`, `#root.args[0]` and `#root.event.payload` work regardless. Spring Boot turns
-`-parameters` on for you, which is why tutorials "just work"; this course has no Boot.
+name is not available to reflection. It **is** in the class file — in the debug table (`LocalVariableTable`),
+read here with Spring's own ASM — but the class that read that table,
+`LocalVariableTableParameterNameDiscoverer`, is gone from Spring 7. `receipts.sh` counts it: **1** entry in
+`spring-core` 6.0.23, **0** in 6.1.0 (`.r-reader-since.out`). So since 6.1, `#e` is null and the condition
+**throws on every publish** — even the one it should simply skip. `#a0`, `#root.args[0]` and
+`#root.event.payload` work regardless; the reference documentation says so too, in the same table.
+*(Corrected 2026-09-26 after the section's RED review: this README first said the name was not in the class
+file at all.)*
+
+**B — the same sources compiled with `-parameters`** (`.params/`, the build setting Spring Boot turns on) ·
+md5 `43c00512b829766289dce40aeccf964c`: `ByName total 900 -> ran`, `total 340 -> did not run` (asserted). The plain build
+above is A and A′.
 
 ## @Order — the same annotation, a different list
 
-`java -cp "$CP" com.tiffinbox.Ordered` · md5 `c51a4c67871bdd24f5869838f2609057` — `sms loyalty receipt` in 3 of 3 runs
-(asserted), whatever order the methods are written in. The same rule that sorted an injected list in the
-lifecycle section.
+`java -cp "$CP" com.tiffinbox.Ordered` · md5 `157c5bef41dfad9d87ca7d821cea2c61`
+
+```
+  run 1: sms loyalty receipt
+  run 2: sms loyalty receipt
+  run 3: sms loyalty receipt
+  without @Order: receipt sms loyalty
+```
+
+`sms loyalty receipt` in 3 of 3 runs (asserted), whatever order the methods are written in — the same rule
+that sorted an injected list in the lifecycle section. **Without `@Order`** the same three listeners ran
+`receipt sms loyalty` (asserted: not the numbered sequence) — whatever this build happened to do; nothing
+promises it.
 
 ## @Async on a listener — observed
 
@@ -56,10 +77,25 @@ SEVERE: Unexpected exception occurred invoking async method: public void com.tif
 java.lang.IllegalStateException: async listener refused nobody
 ```
 
-The async listener runs on `SimpleAsyncTaskExecutor-<n>` **after** `publish returned` — made deterministic
+`@Async` needs a second annotation: `@EnableAsync` on the configuration. **Without it**
+(`AsyncListener noenable` · md5 `c309a34badd5984c0ca1d7aae8adb96e`) the "async" listener runs on `main`, **before**
+`publish returned`, and nothing is logged (asserted):
+
+```
+  @Async on the listener, but NO @EnableAsync on the configuration:
+  publishing on main
+  [sync ] on main
+  [async] on main   (BEFORE publish returned - it ran synchronously)
+  publish returned
+```
+
+With it, the async listener runs on `SimpleAsyncTaskExecutor-<n>` **after** `publish returned` — made deterministic
 with a latch, not a sleep, so the order is a fact and not a race. When it throws, the **caller never hears**;
 Spring logs it at `SEVERE`. Ignorable, not silent. Configuring that executor is the next unit.
 
 ## Files
 
 `OrderPlaced` · `Conditions` · `Ordered` · `AsyncListener` · `jul.sh` · `receipts.sh` · `exercise/`
+
+**Named, not covered here:** `@TransactionalEventListener` — a listener that runs only after the publishing
+transaction commits. It needs transactions, which arrive with the data courses.

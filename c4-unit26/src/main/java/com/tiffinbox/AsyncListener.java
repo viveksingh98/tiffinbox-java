@@ -25,14 +25,25 @@ public final class AsyncListener {
         @EventListener public void sync(OrderPlaced e) { System.out.println("  [sync ] on " + t()); }
         @Async @EventListener public void async(OrderPlaced e) throws InterruptedException {
             boolean afterReturn = returned.await(2, java.util.concurrent.TimeUnit.SECONDS);
-            System.out.println("  [async] on " + t() + (afterReturn ? "   (after publish returned)" : "   (*** publish had NOT returned ***)"));
+            System.out.println("  [async] on " + t() + (afterReturn ? "   (after publish returned)" : "   (BEFORE publish returned - it ran synchronously)"));
             done.countDown();
             if (e.customer().equals("nobody")) throw new IllegalStateException("async listener refused nobody");
         }
     }
     static String t() { return Thread.currentThread().getName().replaceAll("\\d+$", "<n>"); }
     @Configuration @EnableAsync static class Cfg { @Bean Listeners l() { return new Listeners(); } }
+    /** The same listeners WITHOUT @EnableAsync (added after the section's RED review): @Async is then ignored, silently. */
+    @Configuration static class NoEnable { @Bean Listeners l() { return new Listeners(); } }
     public static void main(String[] args) throws Exception {
+        if (args.length > 0 && args[0].equals("noenable")) {
+            try (var ctx = new AnnotationConfigApplicationContext(NoEnable.class)) {
+                System.out.println("  @Async on the listener, but NO @EnableAsync on the configuration:");
+                System.out.println("  publishing on " + t());
+                ctx.publishEvent(new OrderPlaced("Ravi", 340));
+                System.out.println("  publish returned");
+            }
+            return;
+        }
         try (var ctx = new AnnotationConfigApplicationContext(Cfg.class)) {
             ApplicationEventPublisher p = ctx;
             System.out.println("  publishing on " + t());
