@@ -15,6 +15,10 @@ cap() { nm=$1; shift; ec=0
   printf "  %-12s md5 %s  %s  exit %s\n" "$nm" "$h" "$ok" "$ec"; }
 cap jdk        java -cp "$CP" com.tiffinbox.TwoMechanisms
 cap cglib      java -cp "$CP" com.tiffinbox.TwoMechanisms force
+# A' (contract 2c): back to A AFTER B. If A' equals A, the flip moved the row - not the second run.
+{ java -cp "$CP" com.tiffinbox.TwoMechanisms 2>&1; } | ./jul.sh > .r-jdk-again.out || true
+[ "$(md5 -q .r-jdk-again.out)" = "$(md5 -q .r-jdk.out)" ] && echo "  A' (default again, after the flip): identical to A" \
+  || { echo "  *** A' differs from A ***"; exit 1; }
 cap ways-out   java -cp "$CP" com.tiffinbox.WaysOut
 
 echo
