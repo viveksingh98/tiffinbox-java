@@ -110,3 +110,16 @@ java -cp "$CP" com.tiffinbox.Sources --nope                   # exit 2 — unkno
 `Database` and `OrderQueue` take their URL and cook count from the files now rather than from
 constants in a configuration class. That is the unit's title in one sentence: the values moved out,
 and something has to decide which file wins.
+
+## ERRATA — after the section's RED review (2026-09-26)
+
+The video for this unit is live. These corrections were measured after it was published; the RED report and
+BLUE's re-runs are in `spring-core/_briefs/RED-S3-2026-09-26.md` (course folder).
+
+- **"The last property source you declare wins"** holds for sources declared in **one** configuration class.
+  Across classes found by component scanning the order is hard to predict — the `@PropertySource` Javadoc says
+  so, and renaming a scanned class flipped the winner in the RED probe. Keep order-sensitive files in one class.
+- `systemEnvironment` (row 2) is real: `TIFFINBOX_COOKS=4` outranks both files. And a source added with
+  `addFirst` outranks even a `-D` system property ("a system property sits above everything you added" is
+  true only for `addLast`).
+- The slide-5 chip says "5 rows not shown"; the capture hides 6.

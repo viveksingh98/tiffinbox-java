@@ -113,3 +113,17 @@ by accident.
 | `NobodyChose.java` | the break and its fix, nothing caught |
 | `receipts.sh` | every capture, three runs, hashed by timestamp-presence rather than by luck |
 | `exercise/` | a test suite that passes against the wrong rail |
+
+## ERRATA — after the section's RED review (2026-09-26)
+
+The video for this unit is live. These corrections were measured after it was published; the RED report and
+BLUE's re-runs are in `spring-core/_briefs/RED-S3-2026-09-26.md` (course folder).
+
+- **The Section 1 report could already tell the two cases apart.** Run unit 12's `ContextReport` against this
+  unit: a bean excluded by a profile has no row at all; a lazy bean prints `(not built)`. The
+  `instantiated=` column shown on screen "as Section 1 left it" was never in that report.
+- **How to activate a profile yourself:** `-Dspring.profiles.active=in-memory`, or `SPRING_PROFILES_ACTIVE=jdbc`.
+  `ContextReport in-memory` works only because its `main` calls `setActiveProfiles`.
+- `NoSuchBeanDefinitionException` means "no qualifying **candidate**" — `@Bean(autowireCandidate = false)`
+  throws the identical message while the definition exists.
+- `JdbcRail` is a stub that holds a URL; nothing here writes to a database.

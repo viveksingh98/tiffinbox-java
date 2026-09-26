@@ -144,3 +144,17 @@ saved files contained the warning all along. A capture you hashed is not a captu
 | `jul.sh` | masks the two things that are not properties of the code, and counts them |
 | `receipts.sh` | every capture, three runs, plus the byte-identity check |
 | `exercise/` | a message with a dollar sign in it |
+
+## ERRATA — after the section's RED review (2026-09-26)
+
+The video for this unit is live. These corrections were measured after it was published; the RED report and
+BLUE's re-runs are in `spring-core/_briefs/RED-S3-2026-09-26.md` (course folder).
+
+- **Method validation is not free without Spring Boot.** It needs **a `MethodValidationPostProcessor` bean**
+  (static `@Bean`, `AtTheBoundary.java:35-37`), `@Validated` on the class, **and `@Valid` on the parameter**
+  (line 28). Without the post-processor the bad order is accepted silently; without `@Valid` the bean is still
+  proxied and still accepts it — **a proxy's class name is not proof that validation runs.** (The video's
+  "put the annotation on a bean… you get it free" is wrong for a plain Spring application.)
+- HV000185's text says "the selected message interpolator"; the class name is in the JUL header line that
+  `jul.sh` elides. There are more than "two fixes": `getInvalidValue()` names the value with no EL at all.
+- "Jakarta Bean Validation" is the specification; Hibernate Validator is the implementation this unit uses.

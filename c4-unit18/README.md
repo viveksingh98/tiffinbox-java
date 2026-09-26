@@ -112,3 +112,19 @@ instead of displaying it.
 | `bills_it.properties` | Italian — and deliberately missing `bill.footer` |
 | `receipts.sh` | every capture, and an assertion that the two machines disagree |
 | `exercise/` | a third customer whose language you do not have |
+
+## ERRATA — after the section's RED review (2026-09-26)
+
+The video for this unit is live. These corrections were measured after it was published; the RED report and
+BLUE's re-runs are in `spring-core/_briefs/RED-S3-2026-09-26.md` (course folder).
+
+- **The fix on slide 4 is `Bills --no-system-fallback`** (a program argument, `receipts.sh:34`). The slide's
+  `-DnoSysFallback=1` does nothing — the program never reads it.
+- **`MessageSource` has no locale-free `getMessage`** — all three take a `Locale` (`MessageSourceAccessor`
+  has one). And passing the locale explicitly **does not** stop the break; `setFallbackToSystemLocale(false)`
+  does.
+- **On an Italian machine the English customer gets Italian too** (`.r-it-machine.out`), because English lives
+  only in the base file.
+- **The machine's language is used only when no bundle exists for the requested language at all** — a French
+  bundle missing one key falls through to the base file, not to Italian.
+- The bean **must be named `messageSource`** — renamed, `ctx.getMessage` throws `NoSuchMessageException`.

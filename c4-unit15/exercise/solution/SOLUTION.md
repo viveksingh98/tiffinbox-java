@@ -16,7 +16,8 @@ point, so the desk would name a rail, and the desk is exactly the thing that sho
 
 **Why no `@Profile("default")` fallback.** The exercise asks the application to refuse when nobody
 chose, and that is the right call for *this* configuration: the two rails are not interchangeable —
-one keeps orders in a JVM that is about to exit, the other writes to a database. A fallback here
+one keeps orders in a JVM that is about to exit, the other stands for a database (in this unit `JdbcRail`
+is a stub that only holds a URL). A fallback here
 ships a load test against real data, or a real service against a queue that forgets. Unit 15's own
 `NobodyChose fallback` shows the opposite case, where a default genuinely is safe.
 

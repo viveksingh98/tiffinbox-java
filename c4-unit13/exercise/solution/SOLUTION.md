@@ -19,8 +19,10 @@ flips `rail` as well, because both keys live in both files — one edit, two con
 second one is invisible until something else breaks. Deleting the line from `rails-two.properties`
 is the right fix *for a file you own*, and the exercise forbids it precisely because the interesting
 case is the file you do not own: a config file shipped by another team, a container image, a
-Kubernetes ConfigMap. **A source that outranks the problem is the only fix that does not require
-editing somebody else's file.**
+Kubernetes ConfigMap. **A source that outranks the problem is a fix that does not require editing
+somebody else's file** — and so is an environment variable (`TIFFINBOX_COOKS=4` outranks both files), or a
+third `@PropertySource` declared after the others in the same class. *(Corrected after the section's RED
+review: this line first said "the only fix".)*
 
 **What it costs, and say it out loud.** The value now lives on a command line rather than in a file
 under version control. That is a real trade: nothing reviews it, nothing diffs it, and the next person

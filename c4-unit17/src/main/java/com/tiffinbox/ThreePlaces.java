@@ -90,8 +90,10 @@ public final class ThreePlaces {
 
     /** Descriptions carry absolute paths and the OS temp directory; both are masked. */
     static String describe(Resource r) {
+        String tmp = System.getProperty("java.io.tmpdir").replaceAll("/+$", "");   // Linux /tmp too (RED 2026-09-26)
         return r.getDescription()
                 .replaceAll("/var/folders/[^\\]\\s]*", "<tmp>/tiffinbox-menu.csv")
+                .replaceAll(java.util.regex.Pattern.quote(tmp) + "/[^\\]\\s]*", "<tmp>/tiffinbox-menu.csv")
                 .replaceAll(":\\d{4,5}/", ":<port>/");
     }
 

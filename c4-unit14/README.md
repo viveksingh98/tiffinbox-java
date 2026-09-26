@@ -88,10 +88,12 @@ java -cp "$CP" com.tiffinbox.ThePlaceholder configured      # trio              
 
 **Deleting the default did not make the failure loud — it made it a different silent failure.**
 Row 2 is the one nobody warns you about: with no `PropertySourcesPlaceholderConfigurer` in the
-context, an unresolvable placeholder is left as its own text and injected. For a `String` field that
-starts and runs. For a converted type it produces *the same* `no matching editors or conversion
-strategy found` message as §2 above — so the two different bugs in this unit have **one error
-message between them**, and in one case the converter is at fault and in the other it is innocent.
+context, Spring still resolves placeholders — with a **lenient** default resolver — and an unresolvable
+one is left as its own text and injected. For a `String` field that starts and runs. For a converted type
+the failure is a `ConversionFailedException` whose message shows the unresolved `${tiffinbox.mael}`, so the
+misspelt key is visible. *(Corrected 2026-09-26 after the section's RED review: this paragraph first said the
+converted type gave the same `no matching editors` message as §2 — that message appears only when no converter
+is registered at all. The video's slide 6 chip repeats the old claim.)*
 
 The third row is the fix, and it names the key.
 
@@ -107,7 +109,7 @@ decides that by looking for a timestamp, not by checking whether three runs happ
 
 | file | what it is |
 |---|---|
-| `MealTypeConverter.java` | the converter you write, and it fails readably — the key, the value, the legal values |
+| `MealTypeConverter.java` | the converter you write, and it fails readably — the value as typed, how it was read, the legal values (a converter is never told the key) |
 | `TiffinBoxConfig.java` | two configurations differing by ONE thing: the `@Bean` method's name |
 | `TheName.java` | right vs wrong name, nothing caught, so the exit code is the real one |
 | `ThePlaceholder.java` | the three placeholder cases |
@@ -119,7 +121,24 @@ decides that by looking for a timestamp, not by checking whether three runs happ
 ## SpEL, and how little of it is here
 
 `${…}` is a property placeholder. `#{…}` is SpEL — an expression language the container evaluates.
-This unit uses SpEL for the small honest things only. **Unit 16 shows `${…}` again, evaluated by a
+**This unit does not teach SpEL at all, despite its title** (the section's RED review counted: 0 spoken
+mentions, 0 `#{` in the sources) — `@Value("#{2 * 3}")` is the smallest example; the Spring reference's
+`@Value` section covers it. **Unit 16 shows `${…}` again, evaluated by a
 completely different engine** (Jakarta EL, inside a validation message), and says so, because
 meeting the same syntax twice in one section and not being told they are different engines is how
 people end up believing Spring evaluates constraint messages.
+
+## ERRATA — after the section's RED review (2026-09-26)
+
+The video for this unit is live. These corrections were measured after it was published; the RED report and
+BLUE's re-runs are in `spring-core/_briefs/RED-S3-2026-09-26.md` (course folder).
+
+- **With no `PropertySourcesPlaceholderConfigurer`, `${…}` is still resolved** — by a lenient default resolver.
+  The configurer makes a *missing* placeholder fail instead of being injected as text (fixed in §Row 2 above).
+- **"It has to be static"** is strong advice, not a rule: a non-static configurer still resolves, and Spring
+  logs an INFO about it (`ThePlaceholder.java` says so). The hook it relies on was unit 11, not "last time".
+- **The slide-6 chip is wrong** about the converted type (see §Row 2). The slide-2 panel line "through field
+  'meal'" came from the probe; this unit's capture says "through method 'kitchen' parameter 2".
+- The misnamed-bean failure appears at `getBean`, after startup, **because `Kitchen` is `@Lazy`** — eager, the
+  context would refuse to start.
+- **SpEL is not taught here**, despite the title (see §SpEL).

@@ -41,8 +41,14 @@ echo
 echo "  in the jar:  specials.csv=$(jar tf target/c4-unit17-1.0.0.jar | grep -c 'specials.csv' || true)  menu.csv=$(jar tf target/c4-unit17-1.0.0.jar | grep -c 'menu.csv' || true)"
 echo "  (specials.csv lives in src/main/java; menu.csv lives in src/main/resources)"
 
-# TEARDOWN CHECK: nothing of this unit's is still listening.
+# TEARDOWN CHECK: nothing of this unit's is still listening. A LISTEN line never contains a directory name
+# (the first version grepped for one and could not fail - RED 2026-09-26), so ask each listening java process
+# for its working directory instead.
 if command -v lsof >/dev/null 2>&1; then
-  left=$(lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | grep -c "$(basename "$PWD")" || true)
-  echo "  listeners left behind by this unit: ${left:-0}"
+  left=0
+  for pid in $(lsof -nP -iTCP -sTCP:LISTEN -a -c java -t 2>/dev/null | sort -u); do
+    lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | grep -q "^n$PWD\$" && left=$((left+1))
+  done
+  echo "  java listeners left behind by this unit: $left"
+  [ "$left" = 0 ] || exit 1
 fi

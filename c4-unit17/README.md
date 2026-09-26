@@ -86,3 +86,16 @@ Derived off the built jar by `receipts.sh`, not typed.
 | `src/main/java/com/tiffinbox/specials.csv` | **does not ship** — that is the lesson |
 | `receipts.sh` | captures, the jar check, and a listener check |
 | `exercise/` | a menu that loads everywhere except where it matters |
+
+## ERRATA — after the section's RED review (2026-09-26)
+
+The video for this unit is live. These corrections were measured after it was published; the RED report and
+BLUE's re-runs are in `spring-core/_briefs/RED-S3-2026-09-26.md` (course folder).
+
+- **The slide-4 panel reads `bytes : 34`; the capture (`.r-ide.out`) and the file say 39.**
+- "Your source folder on the class path, which is what a lot of editors hand you": most IDEs **copy** non-Java
+  files next to the compiled classes (`WorksInTheIde.java` says so); the "IDE" run here is a hand-built
+  `-cp src/main/java:…`. The effect is the same.
+- Not covered: `classpath*:` patterns (`ResourcePatternResolver`), `@Value` `Resource` injection, and
+  `getFile()` failing for a resource inside a jar while `exists()` is true.
+- The temp-path mask now covers any `java.io.tmpdir` (Linux `/tmp` too); the teardown check can now fail.
