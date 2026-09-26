@@ -3,7 +3,9 @@
   <aspects>
     <aspect name="com.tiffinbox.Counter"/>
   </aspects>
-  <weaver>
+  <!-- -showWeaveInfo: one "weaveinfo ... Join point 'method-execution(int com.tiffinbox.Kitchen.price(..))'"
+       line per method woven. Verified: 1 line, and priceTwice(): advice ran 2. -->
+  <weaver options="-showWeaveInfo">
     <include within="com.tiffinbox..*"/>   <!-- Kitchen is in com.tiffinbox, not a kitchen sub-package -->
   </weaver>
 </aspectj>

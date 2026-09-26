@@ -1,6 +1,9 @@
 package com.tiffinbox;
 
-/** Identical to Kitchen.price except for `final` - one variable. */
+import java.util.Map;
+
+/** Identical to Kitchen.price except for `final` - one variable. It reads the same field. */
 public class FinalKitchen {
-    public final int price(String c) { return 340; }
+    private final Map<String, Integer> menu = Map.of("Ravi", 340);
+    public final int price(String c) { return menu.get(c); }
 }

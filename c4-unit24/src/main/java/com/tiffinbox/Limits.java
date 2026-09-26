@@ -12,7 +12,10 @@ public final class Limits {
         System.out.println(who + ":");
         Counter.hits = 0; k.price("Ravi");      System.out.println("  one price() from outside            : advice ran " + Counter.hits);
         Counter.hits = 0; k.priceTwice("Ravi"); System.out.println("  priceTwice(), two calls INSIDE      : advice ran " + Counter.hits);
-        Counter.hits = 0; f.price("Ravi");      System.out.println("  the same price(), declared final    : advice ran " + Counter.hits);
+        Counter.hits = 0;
+        try { f.price("Ravi");                  System.out.println("  the same price(), declared final    : advice ran " + Counter.hits); }
+        catch (NullPointerException e) {        System.out.println("  the same price(), declared final    : advice ran " + Counter.hits
+                                                        + ", then NullPointerException: " + e.getMessage()); }
     }
 
     public static void main(String[] a) {

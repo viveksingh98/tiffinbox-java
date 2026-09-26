@@ -12,4 +12,5 @@ java -javaagent:"$AJ" -cp "target/classes:$(cat cp.txt)" com.tiffinbox.Proof
 
 Decide **from the number, not the warnings**, whether anything was woven. Then fix
 `META-INF/aop.xml` until `priceTwice()` runs the advice twice. The warnings will not change either way —
-that is the point. Solution in `solution/aop.xml`.
+that is the point. Last, make the weaver **tell** you: one option on the `<weaver>` element prints a line for
+every method it wove. Solution in `solution/aop.xml`.

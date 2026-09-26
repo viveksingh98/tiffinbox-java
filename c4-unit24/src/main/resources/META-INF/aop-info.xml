@@ -1,11 +1,12 @@
 <!DOCTYPE aspectj PUBLIC "-//AspectJ//DTD//EN" "https://eclipse.dev/aspectj/dtd/aspectj.dtd">
 <aspectj>
+  <!-- aop.xml plus ONE option: report every join point woven. -->
   <aspects>
     <aspect name="com.tiffinbox.Counter"/>
   </aspects>
   <!-- Weave ONLY our own classes. Without this line the weaver examines every library class on the class
        path as it loads - Spring's included, 834 of them in a Spring run. (It never sees the JDK's own classes.) -->
-  <weaver>
+  <weaver options="-showWeaveInfo">
     <include within="com.tiffinbox..*"/>
   </weaver>
 </aspectj>

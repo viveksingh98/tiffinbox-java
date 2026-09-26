@@ -1,11 +1,12 @@
 <!DOCTYPE aspectj PUBLIC "-//AspectJ//DTD//EN" "https://eclipse.dev/aspectj/dtd/aspectj.dtd">
 <aspectj>
+  <!-- aop-wrong.xml plus ONE option: report every join point woven. -->
   <aspects>
     <aspect name="com.tiffinbox.Counter"/>
   </aspects>
   <!-- THE BREAK: one letter wrong in the package (tiffinbx). The agent loads, reads this, weaves
        nothing, and says nothing about it by default. -->
-  <weaver>
+  <weaver options="-showWeaveInfo">
     <include within="com.tiffinbx..*"/>
   </weaver>
 </aspectj>
