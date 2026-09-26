@@ -62,3 +62,9 @@ d=$(grep 'DollarStar\$\*' .r-dollar-star.out | grep -o 'advice ran [0-9]*')
 echo "  \$* wildcard: $d"; [ "$d" = "advice ran 0" ] || { echo "  *** \$* matched something ***"; exit 1; }
 w=$(grep '^  execution(\* com.tiffinbox.\*.\*(..))  ' .r-matrix.out | awk '{print $4}')
 echo "  widest wildcard advised the control method dishes(): $w"; [ "$w" = "RAN" ] || { echo "  *** too-wide claim fails ***"; exit 1; }
+# isRuntime() is NOT the test (RED 2026-09-26 #14): @annotation is also runtime-checked, yet it can rule every
+# MenuService method out when the proxy is built - so the menu bean stays plain under it.
+grep -q '@annotation(com.tiffinbox.Audited)  checked at run time: true   MenuService methods that COULD match: none' .r-static-or-rt.out \
+  && grep -E '^  @annotation\(com.tiffinbox.Audited\) +-' .r-matrix.out | grep -q ' P \.$' \
+  && echo "  @annotation: runtime-checked too, yet COULD-match none -> menu stays plain: the right-hand column is the test" \
+  || { echo "  *** the isRuntime/could-match claim changed ***"; exit 1; }

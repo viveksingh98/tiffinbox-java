@@ -4,7 +4,8 @@ import org.aspectj.lang.annotation.*;
 import org.springframework.context.annotation.*;
 
 /**
- * Solution. @annotation selects exactly the method carrying @Audited, and it is decided statically.
+ * Solution. @annotation selects exactly the method carrying @Audited - and when the proxy is built it can
+ * already rule out every method without @Audited, so the menu bean stays plain.
  * runs the advice - and prove it the unit's way: the control bean 'menu' must come back as its
  * plain class, not a proxy.
  */

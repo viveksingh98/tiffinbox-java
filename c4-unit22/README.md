@@ -33,19 +33,23 @@ CP="target/classes:$(cat cp.txt)"
 
 ## The detector's blind spot — static versus runtime
 
-Two units ago the rule was: **a plain class name means nothing matched.** That still holds. The
+Two units ago the rule was: **a plain class name means no advice was attached.** That still holds. The
 converse does not. `args(String)` and `execution(* *(String))` say the same thing — yet `args`
 **proxies the control bean** and never advises it (`P` in the `menu` column, asserted).
 
-`java -cp "$CP" com.tiffinbox.StaticOrRuntime` · md5 `ab6023079ada6ea49e35b1890e478b53`
+`java -cp "$CP" com.tiffinbox.StaticOrRuntime` · md5 `ac1799a12b2f72649143949a17f5ebef`
 
 ```
-  args(String)             checked at run time: true   MenuService methods that COULD match: equals(Object)
-  execution(* *(String))   checked at run time: false  MenuService methods that COULD match: none
+  args(String)                        checked at run time: true   MenuService methods that COULD match: equals(Object)
+  execution(* *(String))              checked at run time: false  MenuService methods that COULD match: none
+  @annotation(com.tiffinbox.Audited)  checked at run time: true   MenuService methods that COULD match: none
 ```
 
 `args` is checked **at run time**, so the proxy is built for any method that *could* receive a String —
-and `equals(Object)` could. `isRuntime()` tells you which kind you wrote.
+and `equals(Object)` could. **The right-hand column is the test, not `isRuntime()`:** `@annotation` is
+runtime-checked too, yet it can rule out every `MenuService` method when the proxy is built, so the menu bean
+stays plain under it (the Matrix row shows `.` — asserted). *The first version of this README said
+`isRuntime()` tells you which kind you wrote; the section's RED review measured the `@annotation` row.*
 
 ## The break — one character, both directions
 
