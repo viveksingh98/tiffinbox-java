@@ -538,6 +538,11 @@ c4-unit22/.r-*
 c4-unit23/.r-*
 c4-unit24/.r-*
 c4-unit25/.r-*
+c4-unit26/.r-*
+c4-unit26/.m2-demo/
+c4-unit26/cp.txt
+c4-unit26/exercise/.m2-demo/
+c4-unit26/exercise/cp.txt
 c4-unit25/.m2-demo/
 c4-unit25/cp.txt
 c4-unit25/exercise/.m2-demo/
@@ -632,6 +637,7 @@ c4-unit22/exercise/target/
 c4-unit23/exercise/target/
 c4-unit24/exercise/target/
 c4-unit25/exercise/target/
+c4-unit26/exercise/target/
 
 # DELIBERATELY NOT IGNORED, and this list is the point of the block: every README.md, every
 # pom.xml, every src/ tree, every exercise/solution/*, `c4-unit08/lifecycle-rows.sh`,
