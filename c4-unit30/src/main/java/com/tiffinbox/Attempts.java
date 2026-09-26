@@ -1,6 +1,7 @@
 package com.tiffinbox;
 
 import org.springframework.context.annotation.*;
+import org.springframework.context.event.EventListener;
 import org.springframework.resilience.annotation.*;
 
 /**
@@ -21,7 +22,21 @@ public final class Attempts {
         }
         public String payFromInside(String order) { return pay(order); }
     }
-    @Configuration @EnableResilientMethods static class Cfg { @Bean Payments payments() { return new Payments(); } }
+    /** Spring publishes a MethodRetryEvent for every failure of a @Retryable method - a listener sees them all (RED 2026-09-26). */
+    public static class RetryWatcher {
+        @EventListener public void on(org.springframework.resilience.retry.MethodRetryEvent e) {
+            Throwable f = e.getFailure();
+            if (e.isRetryAborted())
+                System.out.println("      [event] retries exhausted - " + f.getClass().getSimpleName() + ", cause: "
+                        + (f.getCause() == null ? "none" : f.getCause().getMessage()) + ", earlier failures attached: " + f.getSuppressed().length);
+            else
+                System.out.println("      [event] " + f.getMessage());
+        }
+    }
+    @Configuration @EnableResilientMethods static class Cfg {
+        @Bean Payments payments() { return new Payments(); }
+        @Bean RetryWatcher retryWatcher() { return new RetryWatcher(); }
+    }
 
     public static void main(String[] a) {
         try (var ctx = new AnnotationConfigApplicationContext(Cfg.class)) {
@@ -38,7 +53,8 @@ public final class Attempts {
             System.out.println("  fails twice, then works - called from INSIDE the class:");
             attempts = 0; failFirst = 2;
             try { p.payFromInside("order-7"); } catch (RuntimeException e) {
-                System.out.println("    -> " + e.getClass().getSimpleName() + " after " + attempts + " attempt(s) - no retry at all");
+                System.out.println("    -> " + e.getClass().getSimpleName() + " after " + attempts + " attempt(s)"
+                        + (attempts == 1 ? " - no retry at all" : " - it was retried"));
             }
         }
     }

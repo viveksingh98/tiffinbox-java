@@ -29,30 +29,37 @@ written to outlive a version bump.
 … 0 JUL timestamp line(s) elided …
 ```
 
-`./since.sh` · md5 `6bd28d4e056521bee7172d66bd786506`
+`./since.sh` · md5 `463fb38b533283ad9990cd511a52fcc0`
 
 ```
-  spring-context 6.2.12: 0 entries under org/springframework/resilience/
+  spring-context 6.2.19: 0 entries under org/springframework/resilience/
   spring-context 7.0.9: 27 entries under org/springframework/resilience/
 ```
 
 The jar is read off each class, not off a slide: `spring-context`, the dependency this course has had since its
-first unit. **No new dependency.** And `since.sh` counts the package in the last 6.2 jar: none of it is there.
+first unit. **No new dependency.** And `since.sh` counts the package in the last 6.2 jar, 6.2.19: none of it is there. *(First counted in 6.2.12;
+the section's RED review pointed out 6.2.13-6.2.19 exist.)*
 
 ## Attempts, counted
 
-`java -cp "$CP" com.tiffinbox.Attempts` · md5 `402312a6946f939c95d129991b66c783` · 3 of 3
+`java -cp "$CP" com.tiffinbox.Attempts` · md5 `3ecb460ddca12f22553a06c32c522c3c` · 3 of 3
 
 ```
   fails twice, then works - called through the bean:
     attempt 1 failed
+      [event] gateway timeout on attempt 1
     attempt 2 failed
+      [event] gateway timeout on attempt 2
     attempt 3 succeeded
     -> paid after 3 attempts
   fails every time - called through the bean:
     attempt 1 failed
+      [event] gateway timeout on attempt 1
     attempt 2 failed
+      [event] gateway timeout on attempt 2
     attempt 3 failed
+      [event] gateway timeout on attempt 3
+      [event] retries exhausted - RetryException, cause: gateway timeout on attempt 3, earlier failures attached: 2
     -> the caller gets IllegalStateException: gateway timeout on attempt 3   (earlier failures attached: 0, cause: null)
   fails twice, then works - called from INSIDE the class:
     attempt 1 failed
@@ -61,8 +68,15 @@ first unit. **No new dependency.** And `since.sh` counts the package in the last
 ```
 
 - `maxRetries = 2` means **three attempts** in all. The default, with nothing set, is three retries: **four**.
-- When every attempt fails, the caller gets **the last exception, unwrapped**. The first two failures are not
-  attached — if you need them, log them where they happen.
+- When every attempt fails, the caller gets **the last exception, unwrapped**, with the first two not attached.
+  **They are not lost:** Spring publishes a `MethodRetryEvent` for every failure, and one more when retries are
+  exhausted — a `RetryException` whose cause is the last failure and which carries the earlier two (asserted).
+  A plain `@EventListener`, the tool from the start of this section, sees all of them.
+- `maxRetries` counts **retries**. The separate Spring Retry library's `@Retryable` names its setting
+  `maxAttempts` and counts the first call too — which is exactly how these two numbers get mixed up.
+- With nothing set: `multiplier = 1.0` (the delay does not grow) and `jitter = 0` (no randomness). The
+  annotation also takes `includes` / `excludes` — which exceptions are worth retrying at all. That is the knob
+  the break below needed.
 - Called from inside its own class, the retry **never happens**. The proxy is not in that call — the trap from
   the AOP section, back again.
 
