@@ -16,8 +16,8 @@ public class ClosingTime {
         Rail guarded = real;   // replace this line
 
         System.out.println("at " + hour + ":00 -> " + guarded.place("Ravi"));
-        System.out.println("KitchenRail mentions closing time? "
-                + java.util.Arrays.stream(KitchenRail.class.getDeclaredMethods())
-                      .anyMatch(m -> m.getName().toLowerCase().contains("clos")));
+        // The check that can FAIL: call the real rail directly. It must still cook at any hour -
+        // if it answers "closed", the kitchen class learned about closing time.
+        System.out.println("the real rail, called directly -> " + real.place("Ravi") + "   (must still cook)");
     }
 }

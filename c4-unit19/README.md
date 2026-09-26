@@ -13,22 +13,29 @@ CP="target/classes:$(cat cp.txt)"
 
 ## A proxy, by hand — `java.lang.reflect` only
 
-You have not written one of these before in this track: nothing in the first three courses calls
-`newProxyInstance`. It is built here, on the reflection you already know.
+The container has already made stand-ins for you in this course — the subclass behind a configuration
+class, a lazy stand-in. Nobody has built one **by hand** yet: nothing in the track calls `newProxyInstance`.
+It is built here, on the reflection you already know. *(Revised 2026-09-26 after the section's RED review.)*
 
 ```
-java -cp "$CP" com.tiffinbox.ByHand        # .r-by-hand.out  9d3c7966ac64a8d8dc6bb325bc97e5a4  exit 0
+java -cp "$CP" com.tiffinbox.ByHand        # .r-by-hand.out  157c52ec007a691df31601ecf12d8cd5  exit 0
 ```
 ```
 the class I wrote : com.tiffinbox.KitchenRail
 the class I got   : jdk.proxy1.$Proxy<n>
 same class?         false
+its parent class  : java.lang.reflect.Proxy
 is it a Rail?       true
+calling through it:
   [before] place(Ravi)
   [after ] returned "cooking for Ravi"
+  -> cooking for Ravi
 ```
 
-Something ran before and after your method, and `KitchenRail` does not know it exists.
+Something ran before and after your method, and `KitchenRail` does not know it exists. The handler
+**unwraps** `InvocationTargetException`, so a failure inside the real method reaches the caller as itself — the
+first draft did not, and a throwing target surfaced as `UndeclaredThrowableException`. Spring's proxies unwrap
+for you.
 `$Proxy<n>` is masked by the program: the number is a counter, not a fact.
 
 ## The same thing, asked of Spring
@@ -53,7 +60,9 @@ java -cp "$CP" com.tiffinbox.NoInterface   # .r-no-interface.out  b0647d1e9b89a2
 java.lang.IllegalArgumentException: com.tiffinbox.NoInterface$LonelyRail is not an interface
 ```
 
-The JDK can only proxy an **interface**. That one limit is why Spring carries a second mechanism.
+The JDK can only proxy an **interface**, and `ByHand` printed why: every JDK proxy **already extends
+`java.lang.reflect.Proxy`**, and a Java class gets one parent — so all it can take on is interfaces. That one
+limit is why Spring carries a second mechanism, a generated subclass.
 
 ## Files
 

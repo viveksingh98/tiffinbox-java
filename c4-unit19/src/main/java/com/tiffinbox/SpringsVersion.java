@@ -7,8 +7,9 @@ import org.springframework.aop.framework.ProxyFactory;
  * The same thing, asked of Spring. ProxyFactory ships in spring-aop, which spring-context already
  * brings — no AspectJ, no annotations, nothing new in the pom. That comes next unit.
  *
- * <p>Same mechanism, different name: Spring's JDK proxy lands in the JDK's own jdk.proxy module
- * rather than in this package.
+ * <p>Same mechanism: Spring asks the JDK's Proxy class for it, so the name is the same kind of name.
+ * The name depends only on the interface's visibility (public: the JDK's own jdk.proxy module;
+ * package-private: the interface's package) - never on who built the proxy.
  */
 public final class SpringsVersion {
 

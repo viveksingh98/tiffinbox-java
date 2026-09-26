@@ -10,4 +10,5 @@ java -cp "target/classes:$(cat cp.txt)" com.tiffinbox.ClosingTime 23   # must sa
 java -cp "target/classes:$(cat cp.txt)" com.tiffinbox.ClosingTime 12   # must cook
 ```
 
-The last line checks the real class never learned about closing time. Solution in `solution/`.
+The last line calls the real rail directly: it must still cook, at any hour — if it says `closed`, the
+kitchen class learned about closing time. Solution in `solution/`.
