@@ -39,7 +39,7 @@ public final class Matrix {
             Billing b = ctx.getBean(Billing.class);
             Menu m = ctx.getBean(Menu.class);
             b.price("Ravi"); b.refund("Ravi"); m.dishes();
-            return String.format("  %-58s %s %s %s   %s %s", expr,
+            return String.format("  %-74s %s %s %s   %s %s", expr,
                     mark("price"), mark("refund"), mark("dishes"),
                     proxied(b) ? "P" : ".", proxied(m) ? "P" : ".");
         }
@@ -57,8 +57,8 @@ public final class Matrix {
         // container proxies any bean that COULD receive a String - including through equals(Object) -
         // even when nothing will ever match. execution(* *(String)) is the same intent decided
         // statically, and proxies only what it matches. isRuntime() says which kind you wrote.
-        System.out.println("  pointcut                                                   price  refund dishes   billing menu");
-        System.out.println("                                                                                      (P = proxied)");
+        System.out.println("  pointcut                                                                   price  refund dishes   billing menu");
+        System.out.println("                                                                                                      (P = proxied)");
         for (String e : new String[] {
                 "execution(* com.tiffinbox.Billing.price(..))",
                 "execution(* com.tiffinbox.Billing.*(..))",

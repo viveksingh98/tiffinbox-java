@@ -15,20 +15,20 @@ CP="target/classes:$(cat cp.txt)"
 
 `price`, `refund` (carries `@Audited`) and `Menu.dishes` — **the control, which most rules must not touch**.
 
-`java -cp "$CP" com.tiffinbox.Matrix` · `.r-matrix.out` md5 `95790eca50610c9604177198b278226b`
+`java -cp "$CP" com.tiffinbox.Matrix` · `.r-matrix.out` md5 `e93c87d14cb21d46c050b97fc68f2672`
 
 ```
-  pointcut                                                   price  refund dishes   billing menu
-                                                                                      (P = proxied)
-  execution(* com.tiffinbox.Billing.price(..))               RAN    -      -        P .
-  execution(* com.tiffinbox.Billing.*(..))                   RAN    RAN    -        P .
-  within(com.tiffinbox.BillingService)                       RAN    RAN    -        P .
-  @annotation(com.tiffinbox.Audited)                         -      RAN    -        P .
-  args(String)                                               RAN    RAN    -        P P
-  execution(* *(String))                                     RAN    RAN    -        P .
-  bean(billing)                                              RAN    RAN    -        P .
-  execution(* com.tiffinbox.*.*(..)) && !@annotation(com.tiffinbox.Audited) RAN    -      RAN      P P
-  execution(* com.tiffinbox.*.*(..))                         RAN    RAN    RAN      P P
+  pointcut                                                                   price  refund dishes   billing menu
+                                                                                                      (P = proxied)
+  execution(* com.tiffinbox.Billing.price(..))                               RAN    -      -        P .
+  execution(* com.tiffinbox.Billing.*(..))                                   RAN    RAN    -        P .
+  within(com.tiffinbox.BillingService)                                       RAN    RAN    -        P .
+  @annotation(com.tiffinbox.Audited)                                         -      RAN    -        P .
+  args(String)                                                               RAN    RAN    -        P P
+  execution(* *(String))                                                     RAN    RAN    -        P .
+  bean(billing)                                                              RAN    RAN    -        P .
+  execution(* com.tiffinbox.*.*(..)) && !@annotation(com.tiffinbox.Audited)  RAN    -      RAN      P P
+  execution(* com.tiffinbox.*.*(..))                                         RAN    RAN    RAN      P P
 ```
 
 ## The detector's blind spot — static versus runtime
