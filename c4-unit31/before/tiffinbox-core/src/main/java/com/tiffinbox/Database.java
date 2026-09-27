@@ -1,20 +1,15 @@
 package com.tiffinbox;
 
-import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
 /** Unit 28-30: an embedded H2 database, created and seeded on startup. */
-@Component
 public final class Database {
 
     private final String url;
 
-    public Database(@Value("${tiffinbox.jdbc-url}") String url) {
+    public Database(String url) {
         this.url = url;
     }
 
@@ -22,7 +17,6 @@ public final class Database {
         return DriverManager.getConnection(url, "sa", "");
     }
 
-    @PostConstruct
     public void createAndSeed() throws SQLException {
         try (var c = open(); var st = c.createStatement()) {
             st.execute("DROP TABLE IF EXISTS pause");

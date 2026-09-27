@@ -44,18 +44,18 @@ public final class TiffinBoxServer {
 
     private final CustomerRepository repo;
     private final Dashboard dashboard;
-    private final OrderQueue kitchen;
+    private static final int COOKS = 3;                       // THE BREAK: the value is back in the code
+    private final OrderQueue kitchen = new OrderQueue(COOKS); // THE BREAK: one hand-written new
     private final int days;
     private final int port;
     private volatile HttpServer server;
     private volatile boolean stopRequested;
     private volatile boolean stopped;
 
-    TiffinBoxServer(CustomerRepository repo, Dashboard dashboard, OrderQueue kitchen,
+    TiffinBoxServer(CustomerRepository repo, Dashboard dashboard,
                     @Value("${tiffinbox.days}") int days, @Value("${tiffinbox.port}") int port) {
         this.repo = repo;
         this.dashboard = dashboard;
-        this.kitchen = kitchen;
         this.days = days;
         this.port = port;
     }

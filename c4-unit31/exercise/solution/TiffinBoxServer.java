@@ -45,6 +45,7 @@ public final class TiffinBoxServer {
     private final CustomerRepository repo;
     private final Dashboard dashboard;
     private final OrderQueue kitchen;
+    private final int cooks;
     private final int days;
     private final int port;
     private volatile HttpServer server;
@@ -52,7 +53,9 @@ public final class TiffinBoxServer {
     private volatile boolean stopped;
 
     TiffinBoxServer(CustomerRepository repo, Dashboard dashboard, OrderQueue kitchen,
+                    @Value("${tiffinbox.cooks}") int cooks,
                     @Value("${tiffinbox.days}") int days, @Value("${tiffinbox.port}") int port) {
+        this.cooks = cooks;
         this.repo = repo;
         this.dashboard = dashboard;
         this.kitchen = kitchen;
@@ -88,6 +91,15 @@ public final class TiffinBoxServer {
         var out = new LinkedHashMap<String, Object>();
         out.put("ordersCooked", kitchen.cooked());
         out.put("ordersValue", kitchen.cookedValue());
+        return out;
+    }
+
+    /** SOLUTION: the two values, from wherever the environment found them - no new component, no literal. */
+    @Route(path = "/config")
+    Object config() {
+        var out = new LinkedHashMap<String, Object>();
+        out.put("cooks", cooks);
+        out.put("days", days);
         return out;
     }
 

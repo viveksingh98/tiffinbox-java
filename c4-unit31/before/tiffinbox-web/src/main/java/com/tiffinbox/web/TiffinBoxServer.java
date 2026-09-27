@@ -3,14 +3,10 @@ package com.tiffinbox.web;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.stereotype.Component;
 import com.tiffinbox.Customer;
 import com.tiffinbox.CustomerRepository;
 import com.tiffinbox.Dashboard;
+import com.tiffinbox.Database;
 import com.tiffinbox.OrderQueue;
 
 import java.io.IOException;
@@ -34,7 +30,6 @@ import static java.lang.System.Logger.Level.INFO;
  * CustomerRepository, Database, Dashboard, OrderQueue — are the other jar, and the only
  * reason this file compiles is the one dependency in tiffinbox-web/pom.xml.
  */
-@Component
 public final class TiffinBoxServer {
 
     /** System.Logger: the JDK's own logging facade. No dependency, and no println in this file. */
@@ -45,19 +40,13 @@ public final class TiffinBoxServer {
     private final CustomerRepository repo;
     private final Dashboard dashboard;
     private final OrderQueue kitchen;
-    private final int days;
-    private final int port;
     private volatile HttpServer server;
     private volatile boolean stopRequested;
-    private volatile boolean stopped;
 
-    TiffinBoxServer(CustomerRepository repo, Dashboard dashboard, OrderQueue kitchen,
-                    @Value("${tiffinbox.days}") int days, @Value("${tiffinbox.port}") int port) {
+    private TiffinBoxServer(CustomerRepository repo, Dashboard dashboard, OrderQueue kitchen) {
         this.repo = repo;
         this.dashboard = dashboard;
         this.kitchen = kitchen;
-        this.days = days;
-        this.port = port;
     }
 
     // ---- the routes, declared not registered -------------------------------
@@ -135,7 +124,7 @@ public final class TiffinBoxServer {
             respond(exchange, 500, ordered("error", cause.getClass().getSimpleName()));
         }
         if (stopRequested) {                         // the reply is on the wire; now stop
-            Thread.ofPlatform().start(this::stop);
+            new Thread(() -> server.stop(0)).start();
         }
     }
 
@@ -148,28 +137,34 @@ public final class TiffinBoxServer {
         }
     }
 
-    // ---- start and stop: called by the container, not by main ----------------
+    // ---- main --------------------------------------------------------------
 
-    /**
-     * The rail runs at startup and is drained before the first request: the slips go on, the cooks
-     * take them off, and close() returns only when every cook has seen its poison pill. The counters
-     * /kitchen reports are final from here on. The container calls this once every constructor
-     * argument exists, so the order is its problem now, not a comment's.
-     */
-    @PostConstruct
-    void start() throws Exception {
+    public static void main(String[] args) throws Exception {
+        int port = args.length > 0 ? Integer.parseInt(args[0]) : 18425;
+
+        var db = new Database("jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1");
+        db.createAndSeed();
+        var repo = new CustomerRepository(db);
+
+        // The rail runs at startup and is drained before the first request: 120 slips
+        // on, three cooks take them off, and close() returns only when every cook has
+        // seen its poison pill. The counters /kitchen reports are final from here on.
+        var kitchen = new OrderQueue(3);
         for (Customer c : repo.findAll()) {
-            for (int day = 0; day < days; day++) {
+            for (int day = 0; day < 30; day++) {
                 kitchen.place(new OrderQueue.Order(c.name(), c.mealsPerDay() * c.pricePerMeal()));
             }
         }
         kitchen.close();
 
-        var routes = scanRoutes();
-        server = HttpServer.create(new InetSocketAddress("127.0.0.1", port), 0);
+        var app = new TiffinBoxServer(repo, new Dashboard(repo), kitchen);
+        var routes = app.scanRoutes();
+
+        var server = HttpServer.create(new InetSocketAddress("127.0.0.1", port), 0);
+        app.server = server;
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
         for (String path : paths(routes)) {
-            server.createContext(path, ex -> handle(ex, routes, path));
+            server.createContext(path, ex -> app.handle(ex, routes, path));
         }
         server.start();
 
@@ -177,25 +172,6 @@ public final class TiffinBoxServer {
         LOG.log(INFO, "kitchen value:  {0,number,#}", kitchen.cookedValue());
         LOG.log(INFO, "routes mapped:  {0}", List.copyOf(routes.keySet()));
         LOG.log(INFO, "TiffinBox listening on http://127.0.0.1:" + port);
-    }
-
-    @PreDestroy
-    synchronized void stop() {
-        if (!stopped && server != null) {
-            stopped = true;
-            server.stop(0);
-        }
-    }
-
-    // ---- main --------------------------------------------------------------
-
-    /** The whole application: describe it, and hand the description to the container. */
-    public static void main(String[] args) {
-        if (args.length > 0) {
-            System.setProperty("tiffinbox.port", args[0]);   // the same command line as before
-        }
-        var context = new AnnotationConfigApplicationContext(TiffinBoxApp.class);
-        context.registerShutdownHook();
     }
 
     /** One HTTP context per distinct path; the verb is matched inside the handler. */

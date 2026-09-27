@@ -309,18 +309,3 @@ The ledger, re-derived here rather than remembered (`c4-unit01/ledger.sh`):
 Units 01 to 30 each move one of those rows; the last unit of the course re-runs the count with
 the file deleted. **Every one of those numbers is derived from the file on the day, by that
 script, which exits 2 rather than print a number it could not measure.**
-
-## Course 4 — rewired (Spring Framework Core, capstone)
-
-`Wiring.java` is gone, and so is the second hand-wiring in `TiffinBoxServer.main`. The five objects carry
-`@Component` (and two `@Value` parameters, one `@PostConstruct`); `tiffinbox-web` adds `TiffinBoxApp`
-(`@Configuration @ComponentScan @PropertySource`) and `tiffinbox.properties` (the JDBC URL, cooks, days, port).
-The core module now depends on `spring-context` and `jakarta.annotation-api`. The run command is unchanged:
-
-```bash
-mvn -q -DskipTests package
-java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar 18431
-```
-
-The project as it was before the rewire is frozen in `../c4-unit31/before/`; the evidence that the two serve
-byte-identical responses, and everything else the capstone claims, is `../c4-unit31/receipts.sh`.

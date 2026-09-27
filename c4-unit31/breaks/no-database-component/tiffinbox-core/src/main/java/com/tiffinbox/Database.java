@@ -9,7 +9,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 /** Unit 28-30: an embedded H2 database, created and seeded on startup. */
-@Component
+// @Component   <- deleted: the container no longer knows how to make a Database
 public final class Database {
 
     private final String url;

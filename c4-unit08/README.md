@@ -14,7 +14,7 @@ java -cp "target/classes:$(cat .cp)" com.tiffinbox.NeverClosed           # the b
 java -cp "target/classes:$(cat .cp)" com.tiffinbox.NeverClosed --hook    # one line different
 java -cp "target/classes:$(cat .cp)" com.tiffinbox.ContextReport
 sh lifecycle-rows.sh                                                     # what this section takes off the wiring file
-sh ../c4-unit01/ledger.sh ../c4-tiffinbox/tiffinbox-core/src/main/java/com/tiffinbox/wiring/Wiring.java
+sh ../c4-unit01/ledger.sh ../c4-unit31/before/tiffinbox-core/src/main/java/com/tiffinbox/wiring/Wiring.java   # the anchor before the capstone deleted it
 ```
 
 A bare `java` on this Mac is **23.0.1** and a bare `mvn` resolves **Java 26.0.2.1** — both

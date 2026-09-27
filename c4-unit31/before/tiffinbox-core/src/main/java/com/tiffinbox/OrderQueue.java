@@ -1,8 +1,5 @@
 package com.tiffinbox;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -10,7 +7,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /** Unit 18: the kitchen rail. Cooks are virtual threads; the poison pill stops them. */
-@Component
 public final class OrderQueue implements AutoCloseable {
 
     public record Order(String customer, int value) {}
@@ -24,7 +20,7 @@ public final class OrderQueue implements AutoCloseable {
     private final int cooks;
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
-    public OrderQueue(@Value("${tiffinbox.cooks}") int cooks) {
+    public OrderQueue(int cooks) {
         this.cooks = cooks;
         this.closed = new CountDownLatch(cooks);
         for (int i = 0; i < cooks; i++) {

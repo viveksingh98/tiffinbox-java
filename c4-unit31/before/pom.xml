@@ -30,19 +30,6 @@
   -->
   <dependencyManagement>
     <dependencies>
-      <!-- Course 4: the container. One version, from the Spring Framework BOM. -->
-      <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-framework-bom</artifactId>
-        <version>7.0.9</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>jakarta.annotation</groupId>
-        <artifactId>jakarta.annotation-api</artifactId>
-        <version>3.0.0</version>
-      </dependency>
       <dependency>
         <groupId>com.tiffinbox</groupId>
         <artifactId>tiffinbox-core</artifactId>

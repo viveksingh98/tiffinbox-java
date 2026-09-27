@@ -26,7 +26,7 @@ java -cp "target/classes:$(cat .cp)" com.tiffinbox.SameThreeBoxes
 java -cp "target/classes:$(cat .cp)" com.tiffinbox.ContextReport
 java -cp "target/classes:$(cat .cp)" com.tiffinbox.ContextReport --stable
 sh ledger.sh
-(cd ../c4-tiffinbox && sh ../c4-unit01/ledger.sh tiffinbox-core/src/main/java/com/tiffinbox/wiring/Wiring.java)
+(cd ../c4-unit31/before && sh ../../c4-unit01/ledger.sh tiffinbox-core/src/main/java/com/tiffinbox/wiring/Wiring.java)
 python3 chain.py breaks/one-bean-deleted/.r-cb1.out
 ```
 
@@ -103,3 +103,11 @@ Move the two objects still built by hand in `Wiring.startEverything()` into the 
 **End state:** `ContextReport` says `beans(app)=5` and `dashboard.load().customers()  4`.
 The answer is in `exercise/solution/`, and it was run: exit 0, md5 `01b54839ab292c83ea1ee4a4a733abf7`,
 3/3 — the same hash this unit's own `ContextReport` produces.
+
+## Since the capstone (unit 31)
+
+The capstone **deleted `Wiring.java` from `c4-tiffinbox`** and gave the anchor's classes their annotations. The
+anchor as this unit measured it is frozen in `c4-unit31/before/` — byte-identical, so the ledger command above
+now runs there and still gives the hash recorded for it (`decf86d7…`). The five classes' combined md5 above still
+holds for `c4-unit01/` and `c3-tiffinbox/`; `c4-tiffinbox`'s copies now differ **only by annotations and imports**
+(`c4-unit31/onlyannotations.py` checks exactly that).

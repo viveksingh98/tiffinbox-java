@@ -1,7 +1,5 @@
 package com.tiffinbox;
 
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -24,7 +22,6 @@ import java.util.concurrent.Future;
  * {@code Callable<Object>} and the customer list is checked on the way out — that is the
  * {@link #customers} helper below, and it is the whole cost of the trade.
  */
-@Component
 public final class Dashboard {
 
     public record View(List<Customer> customers, int monthRevenue, int pausedDays) {}

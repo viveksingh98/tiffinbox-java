@@ -1,13 +1,10 @@
 package com.tiffinbox;
 
-import org.springframework.stereotype.Component;
-
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 /** Unit 29/31: rows in, records out. Nothing above this class knows SQL exists. */
-@Component
 public final class CustomerRepository {
 
     private final Database db;

@@ -668,3 +668,10 @@ c4-unit30/exercise/target/
 # `c4-unit11/stamp.py`, `c4-unit13/flip.sh`, `c4-unit14/receipts.sh`, `c4-unit15/receipts.sh`, `c4-unit16/receipts.sh`, `c4-unit16/jul.sh`, `c4-unit17/receipts.sh`, `c4-unit18/receipts.sh` and each unit's `chain.py`. **`c4-unit17/src/main/java/com/tiffinbox/specials.csv` and `c4-unit17/exercise/src/main/java/com/tiffinbox/menu.csv` are committed ON PURPOSE in the wrong directory: they are that unit's break.** A capture nobody can regenerate is not
 # evidence, so the thing that produced it ships beside it.
 c4-unit26/.params/
+c4-unit31/.work/
+c4-unit31/.harness/
+c4-unit31/.r-*
+c4-unit31/.m2-demo/
+c4-unit31/before/tiffinbox-core/target/
+c4-unit31/before/tiffinbox-web/target/
+c4-unit31/before/target/

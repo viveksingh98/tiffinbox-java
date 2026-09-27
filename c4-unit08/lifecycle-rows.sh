@@ -10,7 +10,7 @@
 # It DIES rather than print a confident zero: a zero here would be the claim "this section
 # moves nothing", and that claim has to be earned by a file that was actually read.
 set -eu
-SRC="${1:-../c4-tiffinbox/tiffinbox-core/src/main/java/com/tiffinbox/wiring/Wiring.java}"
+SRC="${1:-../c4-unit31/before/tiffinbox-core/src/main/java/com/tiffinbox/wiring/Wiring.java}"   # the anchor before the capstone deleted it
 [ -s "$SRC" ] || { echo "lifecycle-rows: no $SRC - nothing to count" >&2; exit 2; }
 
 body=$(awk '/public static String startEverything/,/^    }$/' "$SRC" \
