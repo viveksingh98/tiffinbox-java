@@ -2,7 +2,10 @@
 
 Course 5 · Spring Boot · Section 1 "What Boot Actually Is" · **the first unit of the course.** Verified on **JDK 25.0.4.1,
 Apache Maven 3.9.16, Spring Boot 4.1.1 (Spring Framework 7.0.9)**, macOS 27.0, on 2026-09-27.
-The change lands in the long-lived project, `../c5-tiffinbox`; "before" is `../c4-tiffinbox`, frozen at Course 4's end.
+The change lands in the long-lived project, `../c5-tiffinbox`. These receipts measure **`after/`** — this unit's frozen
+copy of the anchor as unit 01 left it — against **`../c4-tiffinbox`**, frozen at Course 4's end, so later units' changes
+to the anchor cannot move them. Builds are `clean` builds: `copy-dependencies` never deletes a jar, so a `lib/` built
+before a version change would hold both versions.
 
 ```
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
@@ -95,14 +98,14 @@ adds the banner, its own log format and four property sources — `configuration
 
 ## The price
 
-(`.r-price.out` `60433cab7c7d26fd55a9efd767efd6d3`)
+(`.r-price.out` `06754b251bdd624e6a05cbba20dded9f`)
 
 ```
 jars the application needs at run time: 15 -> 26
   added:   jul-to-slf4j log4j-api log4j-to-slf4j logback-classic logback-core slf4j-api snakeyaml spring-boot spring-boot-autoconfigure spring-boot-starter spring-boot-starter-logging
   version moved: commons-logging-1.3.5.jar -> commons-logging-1.3.6.jar  jackson-annotations-2.22.jar -> jackson-annotations-2.21.jar  jackson-core-2.22.2.jar -> jackson-core-2.21.5.jar  jspecify-1.0.0.jar -> jspecify-1.0.1.jar  micrometer-commons-1.16.7.jar -> micrometer-commons-1.17.1.jar  micrometer-observation-1.16.7.jar -> micrometer-observation-1.17.1.jar  
-MethodParameters attributes in OrderQueue.class (c4-tiffinbox): 0
-MethodParameters attributes in OrderQueue.class (c5-tiffinbox): 3
+MethodParameters attributes in OrderQueue.class (Course 4): 0
+MethodParameters attributes in OrderQueue.class (Course 5, unit 01): 3
 ```
 
 Two of those moved versions are a Jackson skew: the parent still pins `jackson-databind 2.22.2`, while Boot's

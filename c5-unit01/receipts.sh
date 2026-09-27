@@ -8,9 +8,12 @@ cd "$(dirname "$0")"
 M2="$PWD/.m2-demo"
 JOPTS="-Duser.language=en -Duser.country=US"   # log headers are locale-dependent; the masks expect en-US
 die() { echo "  *** $* ***"; exit 1; }
-build() { (cd "$1" && mvn -q -Dmaven.repo.local="$M2" -DskipTests package) || die "build failed: $1"; }
+# clean, always: copy-dependencies never deletes, so a lib/ built before a version change keeps BOTH versions.
+build() { (cd "$1" && mvn -q -Dmaven.repo.local="$M2" -DskipTests clean package) || die "build failed: $1"; }
 jars() { echo "$1/tiffinbox-web/target/tiffinbox-web-1.0.0.jar:$(ls "$1"/tiffinbox-web/target/lib/*.jar | tr '\n' ':')"; }
-B=../c4-tiffinbox; A=../c5-tiffinbox; WEB=tiffinbox-web/src/main/java/com/tiffinbox/web
+# "after" is this unit's own frozen copy of ../c5-tiffinbox as unit 01 left it: later units keep changing the anchor,
+# and these receipts must keep measuring unit 01's change (Course 4's lesson: unit 31 broke units 01 and 08's commands).
+B=../c4-tiffinbox; A=after; WEB=tiffinbox-web/src/main/java/com/tiffinbox/web
 # Serve a build, run Course 4's comparison set, require the server gone after POST /shutdown.
 serve() { dir=$1; port=$2; shift 2
   java $JOPTS "$@" -jar "$dir/tiffinbox-web/target/tiffinbox-web-1.0.0.jar" "$port" > ".r-serve-$port.log" 2>&1 & pid=$!
@@ -66,8 +69,8 @@ price() { lb=$(ls "$B"/tiffinbox-web/target/lib | sort); la=$(ls "$A"/tiffinbox-
   printf '  added:   %s\n' "$(comm -13 <(echo "$lb" | sed 's/-[0-9][0-9.]*\.jar$//') <(echo "$la" | sed 's/-[0-9][0-9.]*\.jar$//') | paste -sd' ' -)"
   printf '  version moved: %s\n' "$(comm -12 <(echo "$lb" | sed 's/-[0-9][0-9.]*\.jar$//') <(echo "$la" | sed 's/-[0-9][0-9.]*\.jar$//') | while read -r j; do
       vb=$(echo "$lb" | grep -E "^$j-[0-9]"); va=$(echo "$la" | grep -E "^$j-[0-9]"); [ "$vb" = "$va" ] || printf '%s -> %s  ' "$vb" "$va"; done)"
-  for t in "$B" "$A"; do printf 'MethodParameters attributes in OrderQueue.class (%s): %s\n' "$(basename "$t")" \
-      "$("$JAVA_HOME/bin/javap" -v -cp "$t/tiffinbox-core/target/classes" com.tiffinbox.OrderQueue | grep -c MethodParameters)"; done; }
+  for t in "Course 4|$B" "Course 5, unit 01|$A"; do printf 'MethodParameters attributes in OrderQueue.class (%s): %s\n' "${t%%|*}" \
+      "$("$JAVA_HOME/bin/javap" -v -cp "${t#*|}/tiffinbox-core/target/classes" com.tiffinbox.OrderQueue | grep -c MethodParameters)"; done; }
 cap price price
 
 # The break: Course 4's JUL debug config, Course 5's silence, and Boot's own way back (A / B / A').
@@ -96,7 +99,7 @@ echo "  three files changed; TiffinBoxServer.java: an import and two lines of ma
 [ "$(grep -c '  auto-configuration definitions: 0$' .r-beans.out)" = 2 ] || die "beans: SpringApplication.run alone must add no auto-configuration"
 x beans 'SpringApplication.run.*' ; x beans 'property sources, in the order they are asked: \[configurationProperties, commandLineArgs, systemProperties, systemEnvironment, random, applicationInfo, class path resource \[tiffinbox.properties\]\]$'
 echo "  the same six beans both ways, 0 auto-configuration; Boot adds configurationProperties, commandLineArgs, random, applicationInfo"
-x price 'jars the application needs at run time: 15 -> 26$'; x price 'OrderQueue.class \(c4-tiffinbox\): 0$'; x price 'OrderQueue.class \(c5-tiffinbox\): 3$'
+x price 'jars the application needs at run time: 15 -> 26$'; x price 'OrderQueue.class \(Course 4\): 0$'; x price 'OrderQueue.class \(Course 5, unit 01\): 3$'
 echo "  the price: 15 -> 26 jars; -parameters now on (MethodParameters 0 -> 3)"
 x logging "^A  .*" ; [ "$(grep -o 'route DEBUG lines [0-9]*' .r-logging.out | paste -sd' ' -)" = "route DEBUG lines 5 route DEBUG lines 0 route DEBUG lines 5" ] || die "logging: expected 5 / 0 / 5"
 [ "$(grep -c 'exit 0 ' .r-logging.out)" = 3 ] || die "logging: every run must exit 0 (the break is silent)"
