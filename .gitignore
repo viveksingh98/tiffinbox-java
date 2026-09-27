@@ -681,3 +681,6 @@ c4-unit32/.m2-demo/
 
 # Course 5 (Spring Boot): the long-lived project. target/ is already ignored everywhere (line 4).
 c5-tiffinbox/.m2-demo/
+c5-unit01/.m2-demo/
+c5-unit01/.harness/
+c5-unit01/.r-*
