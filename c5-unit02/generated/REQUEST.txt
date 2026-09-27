@@ -1,0 +1,9 @@
+GET https://start.spring.io/starter.zip?type=maven-project&language=java&bootVersion=4.1.1&baseDir=tiffinbox2&groupId=com.tiffinbox&artifactId=tiffinbox&name=tiffinbox&packageName=com.tiffinbox&packaging=jar&javaVersion=25
+fetched 2026-09-27T01:34Z (UTC)
+zip md5 9749d87153c3906da902bd04091d654d
+
+PITFALL (measured): passing the metadata id bootVersion=4.1.1.RELEASE writes <version>4.1.1.RELEASE</version> into the parent, which Maven cannot resolve (UnresolvableModelException). Use bootVersion=4.1.1.
+Site defaults that day (metadata/client): Boot 4.1.1.RELEASE; Java default 17, offered 27 25 21 17.
+type=maven-project&language=java&bootVersion=4.1.1.RELEASE&baseDir=tiffinbox&groupId=com.tiffinbox&artifactId=tiffinbox&name=tiffinbox&packageName=com.tiffinbox&packaging=jar&javaVersion=25
+2026-09-27T01:34:01Z
+(the two lines above: the RELEASE-suffixed request and its UTC time; its zip is tiffinbox-bootVersion-4.1.1.RELEASE.zip, md5 e49c1b51bbbd70580121140471acf45b)
