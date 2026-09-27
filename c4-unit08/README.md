@@ -145,10 +145,12 @@ what this section can take off that file, counted out of the source:
 md5 `45738cf7a0bc195032599e86b82ab0db`, exit 0, 3/3, 7 output lines.
 
 And the anchor's own ledger, re-derived today with the script that ships in the first unit,
-against the wiring file unchanged:
+against the wiring file unchanged. **Since the capstone (unit 31) deleted `Wiring.java` from `c4-tiffinbox`,**
+run it against the frozen copy in `c4-unit31/before/` — byte-identical to the file this unit measured, same hash;
+against `../c4-tiffinbox` the ledger now exits 2 with *nothing to count*, which is unit 31's result:
 
 ```
-$ sh ../c4-unit01/ledger.sh ../c4-tiffinbox/…/wiring/Wiring.java
+$ sh ../c4-unit01/ledger.sh ../c4-unit31/before/tiffinbox-core/src/main/java/com/tiffinbox/wiring/Wiring.java
   lines in startEverything(), comments and blanks removed ... 18
   objects constructed with new .............................. 4
   configuration values held as constants beside them ........ 3

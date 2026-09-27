@@ -124,3 +124,11 @@ Two pools, two sets of connections, one application that thinks it has one pool.
 **without touching `Pool` or the `@Bean` method body.** **End state:** `dataSource() ==
 dataSource()  true`, `@Bean body ran  0 time(s)` and `distinct DataSource objects  1`, md5
 `b896c301d885cc31ed9706970263056d`, exit 0, 3/3. Answer in `exercise/solution/`.
+
+## Erratum (2026-09-27)
+
+The video's recap says *"your configuration class gets subclassed"*. On Spring Framework 7.0.9 that holds for a
+configuration class **with `@Bean` methods** — the case this unit measured. A `@Configuration` class with **no**
+`@Bean` method has nothing to intercept and is left plain: the capstone's `TiffinBoxApp` is exactly that, and
+`c4-unit32`'s `Mechanisms` prints both cases side by side (row 6: `@Bean methods 0` → the class you wrote; one
+`@Bean` method → `…$$SpringCGLIB$$0`). Found by the RED review of Section 6 (S6 #33).

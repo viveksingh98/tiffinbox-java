@@ -12,7 +12,7 @@ Add `GET /config` to the rewired server. It returns the kitchen's settings:
 ```
 rsync -a --exclude target ../../c4-tiffinbox/ my-tiffinbox/
 # edit my-tiffinbox/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java
-(cd my-tiffinbox && mvn -q -DskipTests package)
+(cd my-tiffinbox && mvn -q -Dmaven.repo.local=../../.m2-demo -DskipTests package)   # reuses the jars receipts.sh fetched
 java -Dtiffinbox.days=7 -jar my-tiffinbox/tiffinbox-web/target/tiffinbox-web-1.0.0.jar 18449
 curl -s http://127.0.0.1:18449/config
 curl -s http://127.0.0.1:18449/kitchen
