@@ -85,3 +85,8 @@ exit 1
 ```
 
 `bootVersion=4.1.1` generates `<version>4.1.1</version>`, which resolves. Record the exact request, always.
+
+## Exercise
+
+`exercise/`: delete TiffinBox's `<h2.version>` line and find whose H2 you get. Measured solution in `exercise/solution/`
+(Boot's `h2-2.4.240`, because the property name is inherited from Boot's BOM; the seven answers unchanged).
