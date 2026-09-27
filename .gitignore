@@ -675,3 +675,6 @@ c4-unit31/.m2-demo/
 c4-unit31/before/tiffinbox-core/target/
 c4-unit31/before/tiffinbox-web/target/
 c4-unit31/before/target/
+c4-unit32/.harness/
+c4-unit32/.r-*
+c4-unit32/.m2-demo/
