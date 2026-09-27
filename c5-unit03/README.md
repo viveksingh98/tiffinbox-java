@@ -82,11 +82,11 @@ a new package for the databind and core classes, and the same annotations.
 ## The break — one family member pinned
 
 Course 4 pinned `jackson-databind` alone, which was right while nothing else managed Jackson. Under Boot's parent the
-other two members follow Boot's version instead (`.r-jackson.out` `2aa9eae93886065fd1482f01135c48b7`):
+other two members follow Boot's version instead (`.r-jackson.out` `9730eac1854e72585d0033a9cc6b3571`):
 
 ```
-unit 01 (jackson-databind pinned alone): jackson-annotations-2.21.jar jackson-core-2.21.5.jar jackson-databind-2.22.2.jar
-unit 03 (jackson-2-bom.version set): jackson-annotations-2.22.jar jackson-core-2.22.2.jar jackson-databind-2.22.2.jar
+before the fix (jackson-databind pinned alone): jackson-annotations-2.21.jar jackson-core-2.21.5.jar jackson-databind-2.22.2.jar
+after the fix (jackson-2-bom.version set): jackson-annotations-2.22.jar jackson-core-2.22.2.jar jackson-databind-2.22.2.jar
 ```
 
 The fix is the property Boot's own BOM reads — `<jackson-2-bom.version>2.22.2</jackson-2-bom.version>` — which moves

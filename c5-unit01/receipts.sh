@@ -69,7 +69,7 @@ price() { lb=$(ls "$B"/tiffinbox-web/target/lib | sort); la=$(ls "$A"/tiffinbox-
   printf '  added:   %s\n' "$(comm -13 <(echo "$lb" | sed 's/-[0-9][0-9.]*\.jar$//') <(echo "$la" | sed 's/-[0-9][0-9.]*\.jar$//') | paste -sd' ' -)"
   printf '  version moved: %s\n' "$(comm -12 <(echo "$lb" | sed 's/-[0-9][0-9.]*\.jar$//') <(echo "$la" | sed 's/-[0-9][0-9.]*\.jar$//') | while read -r j; do
       vb=$(echo "$lb" | grep -E "^$j-[0-9]"); va=$(echo "$la" | grep -E "^$j-[0-9]"); [ "$vb" = "$va" ] || printf '%s -> %s  ' "$vb" "$va"; done)"
-  for t in "Course 4|$B" "Course 5, unit 01|$A"; do printf 'MethodParameters attributes in OrderQueue.class (%s): %s\n' "${t%%|*}" \
+  for t in "Course 4|$B" "Course 5|$A"; do printf 'MethodParameters attributes in OrderQueue.class (%s): %s\n' "${t%%|*}" \
       "$("$JAVA_HOME/bin/javap" -v -cp "${t#*|}/tiffinbox-core/target/classes" com.tiffinbox.OrderQueue | grep -c MethodParameters)"; done; }
 cap price price
 
@@ -99,7 +99,7 @@ echo "  three files changed; TiffinBoxServer.java: an import and two lines of ma
 [ "$(grep -c '  auto-configuration definitions: 0$' .r-beans.out)" = 2 ] || die "beans: SpringApplication.run alone must add no auto-configuration"
 x beans 'SpringApplication.run.*' ; x beans 'property sources, in the order they are asked: \[configurationProperties, commandLineArgs, systemProperties, systemEnvironment, random, applicationInfo, class path resource \[tiffinbox.properties\]\]$'
 echo "  the same six beans both ways, 0 auto-configuration; Boot adds configurationProperties, commandLineArgs, random, applicationInfo"
-x price 'jars the application needs at run time: 15 -> 26$'; x price 'OrderQueue.class \(Course 4\): 0$'; x price 'OrderQueue.class \(Course 5, unit 01\): 3$'
+x price 'jars the application needs at run time: 15 -> 26$'; x price 'OrderQueue.class \(Course 4\): 0$'; x price 'OrderQueue.class \(Course 5\): 3$'
 echo "  the price: 15 -> 26 jars; -parameters now on (MethodParameters 0 -> 3)"
 x logging "^A  .*" ; [ "$(grep -o 'route DEBUG lines [0-9]*' .r-logging.out | paste -sd' ' -)" = "route DEBUG lines 5 route DEBUG lines 0 route DEBUG lines 5" ] || die "logging: expected 5 / 0 / 5"
 [ "$(grep -c 'exit 0 ' .r-logging.out)" = 3 ] || die "logging: every run must exit 0 (the break is silent)"

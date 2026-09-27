@@ -35,7 +35,7 @@ cap tree tree
 
 # The break and the fix: which Jackson versions TiffinBox actually runs with, and the seven responses after the fix.
 build "$BEFORE"; build "$AFTER"
-jackson() { for t in "unit 01 (jackson-databind pinned alone)|$BEFORE" "unit 03 (jackson-2-bom.version set)|$AFTER"; do
+jackson() { for t in "before the fix (jackson-databind pinned alone)|$BEFORE" "after the fix (jackson-2-bom.version set)|$AFTER"; do
     printf '%s: %s\n' "${t%%|*}" "$(ls "${t#*|}"/tiffinbox-web/target/lib | grep '^jackson-' | paste -sd' ' -)"; done; }
 cap jackson jackson
 serve() { java $JOPTS -jar "$AFTER/tiffinbox-web/target/tiffinbox-web-1.0.0.jar" 18541 > .r-serve.log 2>&1 & pid=$!
@@ -52,7 +52,7 @@ echo "  a starter jar holds no class at all; the old web starter's own POM says 
 x tree '^com\.tiffinbox:c5-unit03-web:jar:1\.0\.0$'; x tree 'tools\.jackson\.core:jackson-databind:jar:3\.'; x tree 'com\.fasterxml\.jackson\.core:jackson-annotations:jar:2\.'
 x tree 'spring-boot-starter-tomcat'; x tree '^jars in the tree: [0-9]+$'
 echo "  one web starter: $(grep -o '[0-9]*$' .r-tree.out | tail -1) jars; Jackson 3 (tools.jackson) with the 2.x annotations"
-x jackson '^unit 01 \(jackson-databind pinned alone\): jackson-annotations-2\.21\.jar jackson-core-2\.21\.5\.jar jackson-databind-2\.22\.2\.jar$'
-x jackson '^unit 03 \(jackson-2-bom\.version set\): jackson-annotations-2\.22\.jar jackson-core-2\.22\.2\.jar jackson-databind-2\.22\.2\.jar$'
+x jackson '^before the fix \(jackson-databind pinned alone\): jackson-annotations-2\.21\.jar jackson-core-2\.21\.5\.jar jackson-databind-2\.22\.2\.jar$'
+x jackson '^after the fix \(jackson-2-bom\.version set\): jackson-annotations-2\.22\.jar jackson-core-2\.22\.2\.jar jackson-databind-2\.22\.2\.jar$'
 x responses 'md5 115c36bac276128e245ca57df11c2891$'; x responses '^server exit 0$'
 echo "  the break: databind 2.22.2 beside core 2.21.5; the fix moves the family together - and the seven responses are unchanged"
