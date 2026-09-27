@@ -46,9 +46,18 @@ the effective POM - the generated pom.xml with everything its parent adds - is 1
   <goal>repackage</goal> (the executable-jar step, configured) ..... 2
 ```
 
-The repackage step is *configured* by the parent and *runs* only where `spring-boot-maven-plugin` is declared: the
-generated `pom.xml` declares it; `../c5-tiffinbox` inherits the same parent and does not, so its jar stays thin (unit
-13 opens the executable jar). The same parent switched `-parameters` on in TiffinBox's own build — measured in
+The repackage step is *configured* by the parent and *runs* only where `spring-boot-maven-plugin` is declared
+(`.r-bind.out` `dad712023a3df51ed7c95d7f23b9da08`):
+
+```
+spring-boot-maven-plugin declared in generated/pom.xml:                       1
+spring-boot-maven-plugin declared in c5-tiffinbox/pom.xml:                    0
+spring-boot-maven-plugin declared in c5-tiffinbox/tiffinbox-web/pom.xml:      0
+the generated jar's manifest: Main-Class: org.springframework.boot.loader.launch.JarLauncher Start-Class: com.tiffinbox.TiffinboxApplication
+```
+
+The generated project declares it, so its jar's `Main-Class` is Boot's launcher and your class is only the `Start-Class`;
+`../c5-tiffinbox` inherits the same parent, declares nothing, and its jar stays thin (unit 13 opens the executable jar). The same parent switched `-parameters` on in TiffinBox's own build — measured in
 `../c5-unit01` (`MethodParameters` 0 → 3).
 
 ## The test it ships

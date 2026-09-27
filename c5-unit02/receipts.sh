@@ -32,6 +32,14 @@ parent() { (cd generated && mvn -q -B -Dmaven.repo.local="$M2" help:effective-po
   rm -f $E; }
 cap parent parent
 
+# Configured is not bound: where spring-boot-maven-plugin is DECLARED, and what the jar's manifest then says.
+bind() { for f in generated/pom.xml ../c5-tiffinbox/pom.xml ../c5-tiffinbox/tiffinbox-web/pom.xml; do
+    printf 'spring-boot-maven-plugin declared in %-40s %s\n' "${f#../}:" "$(grep -c '<artifactId>spring-boot-maven-plugin</artifactId>' "$f")"; done
+  (cd generated && mvn -q -B -Dmaven.repo.local="$M2" -DskipTests clean package > /dev/null 2>&1) || { echo "generated build failed"; return; }
+  printf 'the generated jar'"'"'s manifest: %s\n' "$(unzip -p generated/target/tiffinbox-0.0.1-SNAPSHOT.jar META-INF/MANIFEST.MF | tr -d '\r' | grep -E '^(Main-Class|Start-Class):' | paste -sd' ' -)"
+  rm -rf generated/target; }
+cap bind bind
+
 tests() { (cd generated && mvn -B -Dmaven.repo.local="$M2" test 2>&1) | grep -E '^\[(INFO|ERROR)\] Tests run: [0-9]+, Failures: [0-9]+, Errors: [0-9]+, Skipped: [0-9]+$' | tail -1
   printf 'what the one test checks: %s\n' "$(grep -A2 '@Test' generated/src/test/java/com/tiffinbox/TiffinboxApplicationTests.java | tr -s ' \t\n' ' ')"; }
 cap tests tests
@@ -54,6 +62,9 @@ grep -q 'spring-boot-maven-plugin' generated/pom.xml || die "the generated pom n
 grep -q 'spring-boot-maven-plugin' ../c5-tiffinbox/pom.xml ../c5-tiffinbox/tiffinbox-web/pom.xml && die "c5-tiffinbox now declares spring-boot-maven-plugin"
 echo "  the parent decides 1911 versions, switches -parameters on, and configures repackage - which runs only where the plugin"
 echo "  is DECLARED: the generated pom declares it, TiffinBox does not (its jar stays thin until unit 13)"
+x bind 'declared in generated/pom.xml: +1$'; x bind 'declared in c5-tiffinbox/pom.xml: +0$'; x bind 'declared in c5-tiffinbox/tiffinbox-web/pom.xml: +0$'
+x bind "manifest: Main-Class: org.springframework.boot.loader.launch.JarLauncher Start-Class: com.tiffinbox.TiffinboxApplication$"
+echo "  the plugin is declared only in the generated pom - and there the jar's Main-Class is Boot's launcher, not yours"
 x tests 'Tests run: 1, Failures: 0, Errors: 0, Skipped: 0$'; x tests 'void contextLoads\(\) \{ \}'
 echo "  the generated test: one test, and it checks only that a context starts"
 x release 'Non-resolvable parent POM'; x release '4\.1\.1\.RELEASE'; x release '^exit 1$'
