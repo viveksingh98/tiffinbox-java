@@ -100,3 +100,8 @@ classes, 145 bean definitions in all, for a web application with nothing of its 
 the seven responses with auto-configuration on: md5 115c36bac276128e245ca57df11c2891
 server exit 0
 ```
+
+## Exercise
+
+`exercise/`: exclude one auto-configuration with `spring.autoconfigure.exclude` and count again. Measured solution in
+`exercise/solution/` (registered 9 → 8, definitions 55 → 49).
