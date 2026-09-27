@@ -16,8 +16,8 @@ Three files changed, and nothing else:
 
 The run command is unchanged — `java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar 18431` — and the seven
 responses of `../c4-unit31/curlset.sh` hash to `115c36bac276128e245ca57df11c2891`, exactly as Course 4's did. What Boot
-added (a banner, its own log format over the application's JUL records, property sources, a shutdown hook, 11 more jars,
-and `-parameters` in this build) is measured in `../c5-unit01/`.
+added (a banner, its own log format over the application's JUL records, four property sources, 11 more jars, and
+`-parameters` in this build) is measured in `../c5-unit01/`.
 
 ---
 
