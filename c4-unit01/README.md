@@ -13,8 +13,9 @@ for f in Customer CustomerRepository Dashboard Database OrderQueue; do md5 -q $f
 ```
 
 It gives `fdb1643d622615f3c331d75deaebb9da` in `c4-unit01/src/main/java/com/tiffinbox/`, in
-`c4-tiffinbox/tiffinbox-core/src/main/java/com/tiffinbox/` and in the frozen
-`c3-tiffinbox/.../com/tiffinbox/` — three places, one value. They have been carried, unchanged,
+`c4-unit31/before/tiffinbox-core/src/main/java/com/tiffinbox/` (the anchor as this course found it, frozen when the
+capstone rewired `c4-tiffinbox`, whose copies now hash `4aa1368f…` — annotations only, see "Since the capstone"
+below) and in the frozen `c3-tiffinbox/.../com/tiffinbox/` — three places, one value. They have been carried, unchanged,
 since the first course, and **this unit does not touch them.** That is the point: the container takes the
 construction, not the objects.
 
@@ -22,11 +23,14 @@ construction, not the objects.
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
 export PATH="$JAVA_HOME/bin:$PATH"
 mvn -B -Dmaven.repo.local="$PWD/.m2-demo" clean package
+mvn -B -q -Dmaven.repo.local="$PWD/.m2-demo" dependency:build-classpath -Dmdep.outputFile=.cp -DincludeScope=runtime
 java -cp "target/classes:$(cat .cp)" com.tiffinbox.SameThreeBoxes
 java -cp "target/classes:$(cat .cp)" com.tiffinbox.ContextReport
 java -cp "target/classes:$(cat .cp)" com.tiffinbox.ContextReport --stable
 sh ledger.sh
 (cd ../c4-unit31/before && sh ../../c4-unit01/ledger.sh tiffinbox-core/src/main/java/com/tiffinbox/wiring/Wiring.java)
+(cd breaks/one-bean-deleted && mvn -B -q -Dmaven.repo.local="$PWD/../../.m2-demo" clean package dependency:build-classpath -Dmdep.outputFile=.cp -DincludeScope=runtime \
+   && java -cp "target/classes:$(cat .cp)" com.tiffinbox.ContextReport > .r-cb1.out 2>&1; echo "exit $?")   # exit 1: the break
 python3 chain.py breaks/one-bean-deleted/.r-cb1.out
 ```
 

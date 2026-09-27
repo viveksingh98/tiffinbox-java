@@ -16,6 +16,16 @@ import sys, re
 # AND IT COUNTS WHAT IT MASKED, into the capture, and exits 2 if it masked nothing while a
 # level line was present - an uncounted filter that silently does nothing is how a capture
 # stops being evidence.
+#
+# THE HEADER MUST END AT THE METHOD NAME. Without this, the rule above matched a line of this
+# unit's OWN ContextReport - "sort     by bean name, java.lang.String natural order", whose
+# next line is "mask     off  (--stable masks: ...)" and so satisfies LEVEL because of
+# "masks: ". The report row was rewritten to "<timestamp> java.lang.String natural order" and
+# the words "sort     by bean name," were deleted from a shipped capture (found 2026-09-20).
+# A JUL header is "<stamp> <FQCN> <method>" and NOTHING after it, so everything from the class
+# name onwards must be exactly two whitespace-separated tokens; the report's row is three.
+# A header with no method name is therefore not masked and trips the exit-2 die below, which
+# is the correct direction: this filter fails loudly rather than deleting a line it misread.
 
 LEVEL = re.compile(r'^\S[^\n]*?:\s')
 FQCN = re.compile(r'(?<![\w.$])((?:[a-z][a-zA-Z0-9_]*\.)+[A-Z][A-Za-z0-9_$]*)')
@@ -26,7 +36,7 @@ for i, l in enumerate(lines):
     nxt = lines[i + 1] if i + 1 < len(lines) else ""
     m = FQCN.search(l)
     if m and LEVEL.match(nxt) and not l.startswith(("\tat ", "\t... ", "Caused by:")) \
-            and m.start() > 0:
+            and m.start() > 0 and re.fullmatch(r"\S+ \S+", l[m.start():]):
         out.append("<timestamp> " + l[m.start():])
         masked += 1
     else:

@@ -1,4 +1,10 @@
-# c3-tiffinbox — TiffinBox, split into modules
+# c4-tiffinbox — TiffinBox, split into modules (Course 4's anchor)
+
+> **Read this first.** This is Course 4's copy of `c3-tiffinbox`, and the sections up to "Course 4 starts here" are
+> Course 3's text. Their command outputs were **re-captured on 2026-09-27 against this project as it now is** —
+> after unit 31's rewire, which added Spring (15 jars at run time, a Spring subtree in the dependency tree). The
+> project as Course 3 left it is frozen in `../c4-unit31/before/`; run a command there to see Course 3's output.
+
 
 The long-lived project of **Build & Test Like a Pro**. It starts as the Core Java II capstone
 (`../c2-capstone/`) cut into three POMs, and every later unit in the course changes it: Gradle
@@ -97,9 +103,13 @@ unzip -p tiffinbox-web/target/tiffinbox-web-1.0.0.jar META-INF/MANIFEST.MF
 ```
 
 ```
-Class-Path: lib/tiffinbox-core-1.0.0.jar lib/h2-2.5.250.jar lib/jackson-
- databind-2.22.2.jar lib/jackson-annotations-2.22.jar lib/jackson-core-2
- .22.2.jar
+Class-Path: lib/tiffinbox-core-1.0.0.jar lib/h2-2.5.250.jar lib/spring-c
+ ontext-7.0.9.jar lib/spring-aop-7.0.9.jar lib/spring-beans-7.0.9.jar li
+ b/spring-core-7.0.9.jar lib/commons-logging-1.3.5.jar lib/jspecify-1.0.
+ 0.jar lib/spring-expression-7.0.9.jar lib/micrometer-observation-1.16.7
+ .jar lib/micrometer-commons-1.16.7.jar lib/jakarta.annotation-api-3.0.0
+ .jar lib/jackson-databind-2.22.2.jar lib/jackson-annotations-2.22.jar l
+ ib/jackson-core-2.22.2.jar
 Main-Class: com.tiffinbox.web.TiffinBoxServer
 ```
 
@@ -108,10 +118,20 @@ ls tiffinbox-web/target/lib
 ```
 
 ```
+commons-logging-1.3.5.jar
 h2-2.5.250.jar
 jackson-annotations-2.22.jar
 jackson-core-2.22.2.jar
 jackson-databind-2.22.2.jar
+jakarta.annotation-api-3.0.0.jar
+jspecify-1.0.0.jar
+micrometer-commons-1.16.7.jar
+micrometer-observation-1.16.7.jar
+spring-aop-7.0.9.jar
+spring-beans-7.0.9.jar
+spring-context-7.0.9.jar
+spring-core-7.0.9.jar
+spring-expression-7.0.9.jar
 tiffinbox-core-1.0.0.jar
 ```
 
@@ -217,7 +237,8 @@ javap -v -cp tiffinbox-core/target/classes com.tiffinbox.Dashboard | grep -E 'ma
 
 ## Versions live in exactly one place
 
-The parent's `<dependencyManagement>` decides `tiffinbox-core`, `h2` and `jackson-databind`;
+The parent's `<dependencyManagement>` decides `tiffinbox-core`, `h2`, `jackson-databind`, `jakarta.annotation-api` and —
+through the imported Spring Framework BOM — every `spring-*` version;
 its `<pluginManagement>` decides the four plugin versions. **No child POM contains a
 `<version>` for a dependency or a plugin.** Check it:
 
@@ -228,18 +249,38 @@ mvn -B dependency:tree
 ```
 [INFO] com.tiffinbox:tiffinbox-parent:pom:1.0.0
 [INFO] com.tiffinbox:tiffinbox-core:jar:1.0.0
-[INFO] \- com.h2database:h2:jar:2.5.250:compile
+[INFO] +- com.h2database:h2:jar:2.5.250:compile
+[INFO] +- org.springframework:spring-context:jar:7.0.9:compile
+[INFO] |  +- org.springframework:spring-aop:jar:7.0.9:compile
+[INFO] |  +- org.springframework:spring-beans:jar:7.0.9:compile
+[INFO] |  +- org.springframework:spring-core:jar:7.0.9:compile
+[INFO] |  |  +- commons-logging:commons-logging:jar:1.3.5:compile
+[INFO] |  |  \- org.jspecify:jspecify:jar:1.0.0:compile
+[INFO] |  +- org.springframework:spring-expression:jar:7.0.9:compile
+[INFO] |  \- io.micrometer:micrometer-observation:jar:1.16.7:compile
+[INFO] |     \- io.micrometer:micrometer-commons:jar:1.16.7:compile
+[INFO] \- jakarta.annotation:jakarta.annotation-api:jar:3.0.0:compile
 [INFO] com.tiffinbox:tiffinbox-web:jar:1.0.0
 [INFO] +- com.tiffinbox:tiffinbox-core:jar:1.0.0:compile
-[INFO] |  \- com.h2database:h2:jar:2.5.250:compile
+[INFO] |  +- com.h2database:h2:jar:2.5.250:compile
+[INFO] |  +- org.springframework:spring-context:jar:7.0.9:compile
+[INFO] |  |  +- org.springframework:spring-aop:jar:7.0.9:compile
+[INFO] |  |  +- org.springframework:spring-beans:jar:7.0.9:compile
+[INFO] |  |  +- org.springframework:spring-core:jar:7.0.9:compile
+[INFO] |  |  |  +- commons-logging:commons-logging:jar:1.3.5:compile
+[INFO] |  |  |  \- org.jspecify:jspecify:jar:1.0.0:compile
+[INFO] |  |  +- org.springframework:spring-expression:jar:7.0.9:compile
+[INFO] |  |  \- io.micrometer:micrometer-observation:jar:1.16.7:compile
+[INFO] |  |     \- io.micrometer:micrometer-commons:jar:1.16.7:compile
+[INFO] |  \- jakarta.annotation:jakarta.annotation-api:jar:3.0.0:compile
 [INFO] \- com.fasterxml.jackson.core:jackson-databind:jar:2.22.2:compile
 [INFO]    +- com.fasterxml.jackson.core:jackson-annotations:jar:2.22:compile
 [INFO]    \- com.fasterxml.jackson.core:jackson-core:jar:2.22.2:compile
 ```
 
 **Run that on the whole project, never with `-pl`.** With `-pl tiffinbox-web`, Maven cannot
-read the sibling's POM, so it draws `tiffinbox-core` as a leaf — **h2 disappears from the
-picture** — prints one `[WARNING]` above the tree and then `BUILD SUCCESS`, exit 0:
+read the sibling's POM, so it draws `tiffinbox-core` as a leaf — **h2 and the whole Spring subtree disappear from
+the picture** — prints one `[WARNING]` above the tree and then `BUILD SUCCESS`, exit 0:
 
 ```
 [WARNING] The POM for com.tiffinbox:tiffinbox-core:jar:1.0.0 is missing, no dependency information available
@@ -284,6 +325,11 @@ Offline receipt after one warm build: `mvn -o -B verify` → `BUILD SUCCESS`, ex
 ---
 
 ## Course 4 starts here (added 2026-09-16, Section 1 · The Container)
+
+> **Historical — true until unit 31 (2026-09-27).** The rewire below deleted `Wiring.java` and annotated the five
+> sources (they now hash to `4aa1368f7e06f31f032f1f3dcf140952` here; `onlyannotations.py` shows the change is
+> annotations only). This section's state is frozen in **`../c4-unit31/before/`**: run its checks there —
+> `fdb1643d…` and the ledger's 18 · 4 · 3 · 0 · 0 reproduce in that folder, not in this one.
 
 This directory is **the Course 3 line of TiffinBox, carried forward byte-identically** — it was
 created by copying `c3-tiffinbox/`, which is frozen and read only. The five carried sources
