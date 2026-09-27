@@ -3,7 +3,21 @@
 **Starts as an exact copy of `c4-tiffinbox`** at the end of Course 4 (tiffinbox-java 1b3b52f): the application Course 4
 rewired — `TiffinBoxApp`, component scanning, `tiffinbox.properties`, no `Wiring.java`. Course 5's units change it
 from here on; `c4-tiffinbox` stays frozen, so every Course 4 unit keeps pointing at what it measured. Unit 01 of
-Course 5 is where Spring Boot arrives. Everything below is `c4-tiffinbox`'s README as it was.
+Course 5 is where Spring Boot arrives. Everything below the second rule is `c4-tiffinbox`'s README as it was.
+
+## Course 5 · unit 01 — Boot arrives (2026-09-27)
+
+Three files changed, and nothing else:
+- `pom.xml` inherits `spring-boot-starter-parent:4.1.1` (`java.version 25` replaces `maven.compiler.release`; the
+  Spring Framework BOM import goes — the parent manages Spring Framework 7.0.9 now);
+- `tiffinbox-web/pom.xml` adds `spring-boot-starter`;
+- `TiffinBoxServer.main`: `new AnnotationConfigApplicationContext(TiffinBoxApp.class)` + `registerShutdownHook()`
+  become `SpringApplication.run(TiffinBoxApp.class, args)`.
+
+The run command is unchanged — `java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar 18431` — and the seven
+responses of `../c4-unit31/curlset.sh` hash to `115c36bac276128e245ca57df11c2891`, exactly as Course 4's did. What Boot
+added (a banner, its own log format over the application's JUL records, property sources, a shutdown hook, 11 more jars,
+and `-parameters` in this build) is measured in `../c5-unit01/`.
 
 ---
 

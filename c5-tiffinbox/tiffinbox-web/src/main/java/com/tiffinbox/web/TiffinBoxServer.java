@@ -6,7 +6,7 @@ import com.sun.net.httpserver.HttpServer;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.boot.SpringApplication;
 import org.springframework.stereotype.Component;
 import com.tiffinbox.Customer;
 import com.tiffinbox.CustomerRepository;
@@ -194,8 +194,7 @@ public final class TiffinBoxServer {
         if (args.length > 0) {
             System.setProperty("tiffinbox.port", args[0]);   // the same command line as before
         }
-        var context = new AnnotationConfigApplicationContext(TiffinBoxApp.class);
-        context.registerShutdownHook();
+        SpringApplication.run(TiffinBoxApp.class, args);
     }
 
     /** One HTTP context per distinct path; the verb is matched inside the handler. */
