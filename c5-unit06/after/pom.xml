@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- The parent builds nothing. Its packaging is pom, so there is no src/ and no jar. -->
+  <!-- Course 5, unit 01: TiffinBox inherits Boot's parent. It brings dependency management (every Boot-managed
+       version), plugin management (including a repackage it does NOT bind here) and -parameters. -->
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.1.1</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.tiffinbox</groupId>
+  <artifactId>tiffinbox-parent</artifactId>
+  <version>1.0.0</version>
+  <packaging>pom</packaging>
+  <name>TiffinBox</name>
+
+  <properties>
+    <java.version>25</java.version>
+    <!-- Course 5, unit 03: the Jackson 2 family moves as ONE version, through the property Boot's own BOM reads.
+         Pinning jackson-databind alone was right under Course 4, where nothing else managed Jackson; under Boot's BOM it
+         left jackson-core and jackson-annotations on Boot's 2.21.x while databind stayed on 2.22.2. -->
+    <jackson-2-bom.version>2.22.2</jackson-2-bom.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <h2.version>2.5.250</h2.version>
+  </properties>
+
+  <modules>
+    <module>tiffinbox-core</module>
+    <module>tiffinbox-web</module>
+  </modules>
+
+  <!--
+    Versions live here and nowhere else. dependencyManagement does NOT add a dependency to
+    anything; it only decides the version a child gets when the child names an artifact
+    without one. ${project.version} keeps the two sibling modules on the same number.
+  -->
+  <dependencyManagement>
+    <dependencies>
+      <!-- Course 5: the Spring versions now come from the parent (spring-boot-starter-parent imports
+           spring-boot-dependencies, which manages Spring Framework 7.0.9). The Framework BOM import is gone. -->
+      <dependency>
+        <groupId>jakarta.annotation</groupId>
+        <artifactId>jakarta.annotation-api</artifactId>
+        <version>3.0.0</version>
+      </dependency>
+      <dependency>
+        <groupId>com.tiffinbox</groupId>
+        <artifactId>tiffinbox-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.h2database</groupId>
+        <artifactId>h2</artifactId>
+        <version>${h2.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <!-- The same idea for plugins: the version is here, the binding is in the child. -->
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.15.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>3.5.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>3.11.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>3.6.4</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+</project>
