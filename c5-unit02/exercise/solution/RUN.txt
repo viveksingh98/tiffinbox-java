@@ -1,0 +1,11 @@
+# exercise/README.md, its command block run exactly as written: bash, from c5-unit02/exercise/, 2026-09-29T13:06Z
+# (openjdk version "25.0.4.1" 2026-08-18; Apache Maven 3.9.16 ; no MAVEN_ARGS, no -o)
+$ export JAVA_HOME=/opt/homebrew/opt/openjdk@25      # or wherever your JDK 25 lives
+$ rsync -a --delete --exclude target ../../c5-tiffinbox/ my-tiffinbox/
+$ mvn -q -f my-tiffinbox/pom.xml -Dmaven.repo.local="$PWD/../.m2-demo" -DskipTests clean package
+$ ls my-tiffinbox/tiffinbox-web/target/lib | grep h2
+h2-2.5.250.jar
+$ grep -v '<h2.version>' my-tiffinbox/pom.xml > my-tiffinbox/pom.edited && mv my-tiffinbox/pom.edited my-tiffinbox/pom.xml
+$ mvn -q -f my-tiffinbox/pom.xml -Dmaven.repo.local="$PWD/../.m2-demo" -DskipTests clean package
+$ ls my-tiffinbox/tiffinbox-web/target/lib | grep h2
+h2-2.4.240.jar

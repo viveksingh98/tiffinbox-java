@@ -6,8 +6,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * One Executor bean of your own. Deliberately OUTSIDE com.tiffinbox, so TiffinBox's @ComponentScan never finds it:
- * the harness adds it to the application only in the runs that say so.
+ * One Executor bean of your own: a pool of three threads, named kitchen-1 to kitchen-3 so you can tell them apart from
+ * Boot's task-N and Spring's SimpleAsyncTaskExecutor-N. Deliberately OUTSIDE com.tiffinbox, so TiffinBox's @ComponentScan
+ * never finds it: the harness adds it only in the "kitchen" setup.
  *
  * Its name is not KitchenExecutor, and that is measured: a configuration class named KitchenExecutor is itself a bean
  * called "kitchenExecutor", its @Bean method is another, and Boot refuses to start ("A bean with that name has already
@@ -15,8 +16,9 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class KitchenExecutorConfig {
+
     @Bean
     Executor kitchenExecutor() {
-        return Executors.newVirtualThreadPerTaskExecutor();
+        return Executors.newFixedThreadPool(3, Thread.ofPlatform().name("kitchen-", 1).factory());
     }
 }

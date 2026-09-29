@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Where old-starter went. It names nothing: the relocation, not the content, is what is being measured. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.example</groupId>
+  <artifactId>new-starter</artifactId>
+  <version>1.0</version>
+  <packaging>pom</packaging>
+</project>

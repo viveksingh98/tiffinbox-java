@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Maven's own way to retire an artifact: a POM whose only job is to say where the artifact went, and why.
+     receipts.sh puts this file and new-starter-1.0.pom into the unit's own repository, as `mvn install` would. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.example</groupId>
+  <artifactId>old-starter</artifactId>
+  <version>1.0</version>
+  <distributionManagement>
+    <relocation>
+      <artifactId>new-starter</artifactId>
+      <message>deprecated in favor of new-starter</message>
+    </relocation>
+  </distributionManagement>
+</project>

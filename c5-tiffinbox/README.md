@@ -156,6 +156,12 @@ from the module next door: to `tiffinbox-web`, core is a dependency like any oth
 
 ## Run
 
+> **Stale under Boot (Course 5, unit 01 measured it).** Since Spring Boot arrived, Boot's logging system owns
+> `java.util.logging`: the `-Djava.util.logging.config.file=…` flag below no longer sets any level (the debug file's
+> five `route` lines go 5 → 0, silently; see `../c5-unit01/` → `.r-logging.out`). Boot's way is a property after the
+> port: `java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar 18431 --logging.level.tiffinbox=debug`. The rest of
+> this section is Course 3's text, kept as it was written.
+
 **No `--enable-preview`.** That is the whole point of the swap.
 
 ```bash

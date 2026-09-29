@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Course 5 · unit 04: the smallest Boot web application — one starter, one class — started once to count how many
-     imports files, listed classes and bean definitions a web starter brings. Not TiffinBox: Course 6 owns the web layer. -->
+<!-- Course 5, Section 1: the smallest Boot web application — one starter, one class — started once to count how many
+     imports files, listed classes and bean definitions a web starter brings. Not TiffinBox: Course 6 owns the web layer.
+     The artifactId carries no unit number: nothing a slide can show may carry one (Course 5 contract §R.4). -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
@@ -11,7 +12,7 @@
     <relativePath/>
   </parent>
   <groupId>com.tiffinbox</groupId>
-  <artifactId>c5-unit04-webapp</artifactId>
+  <artifactId>one-starter-webapp</artifactId>
   <version>1.0.0</version>
   <properties>
     <java.version>25</java.version>

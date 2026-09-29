@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Course 5 · unit 03: the smallest Boot web project there is — one starter and nothing else — so its dependency tree
+<!-- Course 5 · starters, opened: the smallest Boot web project there is — one starter and nothing else — so its dependency tree
      is the starter's content, and nothing of TiffinBox's. No sources: dependency:tree needs none. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -11,7 +11,7 @@
     <relativePath/>
   </parent>
   <groupId>com.tiffinbox</groupId>
-  <artifactId>c5-unit03-web</artifactId>
+  <artifactId>one-starter-web</artifactId>
   <version>1.0.0</version>
   <properties>
     <java.version>25</java.version>
