@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- Boot's parent, as TiffinBox uses it: dependency versions, plugin versions, java.version, -parameters. -->
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.1.1</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.tiffinbox</groupId>
+  <artifactId>tiffinbox-spring-boot-starter</artifactId>
+  <version>1.0.0</version>
+  <name>TiffinBox Spring Boot Starter</name>
+  <description>One module: a Kitchen, its properties, the configuration class that makes one, and the one-line file
+    that lists it. Any Boot application that adds this jar gets a Kitchen bean unless it declares its own.</description>
+
+  <properties>
+    <java.version>25</java.version>
+  </properties>
+
+  <dependencies>
+    <!-- @AutoConfiguration and @ConditionalOnMissingBean live here, and so does the code that reads the imports file.
+         No version: the parent manages it. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-autoconfigure</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- The metadata processor writes META-INF/spring-configuration-metadata.json from KitchenProperties: every key,
+           its type, its default and its description. It runs from the processor path, not as a dependency: on JDK 25,
+           javac runs no processor it finds only on the class path. No version: the parent manages it. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.springframework.boot</groupId>
+              <artifactId>spring-boot-configuration-processor</artifactId>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
