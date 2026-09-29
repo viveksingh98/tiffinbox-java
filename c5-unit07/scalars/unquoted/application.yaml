@@ -1,0 +1,22 @@
+# TiffinBox's settings: the four keys application.properties held, one level of nesting per dot.
+tiffinbox:
+  jdbc-url: jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1
+  cooks: 3
+  days: 30
+  port: 18425
+  country: NO
+  sunday: off
+  menu-version: 1.10
+  # The meal types TiffinBox serves. Boot keeps a list as one key per item: meal-types[0], [1], [2].
+  meal-types:
+    - VEG
+    - NON_VEG
+    - VEGAN
+---
+# A second document in the same file, read only while the profile "rush" is active.
+spring:
+  config:
+    activate:
+      on-profile: rush
+tiffinbox:
+  cooks: 6
