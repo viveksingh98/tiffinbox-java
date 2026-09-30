@@ -6,17 +6,20 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # rush document, a profile of its own file (application-audit.yaml: TiffinBox's logging at debug), and a developer's own
 # git-ignored file that application.yaml imports (optional:file:./tiffinbox-local.yaml) - with a group, "lunch", that
 # switches on rush and audit together (the anchor change). Then how Boot ranks the four, and three mistakes: one that starts
-# without a word, and two that stop the start. Eight captures, each run three times and hashed; cap() DIES when a hash
+# without a word, and two that stop the start. Ten captures, each run three times and hashed; cap() DIES when a hash
 # differs from receipts.md5; every number the video says is asserted at the bottom by a check that can fail.
 #   change   the previous tree against after/, file by file: application.yaml's changed lines, the two new files whole, and
 #            what git makes of tiffinbox-local.yaml under after/'s .gitignore (in a throwaway repository)
 #   group    no profile, then lunch: Boot's profile line, the stack, TiffinBox's route lines at debug
 #   import   A this folder, no tiffinbox-local.yaml · B the same command from local/, which holds one · A' = A
 #   stack    lunch from local/: all four sources in one stack · the same two profiles named the other way round
+#   lastwins rush as a file too, beside the audit's (twofiles/: rush 6, audit 7): A rush,audit · B audit,rush · A' = A
+#   profimport an import declared inside the audit's own file (profimport/: cooks 9), lunch on: where it ranks
 #   break    A lunch · B lnch, one letter missing · A' = A
 #   loud     the import without optional: and no file · spring.profiles.active inside the audit's file, lunch on · the same
 #            file with no profile
-#   serve    after/'s jar: the seven responses - plain, and the anchor README's logging, rush and lunch commands
+#   serve    after/'s jar: the seven responses - plain, and the logging, rush and lunch flags after/README.md gives (each
+#            read from the file, not typed here)
 #   files    every demo file against the file it stands in for (diff)
 # "before" is ../c5-unit09/after (the anchor as the last unit left it), COPIED to .harness/before: this script never writes
 # into another unit's folder, and nothing in it runs the previous tree - `change` reads its files. after/ is this unit's
@@ -24,20 +27,28 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # Commands are printed exactly as they run: each goes through eval, so "$AFTER" (the harness's classes plus after/'s jars,
 # written to .harness/after.classpath) and "$M2" (this unit's own repository, .m2-demo) expand when it runs. A harness
 # command runs from this folder, or from local/ when it says `cd local &&` - the folder TiffinBox starts in is the folder
-# application.yaml's import looks in. A folder in front of after/ on a class path (required/, inprofile/) holds one file
-# that the class path then gives instead of the jar's own; `files` shows how each differs from the anchor's.
+# application.yaml's import looks in. A folder in front of after/ on a class path (required/, inprofile/, twofiles/,
+# profimport/) holds a file that the class path then gives instead of the jar's own, or beside it; `files` shows how each
+# differs from the anchor's.
 # Masks and filters (README.md declares each; sub/gsub only): Boot's timestamped log lines are dropped from a harness report
 # and counted, and so are the lines between the harness's first line and its report (the banner); a kept log message loses
 # its prefix through sub(); a failed start shows Boot's failure report without its blank lines and its rows of asterisks,
 # or - when Boot printed none - the exception's own line and its last two "Caused by:" lines, a [jar:file:…] or [file:…]
 # location cut to […] (gsub); the rest is counted.
 # Ports (brief ⚑11, 18700-18709): serve 18700 · group 18701 · import 18702 · stack 18703 · break 18704 · loud 18705 (the
-# first two runs never bind) · the exercise 18709.
+# first two runs never bind) · lastwins 18706 · profimport 18707 · the exercise 18709.
 set -e
 cd "$(dirname "$0")"
 # One run at a time: two runs share .harness/ and the ports, and one would corrupt the other.
 mkdir .r-lock 2> /dev/null || { echo "  *** another receipts.sh is running in this folder (.r-lock exists) - if none is, rmdir .r-lock ***"; exit 1; }
-trap 'rmdir .r-lock 2> /dev/null' EXIT
+# On every exit - the end, a failed check, or Ctrl-C - stop the JVM this script started in the background, if it still
+# runs, and drop the lock. A background job of a non-interactive shell ignores the terminal's Ctrl-C, so without the kill
+# an interrupted run would leave TiffinBox listening. $pid is cleared whenever the JVM has been reaped. The clean-up
+# ignores a second Ctrl-C, and nothing in it can fail under set -e (a JVM stopped by SIGTERM exits 143), so it always
+# reaches the rmdir; the script still exits 130 after an interrupt (tested: README.md, "Interrupted").
+pid=""
+trap 'trap "" INT TERM; if [ -n "$pid" ] && kill "$pid" 2> /dev/null; then wait "$pid" 2> /dev/null || true; fi; rmdir .r-lock 2> /dev/null || true' EXIT
+trap 'exit 130' INT TERM
 exec 3>&1                                            # die() speaks to the terminal even inside a redirected capture
 die() { echo "  *** $* ***" >&3; exit 1; }
 java -version 2>&1 | grep -q 'version "25' || die "JDK 25 needed; JAVA_HOME gives: $(java -version 2>&1 | head -1)"
@@ -56,8 +67,13 @@ AUDIT=tiffinbox-web/src/main/resources/application-audit.yaml
 rm -rf .harness; mkdir -p .harness
 rsync -a --exclude target ../c5-unit09/after/ .harness/before/
 BT=.harness/before; AT=after
-build() { (cd "$1" && { mvn -o -q -B -Dmaven.repo.local="$M2" -DskipTests clean package > /dev/null 2>&1 \
-                        || mvn -q -B -Dmaven.repo.local="$M2" -DskipTests clean package; }) || die "build failed: $1"; }
+# build DIR: a clean build, offline first; Maven Central only if the offline build fails - and the terminal says which
+# (offline: yes / no), so a run that went online is never silent.
+build() { local how=yes
+  (cd "$1" && mvn -o -q -B -Dmaven.repo.local="$M2" -DskipTests clean package > /dev/null 2>&1) \
+    || { how="no - the offline build failed, so Maven Central was asked"
+         (cd "$1" && mvn -q -B -Dmaven.repo.local="$M2" -DskipTests clean package) || die "build failed: $1"; }
+  echo "  built $1 · offline: $how"; }
 build "$AT"
 [ -e "$AT/tiffinbox-web/target/tiffinbox-local.yaml" ] && die "after/tiffinbox-web/target holds a tiffinbox-local.yaml"
 jars() { echo "$PWD/$1/tiffinbox-web/target/tiffinbox-web-1.0.0.jar:$(ls "$PWD/$1"/tiffinbox-web/target/lib/*.jar | paste -sd: -)"; }
@@ -66,8 +82,8 @@ AFTER="$PWD/.harness/classes:$(jars "$AT")"
 printf '%s\n' "$AFTER" > .harness/after.classpath
 
 listeners() { lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2> /dev/null | wc -l | tr -d ' '; }
-for p in 18425 18700 18701 18702 18703 18704 18705; do
-  [ "$(listeners $p)" = 0 ] || die "something already listens on $p - this unit's ports must be free"; done
+for p in 18425 18700 18701 18702 18703 18704 18705 18706 18707; do
+  [ "$(listeners $p)" = 0 ] || die "something already listens on $p - this unit's ports must be free; if it is a TiffinBox an interrupted run left behind, stop it: curl -X POST http://127.0.0.1:$p/shutdown"; done
 
 # runh 'COMMAND': print it exactly as typed, run it (eval, in a subshell, from this folder), keep its exit code in $ec.
 runh() { echo "\$ $1"; ec=0; (eval "$1") > .harness/run.raw 2>&1 < /dev/null || ec=$?; }
@@ -121,7 +137,7 @@ seven() { local i
   ../c4-unit31/curlset.sh "$1" | grep ' -> ' > .harness/responses.txt || true
   i=0; while kill -0 "$pid" 2> /dev/null && [ $i -lt 60 ]; do sleep 0.25; i=$((i + 1)); done
   kill -0 "$pid" 2> /dev/null && { kill "$pid"; die "the server on $1 was still running 15 s after POST /shutdown"; }
-  e=0; wait "$pid" || e=$?
+  e=0; wait "$pid" || e=$?; pid=""
   [ "$(listeners "$1")" = 0 ] || die "something still listens on $1"
   echo "  exit $e · the seven responses: $(wc -l < .harness/responses.txt | tr -d ' ') lines · md5 $(md5 -q .harness/responses.txt)"; }
 
@@ -132,9 +148,9 @@ cap() { local nm=$1 h pub i; shift
   [ "$h" = "$(md5 -q ".r-$nm.2")" ] && [ "$h" = "$(md5 -q ".r-$nm.3")" ] || die "$nm drifts across three runs (diff .r-$nm.1 .r-$nm.2 .r-$nm.3)"
   mv ".r-$nm.1" ".r-$nm.out"; rm -f ".r-$nm.2" ".r-$nm.3"
   pub=$(awk -v n="$nm" '$1 == n { print $2 }' receipts.md5 2> /dev/null || true)
-  if [ -z "$pub" ]; then printf '  %-7s md5 %s  3/3  (no published hash)\n' "$nm" "$h"; unpub="$unpub $nm"
-  elif [ "$pub" = "$h" ]; then printf '  %-7s md5 %s  3/3  = published\n' "$nm" "$h"
-  else printf '  %-7s md5 %s  3/3  DIFFERS from the published %s\n' "$nm" "$h" "$pub"
+  if [ -z "$pub" ]; then printf '  %-10s md5 %s  3/3  (no published hash)\n' "$nm" "$h"; unpub="$unpub $nm"
+  elif [ "$pub" = "$h" ]; then printf '  %-10s md5 %s  3/3  = published\n' "$nm" "$h"
+  else printf '  %-10s md5 %s  3/3  DIFFERS from the published %s\n' "$nm" "$h" "$pub"
     die "$nm is not the published capture - suspect another JDK, Boot or Maven, a busy port, a variable of yours, a tiffinbox-local.yaml where none belongs, or an edited source; diff .r-$nm.out against its block in README.md"; fi; }
 
 # ---- change: the previous tree against after/, file by file (README aside) --------------------------------------------------
@@ -186,6 +202,20 @@ stk() {
   stack 'cd local && java -cp "$AFTER" com.tiffinbox.harness.Stack tiffinbox.cooks --tiffinbox.port=18703 --spring.profiles.active=audit,rush'; }
 cap stack stk
 
+# ---- lastwins: rush as a file too, beside the audit's - does the order of two names matter now? --------------------------------
+lastwins() {
+  echo "twofiles/ in front of after/'s jar: application-rush.yaml (cooks: 6) beside application-audit.yaml (cooks: 7)"
+  echo "A   rush,audit"; stack 'java -cp "twofiles:$AFTER" com.tiffinbox.harness.Stack tiffinbox.cooks --tiffinbox.port=18706 --spring.profiles.active=rush,audit'
+  echo "B   audit,rush: the same two names, the other way round"; stack 'java -cp "twofiles:$AFTER" com.tiffinbox.harness.Stack tiffinbox.cooks --tiffinbox.port=18706 --spring.profiles.active=audit,rush'
+  echo "A′  A, re-run"; stack 'java -cp "twofiles:$AFTER" com.tiffinbox.harness.Stack tiffinbox.cooks --tiffinbox.port=18706 --spring.profiles.active=rush,audit'; }
+cap lastwins lastwins
+
+# ---- profimport: an import declared inside a profile's own file ---------------------------------------------------------------
+profimport() {
+  echo "profimport/: the audit's file, plus spring.config.import: optional:file:./profimport/audit-import.yaml (cooks: 9); lunch on"
+  stack 'java -cp "profimport:$AFTER" com.tiffinbox.harness.Stack tiffinbox.cooks --tiffinbox.port=18707 --spring.profiles.active=lunch'; }
+cap profimport profimport
+
 # ---- break: a profile's name, misspelt -------------------------------------------------------------------------------------------
 brk() {
   echo "A   lunch"; stack 'java -cp "$AFTER" com.tiffinbox.harness.Stack tiffinbox.cooks --tiffinbox.port=18704 --spring.profiles.active=lunch'
@@ -204,17 +234,23 @@ loud() {
 cap loud loud
 
 # ---- serve: after/'s jar, in after/tiffinbox-web/target -----------------------------------------------------------------------------
-serve() { local T="$AT/tiffinbox-web/target"
+# readme FLAG: the flag after/README.md's run command gives after the port, on the line whose flag starts --FLAG - read
+# from the file, so a label never claims what the README says
+readme() { sed -nE "s/^.*java -jar tiffinbox-web\/target\/tiffinbox-web-1\.0\.0\.jar --tiffinbox\.port=[0-9]+ (--$1[^\` ]*).*$/\1/p" "$AT/README.md" | head -1; }
+serve() { local T="$AT/tiffinbox-web/target" f
   startjar "$T" 'java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18700'; seven 18700
   echo "  TiffinBox's log: $(said .harness/jar.log 'meal types:') · Boot: $(profiles .harness/jar.log)"
-  echo "the anchor README's logging command:"
-  startjar "$T" 'java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18700 --logging.level.tiffinbox=debug'; seven 18700
+  f=$(readme logging.level); [ -n "$f" ] || die "after/README.md no longer gives a logging command"
+  echo "the logging flag after/README.md gives, after the port: $f"
+  startjar "$T" "java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18700 $f"; seven 18700
   echo "  route DEBUG lines $(routes .harness/jar.log)"
-  echo "the lunch rush alone, as the anchor README gives it:"
-  startjar "$T" 'java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18700 --spring.profiles.active=rush'; seven 18700
+  f=$(readme spring.profiles.active=rush); [ -n "$f" ] || die "after/README.md no longer gives the lunch-rush command"
+  echo "the lunch-rush flag after/README.md gives, after the port: $f"
+  startjar "$T" "java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18700 $f"; seven 18700
   echo "  Boot: $(profiles .harness/jar.log) · route DEBUG lines $(routes .harness/jar.log)"
-  echo "the group, as the anchor README now gives it:"
-  startjar "$T" 'java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18700 --spring.profiles.active=lunch'; seven 18700
+  f=$(readme spring.profiles.active=lunch); [ -n "$f" ] || die "after/README.md no longer gives the group's command"
+  echo "the group's flag after/README.md gives, after the port: $f"
+  startjar "$T" "java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18700 $f"; seven 18700
   echo "  Boot: $(profiles .harness/jar.log) · route DEBUG lines $(routes .harness/jar.log)"; }
 cap serve serve
 
@@ -224,6 +260,10 @@ files() {
               else echo "$2, against $3:"; diff "$1" "$2" | sed 's/^/  /' || true; fi; }
   against "$AT/$YAML" required/application.yaml "after/'s application.yaml"
   against "$AT/$AUDIT" inprofile/application-audit.yaml "after/'s application-audit.yaml"
+  against "$AT/$AUDIT" twofiles/application-audit.yaml "after/'s application-audit.yaml"
+  echo "twofiles/application-rush.yaml, whole - after/ has no such file (its rush is a document in application.yaml):"; whole twofiles/application-rush.yaml
+  against "$AT/$AUDIT" profimport/application-audit.yaml "after/'s application-audit.yaml"
+  echo "profimport/audit-import.yaml, whole - the file profimport/'s audit file imports:"; whole profimport/audit-import.yaml
   echo "local/tiffinbox-local.yaml, whole - after/ has no such file (its .gitignore keeps one out of git):"; whole local/tiffinbox-local.yaml; }
 cap files files
 
@@ -268,7 +308,7 @@ has1 "$G1" "the bean's own field: OrderQueue.cooks = 6" group
 echo "  group: lunch -> 3 profiles (lunch, rush, audit), WINNER 6 from document #1, route DEBUG lines 0 -> 5, the audit's file in the environment before refresh"
 
 # "A: no file here. Exit zero, three cooks, and no source for it at all." · "B: the same command, from a folder that has the
-# file. Four cooks. The import sits directly above the file that imported it, so it wins. A again: three."
+# file. Four cooks. The import sits directly above the document that declared it, so it wins. A again: three."
 IA=$(blk import 'A   ' 'B   '); IB=$(blk import 'B   ' 'A′  '); IA2=$(blk import 'A′  ' '')
 has1 "$IA" 'exit 0 · WARN lines 0 · ERROR lines 0 · route DEBUG lines 0 · Boot: No active profile set, falling back to 1 default profile: "default"' import
 printf '%s\n' "$IA" | grep -q "the working folder's tiffinbox-local.yaml: absent$" || die "import: A runs where no local file is"
@@ -282,8 +322,8 @@ echo "  import: A absent -> 3, 7 sources, none for the file · B present -> 4, s
 
 # "This is the stack ...: every property source, in the order Boot asks them ... Of the four, the audit's own file ranks
 # first. Then the rush document, then your local file, then the base document. The first that holds cooks answers: six, from the rush. Your four
-# loses." · "All four at once" · "Swap it: audit, then rush. The same stack, row for row. Here, a profile's own file ranks
-# above both documents in application dot yaml, whichever order you type."
+# loses." · "All four at once" · "Now swap the order: audit, then rush. The same stack, row for row. Here the order doesn't
+# matter: a profile's own file ranks above both documents."
 K1=$(blk stack 'lunch, from local/' 'the same two profiles'); K2=$(blk stack 'the same two profiles' '')
 printf '%s\n' "$K1" | grep -qE "^KEY tiffinbox\.cooks -> WINNER 6 · from source 7 of 10, $S_DOC1$" || die "stack: lunch with the local file must answer 6, from the rush document"
 [ "$(cnt "$K1" '^ +[0-9]+ ')" = 10 ] && [ "$(cnt "$K1" '^ +[0-9]+ Config resource ')" = 4 ] || die "stack: every one of the 10 sources printed, 4 of them config files"
@@ -294,8 +334,40 @@ has1 "$K2" 'exit 0 · WARN lines 0 · ERROR lines 0 · route DEBUG lines 5 · Bo
 [ "$(printf '%s\n' "$K1" | sed -n '/^KEY /,/^the bean/p')" = "$(printf '%s\n' "$K2" | sed -n '/^KEY /,/^the bean/p')" ] || die "stack: audit,rush must give the same stack, row for row"
 echo "  stack: 10 sources, 4 config files: audit's file 6 > rush document 7 > local file 8 > base document 9; WINNER 6 · audit,rush: the same rows"
 
+# "Make rush a file too, beside audit's, each with its own cooks. Now the order decides. Rush, then audit: seven, audit's.
+# Audit, then rush: six, rush's. Between two profile files, the last one you name wins."
+S_RUSHF="Config resource 'class path resource \[application-rush\.yaml\]' via location 'optional:classpath:/'"
+WA=$(blk lastwins 'A   ' 'B   '); WB=$(blk lastwins 'B   ' 'A′  '); WA2=$(blk lastwins 'A′  ' '')
+has1 "$WA" 'exit 0 · WARN lines 0 · ERROR lines 0 · route DEBUG lines 5 · Boot: The following 2 profiles are active: "rush", "audit"' lastwins
+printf '%s\n' "$WA" | grep -qE "^KEY tiffinbox\.cooks -> WINNER 7 · from source 6 of 10, $S_AUDIT$" || die "lastwins: rush,audit must answer 7, from the audit's file"
+[ "$(row "$WA" "$S_AUDIT 7 ")" = 6 ] && [ "$(row "$WA" "$S_RUSHF 6 ")" = 7 ] && [ "$(row "$WA" "$S_DOC1 6 ")" = 8 ] && [ "$(row "$WA" "$S_DOC0 3 ")" = 9 ] \
+  || die "lastwins: A's order must be the audit's file 6 (7), the rush file 7 (6), the rush document 8, the base document 9"
+has1 "$WA" "the bean's own field: OrderQueue.cooks = 7" lastwins
+has1 "$WB" 'exit 0 · WARN lines 0 · ERROR lines 0 · route DEBUG lines 5 · Boot: The following 2 profiles are active: "audit", "rush"' lastwins
+printf '%s\n' "$WB" | grep -qE "^KEY tiffinbox\.cooks -> WINNER 6 · from source 6 of 10, $S_RUSHF$" || die "lastwins: audit,rush must answer 6, from the rush file"
+[ "$(row "$WB" "$S_RUSHF 6 ")" = 6 ] && [ "$(row "$WB" "$S_AUDIT 7 ")" = 7 ] || die "lastwins: B's two profile files must swap places"
+has1 "$WB" "the bean's own field: OrderQueue.cooks = 6" lastwins
+[ "$WA" = "$WA2" ] || die "lastwins: A' is not A, line for line"
+[ "$(blk files 'twofiles/application-audit.yaml, against' 'twofiles/application-rush.yaml' | paste -sd'|' -)" = '  5a6,7|  > tiffinbox:|  >   cooks: 7' ] \
+  || die "files: twofiles/'s audit file adds cooks: 7 alone"
+[ "$(blk files 'twofiles/application-rush.yaml, whole' 'profimport/' | grep -v '^ *[0-9]* | #' | paste -sd'|' -)" = '  2 | tiffinbox:|  3 |   cooks: 6' ] \
+  || die "files: twofiles/'s rush file holds cooks: 6 alone"
+echo "  lastwins: two profile files - rush,audit -> 7 (the audit's file, source 6) · audit,rush -> 6 (the rush file, source 6) · A' = A"
+
+# the recap: "An import declared in the base document beats that document, and ranks below the profiles." · the chip:
+# "declared inside a profile's own file, an import ranks above the profiles (profimport)"
+S_PIMP="Config resource 'file \[profimport/audit-import\.yaml\]' via location 'optional:file:\./profimport/audit-import\.yaml'"
+PI=$(cat .r-profimport.out)
+has1 "$PI" 'exit 0 · WARN lines 0 · ERROR lines 0 · route DEBUG lines 5 · Boot: The following 3 profiles are active: "lunch", "rush", "audit"' profimport
+printf '%s\n' "$PI" | grep -qE "^KEY tiffinbox\.cooks -> WINNER 9 · from source 6 of 10, $S_PIMP$" || die "profimport: the audit file's import must answer 9, from source 6"
+[ "$(row "$PI" "$S_PIMP 9 ")" = 6 ] && [ "$(row "$PI" "$S_AUDIT -$")" = 7 ] && [ "$(row "$PI" "$S_DOC1 6 ")" = 8 ] && [ "$(row "$PI" "$S_DOC0 3 ")" = 9 ] \
+  || die "profimport: the import 6 must rank above the audit's own file 7 and the rush document 8"
+[ "$(blk files 'profimport/application-audit.yaml, against' 'profimport/audit-import.yaml' | paste -sd'|' -)" = '  5a6,8|  > spring:|  >   config:|  >     import: optional:file:./profimport/audit-import.yaml' ] \
+  || die "files: profimport/'s audit file adds the import alone"
+echo "  profimport: an import declared inside the audit's file -> WINNER 9, source 6, above the audit's file (7) and the rush document (8)"
+
 # "A: lunch. Six cooks, five route lines." · "B: one letter missing ... Exit zero, zero warnings. Boot's own line lists it as
-# active, the name you typed, and nothing is composed for it: three cooks from the base document, zero route lines. A again:
+# active, the name you typed. Nothing is composed for it: three cooks from the base document, zero route lines. A again:
 # six."
 BA=$(blk break 'A   ' 'B   '); BB=$(blk break 'B   ' 'A′  '); BA2=$(blk break 'A′  ' '')
 has1 "$BA" 'exit 0 · WARN lines 0 · ERROR lines 0 · route DEBUG lines 5 · Boot: The following 3 profiles are active: "lunch", "rush", "audit"' break
@@ -323,7 +395,7 @@ printf '%s\n' "$L3" | grep -q ' · one from application-audit.yaml among them: f
 printf '%s\n' "$L3" | grep -q '^the class path gives: .* · application-audit.yaml <- inprofile/application-audit.yaml · ' || die "loud: the third run must still have inprofile/'s file on its class path"
 [ "$(blk files 'required/application.yaml, against' 'inprofile/' | paste -sd'|' -)" = '  21c21|  <     import: optional:file:./tiffinbox-local.yaml|  ---|  >     import: file:./tiffinbox-local.yaml' ] \
   || die "files: required/ must drop optional: from the import line alone"
-[ "$(blk files 'inprofile/application-audit.yaml, against' 'local/' | paste -sd'|' -)" = '  5a6,8|  > spring:|  >   profiles:|  >     active: rush' ] \
+[ "$(blk files 'inprofile/application-audit.yaml, against' 'twofiles/' | paste -sd'|' -)" = '  5a6,8|  > spring:|  >   profiles:|  >     active: rush' ] \
   || die "files: inprofile/ must add spring.profiles.active: rush (line 8), nothing else"
 x files '^  3 \|   cooks: 4$'
 echo "  loud: without optional: exit 1, 0 banner, the Action names 21:13 and 'optional:' · profiles.active in the audit's file: exit 1, 0 banner, 8:13 · no profile: exit 0, the file never read"
@@ -333,7 +405,10 @@ echo "  loud: without optional: exit 1, 0 banner, the Action names 21:13 and 'op
 x serve '^  TiffinBox.s log: meal types:     \[VEG, NON_VEG, VEGAN\] · '; x serve '^  route DEBUG lines 5$'
 x serve '^  Boot: The following 1 profile is active: "rush" · route DEBUG lines 0$'
 x serve '^  Boot: The following 3 profiles are active: "lunch", "rush", "audit" · route DEBUG lines 5$'
-echo "  serve: the seven responses 115c36ba... (plain, logging, rush, lunch); the list's log line"
+x serve '^the logging flag after/README\.md gives, after the port: --logging\.level\.tiffinbox=debug$'
+x serve '^the lunch-rush flag after/README\.md gives, after the port: --spring\.profiles\.active=rush$'
+x serve '^the group.s flag after/README\.md gives, after the port: --spring\.profiles\.active=lunch$'
+echo "  serve: the seven responses 115c36ba... (plain, and the README's logging, rush and lunch flags); the list's log line"
 
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
 echo "c5-unit10: every capture 3/3 and = published; every spoken number asserted"

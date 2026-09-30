@@ -23,7 +23,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 **dies** when a capture's md5 differs from `receipts.md5` — it prints the `DIFFERS` line first, so you can see which one
 moved (tested: with `change`'s published hash altered by one character, the run printed `change … DIFFERS from the
 published 01e3b18d…`, stopped with exit 1 and released its lock; `receipts.md5` was restored). A whole run takes about
-1 min 35 s on the author's Mac.
+3 min 20 s on the author's Mac (seven tree builds, and `order`'s six unsorted runs).
 
 **The repository.** Every build runs `mvn -o` against this unit's own `.m2-demo` (`$M2` in the commands): a copy of
 `../c5-unit08/.m2-demo`, plus the artifacts the validation starter needs, copied from the Section 2 probe's repository
@@ -36,7 +36,8 @@ than the run's start:
   confirmed): `jakarta.validation-api` 3.1.1, `jboss-logging` 3.6.3.Final, `classmate` 1.7.3, and the parents
   `jboss-parent` 52 and `oss-parent` 74.
 
-The five tree builds fall back to Maven Central only if the offline build fails; the `starter` C build is offline only.
+The seven tree builds fall back to Maven Central only if the offline build fails, and each prints `built <tree> · offline:
+yes` (or `no - …`) on the terminal, so a run that went online is never silent; the `starter` C build is offline only.
 Offline re-run of the frozen tree: `mvn -o -B -f after/pom.xml -Dmaven.repo.local="$PWD/.m2-demo" verify` → BUILD SUCCESS.
 
 ## The anchor change
@@ -80,9 +81,9 @@ class in its code (it looks the record up by name). `receipts.sh` compiles it **
   configuration class and method that declared each; the class of the `Hiring` bean the context hands out; and what three
   calls with a zero do. It closes the context.
 
-**`$BEFORE`, `$AFTER`, `$ATVALUE`, `$INTRECORD`, `$NOSTARTER`** are the harness's classes plus that tree's jars
-(`tiffinbox-web-1.0.0.jar` and `lib/*.jar`): the previous tree, this unit's `after/`, and three copies of `after/` with one
-demo file laid over each. **`$NOPARAMS`** is the harness compiled without `-parameters`, plus `after/`'s jars.
+**`$BEFORE`, `$AFTER`, `$ATVALUE`, `$INTRECORD`, `$NOSTARTER`, `$NOVALID`, `$NOSTARTER_NOVALID`** are the harness's
+classes plus that tree's jars (`tiffinbox-web-1.0.0.jar` and `lib/*.jar`): the previous tree, this unit's `after/`, and five
+copies of `after/` with one demo file (two, for the last) laid over each. **`$NOPARAMS`** is the harness compiled without `-parameters`, plus `after/`'s jars.
 `receipts.sh` writes each to `.harness/*.classpath`. Every command is printed exactly as it runs: `receipts.sh` passes it
 to `eval`, so those variables — and `$M2`, this unit's `.m2-demo` — expand when it runs. The jar runs (`java -jar
 tiffinbox-web-1.0.0.jar …`) start in that tree's `tiffinbox-web/target` (`serve`: `after/`; `unvalidated`:
@@ -94,9 +95,10 @@ got). Each is the anchor's `application.yaml` with declared changes, and `files`
 line 4) · `nodays/` (the `days` line deleted) · `fourbad/` (`jdbc-url: ""`, `cooks: 0`, no `days` line, `meal-types: []`).
 The variants laid over a copy of `after/`: `atvalue/Database.java` (the constructor back on
 `@Value("${tiffinbox.jdbc-url}")` — the `Database` of the tree before the record, byte for byte) · `intrecord/TiffinBoxProperties.java`
-(the record's header with `@Min(1) int` for the three numbers, no `@NotNull`) · `nostarter/tiffinbox-web/pom.xml` (the
+(the record's header with `@Min(1) int` for the three numbers, no `@NotNull`) · `novalidated/TiffinBoxProperties.java`
+(`after/`'s record minus its one line `@Validated` — every constraint kept) · `nostarter/tiffinbox-web/pom.xml` (the
 previous tree's web POM, byte for byte: no starter) · `noapi/tiffinbox-core/pom.xml` (the previous tree's core POM, byte for
-byte: no API; used with `nostarter/`'s, in `starter` C).
+byte: no API; used with `nostarter/`'s, in `starter` C). `nostarter/` and `novalidated/` together make `starter` D.
 
 **Ports** (Section 2 brief ⚑11: 18690-18699): serve 18690 · unvalidated 18691 · break 18692 (A never binds) · starter 18693
 (B never binds) · order 18694 (never binds) · boxed 18695 (never binds) · method 18696 · the exercise 18699. Every command
@@ -117,8 +119,9 @@ names its port; `receipts.sh` first checks that nothing listens on 18425 or on a
    shown …`.
 4. **A report with two or more `Property:` blocks is printed with its blocks sorted by the `Property:` line** (brief ⚑7:
    the probe saw Boot print the same four violations in three different orders in six runs), and a line says so: `(the 4
-   Property: blocks below are sorted by name - README.md, masks)`. This unit does not re-measure the drift, and the video
-   does not claim it.
+   Property: blocks below are sorted by name - README.md, masks)`. `order` measures the drift once: A's command six more
+   times, the `Property:` lines read in the order Boot printed them — `4 blocks every run: yes · more than one order among
+   the 6: yes` (only that is printed: which orders come up differs from run to run). The deck's chip says so.
 5. `SpringCGLIB$$<digits>` in a harness line becomes `SpringCGLIB$$<n>` (`gsub()`); a compiler error's absolute path, up to
    `tiffinbox-core/`, becomes `…/` (`gsub()`).
 6. The Maven builds in `starter` C are reduced to counts: the exit code, the `BUILD` line, the `[WARNING]` and `[ERROR]`
@@ -129,10 +132,20 @@ names its port; `receipts.sh` first checks that nothing listens on 18425 or on a
 8. Hygiene: `receipts.sh` unsets every `TIFFINBOX_*` and `SPRING_*` variable, `JAVA_TOOL_OPTIONS`, `JDK_JAVA_OPTIONS`,
    `MAVEN_OPTS` and `MAVEN_ARGS` before it runs anything — a variable of yours would otherwise become a property source,
    or a flag. It also refuses to run twice at once in this folder (`.r-lock`): two runs share `.harness/` and the ports.
+9. `change`'s reader line names each class with its module (`tiffinbox-core/Database.java`), so "two of them live in core"
+   is read off the capture.
+
+**Interrupted.** `receipts.sh`'s exit trap stops the JVM it started in the background, if one still runs, and drops the
+lock — on a failed check and on Ctrl-C alike (a background job of a non-interactive shell ignores the terminal's Ctrl-C, so
+without the kill it would keep listening). Tested 2026-09-30, the driver in the foreground, `SIGINT` sent to the script's
+process group the moment `break` B's JVM (`cooks0:$NOVALID`, port 18692) started: `receipts.sh` exited 130, and 5 s later
+no JVM for 18692 was running, nothing listened on 18692, and `.r-lock` was gone. The same test against the script as first
+shipped (a trap that only removed the lock) left that JVM listening on 18692; it was stopped with `POST /shutdown`. If a
+run is ever interrupted some other way, the port check names the way out: `curl -X POST http://127.0.0.1:<port>/shutdown`.
 
 ## 1 · The change — three files, the rules and the numbers
 
-`.r-change.out` `31e3b18dab4ec99dc099c5584d3f5c8b`
+`.r-change.out` `907f0f32d4069adf48e4cab224fdd81b`
 
 ```
 files, README aside: the previous tree 16 · after/ 16 · in both 16: identical 13, changed 3
@@ -194,14 +207,15 @@ the record, whole, after/: tiffinbox-core/src/main/java/com/tiffinbox/TiffinBoxP
  33 |                                   @NotNull @Min(1) Integer port, @NotEmpty List<MealType> mealTypes) {
  34 | }
 TiffinBox's @Value placeholders: the previous tree 0 · after/ 0
-classes whose constructor takes the record (TiffinBoxProperties settings): the previous tree 3: Database.java OrderQueue.java TiffinBoxServer.java · after/ 3: Database.java OrderQueue.java TiffinBoxServer.java
+classes whose constructor takes the record (TiffinBoxProperties settings): the previous tree 3: tiffinbox-core/Database.java tiffinbox-core/OrderQueue.java tiffinbox-web/TiffinBoxServer.java · after/ 3: tiffinbox-core/Database.java tiffinbox-core/OrderQueue.java tiffinbox-web/TiffinBoxServer.java
 "defaultValue": 0 entries in the core jar's metadata file: the previous tree 3 · after/ 0
 ```
 
-Three files changed, none new, none gone. Web's POM gains the starter, core's POM gains the API, and the record gains five
-imports, `@Validated`, and a new header: a rule on each component, `Integer` for the numbers. No `@Value` placeholder is
-left in either tree, the same three classes take the record in both, and the metadata file's `"defaultValue": 0` entries
-go from 3 to 0 — an `Integer` component has no default.
+Three files changed, none new, none gone. Core's POM gains the API, the record gains five imports, `@Validated`, and a new
+header — a rule on each component, `Integer` for the numbers — and web's POM gains the starter (the capture lists them in
+that order). No `@Value` placeholder is left in either tree, the same three classes take the record in both — two of them
+in `tiffinbox-core`, so the record lives there too — and the metadata file's `"defaultValue": 0` entries go from 3 to 0: an
+`Integer` component has no default.
 
 ## 2 · The starter's jars, and a second imports file
 
@@ -250,11 +264,13 @@ The previous tree's jar, as its README runs it, with a value set on the command 
 previous unit's missing `days` gave the same hash. **Minus one does not**: exit 1, 71 lines, 45 of them stack frames, and
 the last two causes say where — `OrderQueue`'s constructor threw `IllegalArgumentException: count < 0` (the kitchen's
 `CountDownLatch` refuses a negative count). No line of the 71 contains `cooks`, in any case: the key is never named. And no
-line contains `NullPointerException`: the roadmap's "NPE" is not what happens (brief finding 10).
+line contains `NullPointerException`: the roadmap's "NPE" is not what happens **in this run** (brief finding 10) — the
+previous tree's numbers are `int`. This unit's own switch to `Integer` brings one back whenever validation is off (`boxed`
+C, section 7).
 
 ## 4 · The break — `cooks: 0` in a file
 
-`.r-break.out` `cd6b34c42ec991455bdabcf6abcc068c`
+`.r-break.out` `dc3946da420bd506b91db801b0e61ffc`
 
 ```
 A   this tree, cooks0/ in front of its jar's file
@@ -273,8 +289,8 @@ $ java -cp "cooks0:$AFTER" com.tiffinbox.harness.Serve --tiffinbox.port=18692
   Update your application's configuration
   the exception TiffinBox's main threw: org.springframework.beans.factory.UnsatisfiedDependencyException
   … 27 more line(s) of this run's output not shown: the banner, Boot's log, the blank lines and the stack frames …
-B   the previous tree (no validation), the same cooks0/ file
-$ java -cp "cooks0:$BEFORE" com.tiffinbox.harness.Serve --tiffinbox.port=18692
+B   novalidated/: this tree minus @Validated - every constraint kept - the same cooks0/ file
+$ java -cp "cooks0:$NOVALID" com.tiffinbox.harness.Serve --tiffinbox.port=18692
   listens on: 127.0.0.1:18692 · WARN lines 0 · ERROR lines 0
   the class path gives: application.yaml <- cooks0/application.yaml · application.properties <- none
   the record: TiffinBoxProperties[jdbcUrl=jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1, cooks=0, days=30, port=18692, mealTypes=[VEG, NON_VEG, VEGAN]]
@@ -297,16 +313,26 @@ $ java -cp "cooks0:$AFTER" com.tiffinbox.harness.Serve --tiffinbox.port=18692
   Update your application's configuration
   the exception TiffinBox's main threw: org.springframework.beans.factory.UnsatisfiedDependencyException
   … 27 more line(s) of this run's output not shown: the banner, Boot's log, the blank lines and the stack frames …
+C   the previous tree (no starter, no constraints, no @Validated), the same cooks0/ file
+$ java -cp "cooks0:$BEFORE" com.tiffinbox.harness.Serve --tiffinbox.port=18692
+  listens on: 127.0.0.1:18692 · WARN lines 0 · ERROR lines 0
+  the class path gives: application.yaml <- cooks0/application.yaml · application.properties <- none
+  the record: TiffinBoxProperties[jdbcUrl=jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1, cooks=0, days=30, port=18692, mealTypes=[VEG, NON_VEG, VEGAN]]
+  TiffinBox's log: orders cooked:  0
+  GET   /kitchen    -> 200 application/json  {"ordersCooked":0,"ordersValue":0}
+  exit 0 · the seven responses: 7 lines · md5 48c20805358e969bfc65e9197ce3b541
 ```
 
 **A** — this tree, `cooks0/` in front: exit 1 before the port opens (0 `listening` lines), and Boot's report: the property,
 the value as written, its origin (`class path resource [application.yaml] - 4:10`: line 4, column 10 of `cooks0/`'s file —
-`files` shows line 4 is the changed line), and the constraint's message. **B** — the previous tree, the same file: it
-serves, 0 orders cooked, `48c20805…`. **A′** — A re-run, line for line.
+`files` shows line 4 is the changed line), and the constraint's message. **B** — `novalidated/`: this tree minus the one
+line `@Validated`, every constraint kept, the same file: it listens, 0 orders cooked, `48c20805…` (its exit 0 is read after
+`POST /shutdown`) — the rules alone check nothing; `@Validated` is what asks the binder to. **A′** — A re-run, line for
+line. **C** — the previous tree (no starter, no constraints, no `@Validated`), the same file: the same as B.
 
 ## 5 · Without the starter, then without the API
 
-`.r-starter.out` `27faf11608837cb010fba6209d7d7560`
+`.r-starter.out` `2260597e847feaa9f3458fc0b1717358`
 
 ```
 A   this tree, its own file
@@ -343,6 +369,15 @@ $ cd .harness/noapi && mvn -o -B -Dmaven.repo.local="$M2" -DskipTests clean pack
   exit 1 · BUILD FAILURE · WARNING lines 0 · ERROR lines 52
   the compiler's error lines ([ERROR] …java:[line,column] …): 24 · in: TiffinBoxProperties.java
   the first: [ERROR] …/tiffinbox-core/src/main/java/com/tiffinbox/TiffinBoxProperties.java:[3,38] package jakarta.validation.constraints does not exist
+D   the starter taken out AND @Validated: nostarter/tiffinbox-web/pom.xml and novalidated/, its own file
+  lib/: 27 jars · jakarta.validation-api among them: 1 · hibernate-validator among them: 0
+$ java -cp "$NOSTARTER_NOVALID" com.tiffinbox.harness.Serve --tiffinbox.port=18693
+  listens on: 127.0.0.1:18693 · WARN lines 0 · ERROR lines 0
+  the class path gives: application.yaml <- tiffinbox-web-1.0.0.jar!/application.yaml · application.properties <- none
+  the record: TiffinBoxProperties[jdbcUrl=jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1, cooks=3, days=30, port=18693, mealTypes=[VEG, NON_VEG, VEGAN]]
+  TiffinBox's log: orders cooked:  120
+  GET   /kitchen    -> 200 application/json  {"ordersCooked":120,"ordersValue":24300}
+  exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
 ```
 
 **A** — this tree, its own file: it serves, `115c36ba…`. **B** — the starter taken out (the previous tree's web POM, byte
@@ -350,10 +385,13 @@ for byte), so `lib/` holds 27 jars: the API (which core brings), no implementati
 does not start: `The Bean Validation API is on the classpath but no implementation could be found`. **A′** — A re-run.
 **C** — the API taken out too (the previous tree's core POM, byte for byte): the build fails, and every compiler error
 (24 lines) is in `TiffinBoxProperties.java`, starting with `package jakarta.validation.constraints does not exist`.
+**D** — the starter taken out **and** `@Validated` (`nostarter/` and `novalidated/`): the same 27 jars, API and no
+implementation, and TiffinBox serves — 120 orders cooked, `115c36ba…`. So B's failure is `@Validated` asking for a
+validator nobody provides, not the API on the class path.
 
 ## 6 · The order trap — when the report gets its turn
 
-`.r-order.out` `c40df16dd6a8e64ce3a25da108c0ff5f`
+`.r-order.out` `be417414cec2854119ed409d40473bbc`
 
 ```
 A   this tree, fourbad/ in front of its jar's file
@@ -421,6 +459,7 @@ $ java -cp "fourbad:$AFTER" com.tiffinbox.harness.Serve --tiffinbox.port=18694
   Update your application's configuration
   the exception TiffinBox's main threw: org.springframework.beans.factory.UnsatisfiedDependencyException
   … 30 more line(s) of this run's output not shown: the banner, Boot's log, the blank lines and the stack frames …
+Boot's own order, unsorted: A's command 6 more times, its Property: lines as Boot printed them - 4 blocks every run: yes · more than one order among the 6: yes
 ```
 
 **A** — four bad values in one file (`fourbad/`: a blank URL, zero cooks, no `days` line, an empty list): exit 1, **one**
@@ -430,12 +469,13 @@ components — `tiffinbox.jdbcUrl`, `tiffinbox.mealTypes` — not the keys as th
 nothing else changed. The same file gives exit 1 with **no report** (0 `Property:` lines): the last two causes are
 `Error creating bean with name 'database': Invocation of init method failed` and `SQLException: No suitable driver found
 for ` (the empty URL). The database's `@PostConstruct` ran, and failed, before anything bound the record. **A′** — A re-run.
-This is why the record lives in core (brief ⚑4): with all three readers taking it, the record is bound — and checked —
-before any of them uses a value.
+Then A's command six more times, unsorted: four blocks each time, and more than one order among the six (mask 4). With all
+three readers taking the record, it is bound — and checked — before any of them uses a value; two of the three live in
+`tiffinbox-core`, so the record lives there too (brief ⚑4).
 
 ## 7 · A key nobody wrote: `int` against `Integer`
 
-`.r-boxed.out` `618f89be2edb57f89ff732a57e5e113d`
+`.r-boxed.out` `713660299c95ea38ed8e5f829fb3a87a`
 
 ```
 A   this tree (Integer, @NotNull @Min(1)), nodays/ in front of its jar's file
@@ -483,11 +523,24 @@ $ java -cp "nodays:$AFTER" com.tiffinbox.harness.Serve --tiffinbox.port=18695
   Update your application's configuration
   the exception TiffinBox's main threw: org.springframework.beans.factory.UnsatisfiedDependencyException
   … 27 more line(s) of this run's output not shown: the banner, Boot's log, the blank lines and the stack frames …
+C   novalidated/: this tree minus @Validated, the same nodays/ file
+$ java -cp "nodays:$NOVALID" com.tiffinbox.harness.Serve --tiffinbox.port=18695
+  exit 1 · WARN lines 1 · ERROR lines 1 · listening lines 0
+  Property: lines 0 · SQLException lines 0 · stack-frame lines 37
+  the class path gives: application.yaml <- nodays/application.yaml · application.properties <- none
+  Caused by: org.springframework.beans.BeanInstantiationException: Failed to instantiate [com.tiffinbox.web.TiffinBoxServer]: Constructor threw exception
+  Caused by: java.lang.NullPointerException: Cannot invoke "java.lang.Integer.intValue()" because the return value of "com.tiffinbox.TiffinBoxProperties.days()" is null
+  the exception TiffinBox's main threw: org.springframework.beans.factory.BeanCreationException
+  … 59 more line(s) of this run's output not shown: the banner, Boot's log, the blank lines and the stack frames …
 ```
 
 The `days` line deleted. **A** — this tree (`@NotNull @Min(1) Integer days`): `Value: "null"`, `must not be null`.
-**B** — `intrecord/` (`@Min(1) int days`): `Value: "0"` — a value nobody wrote — `must be greater than or equal to 1`.
-Neither block has an `Origin:` line: the key is in no source. **A′** — A re-run. Brief ⚑6's choice, measured both ways.
+**B** — `intrecord/` (`@Min(1) int days`, no `@NotNull`): `Value: "0"` — a value nobody wrote — `must be greater than or
+equal to 1`. Neither block has an `Origin:` line: the key is in no source. **A′** — A re-run. **C** — `novalidated/`, the
+same file: nothing checks the record, the `null` reaches `TiffinBoxServer`'s constructor, which unboxes `days()`, and the
+start dies — exit 1, 0 `Property:` lines, `NullPointerException: Cannot invoke "java.lang.Integer.intValue()" because the
+return value of "com.tiffinbox.TiffinBoxProperties.days()" is null`. Brief ⚑6's choice, measured both ways, and its cost:
+`Integer` needs `@Validated`.
 
 ## 8 · Method validation, asked of Boot
 
@@ -553,29 +606,30 @@ So under Boot, with the validation starter, the post-processor is registered for
 
 ## 9 · The jar: the seven responses, unchanged
 
-`.r-serve.out` `ed10db2495ee6b0e33112fc3e9ddc0b7`
+`.r-serve.out` `0aa052161d73d7884aa71a9db2e10421`
 
 ```
 $ java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18690
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
   TiffinBox's log: meal types:     [VEG, NON_VEG, VEGAN]
-the anchor README's logging command:
+the logging flag after/README.md gives, after the port: --logging.level.tiffinbox=debug
 $ java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18690 --logging.level.tiffinbox=debug
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
   route DEBUG lines 5
-the lunch rush, as the anchor README gives it:
+the lunch-rush flag after/README.md gives, after the port: --spring.profiles.active=rush
 $ java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18690 --spring.profiles.active=rush
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
   Boot: The following 1 profile is active: "rush"
 ```
 
-`after/`'s jar, run as the anchor README runs it, three ways: plain, with `--logging.level.tiffinbox=debug` (5 route DEBUG
-lines), and with the profile `rush`. The seven responses hash to `115c36ba…` every time: the anchor change changed nothing a
+`after/`'s jar, run as the anchor README runs it, three ways: plain, with the logging flag `after/README.md` gives (read
+from the file, not typed here: `--logging.level.tiffinbox=debug`, 5 route DEBUG lines), and with its lunch-rush flag
+(`--spring.profiles.active=rush`). The seven responses hash to `115c36ba…` every time: the anchor change changed nothing a
 client sees.
 
 ## 10 · The demo files, against the files they stand in for
 
-`.r-files.out` `4fb49552f0821ee1a3ea7259d16fd576`
+`.r-files.out` `f6ef094ef1786f67929df773c6df539f`
 
 ```
 cooks0/application.yaml, against the anchor's application.yaml:
@@ -617,6 +671,9 @@ intrecord/TiffinBoxProperties.java, against after/'s TiffinBoxProperties.java:
   ---
   > public record TiffinBoxProperties(@NotBlank String jdbcUrl, @Min(1) int cooks, @Min(1) int days, @Min(1) int port,
   >                                   @NotEmpty List<MealType> mealTypes) {
+novalidated/TiffinBoxProperties.java, against after/'s TiffinBoxProperties.java:
+  30d29
+  < @Validated
 nostarter/tiffinbox-web/pom.xml: the previous tree's tiffinbox-web/pom.xml, byte for byte
 nostarter/tiffinbox-web/pom.xml, against after/'s tiffinbox-web/pom.xml:
   31,37d30
@@ -640,15 +697,16 @@ noapi/tiffinbox-core/pom.xml, against after/'s tiffinbox-core/pom.xml:
 ```
 
 Every demo file differs from the file it stands in for exactly as its folder says. `nostarter/` and `noapi/` hold the
-previous tree's POMs, byte for byte.
+previous tree's POMs, byte for byte; `novalidated/` deletes one line, `@Validated`.
 
 ## Exercise
 
-`exercise/README.md` — in a copy of `after/` (under `.harness/mine`), remove `@Validated` from the record and keep every
-constraint; start TiffinBox with zero cooks (`Start`, port 18699), read the `orders cooked:` line, then put `@Validated`
-back. Measured answers, run exactly as written in a clean shell, in `exercise/solution/SOLUTION.md`: without `@Validated`,
-exit 0 and `orders cooked:  0` — the constraints ignored without a word; with it back, exit 1 and `Property:
-tiffinbox.cooks`, its origin the command line.
+`exercise/README.md` — in a copy of `after/` (under `.harness/mine`), give `cooks` a rule of your own, at most ten, then
+start TiffinBox with eleven cooks (`Start`, port 18699) and read the report's reason. (The unit's first exercise — remove
+`@Validated`, start with zero cooks — became `break` B on screen, RED #27, so the exercise asks a new question.) Measured
+answer, run exactly as written in a clean shell, in `exercise/solution/SOLUTION.md`: as shipped, eleven cooks start
+without a word (exit 0); with `@Max(10)`, exit 1 and `Property: tiffinbox.cooks` · `Value: "11"` · `Reason: must be less
+than or equal to 10`.
 
 ## Found on the way
 

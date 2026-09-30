@@ -45,3 +45,11 @@ still answers 200** — so the token TiffinBox bound from the file is the header
 (the unit's `where` capture measures the same with the demo token: 27 bytes in the file, 26 in the header, 200).
 `grep -c "$TOKEN" tiffinbox.log` gave 0 after both rounds. `secrets/` is git-ignored in the anchor (`../after/.gitignore`,
 `secrets/`), and in this repository `.harness/` is.
+
+## Re-run after RED's review
+
+Re-run 2026-09-30 after the part-B fixes — among them the anchor record's own `toString()`, which this exercise never
+prints — `../README.md`'s two blocks and the move above exactly as written, in one clean shell: `POST  /shutdown   -> 200
+application/json  {"stopping":true}` as shipped; then `-rw------- 33 bytes secrets/tiffinbox/shutdown-token`, `0`, and the
+same 200 line; the token 0 times in `tiffinbox.log` after the second round; nothing listening on 18719. The deck's card now
+carries the README's readiness loop between the start and the POST, as the README always had it.

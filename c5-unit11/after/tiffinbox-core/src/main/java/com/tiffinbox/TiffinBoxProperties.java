@@ -24,9 +24,11 @@ import java.util.List;
  *
  * <p>{@code shutdownToken} is a secret, and it is never committed: it comes from a config tree (application.yaml
  * imports {@code optional:configtree:./secrets/} - the file {@code secrets/tiffinbox/shutdown-token}) or from wherever
- * the operator puts it. A record's own {@code toString()} prints every component, this one included, so TiffinBox never
- * logs the record. The token's length rule is a yes-or-no method, not a constraint on the token itself: a failure report
- * prints the value of the property that broke a rule, so a rule on the token would print the token.
+ * the operator puts it. A record's own {@code toString()} prints every component, this one included - and a settings
+ * object is the first thing anyone logs - so this record writes its own {@code toString()}: every component, and
+ * {@code [not shown]} in the token's place. The token's length rule is a yes-or-no method, not a constraint on the token
+ * itself: a failure report prints the value of the property that broke a rule, so a rule on the token would print the
+ * token.
  *
  * @param jdbcUrl   the address of TiffinBox's database, an in-memory H2 database
  * @param cooks     how many cooks take orders off the kitchen rail
@@ -45,5 +47,12 @@ public record TiffinBoxProperties(@NotBlank String jdbcUrl, @NotNull @Min(1) Int
     @AssertTrue(message = "tiffinbox.shutdown-token must be 16 characters or more")
     public boolean isShutdownTokenLongEnough() {
         return shutdownToken == null || shutdownToken.isBlank() || shutdownToken.length() >= 16;
+    }
+
+    /** The record's own format, component by component, with the token's value replaced: logging the record is safe. */
+    @Override
+    public String toString() {
+        return "TiffinBoxProperties[jdbcUrl=" + jdbcUrl + ", cooks=" + cooks + ", days=" + days + ", port=" + port
+                + ", mealTypes=" + mealTypes + ", shutdownToken=" + (shutdownToken == null ? "null" : "[not shown]") + "]";
     }
 }

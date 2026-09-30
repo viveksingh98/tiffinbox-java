@@ -1,0 +1,8 @@
+# The profile "audit": a file of its own, read only while "audit" is active. Boot reads it while it prepares the
+# environment, before the container starts - so a logging key works here.
+logging:
+  level:
+    tiffinbox: debug
+spring:
+  config:
+    import: optional:file:./profimport/audit-import.yaml

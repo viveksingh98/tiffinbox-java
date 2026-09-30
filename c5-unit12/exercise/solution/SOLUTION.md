@@ -27,3 +27,10 @@ the project as shipped, and its only source is still `LunchCounter.java`.
 Answer 1 is the one that travels with the project: the build packs the file into lunch-counter's own jar, at its root
 (`unzip -l target/lunch-counter-1.0.0.jar` lists `application.properties`, 71 bytes), so every run of that jar gets it.
 Answers 2 and 3 live in whoever types the command.
+
+**Re-run after RED's review** (2026-09-30, the part-B fixes in place: the lock, the offline report, the C check against the
+living anchor): `../README.md`'s two blocks exactly as written, from `exercise/`, in a clean shell (`env -i`, `zsh -f`) —
+`../receipts.sh` printed `receipts: every capture = published, every check passed`, the shipped run printed `Kitchen beans:
+[kitchen] -> TiffinBox kitchen with 3 cooks`, and answers 1, 2 and 3 each printed `Kitchen beans: [kitchen] -> Lunch counter
+kitchen with 5 cooks`; after answers 2 and 3, in a fresh copy, `diff -r --exclude target ../lunch-counter my-lunch-counter`
+printed nothing.

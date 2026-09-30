@@ -57,3 +57,11 @@ exit 0
 not move; it lost. Boot's profile line is the same in both rounds (`The following 3 profiles are active: "lunch", "rush",
 "audit"`), and the kitchen runs the winner: `OrderQueue.cooks = 7`. A fresh `rm -rf .harness/mine && cp -R after
 .harness/mine` puts the shipped file back: the first round above is that state.
+
+## Re-run after RED's review
+
+Re-run 2026-09-30 after the part-B fixes (the unit's `receipts.sh` passing, 10 captures `= published`), the README's two
+blocks and the edit above exactly as written, in the same clean shell: round 1 printed the first block of lines above,
+round 2 the second — `WINNER 7 · from source 6 of 9`, `application-audit.yaml`, `7:10`, `OrderQueue.cooks = 7`, exit 0 — and
+nothing listened on 18709 afterwards. (The unit now also measures what this exercise does not: with rush a FILE beside the
+audit's, the order you name them in decides — `lastwins`.)

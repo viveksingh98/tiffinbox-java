@@ -28,8 +28,8 @@ import java.util.List;
  * which registers annotated components only, never picks one up.
  *
  * <p><b>This harness never prints a value.</b> The key it is pointed at is a secret, so every value - the WINNER, what each
- * property source holds, the record's component - is printed as its length alone. It never prints the record whole
- * either: a record's own toString() prints every component, the token included.
+ * property source holds, the record's component - is printed as its length alone. Only {@link Record} prints the record
+ * whole, to count what such a print carries: a record's default toString() prints every component, the token included.
  */
 final class Run {
 

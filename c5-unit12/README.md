@@ -5,7 +5,7 @@ re-run and `= published` again on 2026-09-30, with the exercise's README run as 
 Two projects of this unit's own — a starter, `tiffinbox-spring-boot-starter/`, and a program that has never seen
 TiffinBox, `lunch-counter/` (package `com.lunchcounter`) — and the receipts that measure them. **`c5-tiffinbox` is not
 changed by this unit** (brief ⚑10): TiffinBox does not consume the starter; the scan trap (§6) uses TiffinBoxApp's
-annotation shape, checked against the frozen anchor, instead.
+annotation shape, checked against the living anchor (`../c5-tiffinbox`), instead.
 
 ```
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
@@ -16,7 +16,9 @@ export PATH="$JAVA_HOME/bin:$PATH"
 `receipts.sh` carries the same two `export` lines at its top (a bare `java` on this Mac is 23.0.1). It **dies** when a
 capture's md5 differs from `receipts.md5` — it prints the `DIFFERS` line first, so you can see which capture moved;
 `./receipts.sh --publish` rewrites `receipts.md5` and is the only thing that does. Tested: with `starter` set to
-`000…` in `receipts.md5`, it printed `DIFFERS from the published 00000000000000000000000000000000` and exited 1.
+`000…` in `receipts.md5`, it printed `DIFFERS from the published 00000000000000000000000000000000` and exited 1. It
+refuses to run twice at once in this folder (`.r-lock`): two runs would share `.harness/`, the starter's install in `$M2`
+and `lunch-counter`'s `target/`; nothing it starts outlives its command, so its exit trap only drops the lock.
 
 **Maven.** Every build runs `mvn -o` first against this unit's own repository, `.m2-demo` (`$M2` below), and resolves
 from Maven Central only if that fails; Maven's own output goes to `.harness/mvn.log`, and a capture keeps the exit code.
@@ -24,7 +26,9 @@ From a fresh clone `.m2-demo` does not exist (it is git-ignored), so the first r
 the Section 2 probe's repository (`/private/tmp/claude-501/c5s2/m2`: `c5-unit01..05/.m2-demo` merged, plus what the
 probe added — the configuration processor, the validation artifacts, the install plugin and its resolver jars), without
 the probe's own install of the starter, and with the 11 `_remote.repositories` markers that named the probe's `userm2`
-repository deleted — `mvn -o` refuses an artifact recorded as coming from a repository it does not know. `starter`
+repository deleted — `mvn -o` refuses an artifact recorded as coming from a repository it does not know. Each of the
+fifteen builds a run makes prints `built <project> (<goals>) · offline: yes` (or `no - …`) on the terminal, so a run that
+went online is never silent (the captures are unchanged by it). `starter`
 deletes `$M2/com/tiffinbox/tiffinbox-spring-boot-starter/` before it installs, so the jar `lunch-counter` resolves is
 always the one this run built.
 
@@ -172,7 +176,9 @@ lunch-counter's one class has no `@Bean` method; the kitchen comes from the star
 for byte the starter's build — resolved from `$M2`, where `mvn install` put it. **Boot's own starters on this class path
 hold no code** (0 classes each); this one holds 3: it carries its own configuration (unit 03's "a starter holds no code"
 was measured on Boot's own starters, and is scoped so). **Two of the 23 jars carry an imports file under the same
-name** — ledger P15, "the day two jars name the same service". One property on the command line gives 5 cooks.
+name**, and on a class path both are read. (Not ledger P15: Course 3's setting merges `META-INF/services` when jars are
+flattened into one, and nothing here is merged — what one jar does with them is the next section's first lesson, P15's
+owner.) One property on the command line gives 5 cooks.
 
 ## 3 · The report: the method is guarded, the class is not
 
@@ -309,8 +315,11 @@ exit 0 · … 160 lines not shown: Boot's banner 10 · its log 7 · the rest of 
 ```
 
 **C** (labelled C per §R.1: a variant, not A′) is TiffinBoxApp's annotation shape — `receipts.sh` checks its three
-annotations are exactly the frozen anchor's (`../c5-unit04/after/…/TiffinBoxApp.java`, `@PropertySource` aside) — with
-a Kitchen of its own. Its plain `@ComponentScan("com.tiffinbox")` has no exclude filters, and `KitchenAutoConfiguration`
+scan-shaping annotations are exactly the living anchor's (`../c5-tiffinbox/…/TiffinBoxApp.java`: `@Configuration`,
+`@EnableAutoConfiguration`, `@ComponentScan(…)` with whatever arguments it carries; `@EnableConfigurationProperties` aside,
+as it shapes no scan), and fails if that class ever carries `@SpringBootApplication` — with a Kitchen of its own. The
+recap's line is scoped to this shape ("scanned the way TiffinBox scans"): with a scan that reaches your own configuration
+first, the outcome can differ, and that is not measured here. Its plain `@ComponentScan("com.tiffinbox")` has no exclude filters, and `KitchenAutoConfiguration`
 carries `@Component` (through `@AutoConfiguration → @Configuration`), so the scan registers the auto-configuration as an
 ordinary configuration class — under the scan's name, `kitchenAutoConfiguration` — and its kitchen **first**: the
 condition runs before `myKitchen` exists, and the report reads exactly as in A, `did not find any beans`. Exit 0, two
@@ -328,8 +337,9 @@ answers (a file, the command line, the environment), each run with the README's 
 
 ## Pays (ledger) and the brief
 
-P15 (C3/23, "the day two jars name the same service": two jars, one name, both read; the merged-jar half stays with the
-ledger's U13) · P-C4-32a and P30's four parts, written instead of read (a configuration class · a condition — on its
+Not P15 (RED #31): C3/23's setting is the shade plugin's `ServicesResourceTransformer`, which merges `META-INF/services/*`
+when jars are flattened into one; here two jars carry one name and both are read, on a class path, and nothing is merged —
+P15 stays with the ledger's U13 · P-C4-32a and P30's four parts, written instead of read (a configuration class · a condition — on its
 method, the class unconditional · listed in a file · read by the row-2 hook) · unit 03's "a starter holds no code",
 scoped to Boot's own starters. The brief's A/B/A′ and C/D are kept as labelled; the brief's "a property" run is in
 `consumer`, unlettered.

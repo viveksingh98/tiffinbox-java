@@ -185,7 +185,9 @@ and nothing else:
 - `TiffinBoxProperties` gains `@NotBlank String shutdownToken` — the key `tiffinbox.shutdown-token` — and its length rule,
   16 characters or more, as a yes-or-no method, `isShutdownTokenLongEnough()`. Not as `@Size` on the token: a failure
   report prints the value of the property that broke a rule, so `@Size` on the token prints the token, with the file it
-  came from, in a log line at ERROR. With the method, a short token's report reads `Value: "false"`.
+  came from, in a log line at ERROR. With the method, a short token's report reads `Value: "false"`. The record also
+  writes its own `toString()`: every component, and `[not shown]` in the token's place — a record's default prints every
+  component, the token included, and a settings object is the first thing anyone logs.
 - `TiffinBoxServer` answers POST /shutdown with `403 {"error":"forbidden"}` — and keeps running — unless the request's
   `X-Shutdown-Token` header holds the token (compared with `MessageDigest.isEqual`). Nothing logs the header or the token.
 - `application.yaml`'s `spring.config.import` becomes a list: `optional:file:./tiffinbox-local.yaml`, then

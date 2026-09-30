@@ -4,9 +4,12 @@ Course 5 · Spring Boot · Section 2 · Verified on **JDK 25.0.4.1, Apache Maven
 Until now anyone who could reach TiffinBox's port could stop it: POST /shutdown asked for nothing. This unit gives
 TiffinBox a secret with a job — `tiffinbox.shutdown-token`, required, asked for in an `X-Shutdown-Token` header — and
 measures where such a secret may live: not in git (a deleted token is still in the history), not on the command line
-(`ps` prints it), not in the environment (`ps eww` prints it), but in a config tree — one file, readable by its owner
-alone, that neither `ps` shows. Then the leak nobody looks for: a validation rule on the token itself prints the token in
-Boot's failure report, into the application's log. The fix is measured and landed.
+(`ps` prints it, and `ps` shows every user's command lines: here, root's first process to a user who is not root), not in
+the environment (`ps eww` prints it — to you, and to root: another user's environment it leaves out), but in a config
+tree — one file, `-rw-------`: readable by its owner and root, the same two as the environment, and shown by neither `ps`.
+Then the leaks nobody looks for: the settings object printed whole (a record's `toString()` prints every component — the
+anchor's record now writes its own), and a validation rule that can reject a real token, which prints it in Boot's failure
+report, into the application's log. Both fixes are measured and landed.
 
 The change lands in `../c5-tiffinbox`; `after/` is this unit's frozen copy of it. "Before" is `../c5-unit10/after/` (the
 anchor as the last unit left it), **copied** to `.harness/before/`: its files are compared, never run, and this unit never
@@ -16,20 +19,21 @@ capture; and **no capture, no README and no slide holds a demo token** (masked, 
 ```
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
 export PATH="$JAVA_HOME/bin:$PATH"
-./receipts.sh     # 9 captures, 3 runs each; every spoken number asserted; 0 raw tokens; a published-md5 mismatch stops it
+./receipts.sh     # 11 captures, 3 runs each; every spoken number asserted; 0 raw tokens; a published-md5 mismatch stops it
 ```
 
 (`receipts.sh` carries the same two `export` lines at its top; a bare `java` on this Mac is 23.0.1.) `receipts.sh`
 **dies** when a capture's md5 differs from `receipts.md5` — it prints the `DIFFERS` line first, so you can see which one
 moved (tested: with `change`'s published hash altered by one character, the run printed `change … DIFFERS from the
 published aba369b8…`, stopped with exit 1 and released its lock; `receipts.md5` was restored). A whole run takes about
-70 s on the author's Mac.
+2 min 50 s on the author's Mac.
 
 **The repository.** Every build runs `mvn -o` against this unit's own `.m2-demo` (`$M2` in the commands): a copy of
 `../c5-unit10/.m2-demo`, unchanged. This unit needs no artifact the previous one did not (the new constraint,
 `@AssertTrue`, is in the `jakarta.validation-api` jar the record already used), and after a full run of `receipts.sh` no
-file in `.m2-demo` is newer than the run's start (measured). The tree build falls back to Maven Central only if the offline build
-fails. Offline re-run of the frozen tree: `mvn -o -B -f after/pom.xml -Dmaven.repo.local="$PWD/.m2-demo" verify` → BUILD
+file in `.m2-demo` is newer than the run's start (measured). The three tree builds (`after/`, `sized/`, `plainrecord/`)
+fall back to Maven Central only if the offline build fails, and each prints `built <tree> · offline: yes` (or `no - …`) on
+the terminal, so a run that went online is never silent. Offline re-run of the frozen tree: `mvn -o -B -f after/pom.xml -Dmaven.repo.local="$PWD/.m2-demo" verify` → BUILD
 SUCCESS.
 
 ## The anchor change
@@ -38,7 +42,10 @@ Four files changed, none new (README aside) — `change`, below, shows every cha
 - `tiffinbox-core/…/TiffinBoxProperties.java` — the record gains `@NotBlank String shutdownToken` (the key
   `tiffinbox.shutdown-token`), and its length rule, 16 characters or more, as a yes-or-no method:
   `@AssertTrue(message = "tiffinbox.shutdown-token must be 16 characters or more") public boolean
-  isShutdownTokenLongEnough()`. Not `@Size(min = 16)` on the token: the break (below) measures why.
+  isShutdownTokenLongEnough()`. Not `@Size(min = 16)` on the token: the break (below) measures why. And its own
+  `toString()`: every component, `[not shown]` in the token's place — a record's default prints every component, the token
+  included, and a settings object is the first thing anyone logs (`record`, below; added after RED's review, #30, in
+  `after/` and `../c5-tiffinbox` alike).
 - `tiffinbox-web/…/TiffinBoxServer.java` — POST /shutdown answers `403 {"error":"forbidden"}`, and the server keeps
   running, unless the request's `X-Shutdown-Token` header holds the token; the comparison is `MessageDigest.isEqual`, and
   nothing logs the header or the token.
@@ -53,8 +60,10 @@ Four files changed, none new (README aside) — `change`, below, shows every cha
 requests no longer stop it** (`door`: the POST gets 403, and the seven hash to `11bbc19ca107097dfd6477aa7fb0246b`). From
 this unit on, the comparison set is **`curlset.sh PORT TOKENFILE`** (this folder): `../c4-unit31/curlset.sh` with one
 change — the POST carries the header, read from a file (or from standard input with `-`), never from a command line.
-With it the seven hash to `115c36bac276128e245ca57df11c2891` again: plain, and with the anchor README's logging, rush and
-lunch commands (`serve`). The anchor README's own new commands — make a token, stop with the header — run in `serve` too.
+With it the seven hash to `115c36bac276128e245ca57df11c2891` again: plain, and with the anchor README's logging flag, rush
+and lunch (`serve`). The anchor README's own new commands — make a token, stop with the header — run in `serve` too, read
+from `after/README.md` itself (its port 18431 made 18715), never typed into `receipts.sh`. On screen, Course 4's set is
+`$C4SET` (= `../c4-unit31/curlset.sh`, its folder named on no slide).
 
 ## The demo tokens — fake, and never printed
 
@@ -73,7 +82,7 @@ script, the slides and the prompter the same way. The exercise and the anchor RE
 
 ## The harness — lengths, never values
 
-`harness/com/tiffinbox/harness/` holds two plain classes, neither with a class-level annotation (TiffinBox's
+`harness/com/tiffinbox/harness/` holds three plain classes, none with a class-level annotation (TiffinBox's
 `@ComponentScan("com.tiffinbox")` never picks one up). `Run.tiffinbox` calls the tree's own `TiffinBoxServer.main(args)`
 inside Boot's `SpringApplication.withHook(…)`; if `main` throws, the harness names the exception's type and rethrows it,
 so the exit code is TiffinBox's own. `receipts.sh` compiles it with `javac -parameters` against `after/`'s jars.
@@ -82,13 +91,17 @@ so the exit code is TiffinBox's own. `receipts.sh` compiles it with `javac -para
   TiffinBox has started: the active profiles; the stack for `tiffinbox.shutdown-token` — the `WINNER` and the source it
   came from, then every property source in order with what it holds for the key and Boot's `Origin`; then the token the
   record holds. **Every value is printed as its length alone** — `(26 characters)` — never the value, and the record is
-  never printed whole: a record's own `toString()` prints every component, the token included. It closes the context,
-  which stops TiffinBox's server.
+  never printed whole. It closes the context, which stops TiffinBox's server.
+- `Record <TiffinBox's arguments>` — the one class that prints the record whole (`String.valueOf`, exactly what a log line
+  naming the settings object prints), then closes the context. It exists to count what such a print carries: `record` runs
+  it on `after/` (the record's own `toString()`) and on `plainrecord/` (the record as this unit first wrote it), and counts
+  the raw token in each run's output; the capture masks it.
 
 The previous units' `Serve` and `Start` printed the record whole; they are not used here. Unit 10's `Stack` prints a key's
 values; it is not used here either.
 
-**`$AFTER`** is the harness's classes plus `after/`'s jars; `receipts.sh` writes it to `.harness/after.classpath`.
+**`$AFTER`** is the harness's classes plus `after/`'s jars, **`$PLAINRECORD`** the same with `plainrecord/`'s build;
+`receipts.sh` writes each to `.harness/*.classpath`. **`$C4SET`** is Course 4's comparison set, `../c4-unit31/curlset.sh`.
 
 ## The folders the runs start in, and the commands
 
@@ -103,13 +116,19 @@ passes it to `eval`).
 - `both/` — the tree with the 26-character token, and a `tiffinbox-local.yaml` holding the 22-character one, written under
   the usual umask (022) as an editor would: `-rw-r--r--` (`ranks`).
 - `anchor/` — made by the anchor README's own command, a random token (`serve`).
+- `crlf/`, `nonl/`, `twonl/` — the tree with the 26-character token followed by CR LF, by nothing, and by two newlines
+  (`newline`).
 - `sized/` (a build, `.harness/sized`) — a copy of `after/` whose record is `sized/TiffinBoxProperties.java`: the length
-  rule as `@Size(min = 16)` on the token itself. `files` diffs it against `after/`'s.
+  rule as `@Size(min = 16)` on the token itself (its own `toString()` kept). `files` diffs it against `after/`'s.
+- `plainrecord/` (a build, `.harness/plainrecord`) — a copy of `after/` whose record is `plainrecord/TiffinBoxProperties.java`:
+  the record as this unit first wrote it, without its own `toString()` (`record` B). `files` diffs it against `after/`'s.
 - `gitdemo/` — `git`'s throwaway repository, a repository of its own. Never this one.
 
 **Ports** (Section 2 brief ⚑11: 18710-18719): door 18710 · required 18711 (never binds) · where 18712 · ranks 18713 ·
-break 18714 (B and C never bind) · serve 18715 · the exercise 18719. `receipts.sh` first checks that nothing listens on
-18425 or on any of its ports, and that each port is free again after its run.
+break 18714 (B and C never bind) · serve 18715 · newline 18716 · record 18717 · the exercise 18719. `receipts.sh` first
+checks that nothing listens on 18425 or on any of its ports — **before** it wipes `.harness/`: a TiffinBox an interrupted run
+left behind answers POST /shutdown only with its token, which lives there, so the message names the process to kill
+(`kill <pid>`) — and that each port is free again after its run.
 
 ## Masks, filters and hygiene — every one, declared
 
@@ -125,7 +144,11 @@ break 18714 (B and C never bind) · serve 18715 · the exercise 18719. `receipts
    pid are never printed), then the report itself (`APPLICATION FAILED TO START` to its end) **without its blank lines and
    its rows of asterisks**, then a counted line: `… N more line(s) of this run's output not shown …`.
 4. `ps eww` prints a process's command line and then its whole environment — which is this shell's, and yours. `where`
-   prints only its words that start `TIFFINBOX_`; the count of raw token copies covers the whole output.
+   prints only its words that start `TIFFINBOX_`; the count of raw token copies covers the whole output. Of another user's
+   process only **pid 1** is ever asked about — `launchd`, root's on every Mac — and of its environment only a count of
+   words; no other line of this machine's process list, no path and no user name reaches a capture (the script prints
+   whether its own user is root: `no`). `ps`'s column padding in that line, and `od`'s spacing in `newline`, are squeezed
+   to one space by `gsub()`.
 5. `route DEBUG lines` counts TiffinBox's own route lines at DEBUG; the lines themselves are not shown.
 6. `change` shows every changed **code** line: comments (Java: `/* */` blocks and lines starting `*` or `//`; YAML and
    `.gitignore`: lines starting `#`) and blank lines are dropped from both versions before git diffs them (`-U0`), and each
@@ -138,9 +161,16 @@ break 18714 (B and C never bind) · serve 18715 · the exercise 18719. `receipts
    (`required` prints the count left: 0). It refuses to run twice at once in this folder (`.r-lock`), or with a `secrets/`
    in this folder.
 
+**Interrupted.** `receipts.sh`'s exit trap stops the JVM it started in the background, if one still runs, and drops the
+lock — on a failed check and on Ctrl-C alike (a background job of a non-interactive shell ignores the terminal's Ctrl-C, so
+without the kill a TiffinBox would keep listening, answering 403 to anyone without the token). Tested 2026-09-30, the
+driver in the foreground, `SIGINT` sent to the script's process group the moment `break` A's JVM (`sized/`, port 18714)
+started: `receipts.sh` exited 130, and 5 s later no JVM for 18714 was running, nothing listened on 18714, and `.r-lock` was
+gone.
+
 ## 1 · The change — the token, its rule, the 403, the imports, and git
 
-`.r-change.out` `aba369b922ebe2493894634217f8b2e2`
+`.r-change.out` `d2b647e025b61980445016c39e61c7a8`
 
 ```
 files, README aside: the previous tree 18 · after/ 18 · in both 18: identical 14, changed 4
@@ -148,7 +178,7 @@ files, README aside: the previous tree 18 · after/ 18 · in both 18: identical 
   only after:  (none)
 .gitignore, every changed line but comments and blanks (1 of those not shown):
 +secrets/
-TiffinBoxProperties.java, every changed line but comments and blanks (9 of those not shown):
+TiffinBoxProperties.java, every changed line but comments and blanks (13 of those not shown):
 +import jakarta.validation.constraints.AssertTrue;
 -                                  @NotNull @Min(1) Integer port, @NotEmpty List<MealType> mealTypes) {
 +                                  @NotNull @Min(1) Integer port, @NotEmpty List<MealType> mealTypes,
@@ -156,6 +186,11 @@ TiffinBoxProperties.java, every changed line but comments and blanks (9 of those
 +    @AssertTrue(message = "tiffinbox.shutdown-token must be 16 characters or more")
 +    public boolean isShutdownTokenLongEnough() {
 +        return shutdownToken == null || shutdownToken.isBlank() || shutdownToken.length() >= 16;
++    }
++    @Override
++    public String toString() {
++        return "TiffinBoxProperties[jdbcUrl=" + jdbcUrl + ", cooks=" + cooks + ", days=" + days + ", port=" + port
++                + ", mealTypes=" + mealTypes + ", shutdownToken=" + (shutdownToken == null ? "null" : "[not shown]") + "]";
 +    }
 TiffinBoxServer.java, every changed line but comments and blanks (11 of those not shown):
 +import java.nio.charset.StandardCharsets;
@@ -194,14 +229,14 @@ holding `after/.gitignore`, git ignores both places a developer's secret could s
 
 ## 2 · The door — Course 4's seven requests, then this unit's
 
-`.r-door.out` `45ba7f187c6b140a06c8ea284c1d035f`
+`.r-door.out` `675669328c849266f4d3bb0492824fb2`
 
 ```
 the token, in a config tree in tree/: -rw------- 27 bytes secrets/tiffinbox/shutdown-token
 $ cd .harness/tree && java -jar ../../after/tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18710
   listens on: 127.0.0.1:18710 · WARN lines 0 · ERROR lines 0
 Course 4's seven requests, as they stand - no header:
-$ ../c4-unit31/curlset.sh 18710
+$ $C4SET 18710
 POST  /shutdown   -> 403 application/json  {"error":"forbidden"}
   the seven responses: 7 lines · md5 11bbc19ca107097dfd6477aa7fb0246b
   2 s after that POST /shutdown: the JVM is still running · listening on 18710: 1 process(es)
@@ -276,7 +311,7 @@ here). Deleting is not removing: a committed token is in every clone of the hist
 
 ## 5 · Who can read it — the command line, the environment, a config tree
 
-`.r-where.out` `20a55d26690c88c2a45b25d9d321f4fb`
+`.r-where.out` `7d33e68a175aa6f32acdeb993cb9e118`
 
 ```
 the command line
@@ -328,16 +363,52 @@ who printed the token, raw:
   TIFFINBOX_SHUTDOWNTOKEN    0               1        200
   TIFFINBOX_SHUTDOWN_TOKEN   0               1        200
   a config tree              0               0        200
+a process of another user - pid 1, launchd, root's on every Mac - asked by this script's user (root: no):
+  $ ps -o user=,command= -p 1
+  root /sbin/launchd
+  $ ps eww -o command= -p 1     (the words it adds after the command: its environment)
+  0 word(s) holding =
 ```
 
 The same 26-character token in three places, each run then stopped by this unit's seven (the header read from `tree/`'s
 file — so a 200 means the token TiffinBox bound **is** that one). On the command line, `ps` prints the whole command line,
 token included (1). In the environment — either spelling, `TIFFINBOX_SHUTDOWNTOKEN` or `TIFFINBOX_SHUTDOWN_TOKEN`; both
-bind — plain `ps` shows nothing, and `ps eww` prints it (1). **Measured as the same user only.** In a config tree, neither
-shows it. The file is 27 bytes, its last byte a newline; the header carries the file's first line, 26 characters; the door
-opens: Boot dropped the newline (the probe's "trimmed", re-measured end to end).
+bind — plain `ps` shows nothing, and `ps eww` prints it (1). In a config tree, neither shows it. The file is 27 bytes, its
+last byte a newline; the header carries the file's first line, 26 characters; the door opens: Boot dropped the newline
+(the probe's "trimmed", re-measured end to end). **Another user's process** (RED #29): asked by a user who is not root,
+`ps -o user=,command= -p 1` prints `root /sbin/launchd` — a command line reaches every local user — while `ps eww` adds 0
+words of pid 1's environment: an environment reaches its owner, and root. The config tree's file, `-rw-------`, reaches the
+same two; its measured advantage is that `ps` shows it to nobody.
 
-## 6 · Two imports, ranked — and a developer's token in a plain file
+## 6 · What Boot trims from a config tree's file
+
+`.r-newline.out` `bac42f5d5f97d89a7f2233a9e545c482`
+
+```
+the token and one newline - tree/, as every run above
+  -rw------- 27 bytes secrets/tiffinbox/shutdown-token · after the token's 26 characters: \n
+$ cd .harness/tree && java -cp "$AFTER" com.tiffinbox.harness.Token --tiffinbox.port=18716
+  exit 0 · the record's token: (26 characters)
+the token, CR and LF - a line end a Windows editor writes
+  -rw------- 28 bytes secrets/tiffinbox/shutdown-token · after the token's 26 characters: \r \n
+$ cd .harness/crlf && java -cp "$AFTER" com.tiffinbox.harness.Token --tiffinbox.port=18716
+  exit 0 · the record's token: (26 characters)
+the token alone, no newline
+  -rw------- 26 bytes secrets/tiffinbox/shutdown-token · after the token's 26 characters: (nothing)
+$ cd .harness/nonl && java -cp "$AFTER" com.tiffinbox.harness.Token --tiffinbox.port=18716
+  exit 0 · the record's token: (26 characters)
+the token, a newline, and a blank line after it
+  -rw------- 28 bytes secrets/tiffinbox/shutdown-token · after the token's 26 characters: \n \n
+$ cd .harness/twonl && java -cp "$AFTER" com.tiffinbox.harness.Token --tiffinbox.port=18716
+  exit 0 · the record's token: (28 characters)
+```
+
+The same token, four line ends, the record's token measured by `Token` (lengths only): one LF (27 bytes) → 26 characters;
+CR LF (28 bytes) → 26; no line end (26 bytes) → 26; a newline and a blank line (28 bytes) → **28**. Boot trims the line
+end of a one-line file, LF or CR LF, and nothing else: a blank line after the token stays in it, two characters more than
+the header's first line (RED #43).
+
+## 7 · Two imports, ranked — and a developer's token in a plain file
 
 `.r-ranks.out` `0c5315219ad09252dad53300629892aa`
 
@@ -373,7 +444,7 @@ and above the document that imports them. (Unit 10 measured the single import di
 the new import sits above it.) The local file is git-ignored, but it is a plain file, `-rw-r--r--`: a token there is one
 more copy on disk.
 
-## 7 · The leak nobody expects — A/B/A′ on `sized/`, then C on `after/`
+## 8 · The leak nobody expects — A/B/A′ on `sized/`, then C on `after/`
 
 `.r-break.out` `ac564c2ecf342ccf8e224c1bb4975c69`
 
@@ -434,14 +505,42 @@ token whole — `Value:` (masked here), with the file it came from, `Origin: fil
 (`o.s.b.d.LoggingFailureAnalysisReporter`), so it goes wherever the application's log goes. **A′** is A, line for line.
 **C** (`after/` as shipped, the same 15 characters; labelled C per §R.1): exit 1, and the report names the method —
 `Property: tiffinbox.shutdownTokenLongEnough` · `Value: "false"` · the message — with no `Origin` line, and the token
-0 times.
+0 times. The `Property:` line names the method, a Java name (as the validation lesson's reports name the record's
+components); the `Reason:` names the key.
 
-## 8 · The jar: the anchor README's commands, and the seven responses
+## 9 · The settings object, printed whole
 
-`.r-serve.out` `a86cd47a1cbe3fa7fb0c6a7ade7e7d1f`
+`.r-record.out` `871f7c3469ae2d1ef26f52de984c4fef`
 
 ```
-the anchor README's commands, on this unit's port, in a fresh folder, anchor/ - its token random, as the README makes it
+A   after/: the record writes its own toString() - every component, [not shown] in the token's place
+$ cd .harness/tree && java -cp "$AFTER" com.tiffinbox.harness.Record --tiffinbox.port=18717
+  exit 0 · WARN lines 0 · ERROR lines 0 · standard error 0 lines
+  the record: TiffinBoxProperties[jdbcUrl=jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1, cooks=3, days=30, port=18717, mealTypes=[VEG, NON_VEG, VEGAN], shutdownToken=[not shown]]
+  the token, raw, in this run's whole output: 0
+B   plainrecord/: after/ with the record as this unit first wrote it - a record's default toString()
+$ cd .harness/tree && java -cp "$PLAINRECORD" com.tiffinbox.harness.Record --tiffinbox.port=18717
+  exit 0 · WARN lines 0 · ERROR lines 0 · standard error 0 lines
+  the record: TiffinBoxProperties[jdbcUrl=jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1, cooks=3, days=30, port=18717, mealTypes=[VEG, NON_VEG, VEGAN], shutdownToken=[masked: the 26-character token]]
+  the token, raw, in this run's whole output: 1
+A′  A, re-run
+$ cd .harness/tree && java -cp "$AFTER" com.tiffinbox.harness.Record --tiffinbox.port=18717
+  exit 0 · WARN lines 0 · ERROR lines 0 · standard error 0 lines
+  the record: TiffinBoxProperties[jdbcUrl=jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1, cooks=3, days=30, port=18717, mealTypes=[VEG, NON_VEG, VEGAN], shutdownToken=[not shown]]
+  the token, raw, in this run's whole output: 0
+```
+
+`Record` prints the record's bean whole — what a log line that names the settings object prints — from `tree/`. **A** —
+`after/`: every component, and `shutdownToken=[not shown]`; the token 0 times in the run's output. **B** — `plainrecord/`,
+the record as this unit first wrote it: a record's default `toString()` prints every component, the token included —
+**1** raw copy (masked here). **A′** — A re-run, line for line. The most common real leak, closed in the anchor (RED #30).
+
+## 10 · The jar: the anchor README's commands, and the seven responses
+
+`.r-serve.out` `42e14ea28d0a72ad3fa7c1f6a820bf68`
+
+```
+after/README.md's commands, read from the file - its port 18431 made 18715 - in a fresh folder, anchor/; its token random, as the README makes it
 $ cd .harness/anchor && mkdir -p secrets/tiffinbox && (umask 077 && printf '%s\n' "$(openssl rand -hex 16)" > secrets/tiffinbox/shutdown-token)
   exit 0 · -rw------- 33 bytes secrets/tiffinbox/shutdown-token · printed: 0 line(s)
 $ cd .harness/anchor && java -jar ../../after/tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18715
@@ -461,7 +560,7 @@ POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
   Boot: No active profile set, falling back to 1 default profile: "default" · route DEBUG lines 0
   the token, raw, in this run's whole output: 0 (standard output 18 lines · standard error 0 lines)
-the anchor README's logging command
+the logging flag after/README.md gives, after the port: --logging.level.tiffinbox=debug
 $ cd .harness/tree && java -jar ../../after/tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18715 --logging.level.tiffinbox=debug
   listens on: 127.0.0.1:18715 · WARN lines 0 · ERROR lines 0
 $ ./curlset.sh 18715 .harness/tree/secrets/tiffinbox/shutdown-token
@@ -487,15 +586,16 @@ POST  /shutdown   -> 200 application/json  {"stopping":true}
   the token, raw, in this run's whole output: 0 (standard output 23 lines · standard error 0 lines)
 ```
 
-The anchor README's commands, on this unit's port: the token made by `openssl rand -hex 16` (33 bytes with its newline,
-`-rw-------`, nothing printed); POST /shutdown without the header → `{"error":"forbidden"} 403`, the JVM still running;
-with the header, piped from the file → `{"stopping":true} 200`, exit 0. Then the seven, four ways: `115c36ba…` every time.
+`after/README.md`'s commands, read from the file, on this unit's port: the token made by `openssl rand -hex 16` (33 bytes
+with its newline, `-rw-------`, nothing printed); POST /shutdown without the header (the README's stop command with its
+header taken off) → `{"error":"forbidden"} 403`, the JVM still running; with the header, piped from the file (the README's
+command) → `{"stopping":true} 200`, exit 0. The logging run's flag is read from `after/README.md` too. Then the seven, four ways: `115c36ba…` every time.
 With `lunch` on — the audit's logging at DEBUG — 5 route lines, and the token 0 times in the run's whole output (hazard:
 TiffinBox's only DEBUG call is the route line, and nothing logs the record).
 
-## 9 · The demo files, against the files they stand in for
+## 11 · The demo files, against the files they stand in for
 
-`.r-files.out` `28e42107af138bdfd15137ea6db79b66`
+`.r-files.out` `603561e43cdd5d591a59819d6d20b4d2`
 
 ```
 sized/TiffinBoxProperties.java, against after/'s TiffinBoxProperties.java:
@@ -503,22 +603,43 @@ sized/TiffinBoxProperties.java, against after/'s TiffinBoxProperties.java:
   < import jakarta.validation.constraints.AssertTrue;
   7a7
   > import jakarta.validation.constraints.Size;
-  28,29c28,29
-  <  * logs the record. The token's length rule is a yes-or-no method, not a constraint on the token itself: a failure report
-  <  * prints the value of the property that broke a rule, so a rule on the token would print the token.
+  29,31c29,30
+  <  * {@code [not shown]} in the token's place. The token's length rule is a yes-or-no method, not a constraint on the token
+  <  * itself: a failure report prints the value of the property that broke a rule, so a rule on the token would print the
+  <  * token.
   ---
-  >  * logs the record. The token's length rule is a constraint on the token itself, {@code @Size(min = 16)} - the obvious
-  >  * way to write it.
-  42,48c42
+  >  * {@code [not shown]} in the token's place. The token's length rule is a constraint on the token itself,
+  >  * {@code @Size(min = 16)} - the obvious way to write it.
+  44c43
   <                                   @NotBlank String shutdownToken) {
-  < 
+  ---
+  >                                   @NotBlank @Size(min = 16) String shutdownToken) {
+  46,51d44
   <     /** The token's length rule. A failure report prints what this returns - false - and never the token. */
   <     @AssertTrue(message = "tiffinbox.shutdown-token must be 16 characters or more")
   <     public boolean isShutdownTokenLongEnough() {
   <         return shutdownToken == null || shutdownToken.isBlank() || shutdownToken.length() >= 16;
   <     }
+  < 
+plainrecord/TiffinBoxProperties.java, against after/'s TiffinBoxProperties.java:
+  27,31c27,29
+  <  * the operator puts it. A record's own {@code toString()} prints every component, this one included - and a settings
+  <  * object is the first thing anyone logs - so this record writes its own {@code toString()}: every component, and
+  <  * {@code [not shown]} in the token's place. The token's length rule is a yes-or-no method, not a constraint on the token
+  <  * itself: a failure report prints the value of the property that broke a rule, so a rule on the token would print the
+  <  * token.
   ---
-  >                                   @NotBlank @Size(min = 16) String shutdownToken) {
+  >  * the operator puts it. A record's own {@code toString()} prints every component, this one included, so TiffinBox never
+  >  * logs the record. The token's length rule is a yes-or-no method, not a constraint on the token itself: a failure report
+  >  * prints the value of the property that broke a rule, so a rule on the token would print the token.
+  51,57d48
+  < 
+  <     /** The record's own format, component by component, with the token's value replaced: logging the record is safe. */
+  <     @Override
+  <     public String toString() {
+  <         return "TiffinBoxProperties[jdbcUrl=" + jdbcUrl + ", cooks=" + cooks + ", days=" + days + ", port=" + port
+  <                 + ", mealTypes=" + mealTypes + ", shutdownToken=" + (shutdownToken == null ? "null" : "[not shown]") + "]";
+  <     }
 curlset.sh, against ../c4-unit31/curlset.sh:
   2,3c2,4
   < # The comparison set (brief ⚑2): one request per layer the rewire touched. Status, content type, body.
@@ -536,7 +657,8 @@ curlset.sh, against ../c4-unit31/curlset.sh:
   > printf '%-5s %-11s -> %s  %s\n' POST /shutdown "$out" "$(cat "$T")"
 ```
 
-`sized/` differs from `after/`'s record in the length rule alone (and the comment that describes it). `curlset.sh`
+`sized/` differs from `after/`'s record in the length rule alone (and the comment that describes it) — both keep the
+record's own `toString()`. `plainrecord/` is `after/`'s record without its `toString()` (and with the comment it had). `curlset.sh`
 differs from Course 4's in its comment and the POST alone: the token is read first (from the file, or from standard
 input), then handed to curl on curl's standard input (`-H @-`).
 
@@ -547,7 +669,8 @@ token in `TIFFINBOX_SHUTDOWNTOKEN` (port 18719); this unit's seven stop it: `POS
 {"stopping":true}`. Move the token into a config tree file, newline included, start with no `TIFFINBOX_` variable, and
 POST /shutdown must still answer 200. Measured answers, run exactly as written in a clean shell, in
 `exercise/solution/SOLUTION.md`: the file `-rw------- 33 bytes`, 0 `TIFFINBOX_` words in `ps eww`, the same 200 line, and
-the token 0 times in either round's log.
+the token 0 times in either round's log. The deck's card carries the README's readiness loop (the `for … curl … /kitchen`
+line) between the start and the POST: without it the POST can reach a server not yet listening (RED #41).
 
 ## Found on the way
 
@@ -566,12 +689,12 @@ the token 0 times in either round's log.
 
 ## For the next unit, and for RED
 
-- Unit 12's C check points at `c5-unit04/after` (brief/FACTORY-NEXT). `c5-unit11/after` now **requires a token** to
+- Unit 12's C check points at the living anchor, `../c5-tiffinbox` (changed after RED #47; it pointed at `c5-unit04/after`). `c5-unit11/after` now **requires a token** to
   start: a C run on it needs a `secrets/` (or a variable) in the folder it starts in, or it exits 1 with `must not be
   blank` — and its seven need this folder's `curlset.sh` with a token file. The starter itself (`c5-unit12/`) never
   touches the anchor (⚑10).
 - **Every later receipt and verify script that stops TiffinBox** must use `c5-unit11/curlset.sh PORT TOKENFILE` (brief
   ⚑9's cost); `c4-unit31/curlset.sh` now leaves the server running (and `seven()`-style waits would time out).
-- Open for RED: the record keeps its default `toString()`, which prints the token; nothing in TiffinBox logs the record,
-  and the harness never prints it — a masked `toString()` was not decided by the brief, so it was not added. `ps eww` is
-  measured as the same user only. Only the nested config-tree form is measured (the dotted file name is not).
+- Closed after RED's review: the record writes its own `toString()` (`[not shown]` for the token; `record`: 1 → 0 raw
+  copies), and another user's process is measured — pid 1 only (`where`). Still open: only the nested config-tree form is
+  measured (the dotted file name is not).

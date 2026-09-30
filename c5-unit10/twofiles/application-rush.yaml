@@ -1,0 +1,3 @@
+# The profile "rush" as a file of its own, beside the audit's. application.yaml's rush document is still read too.
+tiffinbox:
+  cooks: 6

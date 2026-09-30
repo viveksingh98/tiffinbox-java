@@ -5,44 +5,61 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # it: POST /shutdown asked for nothing. This unit gives TiffinBox a secret with a job - tiffinbox.shutdown-token, required,
 # asked for in an X-Shutdown-Token header - imported from a config tree (optional:configtree:./secrets/, the second import
 # in application.yaml's list), with its length rule written so that a failure report cannot print it (the anchor change).
-# Then where a secret must never live, where it can, who can read it there, and the one place nobody looks. Nine captures,
+# Then where a secret must never live, where it can, who can read it there, and the places nobody looks. Eleven captures,
 # each run three times and hashed; cap() DIES when a hash differs from receipts.md5; every number the video says is
 # asserted at the bottom by a check that can fail - and no capture holds a demo token: each is masked (gsub), and the last
 # checks count 0 raw copies in every capture.
 #   change   the previous tree against after/, file by file: every changed code line; what git makes of secrets/ and
 #            tiffinbox-local.yaml under after/'s .gitignore (in a throwaway repository)
-#   door     after/'s jar, the token in a config tree: Course 4's seven requests (no header) · this unit's (the header)
+#   door     after/'s jar, the token in a config tree: Course 4's seven requests ($C4SET, no header) · this unit's (the header)
 #   required after/'s jar, no token anywhere
 #   git      the anti-pattern, in a throwaway repository under .harness/: commit the token, delete it, look again
-#   where    the token on the command line, in either environment spelling, in a config tree: ps, ps eww, POST /shutdown
+#   where    the token on the command line, in either environment spelling, in a config tree: ps, ps eww, POST /shutdown -
+#            then a process of another user, pid 1 (launchd, root's on every Mac): what ps and ps eww print of it to us
+#   newline  the config tree's file with one newline, CR LF, none, and a blank line after the token: what Boot binds
 #   ranks    the harness: the token's stack with lunch on and a token in tiffinbox-local.yaml AND in the config tree
 #   break    the length rule on the token itself (sized/, a copy of after/): A 26 characters · B 15 · A' = A ·
 #            C after/ as shipped (the rule a yes-or-no method), 15
-#   serve    after/'s jar: this unit's seven, plain and with the anchor README's logging, rush and lunch commands; the token
-#            counted in every run's whole output
+#   record   the record printed whole: A after/ (its own toString(), the token's place [not shown]) · B plainrecord/ (the
+#            record as this unit first wrote it: a record's default toString()) · A' = A - the raw token counted
+#   serve    after/'s jar: after/README.md's own commands (read from the file) that make a token and stop TiffinBox; then
+#            this unit's seven, plain and with the README's logging flag, rush and lunch; the token counted in every run
 #   files    every demo file against the file it stands in for (diff)
 # "before" is ../c5-unit10/after (the anchor as the last unit left it), COPIED to .harness/before: its files are compared,
 # never run, and this script never writes into another unit's folder. after/ is this unit's frozen copy of ../c5-tiffinbox
-# after the change, built in place, clean; .harness/sized is a copy of it with one file swapped (sized/), built clean.
+# after the change, built in place, clean; .harness/sized and .harness/plainrecord are copies of it with one file swapped
+# (sized/, plainrecord/), each built clean.
 # Every run starts in a folder under .harness/ that this script makes: application.yaml's two imports look in the folder
 # TiffinBox starts in (./tiffinbox-local.yaml, ./secrets/). empty/ holds neither · tree/ a config tree with the 26-character
-# token · short/ one with the 15-character token · both/ a config tree AND a tiffinbox-local.yaml, each with a token.
-# Commands are printed exactly as they run: each goes through eval, so "$TOKEN" and "$AFTER" (the harness's classes plus
-# after/'s jars, written to .harness/after.classpath) expand only when it runs - the printed line never holds a token.
+# token · short/ one with the 15-character token · both/ a config tree AND a tiffinbox-local.yaml, each with a token ·
+# crlf/, nonl/, twonl/ the 26-character token with CR LF, with no newline, and with a blank line after it.
+# Commands are printed exactly as they run: each goes through eval, so "$TOKEN", "$AFTER" and "$PLAINRECORD" (the
+# harness's classes plus that tree's jars, written to .harness/*.classpath) and "$C4SET" (Course 4's comparison set,
+# ../c4-unit31/curlset.sh) expand only when it runs - the printed line never holds a token.
 # Masks and filters (README.md declares each; sub/gsub only): the three demo tokens become "[masked: the N-character token]"
 # and this folder's absolute path becomes "…", in every line of every capture (gsub); Boot's timestamped log lines are
 # dropped from a harness report and counted, and so are the lines between the harness's first line and its report (the
 # banner); a failed start shows Boot's failure report without its blank lines and its rows of asterisks, the rest counted;
 # a log line's level and logger are read off it (match), its time and pid never printed; ps eww's output is cut to its
-# words that start TIFFINBOX_ (the rest is this shell's environment); git runs with a fixed author, committer and date and
-# without your configuration, so its hashes are the same on every run.
+# words that start TIFFINBOX_ (the rest is this shell's environment); of another user's process only pid 1 is ever
+# asked about - launchd, root's on every Mac - and of its environment only a count; ps's column padding and od's spacing
+# are squeezed to one space (gsub); git runs with a fixed author,
+# committer and date and without your configuration, so its hashes are the same on every run.
 # Ports (brief ⚑11, 18710-18719): door 18710 · required 18711 (never binds) · where 18712 · ranks 18713 · break 18714 (B and C
-# never bind) · serve 18715 · the exercise 18719.
+# never bind) · serve 18715 · newline 18716 · record 18717 · the exercise 18719.
 set -e
 cd "$(dirname "$0")"
 # One run at a time: two runs share .harness/ and the ports, and one would corrupt the other.
 mkdir .r-lock 2> /dev/null || { echo "  *** another receipts.sh is running in this folder (.r-lock exists) - if none is, rmdir .r-lock ***"; exit 1; }
-trap 'rmdir .r-lock 2> /dev/null' EXIT
+# On every exit - the end, a failed check, or Ctrl-C - stop the JVM this script started in the background, if it still
+# runs, and drop the lock. A background job of a non-interactive shell ignores the terminal's Ctrl-C, so without the kill
+# an interrupted run would leave TiffinBox listening - and here it would answer 403 to anyone without the token. $pid is
+# cleared whenever the JVM has been reaped. The clean-up ignores a second Ctrl-C, and nothing in it can fail under set -e
+# (a JVM stopped by SIGTERM exits 143), so it always reaches the rmdir; the script still exits 130 after an interrupt
+# (tested: README.md, "Interrupted").
+pid=""
+trap 'trap "" INT TERM; if [ -n "$pid" ] && kill "$pid" 2> /dev/null; then wait "$pid" 2> /dev/null || true; fi; rmdir .r-lock 2> /dev/null || true' EXIT
+trap 'exit 130' INT TERM
 exec 3>&1                                            # die() speaks to the terminal even inside a redirected capture
 die() { echo "  *** $* ***" >&3; exit 1; }
 java -version 2>&1 | grep -q 'version "25' || die "JDK 25 needed; JAVA_HOME gives: $(java -version 2>&1 | head -1)"
@@ -60,31 +77,44 @@ TOKEN=not-a-real-token-demo-only                     # 26 characters: TiffinBox'
 SHORT=kitchen-door-42                                # 15 characters: one short of the length rule (break)
 LOCAL=a-plain-file-token-22c                         # 22 characters: a developer's token in tiffinbox-local.yaml (ranks)
 [ ${#TOKEN} = 26 ] && [ ${#SHORT} = 15 ] && [ ${#LOCAL} = 22 ] || die "the demo tokens must be 26, 15 and 22 characters"
+C4SET=../c4-unit31/curlset.sh                        # Course 4's comparison set: the seven requests, POST /shutdown bare
+
+# The ports, BEFORE anything is wiped: a TiffinBox an interrupted run left behind answers POST /shutdown only with its token,
+# and that token lives in .harness/, which the next lines delete - so the message names the process to kill instead.
+listeners() { lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2> /dev/null | wc -l | tr -d ' '; }
+for p in 18425 18710 18711 18712 18713 18714 18715 18716 18717; do
+  [ "$(listeners $p)" = 0 ] || die "something already listens on $p - this unit's ports must be free; if it is a TiffinBox an interrupted run left behind, stop it: kill $(lsof -nP -iTCP:$p -sTCP:LISTEN -t 2> /dev/null | paste -sd' ' -)"; done
 
 # ---- build: after/, clean, and sized/'s copy of it, clean; the previous tree is only copied (its files are read, never run) ---
 rm -rf .harness; mkdir -p .harness
 rsync -a --exclude target ../c5-unit10/after/ .harness/before/
 rsync -a --exclude target after/ .harness/sized/; cp sized/TiffinBoxProperties.java ".harness/sized/$REC"
+rsync -a --exclude target after/ .harness/plainrecord/; cp plainrecord/TiffinBoxProperties.java ".harness/plainrecord/$REC"
 BT=.harness/before; AT=after
-build() { (cd "$1" && { mvn -o -q -B -Dmaven.repo.local="$M2" -DskipTests clean package > /dev/null 2>&1 \
-                        || mvn -q -B -Dmaven.repo.local="$M2" -DskipTests clean package; }) || die "build failed: $1"; }
-build "$AT"; build .harness/sized
+# build DIR: a clean build, offline first; Maven Central only if the offline build fails - and the terminal says which
+# (offline: yes / no), so a run that went online is never silent.
+build() { local how=yes
+  (cd "$1" && mvn -o -q -B -Dmaven.repo.local="$M2" -DskipTests clean package > /dev/null 2>&1) \
+    || { how="no - the offline build failed, so Maven Central was asked"
+         (cd "$1" && mvn -q -B -Dmaven.repo.local="$M2" -DskipTests clean package) || die "build failed: $1"; }
+  echo "  built $1 · offline: $how"; }
+build "$AT"; build .harness/sized; build .harness/plainrecord
 jars() { echo "$PWD/$1/tiffinbox-web/target/tiffinbox-web-1.0.0.jar:$(ls "$PWD/$1"/tiffinbox-web/target/lib/*.jar | paste -sd: -)"; }
 javac -parameters -cp "$(jars "$AT")" -d .harness/classes harness/com/tiffinbox/harness/*.java || die "the harness did not compile"
-AFTER="$PWD/.harness/classes:$(jars "$AT")"
-printf '%s\n' "$AFTER" > .harness/after.classpath
+AFTER="$PWD/.harness/classes:$(jars "$AT")"; PLAINRECORD="$PWD/.harness/classes:$(jars .harness/plainrecord)"
+printf '%s\n' "$AFTER" > .harness/after.classpath; printf '%s\n' "$PLAINRECORD" > .harness/plainrecord.classpath
 
 # ---- the folders the runs start in -------------------------------------------------------------------------------------------
 # tree FOLDER TOKEN: a config tree in FOLDER/secrets holding one file, the token and a newline, readable by its owner alone
-tree() { mkdir -p "$1/secrets/tiffinbox"; (umask 077 && printf '%s\n' "$2" > "$1/$TF"); chmod 700 "$1/secrets" "$1/secrets/tiffinbox"; }
+# (treef FOLDER FORMAT TOKEN: the same, with printf's FORMAT for what follows the token)
+tree() { treef "$1" '%s\n' "$2"; }
+treef() { mkdir -p "$1/secrets/tiffinbox"; (umask 077 && printf "$2" "$3" > "$1/$TF"); chmod 700 "$1/secrets" "$1/secrets/tiffinbox"; }
 mkdir -p .harness/empty
 tree .harness/tree "$TOKEN"; tree .harness/short "$SHORT"; tree .harness/both "$TOKEN"
+treef .harness/crlf '%s\r\n' "$TOKEN"; treef .harness/nonl '%s' "$TOKEN"; treef .harness/twonl '%s\n\n' "$TOKEN"
 # a developer's own file, as an editor saves it under the usual umask (022): a plain file, with a token in it
 (umask 022 && printf 'tiffinbox:\n  shutdown-token: %s\n' "$LOCAL" > .harness/both/tiffinbox-local.yaml)
 
-listeners() { lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2> /dev/null | wc -l | tr -d ' '; }
-for p in 18425 18710 18711 18712 18713 18714 18715; do
-  [ "$(listeners $p)" = 0 ] || die "something already listens on $p - this unit's ports must be free"; done
 
 # raw TOKEN FILE...: how many times TOKEN appears, raw, in the files (occurrences, not lines)
 raw() { local t=$1; shift; cat "$@" | grep -oF -- "$t" | wc -l | tr -d ' '; }
@@ -131,7 +161,7 @@ seven() { local i
   grep '^POST ' .harness/responses.txt || echo "(no POST line)"
   i=0; while kill -0 "$pid" 2> /dev/null && [ $i -lt 60 ]; do sleep 0.25; i=$((i + 1)); done
   kill -0 "$pid" 2> /dev/null && { kill "$pid"; die "the server on $1 was still running 15 s after POST /shutdown"; }
-  e=0; wait "$pid" || e=$?
+  e=0; wait "$pid" || e=$?; pid=""
   [ "$(listeners "$1")" = 0 ] || die "something still listens on $1"
   echo "  exit $e · the seven responses: $(wc -l < .harness/responses.txt | tr -d ' ') lines · md5 $(md5 -q .harness/responses.txt)"; }
 # up: the line after a start - where it listens, and its WARN/ERROR lines so far; dies if it never listened
@@ -154,9 +184,9 @@ cap() { local nm=$1 h pub i; shift
   [ "$h" = "$(md5 -q ".r-$nm.2")" ] && [ "$h" = "$(md5 -q ".r-$nm.3")" ] || die "$nm drifts across three runs (diff .r-$nm.1 .r-$nm.2 .r-$nm.3)"
   mv ".r-$nm.1" ".r-$nm.out"; rm -f ".r-$nm.2" ".r-$nm.3"
   pub=$(awk -v n="$nm" '$1 == n { print $2 }' receipts.md5 2> /dev/null || true)
-  if [ -z "$pub" ]; then printf '  %-8s md5 %s  3/3  (no published hash)\n' "$nm" "$h"; unpub="$unpub $nm"
-  elif [ "$pub" = "$h" ]; then printf '  %-8s md5 %s  3/3  = published\n' "$nm" "$h"
-  else printf '  %-8s md5 %s  3/3  DIFFERS from the published %s\n' "$nm" "$h" "$pub"
+  if [ -z "$pub" ]; then printf '  %-10s md5 %s  3/3  (no published hash)\n' "$nm" "$h"; unpub="$unpub $nm"
+  elif [ "$pub" = "$h" ]; then printf '  %-10s md5 %s  3/3  = published\n' "$nm" "$h"
+  else printf '  %-10s md5 %s  3/3  DIFFERS from the published %s\n' "$nm" "$h" "$pub"
     die "$nm is not the published capture - suspect another JDK, Boot or Maven, a busy port, a variable of yours, or an edited source; diff .r-$nm.out against its block in README.md"; fi; }
 
 # ---- change: the previous tree against after/, file by file (README aside) --------------------------------------------------
@@ -199,8 +229,8 @@ door() {
   echo "the token, in a config tree in tree/: $(cd .harness/tree && st "$TF")"
   startjar 'cd .harness/tree && java -jar ../../after/tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18710'; up
   echo "Course 4's seven requests, as they stand - no header:"
-  echo "\$ ../c4-unit31/curlset.sh 18710"
-  ../c4-unit31/curlset.sh 18710 | grep ' -> ' > .harness/c4.txt || true
+  echo "\$ \$C4SET 18710"
+  "$C4SET" 18710 | grep ' -> ' > .harness/c4.txt || true
   grep '^POST ' .harness/c4.txt || echo "(no POST line)"
   echo "  the seven responses: $(wc -l < .harness/c4.txt | tr -d ' ') lines · md5 $(md5 -q .harness/c4.txt)"
   sleep 2
@@ -261,8 +291,29 @@ where() { rm -f .harness/where.tab
   echo "  the token: $(printf '%s' "$TOKEN" | wc -c | tr -d ' ') characters · the header curlset.sh sends: the file's first line, $(IFS= read -r t < ".harness/tree/$TF"; printf '%s' "$t" | wc -c | tr -d ' ') characters"
   echo "who printed the token, raw:"
   printf '  %-26s %-15s %-8s %s\n' "the token was in" "ps -o command=" "ps eww" "POST /shutdown, the header from the tree's file"
-  awk -F'|' '{ printf "  %-26s %-15s %-8s %s\n", $1, $2, $3, $4 }' .harness/where.tab; }
+  awk -F'|' '{ printf "  %-26s %-15s %-8s %s\n", $1, $2, $3, $4 }' .harness/where.tab
+  # Another user's process. Only pid 1 is ever asked about: launchd, root's on every Mac - nothing of this machine's own
+  # process list is printed. Of its environment, only a count of the words ps eww adds.
+  echo "a process of another user - pid 1, launchd, root's on every Mac - asked by this script's user (root: $([ "$(id -u)" = 0 ] && echo yes || echo no)):"
+  echo '  $ ps -o user=,command= -p 1'; ps -o user=,command= -p 1 | awk '{ gsub(/ +/, " "); sub(/^ /, ""); print "  " $0 }'
+  echo "  $ ps eww -o command= -p 1     (the words it adds after the command: its environment)"
+  echo "  $(ps eww -o command= -p 1 | tr -s ' ' '\n' | grep -c '=' || true) word(s) holding ="; }
 cap where where
+
+# ---- newline: what Boot binds from a config tree's file, newline by newline ------------------------------------------------------
+# nlrun FOLDER LABEL: the file, the bytes after the token (od -c), and the length of the token the record holds (the harness,
+# Token: lengths only)
+nlrun() { echo "$2"
+  echo "  $(cd ".harness/$1" && st "$TF") · after the token's 26 characters: $(tail -c +27 ".harness/$1/$TF" | od -An -c | awk '{ gsub(/ +/, " "); sub(/^ /, ""); sub(/ $/, ""); print }' | grep . || echo '(nothing)')"
+  runf "cd .harness/$1 && java -cp \"\$AFTER\" com.tiffinbox.harness.Token --tiffinbox.port=18716"
+  echo "  exit $ec · $(grep "^the record's token: " .harness/run.out || echo '(no token line)')"; }
+newline() {
+  nlrun tree "the token and one newline - tree/, as every run above"
+  nlrun crlf "the token, CR and LF - a line end a Windows editor writes"
+  nlrun nonl "the token alone, no newline"
+  nlrun twonl "the token, a newline, and a blank line after it"
+  [ "$(listeners 18716)" = 0 ] || die "something still listens on 18716"; }
+cap newline newline
 
 # ---- ranks: the token's stack - two imports, and the profiles above them ------------------------------------------------------------
 # report: the harness's own lines - its first line (the folder), then everything from "active profiles: " on. Boot's timestamped
@@ -300,6 +351,20 @@ brk() {
   [ "$(listeners 18714)" = 0 ] || die "something still listens on 18714"; }
 cap break brk
 
+# ---- record: the settings object, printed whole - the most common leak of all ----------------------------------------------------
+recline() { echo "  exit $ec · $(warns .harness/run.out) · standard error $(wc -l < .harness/run.err | tr -d ' ') lines"
+  grep '^the record: ' .harness/run.out | sed 's/^/  /' || echo "  (no record line)"
+  echo "  the token, raw, in this run's whole output: $(raw "$TOKEN" .harness/run.out .harness/run.err)"; }
+record() {
+  echo "A   after/: the record writes its own toString() - every component, [not shown] in the token's place"
+  runf 'cd .harness/tree && java -cp "$AFTER" com.tiffinbox.harness.Record --tiffinbox.port=18717'; recline
+  echo "B   plainrecord/: after/ with the record as this unit first wrote it - a record's default toString()"
+  runf 'cd .harness/tree && java -cp "$PLAINRECORD" com.tiffinbox.harness.Record --tiffinbox.port=18717'; recline
+  echo "A′  A, re-run"
+  runf 'cd .harness/tree && java -cp "$AFTER" com.tiffinbox.harness.Record --tiffinbox.port=18717'; recline
+  [ "$(listeners 18717)" = 0 ] || die "something still listens on 18717"; }
+cap record record
+
 # ---- serve: after/'s jar, the anchor README's commands, from tree/ --------------------------------------------------------------------
 serve1() { echo "$1"; startjar "$2"; up; seven 18715 ".harness/tree/$TF"
   echo "  Boot: $(said .harness/jar.out 'The following ' | grep -v '^(no such line)$' || said .harness/jar.out 'No active profile set') · route DEBUG lines $(routes .harness/jar.out)"
@@ -308,27 +373,36 @@ serve1() { echo "$1"; startjar "$2"; up; seven 18715 ".harness/tree/$TF"
 gone() { local i=0 e=0
   while kill -0 "$pid" 2> /dev/null && [ $i -lt 60 ]; do sleep 0.25; i=$((i + 1)); done
   kill -0 "$pid" 2> /dev/null && { kill "$pid"; die "the server on $1 was still running 15 s after POST /shutdown"; }
-  wait "$pid" || e=$?
+  wait "$pid" || e=$?; pid=""
   [ "$(listeners "$1")" = 0 ] || die "something still listens on $1"
   echo "  exit $e"; }
-# the anchor README's commands, on this unit's port, in a fresh folder: the token made as the README makes it (random - never
-# printed, so the capture holds nothing that depends on it), TiffinBox started, POST /shutdown without and with the header
-anchor() { local tok
+# after/README.md's own commands, READ FROM THE FILE, on this unit's port, in a fresh folder: the token made as the README
+# makes it (random - never printed, so the capture holds nothing that depends on it), TiffinBox started, POST /shutdown
+# without the header (the README's stop command with its header taken off) and with it (the README's command)
+anchor() { local tok mk st nh
+  mk=$(grep -m1 -F "mkdir -p secrets/tiffinbox && (umask 077" "$AT/README.md" || true)
+  st=$(grep -m1 -F "{ printf 'X-Shutdown-Token: '; head -n 1 secrets/tiffinbox/shutdown-token; } | curl " "$AT/README.md" | sed 's|//127\.0\.0\.1:18431/|//127.0.0.1:18715/|' || true)
+  [ -n "$mk" ] && [ -n "$st" ] || die "after/README.md no longer gives the commands that make a token and stop TiffinBox with it"
+  nh=$(printf '%s\n' "$st" | sed -E 's/^\{ .* \} \| //; s/ -H @-//')
   rm -rf .harness/anchor; mkdir -p .harness/anchor
-  echo "the anchor README's commands, on this unit's port, in a fresh folder, anchor/ - its token random, as the README makes it"
-  runf "cd .harness/anchor && mkdir -p secrets/tiffinbox && (umask 077 && printf '%s\\n' \"\$(openssl rand -hex 16)\" > secrets/tiffinbox/shutdown-token)"
+  echo "after/README.md's commands, read from the file - its port 18431 made 18715 - in a fresh folder, anchor/; its token random, as the README makes it"
+  runf "cd .harness/anchor && $mk"
   echo "  exit $ec · $(cd .harness/anchor && st "$TF") · printed: $(cat .harness/run.out .harness/run.err | wc -l | tr -d ' ') line(s)"
   tok=$(head -n 1 ".harness/anchor/$TF")
   startjar 'cd .harness/anchor && java -jar ../../after/tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18715'; up
-  runf "curl -s -w ' %{http_code}\\n' -X POST http://127.0.0.1:18715/shutdown"; cat .harness/run.out
+  runf "$nh"; cat .harness/run.out
   sleep 1; echo "  1 s later: the JVM $(kill -0 "$pid" 2> /dev/null && echo 'is still running' || echo 'has exited')"
-  runf "cd .harness/anchor && { printf 'X-Shutdown-Token: '; head -n 1 secrets/tiffinbox/shutdown-token; } | curl -s -w ' %{http_code}\\n' -H @- -X POST http://127.0.0.1:18715/shutdown"
+  runf "cd .harness/anchor && $st"
   cat .harness/run.out; gone 18715
   echo "  the token, raw, in this run's whole output: $(raw "$tok" .harness/jar.out .harness/jar.err)"; }
-serve() {
+# readme FLAG: the flag after/README.md's run command gives after the port, on the line whose flag starts --FLAG - read
+# from the file, so a label never claims what the README says
+readme() { sed -nE "s/^.*java -jar tiffinbox-web\/target\/tiffinbox-web-1\.0\.0\.jar --tiffinbox\.port=[0-9]+ (--$1[^\` ]*).*$/\1/p" "$AT/README.md" | head -1; }
+serve() { local f
   anchor
   serve1 "plain" 'cd .harness/tree && java -jar ../../after/tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18715'
-  serve1 "the anchor README's logging command" 'cd .harness/tree && java -jar ../../after/tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18715 --logging.level.tiffinbox=debug'
+  f=$(readme logging.level); [ -n "$f" ] || die "after/README.md no longer gives a logging command"
+  serve1 "the logging flag after/README.md gives, after the port: $f" "cd .harness/tree && java -jar ../../after/tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18715 $f"
   serve1 "the lunch rush alone" 'cd .harness/tree && java -jar ../../after/tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18715 --spring.profiles.active=rush'
   serve1 "the group, lunch: the audit's logging at debug" 'cd .harness/tree && java -jar ../../after/tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18715 --spring.profiles.active=lunch'; }
 cap serve serve
@@ -338,6 +412,7 @@ files() {
   against() { if cmp -s "$1" "$2"; then echo "$2: $3, byte for byte"
               else echo "$2, against $3:"; diff "$1" "$2" | sed 's/^/  /' || true; fi; }
   against "$AT/$REC" sized/TiffinBoxProperties.java "after/'s TiffinBoxProperties.java"
+  against "$AT/$REC" plainrecord/TiffinBoxProperties.java "after/'s TiffinBoxProperties.java"
   against ../c4-unit31/curlset.sh curlset.sh "../c4-unit31/curlset.sh"; }
 cap files files
 
@@ -366,6 +441,8 @@ CR=$(blk change 'TiffinBoxProperties.java, every changed line' 'TiffinBoxServer.
 CG=$(blk change '.gitignore, every changed line' 'TiffinBoxProperties.java, ')
 has1 "$CR" '+                                  @NotBlank String shutdownToken) {' change
 has1 "$CR" '+    @AssertTrue(message = "tiffinbox.shutdown-token must be 16 characters or more")' change
+has1 "$CR" '+    public String toString() {' change
+has1 "$CR" '+                + ", mealTypes=" + mealTypes + ", shutdownToken=" + (shutdownToken == null ? "null" : "[not shown]") + "]";' change
 CS=$(blk change 'TiffinBoxServer.java, every changed line' 'application.yaml, ')
 has1 "$CS" '+        if (key.equals("POST /shutdown") && !holdsToken(exchange)) {   // the server keeps running' change
 has1 "$CS" '+            respond(exchange, 403, ordered("error", "forbidden"));' change
@@ -375,12 +452,13 @@ CY=$(blk change 'application.yaml, every changed line' 'a throwaway')
   || die "change: application.yaml's import becomes a list of two: the local file, then the config tree - nothing else"
 [ "$(printf '%s\n' "$CG" | paste -sd'|' -)" = '+secrets/' ] || die "change: .gitignore gains secrets/, nothing else"
 x change '^\.gitignore:4:secrets/   secrets/tiffinbox/shutdown-token$'; x change '^!! secrets/$'; x change '^!! tiffinbox-local\.yaml$'
-echo "  change: 4 files changed (the record: the token, @NotBlank, the length rule a method; the server: 403; application.yaml: two imports; .gitignore: secrets/); git ignores secrets/"
+echo "  change: 4 files changed (the record: the token, @NotBlank, the length rule a method, its own toString(); the server: 403; application.yaml: two imports; .gitignore: secrets/); git ignores secrets/"
 
 # "Course four's seven requests ... the last one gets four-oh-three, and the server is still running. The same seven, with
 # the token in the header: two hundred ... and the server stops."
 x door '^  listens on: 127\.0\.0\.1:18710 · WARN lines 0 · ERROR lines 0$'
 [ "$(grep -c '^POST  /shutdown   -> 403 application/json  {"error":"forbidden"}$' .r-door.out)" = 1 ] || die "door: without the header, POST /shutdown answers 403"
+x door '^\$ \$C4SET 18710$'                                              # Course 4's set, named by the variable on screen
 x door '^  the seven responses: 7 lines · md5 11bbc19ca107097dfd6477aa7fb0246b$'
 x door '^  2 s after that POST /shutdown: the JVM is still running · listening on 18710: 1 process\(es\)$'
 [ "$(grep -c '^POST  /shutdown   -> 200 application/json  {"stopping":true}$' .r-door.out)" = 1 ] || die "door: with the header, POST /shutdown answers 200"
@@ -420,6 +498,22 @@ x where '^  -rw------- 27 bytes secrets/tiffinbox/shutdown-token · its folders:
 x where '^  the token: 26 characters · the header curlset.sh sends: the file.s first line, 26 characters$'
 [ "$(grep -c "^  exit 0 · the seven responses: 7 lines · md5 $S115\$" .r-where.out)" = 4 ] || die "where: every place's seven must hash to 115c36ba..."
 echo "  where: command line ps 1 / eww 1 · env (both spellings) 0 / 1 · config tree 0 / 0, -rw------- 27 bytes, 26 characters bound · every one 200"
+# "The command line reaches anyone on this machine: ps shows me root's own first process, too. ... For another user's
+# process, ps e w w adds nothing: so this reaches you, and root."
+x where "^a process of another user - pid 1, launchd, root's on every Mac - asked by this script's user \(root: no\):$"
+x where '^  root /sbin/launchd$'
+x where '^  0 word\(s\) holding =$'
+echo "  where: pid 1, root's launchd, asked by a user who is not root: its command line printed, 0 words of its environment"
+
+# "Boot trims the newline of a one-line file, or its CR LF; a blank line after it stays in the token" (the chip)
+NL=$(cat .r-newline.out)
+has1 "$NL" "  -rw------- 27 bytes secrets/tiffinbox/shutdown-token · after the token's 26 characters: \\n" newline
+has1 "$NL" "  -rw------- 28 bytes secrets/tiffinbox/shutdown-token · after the token's 26 characters: \\r \\n" newline
+has1 "$NL" "  -rw------- 26 bytes secrets/tiffinbox/shutdown-token · after the token's 26 characters: (nothing)" newline
+has1 "$NL" "  -rw------- 28 bytes secrets/tiffinbox/shutdown-token · after the token's 26 characters: \\n \\n" newline
+[ "$(grep "^  exit 0 · the record's token: " .r-newline.out | sed 's/.*(//; s/ characters)//' | paste -sd' ' -)" = "26 26 26 28" ] \
+  || die "newline: one newline, CR LF and none must bind 26 characters; a blank line after the token, 28"
+echo "  newline: 27 bytes (\\n) -> 26 · 28 (\\r \\n) -> 26 · 26 (none) -> 26 · 28 (\\n \\n) -> 28: a one-line file's line end is trimmed, a second line is not"
 
 # "application dot yaml now imports two places: your local file, then a folder called secrets ... The later import ranks
 # higher: with a token in each, the secrets folder answers." (and the local file is a plain file)
@@ -461,21 +555,39 @@ has1 "$BC" '      Reason: tiffinbox.shutdown-token must be 16 characters or more
 [ "$(cnt "$BC" '^      Origin: ')" = 0 ] || die "break: C's report names no file"
 echo "  break: A 26 starts, 0 · B 15 exit 1, the report prints it (1, stdout, ERROR), with its file · A' = A · C after/ exit 1, Value \"false\", 0"
 
+# "Log the settings object, and a record prints every component. The record as first written printed the token: one copy.
+# TiffinBox's record now writes its own: not shown, and zero copies."
+RA=$(blk record 'A   ' 'B   '); RB=$(blk record 'B   ' 'A′  '); RA2=$(blk record 'A′  ' '')
+has1 "$RA" '  exit 0 · WARN lines 0 · ERROR lines 0 · standard error 0 lines' record
+has1 "$RA" '  the record: TiffinBoxProperties[jdbcUrl=jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1, cooks=3, days=30, port=18717, mealTypes=[VEG, NON_VEG, VEGAN], shutdownToken=[not shown]]' record
+has1 "$RA" "  the token, raw, in this run's whole output: 0" record
+has1 "$RB" '  exit 0 · WARN lines 0 · ERROR lines 0 · standard error 0 lines' record
+has1 "$RB" "  the record: TiffinBoxProperties[jdbcUrl=jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1, cooks=3, days=30, port=18717, mealTypes=[VEG, NON_VEG, VEGAN], shutdownToken=$M26]" record
+has1 "$RB" "  the token, raw, in this run's whole output: 1" record
+[ "$RA" = "$RA2" ] || die "record: A' is not A, line for line"
+FP=$(blk files 'plainrecord/TiffinBoxProperties.java, against' 'curlset.sh, against')
+[ "$(cnt "$FP" '^  < ')" = 12 ] && [ "$(cnt "$FP" '^  > ')" = 3 ] && printf '%s\n' "$FP" | grep -qxF '  <     public String toString() {' \
+  || die "files: plainrecord/ is after/'s record without its toString() (and the sentence that names it)"
+echo "  record: A after/ [not shown], 0 raw · B plainrecord/ (a record's default toString()) the token printed, 1 raw · A' = A"
+
 # "With lunch on, the audit turns TiffinBox's logging to debug: five route lines, and the token zero times."
 [ "$(grep -c "^  exit 0 · the seven responses: 7 lines · md5 $S115\$" .r-serve.out)" = 4 ] || die "serve: the seven responses must hash to 115c36ba..., all four runs"
 [ "$(grep -c '^  the token, raw, in this run.s whole output: 0 ' .r-serve.out)" = 4 ] || die "serve: no run's output may hold the token"
 x serve '^  Boot: The following 3 profiles are active: "lunch", "rush", "audit" · route DEBUG lines 5$'
 x serve '^  Boot: No active profile set, falling back to 1 default profile: "default" · route DEBUG lines 5$'
-AN=$(blk serve "the anchor README's commands" 'plain')
+AN=$(blk serve "after/README.md's commands, read from the file" 'plain')
 has1 "$AN" '  exit 0 · -rw------- 33 bytes secrets/tiffinbox/shutdown-token · printed: 0 line(s)' serve
 has1 "$AN" '{"error":"forbidden"} 403' serve; has1 "$AN" '  1 s later: the JVM is still running' serve
 has1 "$AN" '{"stopping":true} 200' serve; has1 "$AN" '  exit 0' serve
 has1 "$AN" "  the token, raw, in this run's whole output: 0" serve
+has1 "$AN" "\$ curl -s -w ' %{http_code}\\n' -X POST http://127.0.0.1:18715/shutdown" serve
+x serve '^the logging flag after/README\.md gives, after the port: --logging\.level\.tiffinbox=debug$'
 echo "  serve: the seven 115c36ba... (plain, logging, rush, lunch); lunch: 5 route DEBUG lines, the token 0 times"
 
 # the demo files: sized/ differs from after/'s record in the length rule alone; curlset.sh from Course 4's in the POST alone
-FS=$(blk files 'sized/TiffinBoxProperties.java, against' 'curlset.sh, against')
-[ "$(cnt "$FS" '^  [<>] ')" = 14 ] && printf '%s\n' "$FS" | grep -qxF '  >                                   @NotBlank @Size(min = 16) String shutdownToken) {' || die "files: sized/ swaps the length rule, nothing else"
+FS=$(blk files 'sized/TiffinBoxProperties.java, against' 'plainrecord/')
+[ "$(cnt "$FS" '^  [<>] ')" = 15 ] && printf '%s\n' "$FS" | grep -qxF '  >                                   @NotBlank @Size(min = 16) String shutdownToken) {' \
+  && ! printf '%s\n' "$FS" | grep -q 'toString' || die "files: sized/ swaps the length rule, nothing else - its own toString() kept"
 FC=$(blk files 'curlset.sh, against' '')
 printf '%s\n' "$FC" | grep -qxF '  < req POST /shutdown' && [ "$(cnt "$FC" '^  > [^#]')" = 3 ] || die "files: curlset.sh changes the POST alone (and its comment)"
 echo "  files: sized/ swaps the length rule; curlset.sh changes the POST alone"

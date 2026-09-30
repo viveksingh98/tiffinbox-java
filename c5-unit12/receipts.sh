@@ -15,7 +15,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #   backoff   A lunch-counter as shipped · B plus one Kitchen bean of its own (one file) · A' = A re-run (the file
 #             deleted again): all three built and run with the same two commands, in one working copy
 #   scan      the break: C TiffinBoxApp's shape - @Configuration, @EnableAutoConfiguration and a plain
-#             @ComponentScan("com.tiffinbox"), checked against the frozen anchor - plus a Kitchen of its own ·
+#             @ComponentScan("com.tiffinbox"), checked against the living anchor, ../c5-tiffinbox - plus a Kitchen of its own ·
 #             D @SpringBootApplication with the same root and the same Kitchen
 # Every number the video says is asserted at the bottom by a check that can fail, and cap() DIES when a capture's md5
 # differs from receipts.md5 (`./receipts.sh --publish` rewrites that file, and is the only thing that does).
@@ -30,22 +30,32 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # No token is masked by awk: nothing volatile (a time, a pid, a path) reaches a kept line.
 set -e
 cd "$(dirname "$0")"
+# One run at a time: two runs share .harness/, the starter's install in $M2 and lunch-counter's target/, and one would
+# corrupt the other. No JVM here outlives its command (nothing is served), so the exit trap only drops the lock.
+mkdir .r-lock 2> /dev/null || { echo "  *** another receipts.sh is running in this folder (.r-lock exists) - if none is, rmdir .r-lock ***"; exit 1; }
+trap 'trap "" INT TERM; rmdir .r-lock 2> /dev/null || true' EXIT
+trap 'exit 130' INT TERM
+exec 3>&1                                            # die() and the build lines speak to the terminal, even inside a capture
 M2="$PWD/.m2-demo"
 IMPORTS=META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
 S=tiffinbox-spring-boot-starter
 LC=lunch-counter
 LIB=$LC/target/lib
 PUBLISH=0; [ "$1" = "--publish" ] && PUBLISH=1
-die() { echo "  *** $* ***"; exit 1; }
+die() { echo "  *** $* ***" >&3; exit 1; }
 java -version 2>&1 | grep -q 'version "25' || die "JDK 25 expected; JAVA_HOME gives: $(java -version 2>&1 | head -1)"
 
 rm -rf .harness; mkdir -p .harness
 MVNLOG="$PWD/.harness/mvn.log"
 # mvnq DIR GOALS...: offline first, from this unit's own repository; Central once, only if that fails. Maven's own lines
-# carry times and paths, so they go to .harness/mvn.log; a capture keeps the exit code.
-mvnq() { local d=$1; shift
-  (cd "$d" && { mvn -o -q -B -DskipTests -Dmaven.repo.local="$M2" "$@" >> "$MVNLOG" 2>&1 \
-                || mvn -q -B -DskipTests -Dmaven.repo.local="$M2" "$@" >> "$MVNLOG" 2>&1; }); }
+# carry times and paths, so they go to .harness/mvn.log; a capture keeps the exit code, and the terminal says, build by
+# build, whether it ran offline (offline: yes / no), so a run that went online is never silent.
+mvnq() { local d=$1 how=yes; shift
+  (cd "$d" && mvn -o -q -B -DskipTests -Dmaven.repo.local="$M2" "$@" >> "$MVNLOG" 2>&1) \
+    || { how="no - the offline build failed, so Maven Central was asked"
+         (cd "$d" && mvn -q -B -DskipTests -Dmaven.repo.local="$M2" "$@" >> "$MVNLOG" 2>&1) \
+           || { echo "  built $d ($*) · offline: $how - and that failed too" >&3; return 1; }; }
+  echo "  built $d ($*) · offline: $how" >&3; }
 
 # cap NAME FUNCTION: three runs, one md5, or the script dies. A capture that differs from receipts.md5 is printed first,
 # with the reason to suspect, and then the script DIES: the panel on screen is not what this machine produced.
@@ -308,8 +318,13 @@ blk backoff "B   " "A′  " | grep -qxF "         - @ConditionalOnMissingBean (t
 n backoff 3 '^  built with lunch-counter.s own mvn command: exit 0$'; n backoff 3 '^exit 0 · '
 echo "  backoff: A [kitchen] 3 cooks, did not find any beans · B one file more: [myKitchen], found beans … myKitchen · A' = A, line for line"
 
-# scan: C two kitchens, the report unchanged · D one, the filter says match
-[ "$(grep -E '^@' ../c5-unit04/after/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxApp.java | grep -xE '@Configuration|@EnableAutoConfiguration|@ComponentScan\("com\.tiffinbox"\)' | sort)" = \
+# scan: C two kitchens, the report unchanged · D one, the filter says match. C's shape is checked against the LIVING
+# anchor: its TiffinBoxApp must still scan without @SpringBootApplication, and its scan-shaping annotations - whatever
+# arguments @ComponentScan now carries - must be exactly TiffinBoxShape's.
+APP=../c5-tiffinbox/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxApp.java
+[ -f "$APP" ] || die "scan: $APP is missing"
+! grep -q '^@SpringBootApplication' "$APP" || die "scan: the anchor's TiffinBoxApp now carries @SpringBootApplication - C is no longer TiffinBox's shape"
+[ "$(grep -E '^@' "$APP" | grep -xE '@Configuration|@EnableAutoConfiguration|@ComponentScan(\(.*\))?' | sort)" = \
   "$(grep -E '^@' harness/trap/TiffinBoxShape.java | sort)" ] || die "scan: TiffinBoxShape does not carry the anchor's three scan-shaping annotations"
 C=$(blk scan "C   " "D   "); D=$(blk scan "D   " "")
 for l in '  harness/trap/TiffinBoxShape.java: @Configuration · @EnableAutoConfiguration · @ComponentScan("com.tiffinbox") · @Bean Kitchen myKitchen()' \
