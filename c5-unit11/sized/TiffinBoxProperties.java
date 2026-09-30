@@ -1,10 +1,10 @@
 package com.tiffinbox;
 
-import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
@@ -25,8 +25,8 @@ import java.util.List;
  * <p>{@code shutdownToken} is a secret, and it is never committed: it comes from a config tree (application.yaml
  * imports {@code optional:configtree:./secrets/} - the file {@code secrets/tiffinbox/shutdown-token}) or from wherever
  * the operator puts it. A record's own {@code toString()} prints every component, this one included, so TiffinBox never
- * logs the record. The token's length rule is a yes-or-no method, not a constraint on the token itself: a failure report
- * prints the value of the property that broke a rule, so a rule on the token would print the token.
+ * logs the record. The token's length rule is a constraint on the token itself, {@code @Size(min = 16)} - the obvious
+ * way to write it.
  *
  * @param jdbcUrl   the address of TiffinBox's database, an in-memory H2 database
  * @param cooks     how many cooks take orders off the kitchen rail
@@ -39,11 +39,5 @@ import java.util.List;
 @ConfigurationProperties("tiffinbox")
 public record TiffinBoxProperties(@NotBlank String jdbcUrl, @NotNull @Min(1) Integer cooks, @NotNull @Min(1) Integer days,
                                   @NotNull @Min(1) Integer port, @NotEmpty List<MealType> mealTypes,
-                                  @NotBlank String shutdownToken) {
-
-    /** The token's length rule. A failure report prints what this returns - false - and never the token. */
-    @AssertTrue(message = "tiffinbox.shutdown-token must be 16 characters or more")
-    public boolean isShutdownTokenLongEnough() {
-        return shutdownToken == null || shutdownToken.isBlank() || shutdownToken.length() >= 16;
-    }
+                                  @NotBlank @Size(min = 16) String shutdownToken) {
 }
