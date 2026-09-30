@@ -18,7 +18,7 @@ spring:
   config:
     # A developer's own settings, from the folder TiffinBox starts in. "optional:" - a missing file is no error.
     # tiffinbox-local.yaml is never committed: .gitignore, beside this project's README.
-    import: optional:file:./tiffinbox-local.yaml
+    import: file:./tiffinbox-local.yaml
 ---
 # A second document in the same file, read only while the profile "rush" is active.
 spring:

@@ -1,0 +1,3 @@
+# A developer's own settings. application.yaml imports ./tiffinbox-local.yaml from the folder TiffinBox starts in.
+tiffinbox:
+  cooks: 4
