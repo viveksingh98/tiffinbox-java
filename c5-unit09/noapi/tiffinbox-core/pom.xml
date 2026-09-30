@@ -35,12 +35,5 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot</artifactId>
     </dependency>
-    <!-- Course 5: the record's constraints (@NotBlank, @NotNull, @Min, @NotEmpty) are Bean Validation's annotations, from
-         its API jar alone - the version is managed by Boot's parent. The implementation that checks them comes with
-         tiffinbox-web's validation starter; this module only needs the annotations to compile. -->
-    <dependency>
-      <groupId>jakarta.validation</groupId>
-      <artifactId>jakarta.validation-api</artifactId>
-    </dependency>
   </dependencies>
 </project>

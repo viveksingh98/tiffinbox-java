@@ -28,13 +28,6 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter</artifactId>
     </dependency>
-    <!-- Course 5: Bean Validation for TiffinBoxProperties - Hibernate Validator (the implementation), the API it
-         implements, and spring-boot-validation, whose own imports file adds ValidationAutoConfiguration. Without an
-         implementation, the API jar alone (which tiffinbox-core brings) stops the start even with a good configuration. -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-validation</artifactId>
-    </dependency>
   </dependencies>
 
   <build>

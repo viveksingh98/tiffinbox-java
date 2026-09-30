@@ -29,6 +29,6 @@ import java.util.List;
  */
 @Validated
 @ConfigurationProperties("tiffinbox")
-public record TiffinBoxProperties(@NotBlank String jdbcUrl, @NotNull @Min(1) Integer cooks, @NotNull @Min(1) Integer days,
-                                  @NotNull @Min(1) Integer port, @NotEmpty List<MealType> mealTypes) {
+public record TiffinBoxProperties(@NotBlank String jdbcUrl, @Min(1) int cooks, @Min(1) int days, @Min(1) int port,
+                                  @NotEmpty List<MealType> mealTypes) {
 }
