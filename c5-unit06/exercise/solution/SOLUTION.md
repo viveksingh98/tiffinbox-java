@@ -5,6 +5,11 @@ Measured 2026-09-29 (JDK 25.0.4.1, Maven 3.9.16, Spring Boot 4.1.1), after `../r
 --noprofile --norc`, so nothing but the block's own two `export` lines chose the JDK, and no variable of the author's
 could become a sixth place). The block's own last line printed the starting state:
 
+> **Re-run 2026-09-30 (BLUE, after the RED/BLUE changes to `../receipts.sh`):** `../receipts.sh` passed (9 captures, 3/3,
+> = published), then the README's block and every command on this page were run again exactly as written, from
+> `c5-unit06/exercise/`, in the same clean shell — every output line below identical, and 0 listeners on 18669 after
+> each run.
+
 ```
 KEY tiffinbox.cooks -> WINNER 3 · from source 6 of 7, Config resource 'class path resource [application.properties]' via location 'optional:classpath:/'
 the bean's own field: OrderQueue.cooks = 3
@@ -65,5 +70,6 @@ the bean's own field: OrderQueue.cooks = 5
 ```
 
 It adds a property source of its own, `spring.application.json` — 8 sources instead of 7 — and, measured, puts it at
-number 3, **above** `systemProperties`. The video's ladder does not include it; the exercise accepts it, because its
-winner line names a third source.
+number 3, **above** `systemProperties`. The video shows the same fact on its recap card: the receipts' `ladder` C sets
+`-D` (6) and `TIFFINBOX_COOKS` (5) too, and `SPRING_APPLICATION_JSON` (8) still answers, from source 3 of 9. The exercise
+accepts it, because its winner line names a third source.

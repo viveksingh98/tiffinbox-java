@@ -2,9 +2,11 @@
 
 Course 5 · Spring Boot · Section 2 · Verified on **JDK 25.0.4.1, Apache Maven 3.9.16, Spring Boot 4.1.1**, 2026-09-29.
 One key, `tiffinbox.cooks`, set in five places at once, and the property source that answers. Then what TiffinBox's own
-`@PropertySource` file costs — it ranks last, and it arrives too late for the keys Boot reads first — and the change that
-retires it: the file renamed `application.properties`, `@PropertySource` and the port bridge deleted. **The run command
-changes here, for the first time in Course 5.**
+`@PropertySource` file costs — it ranks last here, and it arrives too late for the keys Boot reads first — and the change
+that retires it: the file renamed `application.properties`, `@PropertySource` and the port bridge deleted. **The run
+command changes here**: the anchor catches up with the first lesson's exercise (`../c5-unit01/exercise/`), which deleted
+the bridge and gave the port as `--tiffinbox.port=`. The earlier lessons' `java -jar … <port> --flag` commands, run
+against this anchor, take `--tiffinbox.port=<port>` instead of the bare number (section 7 shows what a bare number does).
 
 The change lands in `../c5-tiffinbox`; `after/` is this unit's frozen copy of it. "Before" is `../c5-unit04/after/` (the
 anchor as the last unit left it), **copied** to `.harness/before/` and built there, so this unit never writes into another
@@ -54,7 +56,8 @@ java command is started from, which need not be the jar's.
 **Ports** (Section 2 brief ⚑11: 18660-18669): stack and ladder 18660 · A and A′ 18661 · B's bare number 18662 (never bound)
 · late 18663 · the bridge's positional 18664 (never bound) and its flag 18665 · serve 18666 and 18667 · outside and ignored
 18668 · the exercise 18669. **B binds 18425**, the file's port, by design — that is the break. `receipts.sh` first checks
-that nothing listens on 18425 or on any of its own ports, and stops B at once (`POST /shutdown`, about a second).
+that nothing listens on 18425 or on any of its own ports, and stops B at once (`POST /shutdown`, about a second); if the
+run is interrupted, its EXIT trap stops B (masks and hygiene, item 5).
 
 ## Masks, filters and hygiene — every one, declared
 
@@ -68,7 +71,14 @@ that nothing listens on 18425 or on any of its own ports, and stops B at once (`
 4. No token is masked inside a kept line: nothing in these captures carries a time, a pid or an absolute path.
 5. Hygiene: `receipts.sh` unsets every `TIFFINBOX_*` and `SPRING_*` variable, `JAVA_TOOL_OPTIONS` and `JDK_JAVA_OPTIONS`
    before it runs anything — a variable of yours would otherwise become a sixth place. It also refuses to run twice at
-   once in this folder (`.r-lock`): two runs share `.harness/` and the ports.
+   once in this folder (`.r-lock`): two runs share `.harness/` and the ports. On every exit — the end, a failed check, or
+   Ctrl-C — its EXIT trap stops the JVM it started in the background, if it still runs, and removes the lock; Ctrl-C makes
+   it exit 130. Tested 2026-09-30: Ctrl-C (SIGINT to the script's process group) while `break` B listened on 18425 → exit
+   130, that JVM gone, nothing listening on 18425 or 18660-18669, `.r-lock` removed. (Without the kill, the background JVM
+   ignores Ctrl-C and keeps 18425.) If a port is still busy, the port check names it and gives the stop command:
+   `curl -X POST http://127.0.0.1:<port>/shutdown`.
+6. `serve`'s third run takes its flag from `after/README.md` (its logging command, the flag after the port), read out of
+   the file by `sed`; the label prints what it read, and `receipts.sh` dies if the file stops giving one.
 
 ## 1 · One key, five places
 
@@ -102,7 +112,7 @@ line above it and its own file between the variables and yours (`receipts.sh` ch
 
 ## 2 · The ladder — the top place taken away, one at a time
 
-`.r-ladder.out` `6a46bf68545b4f7975cc2caba35c78ee`
+`.r-ladder.out` `d978b886ec8cf088f70ba0b488a0f4e8`
 
 ```
 A   five places
@@ -129,11 +139,19 @@ A′  A, re-run
 $ TIFFINBOX_COOKS=5 java -Dtiffinbox.cooks=6 -cp "$BEFORE:places" com.tiffinbox.harness.Winner tiffinbox.cooks 18660 --tiffinbox.cooks=7
   exit 0 · KEY tiffinbox.cooks -> WINNER 7 · from source 2 of 8, commandLineArgs
   the bean's own field: OrderQueue.cooks = 7
+C   the flag taken away, and one more variable: SPRING_APPLICATION_JSON, a JSON document
+$ TIFFINBOX_COOKS=5 SPRING_APPLICATION_JSON='{"tiffinbox":{"cooks":8}}' java -Dtiffinbox.cooks=6 -cp "$BEFORE:places" com.tiffinbox.harness.Winner tiffinbox.cooks 18660
+  exit 0 · KEY tiffinbox.cooks -> WINNER 8 · from source 3 of 9, spring.application.json
+  the bean's own field: OrderQueue.cooks = 8
 ```
 
 7 → 6 → 5 → 4 → 3, each answered by the next place down, and the bean's field equal to the winner every time. With Boot's
 file gone TiffinBox's file finally answers — from source 7 of 7, last again. A′ is A re-run: the same command, the same
-lines (`receipts.sh` compares the two blocks).
+lines (`receipts.sh` compares the two blocks). **C** (a variant, labelled so): the flag taken away, and one more variable
+added — `SPRING_APPLICATION_JSON`, a whole JSON document in one environment variable. It answers, 8, from source 3 of 9:
+**above** `systemProperties` (6) and the other variable (5). So "a flag, then a system property, then a variable" is the
+order of the five places measured, not of every source: this one variable outranks `-D`. The video says so on a chip
+(the ladder's last step, and the recap card); the exercise's solution meets the same source.
 
 ## 3 · Last, and too late
 
@@ -233,7 +251,7 @@ counted), `main` loses the three bridge lines. Nothing is added.
 
 ## 6 · The new command — and where the moved file ranks
 
-`.r-serve.out` `f10bde48d09c1d92d8c95907e0683e8a`
+`.r-serve.out` `31d1bba93ed3c78f27dcce6578fe188a`
 
 ```
 $ java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18666
@@ -241,7 +259,7 @@ $ java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18666
 $ java -jar tiffinbox-web-1.0.0.jar --debug --tiffinbox.port=18667
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
   the condition report printed: 1 time(s)
-the anchor README's logging command:
+the logging flag after/README.md gives, after the port: --logging.level.tiffinbox=debug
 $ java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18666 --logging.level.tiffinbox=debug
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
   route DEBUG lines 5
@@ -249,7 +267,8 @@ $ java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18666 --logging.level.tiffi
 
 The run command becomes `java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=<port>`, and the seven responses of
 `../c4-unit31/curlset.sh` still hash to `115c36bac276128e245ca57df11c2891`. `--debug` may come first now (the condition
-report prints once). The third run is the logging command `../c5-tiffinbox/README.md` now documents.
+report prints once). The third run's flag is read out of `after/README.md` — the logging command the anchor README
+documents — so its label prints what the file says, not a typed claim.
 
 `.r-outside.out` `a6eaad66f3931e107a1dd79e8805bd9f`
 
@@ -313,8 +332,9 @@ $ java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18661
 ```
 
 **A** the new command listens on 18661, as asked. **B** the command the last course documented — the port as a bare first
-argument — exits 0 with no WARN line and listens on **18425**, the file's port; nothing listens on 18662. A bare number
-names no property, so nothing reads it, and nothing says so. **A′** is A re-run: the same lines (`receipts.sh` compares
+argument — starts with no WARN line and listens on **18425**, the file's port; nothing listens on 18662. Its `exit 0` is
+read after `receipts.sh` stops it with `POST /shutdown`. A bare number names no property, so nothing reads it, and
+nothing says so. **A′** is A re-run: the same lines (`receipts.sh` compares
 them). The port is what the operating system says the process listens on (`lsof -p <pid>`), not TiffinBox's own log line.
 
 `.r-ignored.out` `efa5b915b4261dcfe394809389b2d12f`
@@ -346,6 +366,13 @@ property sources. Measured answers, run exactly as written in a clean shell, in 
 a third source, which Boot places **above** `systemProperties`).
 
 ## Found on the way
+
+- **A clean-up trap that `set -e` cut short.** The first version of this unit's EXIT trap was
+  `[ -n "$pid" ] && kill "$pid" && wait "$pid"; rmdir .r-lock`. Interrupted during break B, it did stop the JVM (nothing
+  left on 18425) — but the script exited **143** and left `.r-lock` behind: a JVM stopped by SIGTERM exits 143, `wait`
+  returns it, and under `set -e` the failing last command of an `&&` list ends the trap before the `rmdir`. The trap now
+  ignores INT and TERM while it runs, wraps the `wait` in `if … then … || true; fi`, and ends `rmdir … || true`; the
+  same interrupt then gave exit 130, no JVM, no listener, no lock (2026-09-30).
 
 - **One argument that looked like two.** While authoring, a zsh one-liner passed `"--debug --tiffinbox.port=18667"` as a
   single argument (zsh does not split an unquoted `$args`). TiffinBox started with exit 0 and listened on **18425** — the

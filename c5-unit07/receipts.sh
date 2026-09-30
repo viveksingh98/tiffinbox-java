@@ -8,16 +8,20 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # hashed; cap() DIES when a hash differs from receipts.md5; every number the video says is asserted at the bottom by a
 # check that can fail.
 #   change   the previous tree against after/, file by file: the file that went and the file that came, whole
-#   keys     what Boot read out of each tree's file, line by line: the same four keys and values, and three more
-#   serve    this tree's jar: the seven responses; the anchor README's logging command; the profile rush
+#   keys     what Boot read out of each tree's file, line by line: the same four keys and values (as text), and three more
+#   serve    this tree's jar: the seven responses; then the logging flag and the lunch-rush flag after/README.md gives
+#            (each read from the file, not typed here)
 #   both     the old file kept beside the YAML, cooks set to 4 in the YAML: which file answers
 #   parser   snakeyaml: A this tree's jar · B its lib/ without snakeyaml · A' = A · C the previous tree's, without it
-#   list     a YAML list as Boot keeps it, asked three ways; then @Value: A the list · B one comma string · A' = A
+#   list     a YAML list as Boot keeps it, asked three ways; then @Value: A the list · B one comma string · A' = A ·
+#            C one numbered key of it
 #   docs     the second document: A no profile · B the profile rush · A' = A
-#   relaxed  whose code each property source is; then three spellings of tiffinbox.jdbc-url, and Database.url each time
+#   relaxed  whose code each property source is; then three spellings of tiffinbox.jdbc-url, and Database.url each time;
+#            then the camel spelling in a @Value placeholder, the file keeping jdbc-url
 #   scalars  three values YAML retypes: A unquoted · B quoted · A' = A
 #   break    silent - A the anchor's file, rush on · B the rush block two spaces further in · A' = A;
-#            loud - C a tab in front of one key · D one key a space too far in
+#            loud - C a tab in front of one key · D one key a space too far in; E the list's last item one space further
+#            in - a space YAML can still parse
 #   files    every demo file against the anchor's application.yaml (diff), and the two copies checked byte for byte
 # "before" is ../c5-unit06/after (the anchor as the last unit left it), COPIED to .harness/before and built there: this
 # script never writes into another unit's folder. after/ is this unit's frozen copy of ../c5-tiffinbox after the change.
@@ -29,12 +33,20 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # are the lines before a harness report (the banner); a kept log message loses its prefix through sub(); the clock time
 # on Logback's first line of a failed start becomes <time>; in `files`, a tab character is shown as <TAB>.
 # Ports (brief ⚑11, 18670-18679): serve 18670 · keys 18671 · both 18672 · parser 18673 (B never binds) · list 18674 ·
-# docs 18675 · relaxed 18676 · scalars 18677 · break 18678 (C and D never bind) · the exercise 18679.
+# docs 18675 · relaxed 18676 (the camel placeholder never binds) · scalars 18677 · break 18678 (C and D never bind) · the
+# exercise 18679.
 set -e
 cd "$(dirname "$0")"
 # One run at a time: two runs share .harness/ and the ports, and one would corrupt the other.
 mkdir .r-lock 2> /dev/null || { echo "  *** another receipts.sh is running in this folder (.r-lock exists) - if none is, rmdir .r-lock ***"; exit 1; }
-trap 'rmdir .r-lock 2> /dev/null' EXIT
+# On every exit - the end, a failed check, or Ctrl-C - stop the JVM this script started in the background, if it still
+# runs, and drop the lock. A background job of a non-interactive shell ignores the terminal's Ctrl-C, so without the kill
+# an interrupted run would leave TiffinBox listening. $pid is cleared whenever the JVM has been reaped. The clean-up
+# ignores a second Ctrl-C, and nothing in it can fail under set -e (a JVM stopped by SIGTERM exits 143), so it always
+# reaches the rmdir; the script still exits 130 after an interrupt.
+pid=""
+trap 'trap "" INT TERM; if [ -n "$pid" ] && kill "$pid" 2> /dev/null; then wait "$pid" 2> /dev/null || true; fi; rmdir .r-lock 2> /dev/null || true' EXIT
+trap 'exit 130' INT TERM
 exec 3>&1                                            # die() speaks to the terminal even inside a redirected capture
 die() { echo "  *** $* ***" >&3; exit 1; }
 java -version 2>&1 | grep -q 'version "25' || die "JDK 25 needed; JAVA_HOME gives: $(java -version 2>&1 | head -1)"
@@ -63,7 +75,7 @@ for t in after before; do src="$AT"; [ "$t" = before ] && src="$BT"
 
 listeners() { lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2> /dev/null | wc -l | tr -d ' '; }
 for p in 18425 18670 18671 18672 18673 18674 18675 18676 18677 18678; do
-  [ "$(listeners $p)" = 0 ] || die "something already listens on $p - this unit's ports must be free"; done
+  [ "$(listeners $p)" = 0 ] || die "something already listens on $p - this unit's ports must be free; if it is a TiffinBox an interrupted run left behind, stop it: curl -X POST http://127.0.0.1:$p/shutdown"; done
 
 # runh 'COMMAND': print it exactly as typed, run it (eval, in a subshell, from this folder), keep its exit code in $ec.
 runh() { echo "\$ $1"; ec=0; (eval "$1") > .harness/run.raw 2>&1 < /dev/null || ec=$?; }
@@ -101,11 +113,11 @@ stopjar() { local i=0; e=0
   said=$(curl -s --max-time 5 -X POST "http://127.0.0.1:$1/shutdown" || true)
   while kill -0 "$pid" 2> /dev/null && [ $i -lt 60 ]; do sleep 0.25; i=$((i + 1)); done
   kill -0 "$pid" 2> /dev/null && { kill "$pid"; die "the server on $1 was still running 15 s after POST /shutdown"; }
-  wait "$pid" || e=$?
+  wait "$pid" || e=$?; pid=""
   [ "$(listeners "$1")" = 0 ] || die "something still listens on $1"; }
 # jarside: a started jar either listens (then it is stopped with POST /shutdown) or exits (then its exception line is kept)
 jarside() { local l; l=$(listening)
-  if [ "$l" = nothing ]; then e=0; wait "$pid" || e=$?
+  if [ "$l" = nothing ]; then e=0; wait "$pid" || e=$?; pid=""
     echo "  listens on: nothing · exit $e · $(warns .harness/jar.log)"
     echo "  $(grep -m1 -E '^[a-z][a-zA-Z0-9_.$]*(Exception|Error): ' .harness/jar.log || echo '(no exception line)')"
     echo "  … $(( $(wc -l < .harness/jar.log) - 1 )) more line(s) of the jar's output not shown: Logback's first line and the stack frames …"
@@ -116,7 +128,7 @@ seven() { local i
   ../c4-unit31/curlset.sh "$1" | grep ' -> ' > .harness/responses.txt || true
   i=0; while kill -0 "$pid" 2> /dev/null && [ $i -lt 60 ]; do sleep 0.25; i=$((i + 1)); done
   kill -0 "$pid" 2> /dev/null && { kill "$pid"; die "the server on $1 was still running 15 s after POST /shutdown"; }
-  e=0; wait "$pid" || e=$?
+  e=0; wait "$pid" || e=$?; pid=""
   [ "$(listeners "$1")" = 0 ] || die "something still listens on $1"
   echo "  exit $e · the seven responses: $(wc -l < .harness/responses.txt | tr -d ' ') lines · md5 $(md5 -q .harness/responses.txt)"; }
 
@@ -166,13 +178,18 @@ keys() { local k found=0 same=0 only=""
 cap keys keys
 
 # ---- serve: this tree's jar, in after/tiffinbox-web/target -------------------------------------------------------------
-serve() { local T="$AT/tiffinbox-web/target"
+# readme FLAG: the flag after/README.md's run command gives after the port, on the line whose flag starts --FLAG - read
+# from the file, so a label never claims what the README says
+readme() { sed -nE "s/^.*java -jar tiffinbox-web\/target\/tiffinbox-web-1\.0\.0\.jar --tiffinbox\.port=[0-9]+ (--$1[^\` ]*).*$/\1/p" "$AT/README.md" | head -1; }
+serve() { local T="$AT/tiffinbox-web/target" f
   startjar "$T" 'java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18670'; seven 18670
-  echo "the anchor README's logging command:"
-  startjar "$T" 'java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18670 --logging.level.tiffinbox=debug'; seven 18670
+  f=$(readme logging.level); [ -n "$f" ] || die "after/README.md no longer gives a logging command"
+  echo "the logging flag after/README.md gives, after the port: $f"
+  startjar "$T" "java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18670 $f"; seven 18670
   echo "  route DEBUG lines $(grep -c 'route [A-Z]* /' .harness/jar.log || true)"
-  echo "the lunch rush, as the anchor README gives it:"
-  startjar "$T" 'java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18670 --spring.profiles.active=rush'; seven 18670
+  f=$(readme spring.profiles); [ -n "$f" ] || die "after/README.md no longer gives the lunch-rush command"
+  echo "the lunch-rush flag after/README.md gives, after the port: $f"
+  startjar "$T" "java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18670 $f"; seven 18670
   echo "  Boot: $(bootsays .harness/jar.log)"; }
 cap serve serve
 
@@ -202,7 +219,9 @@ list() {
   echo "B   comma/: the same list written as one string"
   runh 'java -cp "comma:$AFTER" com.tiffinbox.harness.ByValue --tiffinbox.port=18674'; byvalue
   echo "A′  A, re-run"
-  runh 'java -cp "$AFTER" com.tiffinbox.harness.ByValue --tiffinbox.port=18674'; byvalue; }
+  runh 'java -cp "$AFTER" com.tiffinbox.harness.ByValue --tiffinbox.port=18674'; byvalue
+  echo "C   one numbered key of the list: @Value(\"\${tiffinbox.meal-types[0]}\")"
+  runh 'java -cp "$AFTER" com.tiffinbox.harness.ItemByValue --tiffinbox.port=18674'; byvalue; }
 # how TiffinBox's own classes read their settings: every @Value placeholder naming a tiffinbox key, in after/'s sources
 readers() { local f c=0 names=""
   for f in $(grep -rlE --include='*.java' '@Value\("\$\{tiffinbox\.' "$AT" | sort); do
@@ -231,7 +250,9 @@ relaxed() {
   echo "an environment variable, no underscore for the dash"
   run "TIFFINBOX_JDBCURL='jdbc:h2:mem:nodash;DB_CLOSE_DELAY=-1' java -cp \"\$AFTER\" com.tiffinbox.harness.Winner tiffinbox.jdbc-url --tiffinbox.port=18676" 'KEY '
   echo "camel/: the key written in camel case in the file"
-  run 'java -cp "camel:$AFTER" com.tiffinbox.harness.Winner tiffinbox.jdbc-url --tiffinbox.port=18676' 'KEY '; }
+  run 'java -cp "camel:$AFTER" com.tiffinbox.harness.Winner tiffinbox.jdbc-url --tiffinbox.port=18676' 'KEY '
+  echo "the other way round: a placeholder in camel case, @Value(\"\${tiffinbox.jdbcUrl}\"), the file keeping jdbc-url"
+  runh 'java -cp "$AFTER" com.tiffinbox.harness.CamelByValue --tiffinbox.port=18676'; byvalue; }
 cap relaxed relaxed
 
 # ---- scalars: three values YAML retypes as it reads them ----------------------------------------------------------------------------
@@ -254,13 +275,16 @@ brk() {
   echo "B   breaks/nested: the rush document's tiffinbox block, two spaces further in"; run "java -cp \"breaks/nested:\$AFTER\" $BK" 'source '
   echo "A′  A, re-run"; run "java -cp \"\$AFTER\" $BK" 'source '
   echo "C   breaks/tab: one key's two-space indent replaced by a tab"; runh "java -cp \"breaks/tab:\$AFTER\" $BK"; yamlfail
-  echo "D   breaks/over: one key indented one space too far"; runh "java -cp \"breaks/over:\$AFTER\" $BK"; yamlfail; }
+  echo "D   breaks/over: one key indented one space too far"; runh "java -cp \"breaks/over:\$AFTER\" $BK"; yamlfail
+  echo "E   breaks/onespace: the list's last item one space further in than the two above it"
+  run 'java -cp "breaks/onespace:$AFTER" com.tiffinbox.harness.Keys - tiffinbox.meal-types --tiffinbox.port=18678' 'source '; }
 cap break brk
 
 # ---- files: every demo file, against the anchor's --------------------------------------------------------------------------------------
 files() { local f
   for f in both/application.yaml comma/application.yaml camel/application.yaml scalars/unquoted/application.yaml scalars/quoted/application.yaml \
-           breaks/nested/application.yaml breaks/tab/application.yaml breaks/over/application.yaml exercise/application.yaml; do
+           breaks/nested/application.yaml breaks/tab/application.yaml breaks/over/application.yaml breaks/onespace/application.yaml \
+           exercise/application.yaml; do
     if cmp -s "$AT/$YAML" "$f"; then echo "$f: the anchor's application.yaml, byte for byte"
     else echo "$f, against the anchor's application.yaml:"; diff "$AT/$YAML" "$f" | awk '{ gsub(/\t/, "<TAB>"); print "  " $0 }' || true; fi; done
   if cmp -s "$BT/$PROPS" both/application.properties; then echo "both/application.properties: the previous tree's application.properties, byte for byte"
@@ -292,7 +316,7 @@ DOC0=$(printf '%s\n' "$CAME" | awk -F' [|] ' '$2 == "---" { exit } { print $2 }'
 has1 "$CAME" ' 19 |   cooks: 6' change; has1 "$CAME" ' 17 |       on-profile: rush' change; has1 "$CAME" ' 12 | ---' change
 echo "  change: 1 file gone (4 keys, each typed with tiffinbox.), 1 new (tiffinbox: once in document 0; the rush document: 6 cooks), TiffinBoxApp comments only"
 
-# "I asked Boot what it read from each file: the same four keys, the same values"
+# "I asked Boot what it read from each file: the same four keys, the same values, as text"
 x keys '^the old file.s keys, found in the new file: 4 of 4 · with the same value, as text: 4 · only in the new file: tiffinbox\.meal-types\[0\] tiffinbox\.meal-types\[1\] tiffinbox\.meal-types\[2\]$'
 [ "$(grep -c '^exit 0 · WARN lines 0 · ERROR lines 0$' .r-keys.out)" = 2 ] || die "keys: both trees start, nothing warns"
 echo "  keys: the old file's 4 keys in the new file, 4 of 4, the same values; 3 more, the list's"
@@ -300,6 +324,8 @@ echo "  keys: the old file's 4 keys in the new file, 4 of 4, the same values; 3 
 # "the last course's seven requests get the same answers, one hash"
 [ "$(grep -c '^  exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891$' .r-serve.out)" = 3 ] || die "serve: the seven responses must hash to 115c36ba..., all three runs"
 x serve '^  route DEBUG lines 5$'; x serve '^  Boot: The following 1 profile is active: "rush"$'
+x serve '^the logging flag after/README\.md gives, after the port: --logging\.level\.tiffinbox=debug$'
+x serve '^the lunch-rush flag after/README\.md gives, after the port: --spring\.profiles\.active=rush$'
 echo "  serve: the seven responses 115c36ba... with the new file, with the README's logging command (5 route lines), and with rush on"
 
 # "I kept it, then set four cooks in the YAML. Boot answered three. In the same folder, Boot asks the properties file first"
@@ -327,15 +353,18 @@ x list '^TiffinBox.s own readers, in after/: 4 @Value placeholders, in Database\
 x list '^env\.getProperty\("tiffinbox\.meal-types"\)    = null$'; x list '^env\.getProperty\("tiffinbox\.meal-types\[1\]"\) = NON_VEG$'
 x list '^Boot.s Binder, asked for a List<String> at tiffinbox\.meal-types: \[VEG, NON_VEG, VEGAN\]$'
 # "the Value annotation ... exit one, could not resolve placeholder. One comma-separated string: it works. Back to three items: exit one again"
-LA=$(blk list 'A   ' 'B   '); LB=$(blk list 'B   ' 'A′  '); LA2=$(blk list 'A′  ' '')
+LA=$(blk list 'A   ' 'B   '); LB=$(blk list 'B   ' 'A′  '); LA2=$(blk list 'A′  ' 'C   '); LC=$(blk list 'C   ' '')
 has1 "$LA" '  exit 1 · WARN lines 1 · ERROR lines 1 · listening lines 0' list
 has1 "$LA" "  Caused by: org.springframework.util.PlaceholderResolutionException: Could not resolve placeholder 'tiffinbox.meal-types' in value \"\${tiffinbox.meal-types}\"" list
 has1 "$LB" '  exit 0 · WARN lines 0 · ERROR lines 0 · listening lines 1' list
 has1 "$LB" '  @Value("${tiffinbox.meal-types}") List<String> mealTypes = [VEG, NON_VEG, VEGAN]' list
 [ "$LA" = "$LA2" ] || die "list: A' is not A, line for line"
+# the recap: "Value reads one of them, never the whole list"
+has1 "$LC" '  exit 0 · WARN lines 0 · ERROR lines 0 · listening lines 1' list
+has1 "$LC" '  @Value("${tiffinbox.meal-types[0]}") String first = VEG' list
 [ "$(blk files 'comma/application.yaml, against' 'camel/application.yaml' | grep -c '^  >')" = 1 ] && x files '^  >   meal-types: VEG,NON_VEG,VEGAN$' \
   || die "files: comma/ must replace the list's four lines with one"
-echo "  list: 3 keys [0] [1] [2]; the list's own name null; the Binder [VEG, NON_VEG, VEGAN]; @Value A exit 1 (placeholder), B one string exit 0, A' = A"
+echo "  list: 3 keys [0] [1] [2]; the list's own name null; the Binder [VEG, NON_VEG, VEGAN]; @Value A exit 1 (placeholder), B one string exit 0, A' = A; C one numbered key: VEG"
 
 # "Without the profile, that document isn't even a property source: seven sources, three cooks. Switch rush on: eight
 # sources, document one above document zero, and six cooks. Switch it off again: three."
@@ -356,7 +385,7 @@ echo "  docs: A 7 sources, cooks 3, no document 1; B (rush) 8 sources, document 
 x relaxed '^ +1 configurationProperties +org\.springframework\.boot\.context\.properties\.source\.ConfigurationPropertySourcesPropertySource$'
 x relaxed '^systemEnvironment.s class extends org\.springframework\.core\.env\.SystemEnvironmentPropertySource: true$'
 x relaxed '^the method that matches a key to a variable.s name, resolvePropertyName, is declared by org\.springframework\.core\.env\.SystemEnvironmentPropertySource · final: true$'
-R1=$(blk relaxed 'an environment variable, underscores' 'an environment variable, no underscore'); R2=$(blk relaxed 'an environment variable, no underscore' 'camel/'); R3=$(blk relaxed 'camel/' '')
+R1=$(blk relaxed 'an environment variable, underscores' 'an environment variable, no underscore'); R2=$(blk relaxed 'an environment variable, no underscore' 'camel/'); R3=$(blk relaxed 'camel/' 'the other way round'); R4=$(blk relaxed 'the other way round' '')
 has1 "$R1" '   4 systemEnvironment          jdbc:h2:mem:underscores;DB_CLOSE_DELAY=-1   origin: System Environment Property "TIFFINBOX_JDBC_URL"' relaxed
 has1 "$R1" "the bean's own field: Database.url = jdbc:h2:mem:underscores;DB_CLOSE_DELAY=-1" relaxed
 [ "$(printf '%s\n' "$R1" | grep -c 'not under that name')" = 0 ] || die "relaxed: the underscore spelling is found under its own name"
@@ -366,7 +395,11 @@ has1 "$R2" "the bean's own field: Database.url = jdbc:h2:mem:nodash;DB_CLOSE_DEL
 printf '%s\n' "$R3" | grep -qE "^ +6 Config resource .*\(document #0\) -$" || die "relaxed: the camel-case file holds nothing under tiffinbox.jdbc-url"
 has1 "$R3" "  not under that name: Boot's view found it under the name tiffinbox.jdbcUrl · class path resource [application.yaml] - 3:12, the line reads:   jdbcUrl: jdbc:h2:mem:camel;DB_CLOSE_DELAY=-1" relaxed
 has1 "$R3" "the bean's own field: Database.url = jdbc:h2:mem:camel;DB_CLOSE_DELAY=-1" relaxed
-echo "  relaxed: TIFFINBOX_JDBC_URL found by systemEnvironment itself (Spring's final resolvePropertyName); TIFFINBOX_JDBCURL and jdbcUrl only through Boot's view; Database.url each time"
+# the chip: "one way only - a placeholder must use the dashed name"
+has1 "$R4" '  exit 1 · WARN lines 1 · ERROR lines 1 · listening lines 0' relaxed
+has1 "$R4" "  Caused by: org.springframework.util.PlaceholderResolutionException: Could not resolve placeholder 'tiffinbox.jdbcUrl' in value \"\${tiffinbox.jdbcUrl}\"" relaxed
+echo "  relaxed: TIFFINBOX_JDBC_URL found by systemEnvironment itself (Spring's final resolvePropertyName); TIFFINBOX_JDBCURL and jdbcUrl only through Boot's view; Database.url each time;"
+echo "           the other way round, @Value(\"\${tiffinbox.jdbcUrl}\") with the file's jdbc-url: exit 1, could not resolve placeholder"
 
 # "NO, a country code, becomes false. It's on snake YAML's own list ... and so is off. Version one point one zero becomes
 # one point one. Quote them, and they stay text."
@@ -381,10 +414,11 @@ has1 "$SB" '  line  9 |   menu-version: "1.10"  ->  tiffinbox.menu-version = 1.1
 [ "$SA" = "$SA2" ] || die "scalars: A' is not A, line for line"
 echo "  scalars: NO -> false, off -> false (both in snakeyaml's BOOL pattern), 1.10 -> 1.1; quoted: NO, off, 1.10, as text; A' = A"
 
-# the loud half: "A tab in front of one key: exit one, with a line and a column. One space too many: the same. Neither
+# the loud half: "A tab in front of one key: exit one, with a line and a column. That one space: the same. Neither
 # error names the file." · the silent half: "A: rush on, six cooks. B: ... two spaces further ... Exit zero, no warning,
 # three cooks. The document still loads, but its key is now spring dot tiffinbox dot cooks. A again: six."
-BA=$(blk break 'A   ' 'B   '); BB=$(blk break 'B   ' 'A′  '); BA2=$(blk break 'A′  ' 'C   '); BC=$(blk break 'C   ' 'D   '); BD=$(blk break 'D   ' '')
+BA=$(blk break 'A   ' 'B   '); BB=$(blk break 'B   ' 'A′  '); BA2=$(blk break 'A′  ' 'C   '); BC=$(blk break 'C   ' 'D   '); BD=$(blk break 'D   ' 'E   ')
+BE=$(blk break 'E   ' '')
 has1 "$BA" "KEY tiffinbox.cooks -> WINNER 6 · the bean's own field: OrderQueue.cooks = 6" break
 has1 "$BB" 'exit 0 · WARN lines 0 · ERROR lines 0' break
 has1 "$BB" "KEY tiffinbox.cooks -> WINNER 3 · the bean's own field: OrderQueue.cooks = 3" break
@@ -400,9 +434,17 @@ has1 "$BD" '  mapping values are not allowed here' break
 [ "$(blk files 'breaks/nested/application.yaml, against' 'breaks/tab/' | paste -sd'|' -)" = '  18,19c18,19|  < tiffinbox:|  <   cooks: 6|  ---|  >   tiffinbox:|  >     cooks: 6' ] \
   || die "files: breaks/nested must move the rush block two spaces further in, nothing else"
 [ "$(blk files 'breaks/tab/application.yaml, against' 'breaks/over/' | paste -sd'|' -)" = '  4c4|  <   cooks: 3|  ---|  > <TAB>cooks: 3' ] || die "files: breaks/tab must put a tab in front of one key"
-[ "$(blk files 'breaks/over/application.yaml, against' 'exercise/' | paste -sd'|' -)" = '  4c4|  <   cooks: 3|  ---|  >    cooks: 3' ] || die "files: breaks/over must indent one key one space further"
+[ "$(blk files 'breaks/over/application.yaml, against' 'breaks/onespace/' | paste -sd'|' -)" = '  4c4|  <   cooks: 3|  ---|  >    cooks: 3' ] || die "files: breaks/over must indent one key one space further"
+# "That one space: the same" is D's space only - E: one space YAML can still parse is silent, the third item merged into the second
+has1 "$BE" 'exit 0 · WARN lines 0 · ERROR lines 0' break
+has1 "$BE" '  line  9 |     - VEG      ->  tiffinbox.meal-types[0] = VEG (String)' break
+has1 "$BE" '  line 10 |     - NON_VEG  ->  tiffinbox.meal-types[1] = NON_VEG - VEGAN (String)' break
+[ "$(printf '%s\n' "$BE" | grep -c '^  line ')" = 2 ] || die "break: E must leave two keys, the third item merged into the second"
+[ "$(blk files 'breaks/onespace/application.yaml, against' 'exercise/' | paste -sd'|' -)" = '  11c11|  <     - VEGAN|  ---|  >      - VEGAN' ] \
+  || die "files: breaks/onespace must indent the list's last item one space further, nothing else"
 echo "  break: A 6 · B (the block two spaces in) exit 0, 0 WARN, 3, document 1 loaded holding spring.tiffinbox.cooks · A' = A;"
-echo "         C (a tab) and D (a space too many) exit 1 at line 4 column 1 and 9, 0 lines naming application.yaml, 0 banner, 0 listening"
+echo "         C (a tab) and D (a space too many) exit 1 at line 4 column 1 and 9, 0 lines naming application.yaml, 0 banner, 0 listening;"
+echo "         E (the list's last item one space in) exit 0, 0 WARN: two keys, the third item merged into the second"
 x files '^exercise/application\.yaml: the anchor.s application\.yaml, byte for byte$'
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
 echo "c5-unit07: every capture 3/3 and = published; every spoken number asserted"

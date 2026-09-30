@@ -62,10 +62,12 @@ harness's last line names the file it got. Each is the anchor's `application.yam
 byte for byte) · `comma/` (the list as one comma-separated string) · `camel/` (`jdbc-url:` written `jdbcUrl:`, with its own
 database name) · `scalars/unquoted/` and `scalars/quoted/` (three lines added) · `breaks/nested/` (the rush document's
 `tiffinbox:` block two spaces further in) · `breaks/tab/` (one key's indent a tab) · `breaks/over/` (one key indented one
-space too far) · `exercise/` (the anchor's file, byte for byte).
+space too far) · `breaks/onespace/` (the list's last item indented one space further than the two above it) · `exercise/`
+(the anchor's file, byte for byte).
 
 **Ports** (Section 2 brief ⚑11: 18670-18679): serve 18670 · keys 18671 · both 18672 · parser 18673 (B never binds) · list
-18674 · docs 18675 · relaxed 18676 · scalars 18677 · break 18678 (C and D never bind) · the exercise 18679. Every command
+18674 · docs 18675 · relaxed 18676 (the camel placeholder never binds) · scalars 18677 · break 18678 (C and D never bind)
+· the exercise 18679. Every command
 names its port; `receipts.sh` first checks that nothing listens on 18425 or on any of its ports.
 
 ## Masks, filters and hygiene — every one, declared
@@ -77,14 +79,21 @@ names its port; `receipts.sh` first checks that nothing listens on 18425 or on a
    logger) — `docs` and `serve`.
 3. A failed start is shown from Logback's first line (`Application run failed`) to the line that says where
    (`in 'reader', line …, column …`), its clock time replaced by `<time>` through `gsub()` — `break` C and D; or as its
-   one `Caused by:` / exception line — `list` A, `parser` B. Each ends with a counted line: `… N more line(s) … not
+   one `Caused by:` / exception line — `list` A, `parser` B, `relaxed`'s camel placeholder. Each ends with a counted line: `… N more line(s) … not
    shown: …`.
 4. In `files`, a tab character is shown as `<TAB>` (`gsub()`).
 5. `change` shows every changed code line (git's diff, `-U0`); comment and blank lines are counted on the header line, not
    shown.
 6. Hygiene: `receipts.sh` unsets every `TIFFINBOX_*` and `SPRING_*` variable, `JAVA_TOOL_OPTIONS` and `JDK_JAVA_OPTIONS`
    before it runs anything — a variable of yours would otherwise become a property source. It also refuses to run twice at
-   once in this folder (`.r-lock`): two runs share `.harness/` and the ports.
+   once in this folder (`.r-lock`): two runs share `.harness/` and the ports. On every exit — the end, a failed check, or
+   Ctrl-C — its EXIT trap stops the JVM it started in the background, if it still runs, and removes the lock; Ctrl-C makes
+   it exit 130. Tested 2026-09-30: Ctrl-C (SIGINT to the script's process group) while a `break` run listened on 18678 →
+   exit 130, that JVM gone, nothing listening on 18425 or 18670-18679, `.r-lock` removed. If a port is still busy, the
+   port check names it and gives the stop command: `curl -X POST http://127.0.0.1:<port>/shutdown`.
+7. `serve`'s second and third runs take their flag from `after/README.md` (its logging command and its lunch-rush
+   command, the flag after the port), read out of the file by `sed`; each label prints what it read, and `receipts.sh`
+   dies if the file stops giving one.
 
 ## 1 · The change — one file out, one file in
 
@@ -166,23 +175,23 @@ all in the new one, with the same values as text (`receipts.sh` compares the two
 the list's. One difference the format makes: the properties file hands Boot text (`3 (String)`), YAML hands it a typed
 value (`3 (Integer)`) — `@Value` converts either, and the responses do not change:
 
-`.r-serve.out` `281d5c1fe57cce8f8b588284814f58a1`
+`.r-serve.out` `07f3ff5253b0c8c66d26f8a79bb24797`
 
 ```
 $ java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18670
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
-the anchor README's logging command:
+the logging flag after/README.md gives, after the port: --logging.level.tiffinbox=debug
 $ java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18670 --logging.level.tiffinbox=debug
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
   route DEBUG lines 5
-the lunch rush, as the anchor README gives it:
+the lunch-rush flag after/README.md gives, after the port: --spring.profiles.active=rush
 $ java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18670 --spring.profiles.active=rush
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
   Boot: The following 1 profile is active: "rush"
 ```
 
 The run command is the one the last unit introduced; the seven responses of `../c4-unit31/curlset.sh` hash to
-`115c36bac276128e245ca57df11c2891` with the new file, with the anchor README's logging command (5 route lines), and with
+`115c36bac276128e245ca57df11c2891` with the new file, with the logging flag read out of `after/README.md` (5 route lines), and with
 the profile `rush` switched on (six cooks share the same orders, so the responses are the same).
 
 ## 3 · Keep the old file, and it answers first
@@ -240,7 +249,7 @@ no YAML — with the same jar deleted: it starts. Until this unit, nothing in Ti
 
 ## 5 · A list is three keys
 
-`.r-list.out` `92946112800e12e5053cd42774e2dc02`
+`.r-list.out` `da902adec6864d8d3abeda1af98bc024`
 
 ```
 $ java -cp "$AFTER" com.tiffinbox.harness.ListKey tiffinbox.meal-types --tiffinbox.port=18674
@@ -271,6 +280,10 @@ $ java -cp "$AFTER" com.tiffinbox.harness.ByValue --tiffinbox.port=18674
   Caused by: org.springframework.util.PlaceholderResolutionException: Could not resolve placeholder 'tiffinbox.meal-types' in value "${tiffinbox.meal-types}"
   the exception TiffinBox's main threw: org.springframework.beans.factory.BeanCreationException
   … 62 more line(s) of this run's output not shown: the banner, Boot's log, its failure report and the stack frames …
+C   one numbered key of the list: @Value("${tiffinbox.meal-types[0]}")
+$ java -cp "$AFTER" com.tiffinbox.harness.ItemByValue --tiffinbox.port=18674
+  exit 0 · WARN lines 0 · ERROR lines 0 · listening lines 1
+  @Value("${tiffinbox.meal-types[0]}") String first = VEG
 ```
 
 YAML writes the list plainly — one item per line, each after a dash — but Boot does not keep a list: it keeps **three
@@ -279,7 +292,8 @@ keys**, `tiffinbox.meal-types[0]`, `[1]` and `[2]`. The list's own name answers 
 TiffinBox's own classes read their settings with `@Value` (4 placeholders, counted). **A** the harness's `@Value` of the
 list: exit 1, `Could not resolve placeholder 'tiffinbox.meal-types'` — one placeholder asks for one key, and no key has
 that name. **B** `comma/`, the same list written as one comma-separated string (one key): exit 0, `[VEG, NON_VEG, VEGAN]`.
-**A′** = A. Nothing in TiffinBox reads the list yet.
+**A′** = A. **C** (a variant, labelled so) one numbered key of the list, `@Value("${tiffinbox.meal-types[0]}")`: exit 0,
+`VEG`. So `@Value` reads one of the three keys, never the whole list. Nothing in TiffinBox reads the list yet.
 
 ## 6 · Two documents in one file
 
@@ -339,7 +353,7 @@ the probe's 17:10 came from a file with two comment lines fewer.)
 
 ## 7 · One key, three spellings
 
-`.r-relaxed.out` `cb07c8115def22d0834ef9b903603642`
+`.r-relaxed.out` `69ef1ab3315652a341d6bb3d41707b7f`
 
 ```
 $ java -cp "$AFTER" com.tiffinbox.harness.Sources --tiffinbox.port=18676
@@ -399,6 +413,12 @@ KEY tiffinbox.jdbc-url -> WINNER jdbc:h2:mem:camel;DB_CLOSE_DELAY=-1 · from sou
 the bean's own field: Database.url = jdbc:h2:mem:camel;DB_CLOSE_DELAY=-1
 the class path gives: application.yaml <- camel/application.yaml · application.properties <- none
 … elided: 7 log line(s) of Boot's, and 10 line(s) printed before the report (the banner and its blank lines) …
+the other way round: a placeholder in camel case, @Value("${tiffinbox.jdbcUrl}"), the file keeping jdbc-url
+$ java -cp "$AFTER" com.tiffinbox.harness.CamelByValue --tiffinbox.port=18676
+  exit 1 · WARN lines 1 · ERROR lines 1 · listening lines 0
+  Caused by: org.springframework.util.PlaceholderResolutionException: Could not resolve placeholder 'tiffinbox.jdbcUrl' in value "${tiffinbox.jdbcUrl}"
+  the exception TiffinBox's main threw: org.springframework.beans.factory.BeanCreationException
+  … 62 more line(s) of this run's output not shown: the banner, Boot's log, its failure report and the stack frames …
 ```
 
 `Sources` first: Boot's view at the top is Boot's own class; the environment-variable source is a Boot subclass of Spring
@@ -409,6 +429,10 @@ its own, and `Database.url` read off the live bean each time:
   own rule.
 - `TIFFINBOX_JDBCURL` (no underscore for the dash): `systemEnvironment` answers `-` for `tiffinbox.jdbc-url`, yet the value
   arrives — Boot's view found it under the name `TIFFINBOX_JDBCURL`.
+- The other way round — the camel spelling in a `@Value` placeholder, `${tiffinbox.jdbcUrl}`, the file keeping
+  `jdbc-url`: exit 1, `Could not resolve placeholder 'tiffinbox.jdbcUrl'`. The matching is one way: a file or a variable
+  may spell the key differently and still reach the dashed name, but a placeholder must use the dashed name. (RED
+  2026-09-30 #15: the limit a learner meets the same day; the video shows it on a chip.)
 - `camel/`, `jdbcUrl:` in the file: the file's source answers `-`, and Boot's view found `tiffinbox.jdbcUrl`, line 3.
 
 The last unit's exercise solution promised this ("Which spellings reach which key is the next unit's subject"). The video
@@ -458,7 +482,7 @@ of the video on purpose: it is the exercise.)
 
 ## 9 · The break — two loud, one silent
 
-`.r-break.out` `477de555c0f7667a20c058ab16648d87`
+`.r-break.out` `0812510048dbcdb59b9a8d5d2579af89`
 
 ```
 A   the anchor's own file, the profile rush on
@@ -508,9 +532,18 @@ exit 1 · banner lines 0 · listening lines 0 · lines that name application.yam
    in 'reader', line 4, column 9:
 the exception TiffinBox's main threw: org.yaml.snakeyaml.scanner.ScannerException
   … 67 more line(s) of this run's output not shown: the bad line and its caret, then the stack frames …
+E   breaks/onespace: the list's last item one space further in than the two above it
+$ java -cp "breaks/onespace:$AFTER" com.tiffinbox.harness.Keys - tiffinbox.meal-types --tiffinbox.port=18678
+exit 0 · WARN lines 0 · ERROR lines 0
+source 6 of 7 · Config resource 'class path resource [application.yaml]' via location 'optional:classpath:/' (document #0)
+  line  9 |     - VEG      ->  tiffinbox.meal-types[0] = VEG (String)
+  line 10 |     - NON_VEG  ->  tiffinbox.meal-types[1] = NON_VEG - VEGAN (String)
+the class path gives: application.yaml <- breaks/onespace/application.yaml · application.properties <- none
+… elided: 7 log line(s) of Boot's, and 10 line(s) printed before the report (the banner and its blank lines) …
 ```
 
-Every run is the same command with one file swapped in front of `$AFTER`, the profile `rush` on.
+A to D are the same command with one file swapped in front of `$AFTER`, the profile `rush` on; E asks `Keys` for the
+list, with `breaks/onespace` in front.
 **Silent — A/B/A′:** **A** the anchor's own file: document #1's `cooks: 6` is `tiffinbox.cooks`, and the answer is 6.
 **B** `breaks/nested`, the rush document's `tiffinbox:` block two spaces further in (under `spring:`): exit 0, no WARN
 line, document #1 still loaded — and its line 19 is now `spring.tiffinbox.cooks`, a key TiffinBox never asks for (its four
@@ -518,10 +551,15 @@ line, document #1 still loaded — and its line 19 is now `spring.tiffinbox.cook
 **Loud — C and D (variants, labelled so):** **C** a tab in front of one key, **D** one key indented a space too far: exit 1
 before the banner, nothing listens, and SnakeYAML's `ScannerException` points at `line 4, column 1` and `line 4, column 9`
 — `in 'reader'`. **0 lines** of either run's output name `application.yaml`.
+**Silent again — E (a variant):** `breaks/onespace`, the list's last item one space further in than the two above it.
+YAML still parses it — a more-indented line continues the plain value above it — so exit 0, no WARN line, and **two**
+keys: `tiffinbox.meal-types[1] = NON_VEG - VEGAN`. D's one space is loud because YAML cannot parse it; E's is silent
+because it can. The voice's "That one space: the same" is D's space, on screen beside it; the recap card gives the rule:
+what YAML cannot parse is loud, what it can parse is silent, even one space.
 
 ## 10 · The demo files, against the anchor's
 
-`.r-files.out` `282e58d46ca66e1e28fdda57260f3065`
+`.r-files.out` `1184a0d50777c03dc80e417126392783`
 
 ```
 both/application.yaml, against the anchor's application.yaml:
@@ -569,17 +607,22 @@ breaks/over/application.yaml, against the anchor's application.yaml:
   <   cooks: 3
   ---
   >    cooks: 3
+breaks/onespace/application.yaml, against the anchor's application.yaml:
+  11c11
+  <     - VEGAN
+  ---
+  >      - VEGAN
 exercise/application.yaml: the anchor's application.yaml, byte for byte
 both/application.properties: the previous tree's application.properties, byte for byte
 ```
 
 Every demo file differs from the anchor's `application.yaml` exactly as its folder says, and `exercise/application.yaml`
-is the anchor's byte for byte (the exercise asks you to edit it; put it back with the `cp` in `exercise/README.md`).
+is the anchor's byte for byte (the exercise has you copy it to `my/` and edit the copy, so this file is never edited).
 
 ## Exercise
 
-`exercise/README.md` — add an area code, `0123`, to a copy of TiffinBox's YAML, predict what TiffinBox's environment
-answers for `tiffinbox.area-code`, then make it answer exactly `0123`. Measured answers, run exactly as written in a clean
+`exercise/README.md` — add an area code, `0123`, to `my/application.yaml`, your copy of TiffinBox's YAML; predict what
+Boot stores for `tiffinbox.area-code`, then make it store exactly `0123`. Measured answers, run exactly as written in a clean
 shell, in `exercise/solution/SOLUTION.md` (unquoted: `WINNER 83`, an `Integer` — a number with a leading zero is read as
 octal; quoted: `WINNER 0123`; appended at the end of the file instead: `WINNER null`, because the last lines belong to the
 rush document).

@@ -12,14 +12,19 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #               @Value placeholders counted in each tree
 #   record      the record in the running app: A this tree · B built without @EnableConfigurationProperties · A' = A ·
 #               C this tree with the profile rush on
-#   serve       this tree's jar: the seven responses and the list's log line; the anchor README's logging and rush commands
-#   processor   five builds, one question - is the metadata file written? A the processor as an ordinary dependency ·
-#               B the processor path (after/) · A' = A · C A plus <proc>full</proc> · D the processor path in web only
-#   metadata    the file in this tree's core jar, whole, then read: sections, the @param text, the int defaults
+#   serve       this tree's jar: the seven responses and the list's log line; then the logging flag and the lunch-rush
+#               flag after/README.md gives (each read from the file, not typed here)
+#   processor   six builds, one question - is the metadata file written? A the processor as an optional dependency ·
+#               B the processor path (after/) · A' = A · C A plus <proc>full</proc> · D the processor path in web only ·
+#               E A without <optional>: the processor a plain dependency
+#   metadata    the file in this tree's core jar, whole, then read: sections, the @param text, the int defaults; and the
+#               jars in lib/ that carry a file of the same name
 #   lenient     enum values written loosely: A veg, non-veg, "Vegan " · B the third one vegetarian · A' = A
 #   convert     who converts them: Boot's conversion service, and a plain Spring context on the same class path
-#   placeholder who resolves placeholders; then a typo: A as TiffinBox runs · B one auto-configuration excluded · A' = A
-#   break       one key deleted: A this tree · B days deleted · A' = A · C the previous tree, days deleted
+#   placeholder who resolves placeholders; then a typo: A as TiffinBox runs · B one auto-configuration excluded · A' = A ·
+#               C the same typo with a default after the colon
+#   break       one key deleted: A this tree · B days deleted · A' = A · C the previous tree, days deleted · D the text
+#               key jdbc-url deleted · E the meal-types list deleted
 #   files       every demo file against the file it stands in for (diff)
 # "before" is ../c5-unit07/after (the anchor as the last unit left it), COPIED to .harness/before and built there: this
 # script never writes into another unit's folder. after/ is this unit's frozen copy of ../c5-tiffinbox after the change.
@@ -33,12 +38,19 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # report is shown without its blank lines and its rows of asterisks, the rest counted; the processor builds are reduced to
 # counts (exit, BUILD line, WARNING and ERROR lines, files found).
 # Ports (brief ⚑11, 18680-18689): serve 18680 · record 18681 (B never binds) · lenient 18682 (B never binds) ·
-# convert 18683 · placeholder 18684 (A never binds) · break 18685 (C never binds) · the exercise 18689.
+# convert 18683 · placeholder 18684 (A never binds) · break 18685 (C and D never bind) · the exercise 18689.
 set -e
 cd "$(dirname "$0")"
 # One run at a time: two runs share .harness/ and the ports, and one would corrupt the other.
 mkdir .r-lock 2> /dev/null || { echo "  *** another receipts.sh is running in this folder (.r-lock exists) - if none is, rmdir .r-lock ***"; exit 1; }
-trap 'rmdir .r-lock 2> /dev/null' EXIT
+# On every exit - the end, a failed check, or Ctrl-C - stop the JVM this script started in the background, if it still
+# runs, and drop the lock. A background job of a non-interactive shell ignores the terminal's Ctrl-C, so without the kill
+# an interrupted run would leave TiffinBox listening. $pid is cleared whenever the JVM has been reaped. The clean-up
+# ignores a second Ctrl-C, and nothing in it can fail under set -e (a JVM stopped by SIGTERM exits 143), so it always
+# reaches the rmdir; the script still exits 130 after an interrupt.
+pid=""
+trap 'trap "" INT TERM; if [ -n "$pid" ] && kill "$pid" 2> /dev/null; then wait "$pid" 2> /dev/null || true; fi; rmdir .r-lock 2> /dev/null || true' EXIT
+trap 'exit 130' INT TERM
 exec 3>&1                                            # die() speaks to the terminal even inside a redirected capture
 die() { echo "  *** $* ***" >&3; exit 1; }
 java -version 2>&1 | grep -q 'version "25' || die "JDK 25 needed; JAVA_HOME gives: $(java -version 2>&1 | head -1)"
@@ -66,7 +78,7 @@ printf '%s\n' "$NOENABLE" > .harness/noenable.classpath
 
 listeners() { lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2> /dev/null | wc -l | tr -d ' '; }
 for p in 18425 18680 18681 18682 18683 18684 18685; do
-  [ "$(listeners $p)" = 0 ] || die "something already listens on $p - this unit's ports must be free"; done
+  [ "$(listeners $p)" = 0 ] || die "something already listens on $p - this unit's ports must be free; if it is a TiffinBox an interrupted run left behind, stop it: curl -X POST http://127.0.0.1:$p/shutdown"; done
 
 # runh 'COMMAND': print it exactly as typed, run it (eval, in a subshell, from this folder), keep its exit code in $ec.
 runh() { echo "\$ $1"; ec=0; (eval "$1") > .harness/run.raw 2>&1 < /dev/null || ec=$?; }
@@ -110,7 +122,7 @@ seven() { local i
   ../c4-unit31/curlset.sh "$1" | grep ' -> ' > .harness/responses.txt || true
   i=0; while kill -0 "$pid" 2> /dev/null && [ $i -lt 60 ]; do sleep 0.25; i=$((i + 1)); done
   kill -0 "$pid" 2> /dev/null && { kill "$pid"; die "the server on $1 was still running 15 s after POST /shutdown"; }
-  e=0; wait "$pid" || e=$?
+  e=0; wait "$pid" || e=$?; pid=""
   [ "$(listeners "$1")" = 0 ] || die "something still listens on $1"
   echo "  exit $e · the seven responses: $(wc -l < .harness/responses.txt | tr -d ' ') lines · md5 $(md5 -q .harness/responses.txt)"; }
 
@@ -170,14 +182,19 @@ record() {
 cap record record
 
 # ---- serve: this tree's jar, in after/tiffinbox-web/target -----------------------------------------------------------------
-serve() { local T="$AT/tiffinbox-web/target"
+# readme FLAG: the flag after/README.md's run command gives after the port, on the line whose flag starts --FLAG - read
+# from the file, so a label never claims what the README says
+readme() { sed -nE "s/^.*java -jar tiffinbox-web\/target\/tiffinbox-web-1\.0\.0\.jar --tiffinbox\.port=[0-9]+ (--$1[^\` ]*).*$/\1/p" "$AT/README.md" | head -1; }
+serve() { local T="$AT/tiffinbox-web/target" f
   startjar "$T" 'java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18680'; seven 18680
   echo "  TiffinBox's log: $(said .harness/jar.log 'meal types:')"
-  echo "the anchor README's logging command:"
-  startjar "$T" 'java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18680 --logging.level.tiffinbox=debug'; seven 18680
+  f=$(readme logging.level); [ -n "$f" ] || die "after/README.md no longer gives a logging command"
+  echo "the logging flag after/README.md gives, after the port: $f"
+  startjar "$T" "java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18680 $f"; seven 18680
   echo "  route DEBUG lines $(grep -c 'route [A-Z]* /' .harness/jar.log || true)"
-  echo "the lunch rush, as the anchor README gives it:"
-  startjar "$T" 'java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18680 --spring.profiles.active=rush'; seven 18680
+  f=$(readme spring.profiles); [ -n "$f" ] || die "after/README.md no longer gives the lunch-rush command"
+  echo "the lunch-rush flag after/README.md gives, after the port: $f"
+  startjar "$T" "java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18680 $f"; seven 18680
   echo "  Boot: $(said .harness/jar.log 'The following')"; }
 cap serve serve
 
@@ -196,7 +213,7 @@ mvnrun() { local d=".harness/proc-$1" found n
     else echo "  the same bytes as B's file: $(cmp -s "$d/$found" .harness/metadata-path.json && echo yes || echo no)"; fi; fi
   echo "  lib/: $(ls "$d/tiffinbox-web/target/lib" | wc -l | tr -d ' ') jars · the processor among them: $(ls "$d/tiffinbox-web/target/lib" | grep -c 'configuration-processor' || true) · named in the manifest's Class-Path: $(unzip -p "$d/tiffinbox-web/target/tiffinbox-web-1.0.0.jar" META-INF/MANIFEST.MF | tr -d '\r\n ' | grep -o 'configuration-processor' | wc -l | tr -d ' ')"; }
 processor() {
-  echo "A   the processor as an ordinary dependency: processor/dependency/pom.xml (the root, no processor path) · processor/dependency/tiffinbox-core/pom.xml (the processor, <optional>)"
+  echo "A   the processor as an optional dependency: processor/dependency/pom.xml (the root, no processor path) · processor/dependency/tiffinbox-core/pom.xml (the processor, <optional>)"
   variant dependency; cp processor/dependency/pom.xml .harness/proc-dependency/pom.xml
   cp processor/dependency/tiffinbox-core/pom.xml .harness/proc-dependency/tiffinbox-core/pom.xml; mvnrun dependency
   echo "B   this unit's after/, copied: the processor on the compiler's processor path, in the root pom.xml"
@@ -209,16 +226,23 @@ processor() {
   cp processor/dependency/tiffinbox-core/pom.xml .harness/proc-full/tiffinbox-core/pom.xml; mvnrun full
   echo "D   the processor path in tiffinbox-web only: A's root pom.xml · processor/web/tiffinbox-web/pom.xml · after/'s tiffinbox-core/pom.xml"
   variant web; cp processor/dependency/pom.xml .harness/proc-web/pom.xml
-  cp processor/web/tiffinbox-web/pom.xml .harness/proc-web/tiffinbox-web/pom.xml; mvnrun web; }
+  cp processor/web/tiffinbox-web/pom.xml .harness/proc-web/tiffinbox-web/pom.xml; mvnrun web
+  echo "E   A without <optional>: A's root pom.xml · processor/plain/tiffinbox-core/pom.xml (the processor a plain dependency)"
+  variant plain; cp processor/dependency/pom.xml .harness/proc-plain/pom.xml
+  cp processor/plain/tiffinbox-core/pom.xml .harness/proc-plain/tiffinbox-core/pom.xml; mvnrun plain; }
 cap processor processor
 
 # ---- metadata: the file in this tree's core jar -------------------------------------------------------------------------------
-metadata() { local J=after/tiffinbox-web/target/lib/tiffinbox-core-1.0.0.jar
+metadata() { local J=after/tiffinbox-web/target/lib/tiffinbox-core-1.0.0.jar j c=0 names=""
   echo "\$ unzip -p $J META-INF/spring-configuration-metadata.json"
   unzip -p "$J" META-INF/spring-configuration-metadata.json | awk '{ printf "%3d | %s\n", NR, $0 }'
   runh "java -cp \"\$AFTER\" com.tiffinbox.harness.Metadata $J after/$REC"; echo "exit $ec"; cat .harness/run.raw
   echo "the previous tree's core jar, the same question:"
-  runh "java -cp \"\$AFTER\" com.tiffinbox.harness.Metadata .harness/before/tiffinbox-web/target/lib/tiffinbox-core-1.0.0.jar after/$REC"; echo "exit $ec"; cat .harness/run.raw; }
+  runh "java -cp \"\$AFTER\" com.tiffinbox.harness.Metadata .harness/before/tiffinbox-web/target/lib/tiffinbox-core-1.0.0.jar after/$REC"; echo "exit $ec"; cat .harness/run.raw
+  # the same file name in every jar of lib/ (unzip -l lists the one entry, or fails): Boot's own jars carry one too
+  for j in after/tiffinbox-web/target/lib/*.jar; do
+    unzip -l "$j" META-INF/spring-configuration-metadata.json > /dev/null 2>&1 && { c=$((c + 1)); names="$names ${j##*/}"; }; done
+  echo "the jars in after/'s lib/ that carry a META-INF/spring-configuration-metadata.json: $c of $(ls after/tiffinbox-web/target/lib/*.jar | wc -l | tr -d ' ') ·$names"; }
 cap metadata metadata
 
 # ---- lenient: enum values written loosely ------------------------------------------------------------------------------------------
@@ -252,15 +276,25 @@ placeholder() {
   echo "B   the same, with the one auto-configuration that declares that bean excluded"
   typo "java -cp \"\$AFTER\" com.tiffinbox.harness.Placeholders mael --tiffinbox.port=18684 --spring.autoconfigure.exclude=$X"
   echo "A′  A, re-run"
-  typo 'java -cp "$AFTER" com.tiffinbox.harness.Placeholders mael --tiffinbox.port=18684'; }
+  typo 'java -cp "$AFTER" com.tiffinbox.harness.Placeholders mael --tiffinbox.port=18684'
+  echo "C   the same typo, with a default after the colon: @Value(\"\${tiffinbox.mael:VEG}\") String mael"
+  typo 'java -cp "$AFTER" com.tiffinbox.harness.Placeholders mael:VEG --tiffinbox.port=18684'; }
 cap placeholder placeholder
 
 # ---- break: one key deleted --------------------------------------------------------------------------------------------------------
-# served 'COMMAND': start it; if it listens, the harness's two lines, TiffinBox's orders-cooked line, the /kitchen response and
-# the seven responses; if it exits, how far it got and why
+# a failed start whose output is a chain of "Caused by:" lines and no failure report: how far it got, the chain's length
+# and its last line - the root cause - then the exception the harness names, and the count of lines not shown
+rootfail() {
+  echo "  exit $ec · $(warns .harness/run.raw) · listening lines $(grep -c 'TiffinBox listening on' .harness/run.raw || true)"
+  echo "  \"Caused by:\" lines $(grep -c '^Caused by: ' .harness/run.raw || true) · the last, the root cause: $(grep '^Caused by: ' .harness/run.raw | tail -1 | sed 's/^Caused by: //')"
+  echo "  $(grep -m1 "^the exception TiffinBox's main threw: " .harness/run.raw || echo '(no exception line)')"
+  echo "  … $(( $(wc -l < .harness/run.raw) - 2 )) more line(s) of this run's output not shown: the banner, Boot's log, the other \"Caused by:\" lines and the stack frames …"; }
+# served 'COMMAND' [root]: start it; if it listens, the harness's two lines, TiffinBox's orders-cooked line, the /kitchen
+# response and the seven responses; if it exits, how far it got and why (with root: the chain's last "Caused by:")
 served() { local l
   startjar . "$1"; l=$(listening)
-  if [ "$l" = nothing ]; then ec=0; wait "$pid" || ec=$?; cp .harness/jar.log .harness/run.raw; failed
+  if [ "$l" = nothing ]; then ec=0; wait "$pid" || ec=$?; pid=""; cp .harness/jar.log .harness/run.raw
+    if [ "${2:-}" = root ]; then rootfail; else failed; fi
   else seven "${l##*:}" > .harness/seven.txt
     echo "  listens on: $l · $(warns .harness/jar.log)"
     grep -E '^the (record|class path gives)' .harness/jar.log | sed 's/^/  /'
@@ -270,19 +304,24 @@ brk() {
   echo "A   this tree, the anchor's own file"; served 'java -cp "$AFTER" com.tiffinbox.harness.Serve --tiffinbox.port=18685'
   echo "B   nodays/: the anchor's file with the days line deleted"; served 'java -cp "nodays:$AFTER" com.tiffinbox.harness.Serve --tiffinbox.port=18685'
   echo "A′  A, re-run"; served 'java -cp "$AFTER" com.tiffinbox.harness.Serve --tiffinbox.port=18685'
-  echo "C   the previous tree (@Value), the same nodays/ file"; served 'java -cp "nodays:$BEFORE" com.tiffinbox.harness.Serve --tiffinbox.port=18685'; }
+  echo "C   the previous tree (@Value), the same nodays/ file"; served 'java -cp "nodays:$BEFORE" com.tiffinbox.harness.Serve --tiffinbox.port=18685'
+  echo "D   nourl/: the anchor's file with the jdbc-url line deleted - text, not a number"
+  served 'java -cp "nourl:$AFTER" com.tiffinbox.harness.Serve --tiffinbox.port=18685' root
+  echo "E   nomeals/: the anchor's file with the meal-types list deleted"
+  served 'java -cp "nomeals:$AFTER" com.tiffinbox.harness.Serve --tiffinbox.port=18685'; }
 cap break brk
 
 # ---- files: every demo file, against the file it stands in for ---------------------------------------------------------------------
 files() { local f
   against() { if cmp -s "$1" "$2"; then echo "$2: $3, byte for byte"
               else echo "$2, against $3:"; diff "$1" "$2" | sed 's/^/  /' || true; fi; }
-  for f in nodays lenient; do against "$AT/$YAML" "$f/application.yaml" "the anchor's application.yaml"; done
+  for f in nodays nourl nomeals lenient; do against "$AT/$YAML" "$f/application.yaml" "the anchor's application.yaml"; done
   against lenient/application.yaml vegetarian/application.yaml "lenient/application.yaml"
   against "$AT/$APP" noenable/TiffinBoxApp.java "after/'s TiffinBoxApp.java"
   against "$BT/pom.xml" processor/dependency/pom.xml "the previous tree's pom.xml (the root)"
   against "$AT/pom.xml" processor/dependency/pom.xml "after/'s pom.xml (the root)"
   against "$AT/tiffinbox-core/pom.xml" processor/dependency/tiffinbox-core/pom.xml "after/'s tiffinbox-core/pom.xml"
+  against processor/dependency/tiffinbox-core/pom.xml processor/plain/tiffinbox-core/pom.xml "processor/dependency/tiffinbox-core/pom.xml"
   against processor/dependency/pom.xml processor/full/pom.xml "processor/dependency/pom.xml"
   against "$AT/tiffinbox-web/pom.xml" processor/web/tiffinbox-web/pom.xml "after/'s tiffinbox-web/pom.xml"; }
 cap files files
@@ -329,7 +368,7 @@ echo "  change: 2 files new (the record, MealType), 6 changed; @Value 4 (Databas
 
 # "a record ... one annotation naming the prefix, tiffinbox. It has one constructor, and Boot's binder ... fills the record
 # through it: every key under tiffinbox, converted to each field's type, the list included" · "registers it as a bean, named
-# the prefix, a dash, and the class name. Build TiffinBox without that annotation, and it doesn't start: no bean of that
+# the prefix, a dash, and the full class name. Build TiffinBox without that annotation, and it doesn't start: no bean of that
 # type. Put it back, and it starts." · "Each class holds exactly the record's values"
 RA=$(blk record 'A   ' 'B   '); RB=$(blk record 'B   ' 'A′  '); RA2=$(blk record 'A′  ' 'C   '); RC=$(blk record 'C   ' '')
 has1 "$RA" 'exit 0 · WARN lines 0 · ERROR lines 0' record
@@ -349,32 +388,46 @@ echo "  record: A one bean, tiffinbox-com.tiffinbox.TiffinBoxProperties, 1 const
 # "The list is finally read, in one line of TiffinBox's log" · "the last course's seven requests get the same answers: one hash"
 [ "$(grep -c '^  exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891$' .r-serve.out)" = 3 ] || die "serve: the seven responses must hash to 115c36ba..., all three runs"
 x serve '^  TiffinBox.s log: meal types:     \[VEG, NON_VEG, VEGAN\]$'; x serve '^  route DEBUG lines 5$'; x serve '^  Boot: The following 1 profile is active: "rush"$'
+x serve '^the logging flag after/README\.md gives, after the port: --logging\.level\.tiffinbox=debug$'
+x serve '^the lunch-rush flag after/README\.md gives, after the port: --spring\.profiles\.active=rush$'
 echo "  serve: the seven responses 115c36ba... (plain, logging, rush); the list's log line [VEG, NON_VEG, VEGAN]"
 
-# "Add it as an ordinary dependency: build success, zero warnings, and no file" · "Name it on the compiler's processor path
-# instead, in the parent build file, and the file appears. Back to the dependency: none again" · "Switch processing on with
+# "Add it as an optional dependency: build success, zero warnings, and no file" · "Name it on the compiler's processor path
+# instead, in TiffinBox's root build file, and the file appears. Back to the dependency: none again" · "Switch processing on with
 # one flag, and the same file appears"
-PA=$(blk processor 'A   ' 'B   '); PB=$(blk processor 'B   ' 'A′  '); PA2=$(blk processor 'A′  ' 'C   '); PC=$(blk processor 'C   ' 'D   '); PD=$(blk processor 'D   ' '')
+PA=$(blk processor 'A   ' 'B   '); PB=$(blk processor 'B   ' 'A′  '); PA2=$(blk processor 'A′  ' 'C   '); PC=$(blk processor 'C   ' 'D   '); PD=$(blk processor 'D   ' 'E   ')
+PE=$(blk processor 'E   ' '')
 OKB='  exit 0 · BUILD SUCCESS · WARNING lines 0 · ERROR lines 0'
-for b in "$PA" "$PB" "$PC" "$PD"; do has1 "$b" "$OKB" processor; done
+for b in "$PA" "$PB" "$PC" "$PD" "$PE"; do has1 "$b" "$OKB" processor; done
 has1 "$PA" "  metadata files under the two modules' target/: 0" processor
 has1 "$PB" "  metadata files under the two modules' target/: 1 · tiffinbox-core/target/classes/META-INF/spring-configuration-metadata.json" processor
 [ "$PA" = "$PA2" ] || die "processor: A' is not A, line for line"
 has1 "$PC" "  metadata files under the two modules' target/: 1 · tiffinbox-core/target/classes/META-INF/spring-configuration-metadata.json" processor
 has1 "$PC" "  the same bytes as B's file: yes" processor
 has1 "$PD" "  metadata files under the two modules' target/: 0" processor
+# "as an optional dependency" (A: lib/ 26, the processor not in it) · the recap's "added as a dependency writes nothing": E,
+# the same dependency without <optional>, writes nothing either - and puts the processor in lib/ and the manifest
+has1 "$PA" "  lib/: 26 jars · the processor among them: 0 · named in the manifest's Class-Path: 0" processor
+has1 "$PE" "  metadata files under the two modules' target/: 0" processor
+has1 "$PE" "  lib/: 27 jars · the processor among them: 1 · named in the manifest's Class-Path: 1" processor
+[ "$(blk files 'processor/plain/tiffinbox-core/pom.xml, against' 'processor/full/' | grep -c '^  < .*<optional>true</optional>')" = 1 ] \
+  && [ "$(blk files 'processor/plain/tiffinbox-core/pom.xml, against' 'processor/full/' | grep '^  [<>] ' | grep -vc '<!--')" = 1 ] \
+  || die "files: processor/plain/tiffinbox-core/pom.xml must drop <optional> (and reword its comment), nothing else"
 x files '^processor/dependency/pom\.xml: the previous tree.s pom\.xml \(the root\), byte for byte$'
 FULL=$(blk files 'processor/full/pom.xml, against' 'processor/web/')
 [ "$(printf '%s\n' "$FULL" | grep '^  > ' | grep -vc '^  > *<!--' || true)" = 3 ] && has1 "$FULL" '  >             <proc>full</proc>' files \
   && [ "$(printf '%s\n' "$FULL" | grep -c '^  < ' || true)" = 0 ] || die "files: processor/full/pom.xml must add <proc>full</proc> (in a <configuration>) and nothing else"
 echo "  processor: A (a dependency) BUILD SUCCESS, 0 WARNING, 0 files · B (processor path) 1 file · A' = A · C (+ proc full) 1 file, B's bytes · D (web only) 0"
+echo "             E (no <optional>) 0 files, lib/ 27 with the processor, against A's 26"
 
 # "One group, five properties, each described by the record's own comments. And every whole number gets a default value: zero"
 x metadata '^its sections: groups 1 · properties 5 · hints 0 · ignored properties 0$'
 x metadata '^the record.s @param lines: 5 · descriptions that are one of them, word for word, for the same component: 5 of 5$'
 x metadata '^the record.s int components: \[cooks, days, port\] · given "defaultValue": 0 in the file: 3 of 3$'
 x metadata '^no META-INF/spring-configuration-metadata\.json in tiffinbox-core-1\.0\.0\.jar$'
-echo "  metadata: 1 group, 5 properties, 5 of 5 descriptions the @param text, 3 of 3 ints default 0; the previous tree's jar: no file"
+# the chip: the same file name ships in Boot's own jars, 3 of 26 in lib/
+x metadata '^the jars in after/.s lib/ that carry a META-INF/spring-configuration-metadata\.json: 3 of 26 · spring-boot-4\.1\.1\.jar spring-boot-autoconfigure-4\.1\.1\.jar tiffinbox-core-1\.0\.0\.jar$'
+echo "  metadata: 1 group, 5 properties, 5 of 5 descriptions the @param text, 3 of 3 ints default 0; the previous tree's jar: no file; 3 of 26 jars carry one"
 
 # "Here the list says veg, non dash veg, and Vegan with a trailing space. The record gets the three constants, and a Value
 # placeholder gets non veg too. TiffinBox declares no converter." · "A word it can't match, vegetarian, stops the start, and
@@ -408,22 +461,26 @@ x convert '^the WARN line: s\.c\.a\.AnnotationConfigApplicationContext : Excepti
 [ "$(grep -c '^the WARN line: ' .r-convert.out)" = 1 ] && x convert '^exit 0 · WARN lines 1 · ERROR lines 0$' || die "convert: the run's one WARN line is the plain context's"
 echo "  convert: Boot's ApplicationConversionService (a GenericConversionService) asks Boot's lenient converter first; non-veg -> NON_VEG; plain Spring: no conversion service, no matching conversion strategy"
 
-# "one auto-configuration ... declares that bean. So a typo is loud: exit one, could not resolve placeholder" · "Exclude that
+# "one auto-configuration ... declares that bean. So a typo with no default is loud: exit one" · "Exclude that
 # one auto-configuration, and the same typo starts cleanly, with the placeholder's own text injected ... Put it back: exit one."
 x placeholder '^PropertySourcesPlaceholderConfigurer beans: \[propertySourcesPlaceholderConfigurer\] · propertySourcesPlaceholderConfigurer is declared by org\.springframework\.boot\.autoconfigure\.context\.PropertyPlaceholderAutoConfiguration\.propertySourcesPlaceholderConfigurer\(\)$'
-HA=$(blk placeholder 'A   ' 'B   '); HB=$(blk placeholder 'B   ' 'A′  '); HA2=$(blk placeholder 'A′  ' '')
+HA=$(blk placeholder 'A   ' 'B   '); HB=$(blk placeholder 'B   ' 'A′  '); HA2=$(blk placeholder 'A′  ' 'C   '); HC=$(blk placeholder 'C   ' '')
 has1 "$HA" '  exit 1 · WARN lines 1 · ERROR lines 1 · listening lines 0' placeholder
 has1 "$HA" "  Caused by: org.springframework.util.PlaceholderResolutionException: Could not resolve placeholder 'tiffinbox.mael' in value \"\${tiffinbox.mael}\"" placeholder
 has1 "$HB" '  exit 0 · WARN lines 0 · ERROR lines 0 · listening lines 1' placeholder
 has1 "$HB" '  @Value("${tiffinbox.mael}") String mael = ${tiffinbox.mael}' placeholder
 has1 "$HB" '  PropertySourcesPlaceholderConfigurer beans: []' placeholder
 [ "$HA" = "$HA2" ] || die "placeholder: A' is not A, line for line"
-echo "  placeholder: one bean, declared by PropertyPlaceholderAutoConfiguration · A typo exit 1 · B that one excluded: exit 0, the text injected, no bean · A' = A"
+# "So a typo with no default is loud" - C: the same typo WITH a default starts, on the default, and nothing warns
+has1 "$HC" '  exit 0 · WARN lines 0 · ERROR lines 0 · listening lines 1' placeholder
+has1 "$HC" '  @Value("${tiffinbox.mael:VEG}") String mael = VEG' placeholder
+echo "  placeholder: one bean, declared by PropertyPlaceholderAutoConfiguration · A typo exit 1 · B that one excluded: exit 0, the text injected, no bean · A' = A · C a default: exit 0, VEG"
 
-# "A: every key, one hundred and twenty orders cooked. B: I deleted the days line ... Exit zero, no warning. The record says
+# "A: every key, one hundred and twenty orders cooked. B: I deleted the days line ... It starts, no warning. The record says
 # zero days, zero orders cooked, and the kitchen answers zero. The hash changes. A again: one hundred and twenty." · "The
 # previous version, with Value, refuses to start without that key, and names it."
-BA=$(blk break 'A   ' 'B   '); BB=$(blk break 'B   ' 'A′  '); BA2=$(blk break 'A′  ' 'C   '); BC=$(blk break 'C   ' '')
+BA=$(blk break 'A   ' 'B   '); BB=$(blk break 'B   ' 'A′  '); BA2=$(blk break 'A′  ' 'C   '); BC=$(blk break 'C   ' 'D   ')
+BD=$(blk break 'D   ' 'E   '); BE=$(blk break 'E   ' '')
 has1 "$BA" "  TiffinBox's log: orders cooked:  120" break
 has1 "$BA" '  exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891' break
 has1 "$BB" '  listens on: 127.0.0.1:18685 · WARN lines 0 · ERROR lines 0' break
@@ -436,8 +493,18 @@ has1 "$BB" '  exit 0 · the seven responses: 7 lines · md5 48c20805358e969bfc65
 [ "$BA" = "$BA2" ] || die "break: A' is not A, line for line"
 has1 "$BC" '  exit 1 · WARN lines 1 · ERROR lines 1 · listening lines 0' break
 has1 "$BC" "  Caused by: org.springframework.util.PlaceholderResolutionException: Could not resolve placeholder 'tiffinbox.days' in value \"\${tiffinbox.days}\"" break
-[ "$(blk files 'nodays/application.yaml, against' 'lenient/' | paste -sd'|' -)" = '  5d4|  <   days: 30' ] || die "files: nodays/ must delete the days line alone"
+[ "$(blk files 'nodays/application.yaml, against' 'nourl/' | paste -sd'|' -)" = '  5d4|  <   days: 30' ] || die "files: nodays/ must delete the days line alone"
+# the recap: "a missing number becomes zero, not an error; missing text or a list, null" - D: the url is null, and the
+# database driver refuses it (exit 1) · E: the list is null, and TiffinBox starts
+has1 "$BD" '  exit 1 · WARN lines 1 · ERROR lines 1 · listening lines 0' break
+has1 "$BD" '  "Caused by:" lines 3 · the last, the root cause: java.sql.SQLException: The url cannot be null' break
+has1 "$BE" '  listens on: 127.0.0.1:18685 · WARN lines 0 · ERROR lines 0' break
+has1 "$BE" '  the record: TiffinBoxProperties[jdbcUrl=jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1, cooks=3, days=30, port=18685, mealTypes=null]' break
+[ "$(blk files 'nourl/application.yaml, against' 'nomeals/' | paste -sd'|' -)" = '  3d2|  <   jdbc-url: jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1' ] || die "files: nourl/ must delete the jdbc-url line alone"
+[ "$(blk files 'nomeals/application.yaml, against' 'lenient/' | paste -sd'|' -)" = '  8,11d7|  <   meal-types:|  <     - VEG|  <     - NON_VEG|  <     - VEGAN' ] \
+  || die "files: nomeals/ must delete the meal-types list alone"
 x metadata '^  tiffinbox\.days +java\.lang\.Integer +default 0 '
 echo "  break: A 120 cooked, 115c36ba... · B (days deleted) exit 0, 0 WARN, days=0, 0 cooked, /kitchen zeros, 48c20805... · A' = A · C (@Value) exit 1 naming tiffinbox.days"
+echo "         D (jdbc-url deleted) exit 1, root cause: The url cannot be null · E (meal-types deleted) starts, 0 WARN, mealTypes=null"
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
 echo "c5-unit08: every capture 3/3 and = published; every spoken number asserted"

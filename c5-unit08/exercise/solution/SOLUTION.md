@@ -6,6 +6,13 @@ PATH=/usr/bin:/bin:/usr/sbin:/sbin bash --noprofile --norc`, so nothing but the 
 JDK, and no variable of the author's could become a property source). Each command below was run in place of the block's
 last line, after its first three. Port 18689 had no listener after any run.
 
+> **Re-run 2026-09-30 (BLUE, after the RED/BLUE changes to `../receipts.sh`):** `../receipts.sh` passed (10 captures,
+> 3/3, = published), then the README's block and every command on this page — the four blocks, the dash trap, and the
+> two variants the text calls measured (`TIFFINBOX_MEAL_TYPES_0`, and `env 'TIFFINBOX_MEAL-TYPES[0]=VEGAN'`) — were run
+> again exactly as written, the same way: every record line identical, the trap exit 127 (bash reading the block from
+> standard input words it `bash: line 4: …: command not found`; typed at a prompt it prints the line below), and 0
+> listeners on 18689 after each run.
+
 ## The prediction, and the answer
 
 The tempting prediction is `[VEGAN, NON_VEG, VEGAN]`: the first item replaced, the other two kept. The block's last line

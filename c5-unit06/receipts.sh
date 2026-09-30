@@ -4,15 +4,17 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # Course 5 · Property Sources and Their Precedence — this unit's receipts. One key, tiffinbox.cooks, set in five places,
 # and the property source that answers; TiffinBox's own @PropertySource file found LAST, and too late for the keys Boot
 # reads first; then the anchor change (the file renamed application.properties, @PropertySource and the port bridge
-# gone), served, and the old run command that still starts on the wrong port without a word. Ten captures, each run
+# gone), served, and the old run command that still starts on the wrong port without a word. Nine captures, each run
 # three times and hashed; cap() DIES when a hash differs from receipts.md5; every number the video says is asserted at
 # the bottom by a check that can fail.
 #   stack    the key in five places: the live Environment's property sources, in order, and the bean's own field
-#   ladder   the top place taken away, one at a time: 7 6 5 4 3 - then A' = all five again (A re-run)
+#   ladder   the top place taken away, one at a time: 7 6 5 4 3 - then A' = all five again (A re-run); C the flag taken
+#            away and one more variable added, SPRING_APPLICATION_JSON: does a variable ever outrank -D?
 #   late     two keys Boot reads early, in TiffinBox's @PropertySource file and in Boot's own file: when each arrives
 #   bridge   the old main's port bridge is a system property: the command line outranks it; a flag first crashes it
 #   change   the anchor change, file by file: one file renamed byte for byte, two annotation lines out, three bridge lines out
-#   serve    the new command, the seven responses hashed; --debug first; the anchor README's logging command
+#   serve    the new command, the seven responses hashed; --debug first; the logging flag after/README.md gives (read
+#            from the file, not typed here)
 #   outside  where the moved file ranks now, and two files in the working directory that outrank it
 #   break    A the new command · B the old command (a bare port) · A' = A, re-run: which port the OS says it listens on
 #   ignored  C a -D typed after the jar · D the same -D before -jar - plus the harness's view of C
@@ -30,7 +32,14 @@ cd "$(dirname "$0")"
 # One run at a time: two runs share .harness/ and the ports, and one corrupts the other (it happened while authoring: a
 # second run's rm -rf .harness took the first run's jars away mid-capture). A second run stops here instead.
 mkdir .r-lock 2> /dev/null || { echo "  *** another receipts.sh is running in this folder (.r-lock exists) - if none is, rmdir .r-lock ***"; exit 1; }
-trap 'rmdir .r-lock 2> /dev/null' EXIT
+# On every exit - the end, a failed check, or Ctrl-C - stop the JVM this script started in the background, if it still
+# runs, and drop the lock. A background job of a non-interactive shell ignores the terminal's Ctrl-C, so without the kill
+# an interrupted break B would leave TiffinBox holding 18425. $pid is cleared whenever the JVM has been reaped. The clean-up
+# ignores a second Ctrl-C, and nothing in it can fail under set -e (a JVM stopped by SIGTERM exits 143), so it always
+# reaches the rmdir; the script still exits 130 after an interrupt.
+pid=""
+trap 'trap "" INT TERM; if [ -n "$pid" ] && kill "$pid" 2> /dev/null; then wait "$pid" 2> /dev/null || true; fi; rmdir .r-lock 2> /dev/null || true' EXIT
+trap 'exit 130' INT TERM
 exec 3>&1                                            # die() speaks to the terminal even inside a redirected capture
 die() { echo "  *** $* ***" >&3; exit 1; }
 java -version 2>&1 | grep -q 'version "25' || die "JDK 25 needed; JAVA_HOME gives: $(java -version 2>&1 | head -1)"
@@ -53,7 +62,7 @@ printf '%s\n' "$BEFORE" > .harness/before.classpath; printf '%s\n' "$AFTER" > .h
 
 listeners() { lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2> /dev/null | wc -l | tr -d ' '; }
 for p in 18425 18660 18661 18662 18663 18664 18665 18666 18667 18668; do
-  [ "$(listeners $p)" = 0 ] || die "something already listens on $p - this unit's ports must be free (18425: B binds it by design)"; done
+  [ "$(listeners $p)" = 0 ] || die "something already listens on $p - this unit's ports must be free; if it is a TiffinBox an interrupted run left behind, stop it: curl -X POST http://127.0.0.1:$p/shutdown"; done
 
 # runh 'COMMAND': print it exactly as typed, run it (eval, in a subshell, from this folder), keep its exit code in $ec.
 runh() { echo "\$ $1"; ec=0; (eval "$1") > .harness/run.raw 2>&1 < /dev/null || ec=$?; }
@@ -81,7 +90,7 @@ stopjar() { local i=0; e=0
   said=$(curl -s --max-time 5 -X POST "http://127.0.0.1:$1/shutdown" || true)
   while kill -0 "$pid" 2> /dev/null && [ $i -lt 60 ]; do sleep 0.25; i=$((i + 1)); done
   kill -0 "$pid" 2> /dev/null && { kill "$pid"; die "the server on $1 was still running 15 s after POST /shutdown"; }
-  wait "$pid" || e=$?
+  wait "$pid" || e=$?; pid=""
   [ "$(listeners "$1")" = 0 ] || die "something still listens on $1"; }
 # the seven responses of Course 4's comparison set, on PORT, hashed on their own (the set ends with POST /shutdown)
 seven() { local i
@@ -89,7 +98,7 @@ seven() { local i
   ../c4-unit31/curlset.sh "$1" | grep ' -> ' > .harness/responses.txt || true
   i=0; while kill -0 "$pid" 2> /dev/null && [ $i -lt 60 ]; do sleep 0.25; i=$((i + 1)); done
   kill -0 "$pid" 2> /dev/null && { kill "$pid"; die "the server on $1 was still running 15 s after POST /shutdown"; }
-  e=0; wait "$pid" || e=$?
+  e=0; wait "$pid" || e=$?; pid=""
   [ "$(listeners "$1")" = 0 ] || die "something still listens on $1"
   echo "  exit $e · the seven responses: $(wc -l < .harness/responses.txt | tr -d ' ') lines · md5 $(md5 -q .harness/responses.txt)"; }
 
@@ -119,7 +128,9 @@ ladder() {
   rung "    the system property taken away" 'TIFFINBOX_COOKS=5 java -cp "$BEFORE:places" com.tiffinbox.harness.Winner tiffinbox.cooks 18660'
   rung "    the environment variable taken away" 'java -cp "$BEFORE:places" com.tiffinbox.harness.Winner tiffinbox.cooks 18660'
   rung "    Boot's file taken away: TiffinBox's own file alone" 'java -cp "$BEFORE" com.tiffinbox.harness.Winner tiffinbox.cooks 18660'
-  rung "A′  A, re-run" "$FIVE"; }
+  rung "A′  A, re-run" "$FIVE"
+  rung "C   the flag taken away, and one more variable: SPRING_APPLICATION_JSON, a JSON document" \
+       "TIFFINBOX_COOKS=5 SPRING_APPLICATION_JSON='{\"tiffinbox\":{\"cooks\":8}}' java -Dtiffinbox.cooks=6 -cp \"\$BEFORE:places\" com.tiffinbox.harness.Winner tiffinbox.cooks 18660"; }
 cap ladder ladder
 
 # ---- late: two keys Boot reads early - in TiffinBox's @PropertySource file, then in Boot's own file -------------------------
@@ -162,12 +173,16 @@ change() { local a b n=0 same=0 changed="" gone="" new=""
 cap change change
 
 # ---- serve: the new command, in after/tiffinbox-web/target --------------------------------------------------------------------
-serve() { local T="$AT/tiffinbox-web/target"
+# readme FLAG: the flag after/README.md's run command gives after the port, on the line whose flag starts --FLAG - read
+# from the file, so a label never claims what the README says
+readme() { sed -nE "s/^.*java -jar tiffinbox-web\/target\/tiffinbox-web-1\.0\.0\.jar --tiffinbox\.port=[0-9]+ (--$1[^\` ]*).*$/\1/p" "$AT/README.md" | head -1; }
+serve() { local T="$AT/tiffinbox-web/target" f
   startjar "$T" 'java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18666'; seven 18666
   startjar "$T" 'java -jar tiffinbox-web-1.0.0.jar --debug --tiffinbox.port=18667'; seven 18667
   echo "  the condition report printed: $(grep -c '^CONDITIONS EVALUATION REPORT$' .harness/jar.log || true) time(s)"
-  echo "the anchor README's logging command:"
-  startjar "$T" 'java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18666 --logging.level.tiffinbox=debug'; seven 18666
+  f=$(readme logging.level); [ -n "$f" ] || die "after/README.md no longer gives a logging command"
+  echo "the logging flag after/README.md gives, after the port: $f"
+  startjar "$T" "java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18666 $f"; seven 18666
   echo "  route DEBUG lines $(grep -c 'route [A-Z]* /' .harness/jar.log || true)"; }
 cap serve serve
 
@@ -230,14 +245,19 @@ pos() { awk -v s="$2" '/^ +[0-9]+ / { if (index($0, s) > 0) { print $1; exit } }
   && [ "$(pos stack "tiffinbox.properties")" = 8 ] || die "stack: expected command line < system properties < environment < Boot's file < TiffinBox's file (8 of 8)"
 echo "  stack: 8 sources, 5 hold the key (7 6 5 4 3), the view and 2 hold nothing for it; the command line answers, 7; the bean's field 7; TiffinBox's file 8 of 8"
 
-# "take the top one away each time: seven, six, five, four, three - and all five again: seven"
-[ "$(grep -o 'WINNER [0-9]*' .r-ladder.out | awk '{ print $2 }' | paste -sd' ' -)" = "7 6 5 4 3 7" ] || die "ladder: expected winners 7 6 5 4 3 7"
-[ "$(grep -o 'OrderQueue.cooks = [0-9]*' .r-ladder.out | awk '{ print $3 }' | paste -sd' ' -)" = "7 6 5 4 3 7" ] || die "ladder: the bean's field must equal the winner on every rung"
-[ "$(grep -c '^  exit 0 · KEY ' .r-ladder.out)" = 6 ] || die "ladder: six runs, each exit 0"
-[ "$(grep -o 'from source [0-9]* of [0-9]*, [A-Za-z]*' .r-ladder.out | awk '{ print $NF }' | paste -sd' ' -)" = "commandLineArgs systemProperties systemEnvironment Config class commandLineArgs" ] \
-  || die "ladder: each rung must be answered by the next place down"
-[ "$(blk ladder "A   " "    the command")" = "$(blk ladder "A′  " "")" ] || die "ladder: A' is not A, line for line"
-echo "  ladder: 7 6 5 4 3, each from the next place down, the field equal every time; A' = A, line for line"
+# "take the top one away each time: seven, six, five, four, three - and all five again: seven" · the chip: "one variable,
+# SPRING_APPLICATION_JSON, ranks above -D" (C: 8, from source 3, with -D=6 and the other variable 5 still set)
+[ "$(grep -o 'WINNER [0-9]*' .r-ladder.out | awk '{ print $2 }' | paste -sd' ' -)" = "7 6 5 4 3 7 8" ] || die "ladder: expected winners 7 6 5 4 3 7, then C 8"
+[ "$(grep -o 'OrderQueue.cooks = [0-9]*' .r-ladder.out | awk '{ print $3 }' | paste -sd' ' -)" = "7 6 5 4 3 7 8" ] || die "ladder: the bean's field must equal the winner on every rung"
+[ "$(grep -c '^  exit 0 · KEY ' .r-ladder.out)" = 7 ] || die "ladder: seven runs, each exit 0"
+[ "$(grep -o 'from source [0-9]* of [0-9]*, [A-Za-z.]*' .r-ladder.out | awk '{ print $NF }' | paste -sd' ' -)" = "commandLineArgs systemProperties systemEnvironment Config class commandLineArgs spring.application.json" ] \
+  || die "ladder: each rung must be answered by the next place down, and C by spring.application.json"
+[ "$(blk ladder "A   " "    the command")" = "$(blk ladder "A′  " "C   ")" ] || die "ladder: A' is not A, line for line"
+x ladder '^  exit 0 · KEY tiffinbox\.cooks -> WINNER 8 · from source 3 of 9, spring\.application\.json$'
+[ "$(blk ladder "C   " "" | grep -c -- '-Dtiffinbox\.cooks=6 ')" = 1 ] && [ "$(blk ladder "C   " "" | grep -c 'TIFFINBOX_COOKS=5 ')" = 1 ] \
+  || die "ladder: C must still set -D (6) and the other variable (5)"
+echo "  ladder: 7 6 5 4 3, each from the next place down, the field equal every time; A' = A, line for line;"
+echo "          C: SPRING_APPLICATION_JSON (8) answers from source 3 of 9, above -D (6)"
 
 # "TiffinBox's own file ... zero route lines" · "Boot's file: five" · "the banner prints anyway" · "nothing warns"
 x late "^late/tiffinbox-file/tiffinbox\.properties is TiffinBox's own file plus the two lines of late/boot-file/application\.properties: yes$"
@@ -281,7 +301,8 @@ echo "  change: 14 files each side - 11 identical, 1 renamed byte for byte, 2 ch
 [ "$(grep -c '^  exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891$' .r-serve.out)" = 3 ] || die "serve: the seven responses must hash to 115c36ba..., all three runs"
 x serve '^  the condition report printed: 1 time\(s\)$'
 x serve '^  route DEBUG lines 5$'
-echo "  serve: --tiffinbox.port, --debug first, and the README's logging command - the seven responses 115c36ba... each time; the report 1; 5 route lines"
+x serve '^the logging flag after/README\.md gives, after the port: --logging\.level\.tiffinbox=debug$'
+echo "  serve: --tiffinbox.port, --debug first, and the README's logging flag - the seven responses 115c36ba... each time; the report 1; 5 route lines"
 
 # "the moved file now ranks sixth of seven" · "two files in the folder you start from outrank it, the config folder's first"
 O1=$(blk outside "from this folder" "from outside/"); O2=$(blk outside "from outside/" "")
@@ -291,7 +312,8 @@ echo "$O2" | grep -qE "^ +7 Config resource 'file \[application\.properties\]' v
 echo "$O2" | grep -qE "^ +8 Config resource 'class path resource \[application\.properties\]' via location 'optional:classpath:/' 3 " || die "outside: the packaged file, 3, is source 8"
 echo "  outside: the moved file answers from 6 of 7; from the working directory, ./config/ (9) > ./ (8) > the packaged file (3), 9 sources"
 
-# "A: eighteen six six one" · "B: exit zero, no warning - listening on eighteen four two five" · "A': the same as A"
+# "A: eighteen six six one" · "B: it starts without a word, on eighteen four two five" (its exit 0 is read after POST
+# /shutdown, and the chip says so) · "A': the same as A"
 BA=$(blk break "A   " "B   "); BB=$(blk break "B   " "A′  "); BA2=$(blk break "A′  " "")
 echo "$BA" | grep -qx '  the process listens on: 127.0.0.1:18661 · listeners on 18662: 0' || die "break A: listening on 18661"
 echo "$BB" | grep -qx '  the process listens on: 127.0.0.1:18425 · listeners on 18662: 0' || die "break B: listening on 18425, nothing on 18662"

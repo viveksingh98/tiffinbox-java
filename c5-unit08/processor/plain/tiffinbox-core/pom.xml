@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.tiffinbox</groupId>
+    <artifactId>tiffinbox-parent</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
+  <artifactId>tiffinbox-core</artifactId>
+  <name>TiffinBox Core</name>
+  <description>Customers, the database, the order rail and the dashboard. No HTTP in here.</description>
+
+  <dependencies>
+    <!-- No <version>. There is one, and it is in the parent's dependencyManagement. -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+    </dependency>
+    <!-- Course 4: the objects are described to a container instead of built by hand. -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-context</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
+    </dependency>
+    <!-- Course 5: TiffinBoxProperties carries @ConfigurationProperties, which is Boot's own annotation. Core now depends
+         on Boot itself (spring-boot, not a starter; the version is managed by the parent). It still has no HTTP in it. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot</artifactId>
+    </dependency>
+    <!-- The processor added as a plain dependency: no <optional>, so it is passed on to the modules that use this one. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-configuration-processor</artifactId>
+    </dependency>
+  </dependencies>
+</project>

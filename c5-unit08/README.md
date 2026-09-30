@@ -92,15 +92,17 @@ tiffinbox-web-1.0.0.jar …`) start in `after/tiffinbox-web/target`; every other
 **The demo files.** A folder put in front of `$AFTER` on a class path holds one `application.yaml` that the class path
 then gives **instead of** the copy packaged in TiffinBox's jar (the harness's `the class path gives:` line names the file
 it got). Each is the anchor's `application.yaml` with one declared change, and the `files` capture diffs every one:
-`nodays/` (the `days` line deleted) · `lenient/` (the list written `veg`, `non-veg`, `"Vegan "`) · `vegetarian/`
+`nodays/` (the `days` line deleted) · `nourl/` (the `jdbc-url` line deleted) · `nomeals/` (the `meal-types` list
+deleted) · `lenient/` (the list written `veg`, `non-veg`, `"Vegan "`) · `vegetarian/`
 (`lenient/`'s file with the third item `vegetarian`). `noenable/TiffinBoxApp.java` is `after/`'s with three lines taken
 out (the annotation and its two imports). `processor/` holds the POMs laid over a copy of `after/` for the processor's
 variants: `dependency/pom.xml` (the root without the processor path — the previous tree's root POM, byte for byte) and
 `dependency/tiffinbox-core/pom.xml` (the processor as an `<optional>` dependency) · `full/pom.xml` (A's root plus
-`<proc>full</proc>`) · `web/tiffinbox-web/pom.xml` (the processor path in web alone).
+`<proc>full</proc>`) · `web/tiffinbox-web/pom.xml` (the processor path in web alone) · `plain/tiffinbox-core/pom.xml`
+(`dependency/`'s without `<optional>`, its comment reworded).
 
 **Ports** (Section 2 brief ⚑11: 18680-18689): serve 18680 · record 18681 (B never binds) · lenient 18682 (B never binds)
-· convert 18683 · placeholder 18684 (A never binds) · break 18685 (C never binds) · the exercise 18689. Every command
+· convert 18683 · placeholder 18684 (A never binds) · break 18685 (C and D never bind) · the exercise 18689. Every command
 names its port; `receipts.sh` first checks that nothing listens on 18425 or on any of its ports.
 
 ## Masks, filters and hygiene — every one, declared
@@ -115,7 +117,9 @@ names its port; `receipts.sh` first checks that nothing listens on 18425 or on a
 3. A failed start shows its exit code, its WARN, ERROR and `listening` line counts, then Boot's own failure report
    (`APPLICATION FAILED TO START` to the end of its Action) **without its blank lines and its rows of asterisks** — or,
    when Boot printed no report, the run's first `Caused by:` line — then the exception the harness names, then a counted
-   line: `… N more line(s) of this run's output not shown …`.
+   line: `… N more line(s) of this run's output not shown …`. `break` D (no report; its first `Caused by:` line carries
+   an absolute jar path) shows instead how many `Caused by:` lines there are and the last one, the root cause, its
+   `Caused by: ` prefix cut by `sed`; the rest is counted the same way.
 4. The processor builds are reduced to counts: the exit code, the `BUILD` line, the `[WARNING]` and `[ERROR]` lines, the
    metadata files found under both modules' `target/`, and `lib/`'s jars (with the processor among them, and in the
    manifest's `Class-Path`).
@@ -125,6 +129,14 @@ names its port; `receipts.sh` first checks that nothing listens on 18425 or on a
 6. Hygiene: `receipts.sh` unsets every `TIFFINBOX_*` and `SPRING_*` variable, `JAVA_TOOL_OPTIONS`, `JDK_JAVA_OPTIONS`,
    `MAVEN_OPTS` and `MAVEN_ARGS` before it runs anything — a variable of yours would otherwise become a property source,
    or a flag. It also refuses to run twice at once in this folder (`.r-lock`): two runs share `.harness/` and the ports.
+   On every exit — the end, a failed check, or Ctrl-C — its EXIT trap stops the JVM it started in the background, if it
+   still runs, and removes the lock; Ctrl-C makes it exit 130. Tested 2026-09-30: Ctrl-C (SIGINT to the script's process
+   group) while `break` served on 18685 → exit 130, that JVM gone, nothing listening on 18425 or 18680-18689, `.r-lock`
+   removed. If a port is still busy, the port check names it and gives the stop command: `curl -X POST
+   http://127.0.0.1:<port>/shutdown`.
+7. `serve`'s second and third runs take their flag from `after/README.md` (its logging command and its lunch-rush
+   command, the flag after the port), read out of the file by `sed`; each label prints what it read, and `receipts.sh`
+   dies if the file stops giving one.
 
 ## 1 · The change — two files in, six changed
 
@@ -279,17 +291,17 @@ found.` The record is not a bean by itself (it carries no `@Component`, and the 
 
 ## 3 · The jar: the list's log line, and the seven responses
 
-`.r-serve.out` `63755c1c12d7de13caa4b3e053edc18f`
+`.r-serve.out` `0134239bba4ecec601f4098da92132e6`
 
 ```
 $ java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18680
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
   TiffinBox's log: meal types:     [VEG, NON_VEG, VEGAN]
-the anchor README's logging command:
+the logging flag after/README.md gives, after the port: --logging.level.tiffinbox=debug
 $ java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18680 --logging.level.tiffinbox=debug
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
   route DEBUG lines 5
-the lunch rush, as the anchor README gives it:
+the lunch-rush flag after/README.md gives, after the port: --spring.profiles.active=rush
 $ java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18680 --spring.profiles.active=rush
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
   Boot: The following 1 profile is active: "rush"
@@ -297,14 +309,15 @@ $ java -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18680 --spring.profiles.act
 
 The run command is the anchor's, unchanged (`--tiffinbox.port=`). TiffinBox logs the list at startup — the first time anything in it reads
 the list — and the seven responses of `../c4-unit31/curlset.sh` hash to `115c36bac276128e245ca57df11c2891` with the new
-tree, with the anchor README's logging command (5 route lines) and with the profile `rush` on.
+tree, with the logging flag read out of `after/README.md` (5 route lines), and with the lunch-rush flag it gives (the
+profile `rush` on).
 
-## 4 · The processor: five clean builds, one question
+## 4 · The processor: six clean builds, one question
 
-`.r-processor.out` `83c6e8b73109ed71e5e07ddb178863e7`
+`.r-processor.out` `a567a97dfa1f0ea74811b20df95fe5d4`
 
 ```
-A   the processor as an ordinary dependency: processor/dependency/pom.xml (the root, no processor path) · processor/dependency/tiffinbox-core/pom.xml (the processor, <optional>)
+A   the processor as an optional dependency: processor/dependency/pom.xml (the root, no processor path) · processor/dependency/tiffinbox-core/pom.xml (the processor, <optional>)
 $ cd .harness/proc-dependency && mvn -o -B -Dmaven.repo.local="$M2" -DskipTests clean package
   exit 0 · BUILD SUCCESS · WARNING lines 0 · ERROR lines 0
   metadata files under the two modules' target/: 0
@@ -330,23 +343,31 @@ $ cd .harness/proc-web && mvn -o -B -Dmaven.repo.local="$M2" -DskipTests clean p
   exit 0 · BUILD SUCCESS · WARNING lines 0 · ERROR lines 0
   metadata files under the two modules' target/: 0
   lib/: 26 jars · the processor among them: 0 · named in the manifest's Class-Path: 0
+E   A without <optional>: A's root pom.xml · processor/plain/tiffinbox-core/pom.xml (the processor a plain dependency)
+$ cd .harness/proc-plain && mvn -o -B -Dmaven.repo.local="$M2" -DskipTests clean package
+  exit 0 · BUILD SUCCESS · WARNING lines 0 · ERROR lines 0
+  metadata files under the two modules' target/: 0
+  lib/: 27 jars · the processor among them: 1 · named in the manifest's Class-Path: 1
 ```
 
 Each build is a clean one, in a copy of `after/` with the variant's POMs laid over it (section 10 diffs every POM).
-**A** the processor added as an ordinary dependency of `tiffinbox-core` (`<optional>true</optional>`), the processor path
+**A** the processor added as an optional dependency of `tiffinbox-core` (`<optional>true</optional>`), the processor path
 taken out: BUILD SUCCESS, 0 WARNING lines — and **no metadata file**. **B** `after/` itself, the processor on the
 compiler's processor path in the root POM: the file, in core. **A′** = A, line for line: none again. **C** (a variant) A
 plus `<proc>full</proc>` — one element apart: the file appears, byte for byte B's. So the processor itself works; on this
 JDK (25.0.4.1), javac did not run a processor it found only on the class path until processing was switched on, and it said
 nothing. (That JDK 23 changed this default is the known reason; no older JDK was measured here.) **D** (a variant) the
 processor path in `tiffinbox-web` alone: no file anywhere — the processor runs only where it is configured, and the record
-compiles in core. That is why it sits in the root POM's `pluginManagement`. `lib/` holds 26 jars in all five: an
-`<optional>` dependency of core does not reach web's `copy-dependencies` (the Section 2 probe's "27 jars" came from the
-dependency declared in web itself, and does not apply to this layout).
+compiles in core. That is why it sits in the root POM's `pluginManagement`. `lib/` holds 26 jars in A to D: an
+`<optional>` dependency of core does not reach web's `copy-dependencies`. **E** (a variant) A without `<optional>` — the
+processor a plain dependency of core: still **no metadata file**, and now the processor is in `lib/` (27 jars) and in the
+manifest's `Class-Path`. So a dependency writes nothing, optional or not, and 27 jars is what the non-optional
+dependency ships — not `<proc>full</proc>` (C: 26). The Section 2 brief's ⚑5 said 27 for "dependency plus
+`<proc>full</proc>`"; its ERRATA of 2026-09-30 quotes these lines.
 
 ## 5 · The file the processor writes
 
-`.r-metadata.out` `8b7b195fe3ed4037b1a2793148493a02`
+`.r-metadata.out` `c3e433a41ab46c2fa845778328474359`
 
 ```
 $ unzip -p after/tiffinbox-web/target/lib/tiffinbox-core-1.0.0.jar META-INF/spring-configuration-metadata.json
@@ -413,13 +434,17 @@ the previous tree's core jar, the same question:
 $ java -cp "$AFTER" com.tiffinbox.harness.Metadata .harness/before/tiffinbox-web/target/lib/tiffinbox-core-1.0.0.jar after/tiffinbox-core/src/main/java/com/tiffinbox/TiffinBoxProperties.java
 exit 0
 no META-INF/spring-configuration-metadata.json in tiffinbox-core-1.0.0.jar
+the jars in after/'s lib/ that carry a META-INF/spring-configuration-metadata.json: 3 of 26 · spring-boot-4.1.1.jar spring-boot-autoconfigure-4.1.1.jar tiffinbox-core-1.0.0.jar
 ```
 
 The whole file, as the core jar in `after/tiffinbox-web/target/lib/` carries it — the jar on TiffinBox's class path —
 then read: one group (`tiffinbox`), five properties, no hints. Every description is the record's `@param` text for that
 component, word for word (5 of 5). Every `int` component (`cooks`, `days`, `port`) is given `"defaultValue": 0` (3 of 3),
 typed `java.lang.Integer`: the processor documents the value an `int` holds when nothing sets it. Section 9 is that zero,
-bound. The previous tree's core jar has no such file.
+bound. The previous tree's core jar has no such file. The last line: 3 of the 26 jars in `after/`'s `lib/` carry a file of
+the same name — Boot's `spring-boot` and `spring-boot-autoconfigure`, and TiffinBox's core. That editors read these files
+to complete keys is what Boot's reference documentation says; no IDE was run here, and the video says it as the
+documentation's claim, with a chip.
 
 ## 6 · Loose spellings, and one it cannot match
 
@@ -504,7 +529,7 @@ exits 0.
 
 ## 8 · One auto-configuration resolves placeholders
 
-`.r-placeholder.out` `8b34ebcca593d271a990a53ae834cb4e`
+`.r-placeholder.out` `94184a99245230096c89a9056d0fac58`
 
 ```
 TiffinBox as it runs: who resolves placeholders
@@ -530,6 +555,12 @@ $ java -cp "$AFTER" com.tiffinbox.harness.Placeholders mael --tiffinbox.port=186
   Caused by: org.springframework.util.PlaceholderResolutionException: Could not resolve placeholder 'tiffinbox.mael' in value "${tiffinbox.mael}"
   the exception TiffinBox's main threw: org.springframework.beans.factory.BeanCreationException
   … 62 more line(s) of this run's output not shown: the banner, Boot's log, the blank lines and the stack frames …
+C   the same typo, with a default after the colon: @Value("${tiffinbox.mael:VEG}") String mael
+$ java -cp "$AFTER" com.tiffinbox.harness.Placeholders mael:VEG --tiffinbox.port=18684
+  exit 0 · WARN lines 0 · ERROR lines 0 · listening lines 1
+  @Value("${tiffinbox.mael:VEG}") String mael = VEG
+  PropertySourcesPlaceholderConfigurer beans: [propertySourcesPlaceholderConfigurer] · propertySourcesPlaceholderConfigurer is declared by org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration.propertySourcesPlaceholderConfigurer()
+  … elided: 8 log line(s) of Boot's, and 10 line(s) printed before the report (the banner and its blank lines) …
 ```
 
 TiffinBox as it runs holds one `PropertySourcesPlaceholderConfigurer` — the bean the last course registered by hand so that
@@ -537,11 +568,13 @@ an unresolved placeholder fails — and it is declared by Boot's `PropertyPlaceh
 a typo in its placeholder (`mael`, no default): exit 1, `Could not resolve placeholder 'tiffinbox.mael'`. **B** the same,
 with that one auto-configuration excluded: exit 0, the placeholder's own text injected (`${tiffinbox.mael}`), and no
 configurer bean — the last course's behaviour without the bean. **A′** = A. TiffinBox itself starts in B: it has no `@Value`
-left to resolve.
+left to resolve. **C** (a variant, labelled so) the same typo with a default after the colon, `${tiffinbox.mael:VEG}`:
+exit 0, no WARN line, `mael = VEG` — the last course's other case, unchanged under Boot. So the auto-configuration makes a
+typo **with no default** fail; a typo with one starts on the default.
 
 ## 9 · The break — one key deleted
 
-`.r-break.out` `3c23395d55ec59bad3ae87faf4a00cbe`
+`.r-break.out` `e61c8dd9153f23f0c43efc471d238aa5`
 
 ```
 A   this tree, the anchor's own file
@@ -574,6 +607,20 @@ $ java -cp "nodays:$BEFORE" com.tiffinbox.harness.Serve --tiffinbox.port=18685
   Caused by: org.springframework.util.PlaceholderResolutionException: Could not resolve placeholder 'tiffinbox.days' in value "${tiffinbox.days}"
   the exception TiffinBox's main threw: org.springframework.beans.factory.BeanCreationException
   … 62 more line(s) of this run's output not shown: the banner, Boot's log, the blank lines and the stack frames …
+D   nourl/: the anchor's file with the jdbc-url line deleted - text, not a number
+$ java -cp "nourl:$AFTER" com.tiffinbox.harness.Serve --tiffinbox.port=18685
+  exit 1 · WARN lines 1 · ERROR lines 1 · listening lines 0
+  "Caused by:" lines 3 · the last, the root cause: java.sql.SQLException: The url cannot be null
+  the exception TiffinBox's main threw: org.springframework.beans.factory.UnsatisfiedDependencyException
+  … 92 more line(s) of this run's output not shown: the banner, Boot's log, the other "Caused by:" lines and the stack frames …
+E   nomeals/: the anchor's file with the meal-types list deleted
+$ java -cp "nomeals:$AFTER" com.tiffinbox.harness.Serve --tiffinbox.port=18685
+  listens on: 127.0.0.1:18685 · WARN lines 0 · ERROR lines 0
+  the record: TiffinBoxProperties[jdbcUrl=jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1, cooks=3, days=30, port=18685, mealTypes=null]
+  the class path gives: application.yaml <- nomeals/application.yaml · application.properties <- none
+  TiffinBox's log: orders cooked:  120
+  GET   /kitchen    -> 200 application/json  {"ordersCooked":120,"ordersValue":24300}
+  exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
 ```
 
 **A** this tree, the anchor's own file: `days=30`, 120 orders cooked, `115c36ba…`. **B** `nodays/`, the same file with its
@@ -581,17 +628,31 @@ $ java -cp "nodays:$BEFORE" com.tiffinbox.harness.Serve --tiffinbox.port=18685
 `/kitchen` answers `{"ordersCooked":0,"ordersValue":0}`, and the seven responses hash to
 `48c20805358e969bfc65e9197ce3b541`. Nothing says a key is missing. **A′** = A. **C** (a variant, labelled so) the previous
 tree, whose `TiffinBoxServer` reads `@Value("${tiffinbox.days}")`, with the same file: exit 1 before the port opens,
-naming the key. The zero is the `"defaultValue": 0` the metadata file printed for `tiffinbox.days` (section 5); the next
-unit makes the configuration refuse to start instead.
+naming the key. The metadata file printed that zero for `tiffinbox.days` (section 5): it records the zero, it does not
+cause it. **D** (a variant) `nourl/`, the text key `jdbc-url` deleted: the record's `jdbcUrl` is null and the database
+driver refuses it — exit 1 before the port opens, three `Caused by:` lines, the last `java.sql.SQLException: The url
+cannot be null`. **E** (a variant) `nomeals/`, the list deleted: TiffinBox starts (0 WARN lines), the record holds
+`mealTypes=null`, and the seven responses are unchanged (`115c36ba…`). So a missing **number** binds as zero; missing text
+or a list binds as null. A default of your own is `@DefaultValue` on the record's component (the starter lesson uses it);
+the next unit makes the configuration refuse to start instead.
 
 ## 10 · The demo files, against the files they stand in for
 
-`.r-files.out` `6b967fc1431d31623b10e7e9e4c55d30`
+`.r-files.out` `bb6f3aac6f60926ddbe9773dc665316e`
 
 ```
 nodays/application.yaml, against the anchor's application.yaml:
   5d4
   <   days: 30
+nourl/application.yaml, against the anchor's application.yaml:
+  3d2
+  <   jdbc-url: jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1
+nomeals/application.yaml, against the anchor's application.yaml:
+  8,11d7
+  <   meal-types:
+  <     - VEG
+  <     - NON_VEG
+  <     - VEGAN
 lenient/application.yaml, against the anchor's application.yaml:
   9,11c9,11
   <     - VEG
@@ -637,6 +698,13 @@ processor/dependency/tiffinbox-core/pom.xml, against after/'s tiffinbox-core/pom
   >       <artifactId>spring-boot-configuration-processor</artifactId>
   >       <optional>true</optional>
   >     </dependency>
+processor/plain/tiffinbox-core/pom.xml, against processor/dependency/tiffinbox-core/pom.xml:
+  38c38
+  <     <!-- The processor added as a dependency, optional so that it is not passed on to the modules that use this one. -->
+  ---
+  >     <!-- The processor added as a plain dependency: no <optional>, so it is passed on to the modules that use this one. -->
+  42d41
+  <       <optional>true</optional>
 processor/full/pom.xml, against processor/dependency/pom.xml:
   72a73,76
   >           <!-- javac's -proc:full: run annotation processing, with the processors found on the class path. -->
@@ -679,6 +747,7 @@ environment, not merged with the file's; every index, or the comma form, keeps t
 - **An `int` is `java.lang.Integer` in the metadata**, with `"defaultValue": 0`; the list is typed
   `java.util.List<com.tiffinbox.MealType>` and has no default.
 - **The probe's "27 jars" does not reproduce here:** it measured the processor as a dependency of web; as an `<optional>`
-  dependency of core it never reaches web's `lib/` (26 in all five builds).
+  dependency of core it never reaches web's `lib/` (26 in A to D). E, the same dependency without `<optional>`, gives 27:
+  that is where 27 comes from.
 - **`H2`'s URL carries its own `=`** (`DB_CLOSE_DELAY=-1`): the builder first counted the record's components by `=` and
   got six; it now counts `name=` after `[` or `, `.
