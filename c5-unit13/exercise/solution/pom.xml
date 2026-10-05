@@ -14,6 +14,11 @@
   <name>TiffinBox Web</name>
   <description>The HTTP server, the router and the JSON. No SQL in here.</description>
 
+  <properties>
+    <!-- The main class Boot's parent hands to the repackage goal (its <mainClass> reads ${spring-boot.run.main-class}, which is ${start-class}). -->
+    <start-class>com.tiffinbox.web.TiffinBoxServer</start-class>
+  </properties>
+
   <dependencies>
     <!-- Neither of these names a version: both are managed by the parent. -->
     <dependency>

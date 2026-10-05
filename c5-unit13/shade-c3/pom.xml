@@ -39,15 +39,25 @@
 
   <build>
     <plugins>
-      <!-- Course 5: Boot's plugin, declared bare - no version, no execution. Boot's parent manages both, and declaring
-           the plugin is what binds its repackage goal to package: the jar becomes Boot's executable jar, a jar of jars -
-           TiffinBox's classes under BOOT-INF/classes, every jar it needs under BOOT-INF/lib, kept whole, and Boot's
-           launcher at the top. The run command is unchanged. Gone with it: the jar plugin's Main-Class/Class-Path manifest
-           and the copy-dependencies execution that filled target/lib - a Class-Path header survives repackage, and makes
-           the jar load the classes it names from a lib/ folder beside it, whatever version sits there. -->
+      <!-- shade-c3/, a demo beside the anchor: the shade plugin instead of Boot's, with the execution and the two
+           transformers Course 3's packaging POM wrote (its ${main.class} written out), pasted as they were. -->
       <plugin>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-maven-plugin</artifactId>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals><goal>shade</goal></goals>
+            <configuration>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>com.tiffinbox.web.TiffinBoxServer</mainClass>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
       <!-- exec:exec forks a real JVM. It no longer has to pass the preview flag. -->

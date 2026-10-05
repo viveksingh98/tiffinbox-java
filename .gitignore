@@ -729,3 +729,8 @@ c5-unit11/.harness/
 c5-unit11/.r-*
 c5-unit11/target/
 c5-unit11/**/secrets/
+c5-unit13/.m2-demo/
+c5-unit13/.harness/
+c5-unit13/.r-*
+c5-unit13/target/
+c5-unit13/**/secrets/

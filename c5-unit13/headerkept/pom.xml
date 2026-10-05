@@ -39,6 +39,22 @@
 
   <build>
     <plugins>
+      <!-- Main-Class + Class-Path: the jar is runnable, not just built. No version here
+           either — the parent's pluginManagement pins 3.5.0. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>com.tiffinbox.web.TiffinBoxServer</mainClass>
+              <addClasspath>true</addClasspath>
+              <classpathPrefix>lib/</classpathPrefix>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+
       <!-- Course 5: Boot's plugin, declared bare - no version, no execution. Boot's parent manages both, and declaring
            the plugin is what binds its repackage goal to package: the jar becomes Boot's executable jar, a jar of jars -
            TiffinBox's classes under BOOT-INF/classes, every jar it needs under BOOT-INF/lib, kept whole, and Boot's
