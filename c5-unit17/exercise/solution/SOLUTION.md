@@ -19,7 +19,9 @@ docker volume ls --filter label=com.docker.compose.project=tiffinbox-dev --forma
 HOME=… PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin bash --noprofile --norc`), from `c5-unit17/`, on 2026-10-05, Docker
 (OrbStack) running. The two start commands ran in the background - the first terminal - and their log is shown from each line's
 message on, Docker Compose's lines and TiffinBox's listening line only (the time, level, PID, thread and logger columns, and every
-other line, dropped); everything else ran in order - the second terminal. One thing is masked: this unit's folder, `…`.
+other line, dropped); everything else ran in order - the second terminal. One thing is masked: this unit's folder, `…`. Re-run
+exactly as written by BLUE part B, 2026-10-05 (two clean shells, the first terminal's and the second's), after the README gained its
+note on the anchor's project name (prose only): the same transcript, line for line.
 
 ```
 $ export JAVA_HOME=/opt/homebrew/opt/openjdk@25

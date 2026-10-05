@@ -13,14 +13,18 @@ cd "$(dirname "$0")"
 #            thread, started to stop the server; no file that asks Spring for a thread
 #   decides  the switch in Boot's own metadata (its default), then TiffinBox's own jar with --debug (the conditions
 #            evaluation report): A the switch not set · B on · A' = A - the two bean methods that build the bean named
-#            applicationTaskExecutor, the condition that picks one, and the seven responses
+#            applicationTaskExecutor, the condition that picks one, Boot's scheduler configuration (which TiffinBox alone
+#            never gets), and the seven responses
 #   switch   the harness (harness/threads/VThreads.java) on TiffinBox's context: A not set · B on · A' = A - Boot's
-#            executor and twenty tasks, Boot's scheduler and two jobs, TiffinBox's own executors read through private fields
-#   alive    TiffinBox's own jar, A not set · B on: the Java threads a thread dump lists as not daemons; Boot's metadata for
+#            executor and twenty tasks, twenty calls of an @Async method, Boot's scheduler (its pool size in Boot's
+#            metadata) and two jobs, TiffinBox's own executors read through private fields
+#   alive    TiffinBox's own jar with --debug, A not set · B on: the bean method the report says built Boot's executor (the
+#            switch took effect), the Java threads a thread dump lists as not daemons; Boot's metadata for
 #            spring.main.keep-alive; the seven responses
-#   exercise exercise/README.md's commands, run exactly as written, then the solution's (exercise/solution/SOLUTION.md)
-# "The frozen tree" is ../c5-unit13/after (TiffinBox as the executable-jar lesson left it - the anchor today), COPIED to
-# .harness/after and built there, clean: this script never writes into another unit's folder. Every run starts in
+#   exercise exercise/README.md's commands, run exactly as written, then the solution's (exercise/solution/SOLUTION.md),
+#            from .harness/mine/after - where the README's last line leaves the shell
+# "The frozen tree" is ../c5-unit17/after (TiffinBox as the Compose lesson left it - the anchor today, the tree this video
+# follows), COPIED to .harness/after and built there, clean: this script never writes into another unit's folder. Every run starts in
 # .harness/after, which holds a config tree with the demo token (secrets/), as the frozen tree's README asks: TiffinBox does
 # not start without its token. The harness's class path comes from the frozen tree's own jar: the README's extract command,
 # run as written in .harness/after, and the README's class-path command with the harness's classes in front.
@@ -55,7 +59,7 @@ command -v openssl > /dev/null || die "openssl is needed: the exercise's README 
 for v in $(env | sed -n 's/^\(TIFFINBOX_[A-Za-z0-9_]*\|SPRING_[A-Za-z0-9_]*\|JAVA_TOOL_OPTIONS\|JDK_JAVA_OPTIONS\|MAVEN_OPTS\|MAVEN_ARGS\)=.*/\1/p'); do unset "$v"; done
 [ -e secrets ] && die "this folder holds a secrets/ - remove it: every run here starts in .harness/after"
 M2="$PWD/.m2-demo"; U="$PWD"; UP="$(cd .. && pwd)"
-FROZEN=../c5-unit13/after                            # the frozen tree: read, copied, never built in place
+FROZEN=../c5-unit17/after                            # the frozen tree: read, copied, never built in place
 JAR=tiffinbox-web/target/tiffinbox-web-1.0.0.jar
 TF=secrets/tiffinbox/shutdown-token                  # the config tree's file for tiffinbox.shutdown-token
 # The demo token. FAKE, and meant to look it: it guards nothing but a demo server on 127.0.0.1 that every capture stops. It
@@ -136,11 +140,12 @@ seven() { local i e=0
   wait "$pid" || e=$?; pid=""
   [ "$(listeners "$1")" = 0 ] || die "something still listens on $1"
   echo "  exit $e · the seven responses: $(wc -l < .harness/responses.txt | tr -d ' ') lines · md5 $(md5 -q .harness/responses.txt)"; }
-# harness 'COMMAND' PORT: print the command exactly as typed, run it (in the background, so a hung run can be stopped: it
-# must exit within 60 s), then print the harness's own lines - its standard error, whole - and count Boot's log (its
-# standard output)
+# harness 'COMMAND' PORT [FOLDER]: print the command exactly as typed, run it - from FOLDER when one is given, as a shell that
+# is there would (in the background, so a hung run can be stopped: it must exit within 60 s) - then print the harness's own
+# lines - its standard error, whole - and count Boot's log (its standard output)
 harness() { local i=0 e=0
-  start "$1"
+  if [ -n "$3" ]; then echo "\$ $1"; (cd "$3" && eval "${1/ java / exec java }") > .harness/jar.out 2> .harness/jar.err < /dev/null & pid=$!
+  else start "$1"; fi
   while kill -0 "$pid" 2> /dev/null && [ $i -lt 240 ]; do sleep 0.25; i=$((i + 1)); done
   kill -0 "$pid" 2> /dev/null && { kill "$pid"; die "the harness was still running after 60 s: $1"; }
   wait "$pid" || e=$?; pid=""
@@ -170,7 +175,7 @@ cap() { local nm=$1 h pub i; shift
 
 # ---- own: the threads TiffinBox starts itself ---------------------------------------------------------------------------
 own() {
-  echo "TiffinBox as the executable-jar lesson froze it (the anchor today) - a copy, .harness/after, built clean:"
+  echo "TiffinBox as the Compose lesson left it (the anchor today) - a copy, .harness/after, built clean:"
   echo "\$ cd .harness/after && grep -rno --include='*.java' 'Executors\.[A-Za-z]*()' ."
   (cd .harness/after && grep -rno --include='*.java' 'Executors\.[A-Za-z]*()' . | sort) | sed 's/^/  /'
   echo "  executors: $(cd .harness/after && grep -rno --include='*.java' 'Executors\.[A-Za-z]*()' . | wc -l | tr -d ' ') · each one newVirtualThreadPerTaskExecutor: $(cd .harness/after && grep -rno --include='*.java' 'Executors\.newVirtualThreadPerTaskExecutor()' . | wc -l | tr -d ' ')"
@@ -196,6 +201,11 @@ meta() { local j out=""
 # method LOG NAME: the report's block for the bean method NAME of TaskExecutorConfiguration - its header and every line
 # below it up to the blank line that ends the block, whichever section (positive or negative matches) it sits in
 method() { awk -v h="   TaskExecutorConfigurations.TaskExecutorConfiguration#$2" '
+  index($0, h) == 1 && (substr($0, length(h) + 1, 1) == ":" || substr($0, length(h) + 1, 9) == " matched:") { f = 1; print; next }
+  f && $0 == "" { f = 0 } f { print }' "$1"; }
+# sched LOG: the report's block for Boot's scheduler configuration, TaskSchedulingConfigurations.TaskSchedulerConfiguration -
+# its header and every line below it up to the blank line that ends the block
+sched() { awk -v h="   TaskSchedulingConfigurations.TaskSchedulerConfiguration" '
   index($0, h) == 1 && (substr($0, length(h) + 1, 1) == ":" || substr($0, length(h) + 1, 9) == " matched:") { f = 1; print; next }
   f && $0 == "" { f = 0 } f { print }' "$1"; }
 # threading LOG: every OnThreadingCondition line of the report, each paired with the bean method whose block holds it;
@@ -230,11 +240,14 @@ decides() { local run
     start "cd .harness/after && ${RUNCMD/18431/$port} --debug$flag"; up; seven "$port"
     echo "  its log: $(wc -l < .harness/jar.out | tr -d ' ') lines · the report's blocks for the two bean methods named applicationTaskExecutor:"
     method .harness/jar.out applicationTaskExecutor; method .harness/jar.out applicationTaskExecutorVirtualThreads
+    echo "  the report's block for Boot's scheduler configuration:"; sched .harness/jar.out
     threading .harness/jar.out; done; }
 cap decides decides
 
 # ---- switch: what the switch reaches, and what it leaves alone ---------------------------------------------------------------
 switch() { local run
+  echo "Boot's own metadata, its entry for spring.task.scheduling.pool.size: in $(meta spring.task.scheduling.pool.size defaultValue | sed 's/: .*//') · defaultValue $(meta spring.task.scheduling.pool.size defaultValue | sed 's/^[^:]*: //')"
+  echo "  its description: $(meta spring.task.scheduling.pool.size description | sed 's/^[^:]*: //')"
   echo "the harness's class path, from the frozen tree's own jar - its README's extract command, run as written in .harness/after:"
   echo "\$ cd .harness/after && $EXTRACT"
   echo "  $XD: $(ls ".harness/after/$XD" | paste -sd' ' -) · lib/: $(ls ".harness/after/$XD/lib" | grep -c '\.jar$') jars"
@@ -267,9 +280,10 @@ alive() { local run
   for run in "A|18894|" "B|18895| --spring.threads.virtual.enabled=true"; do
     IFS='|' read -r lbl port flag <<< "$run"
     case $lbl in
-      A) echo "A - the switch not set · the frozen tree's run command, from .harness/after, its port 18431 made 18894:" ;;
-      *) echo "B - the switch on, port 18895:" ;; esac
-    start "cd .harness/after && ${RUNCMD/18431/$port}$flag"; up
+      A) echo "A - the switch not set · the frozen tree's run command, from .harness/after, its port 18431 made 18894, --debug after it:" ;;
+      *) echo "B - the switch on after --debug, port 18895:" ;; esac
+    start "cd .harness/after && ${RUNCMD/18431/$port} --debug$flag"; up
+    echo "  the report: the bean method that built Boot's executor - $(grep -E '^   TaskExecutorConfigurations\.TaskExecutorConfiguration#applicationTaskExecutor(VirtualThreads)? matched:$' .harness/jar.out | sed 's/^ *TaskExecutorConfigurations\.TaskExecutorConfiguration#//; s/ matched:$//' | paste -sd' ' -)"
     echo '$ jcmd "$pid" Thread.print     ($pid: the java process this script started)'
     nondaemon; seven "$port"; done; }
 cap alive alive
@@ -280,8 +294,10 @@ block() { awk '/^```bash$/ { if (!d) { f = 1 }; next } f && /^```$/ { f = 0; d =
 exercise() { local setup run sol
   setup=$(block exercise/README.md | grep -v ' java -cp ')
   run=$(block exercise/README.md | grep ' java -cp ')
-  sol=$(grep -m1 -E '^cd \.harness/mine/after && SPRING_THREADS_VIRTUAL_ENABLED=true java -cp ' exercise/solution/SOLUTION.md || true)
+  sol=$(block exercise/solution/SOLUTION.md)
   [ -n "$setup" ] && [ -n "$run" ] && [ -n "$sol" ] || die "exercise/README.md or SOLUTION.md no longer gives its commands"
+  [ "$(printf '%s\n' "$sol" | grep -c .)" = 1 ] && [ "$(printf '%s\n' "$sol" | grep -c '^SPRING_THREADS_VIRTUAL_ENABLED=true java -cp ')" = 1 ] || die "SOLUTION.md's first bash block must be its one line: the variable, then the java command"
+  [ "$(printf '%s\n' "$run" | grep -c '^cd \.harness/mine/after && java -cp ')" = 1 ] || die "the README's last line must move the shell into .harness/mine/after"
   # The setup lines name the frozen tree's folder, which carries a unit number: they are counted here, never printed (they
   # are in exercise/README.md, and this script runs them exactly as written).
   echo "exercise/README.md's commands, run exactly as written from this folder:"
@@ -291,8 +307,8 @@ exercise() { local setup run sol
   echo "  exit $ec · printed: $(grep -c . .harness/ex-setup.log || true) line(s) · the token: $(wc -c < .harness/mine/after/$TF | tr -d ' ') bytes, $(stat -f %Sp .harness/mine/after/$TF) · .harness/mine/classes: $(find .harness/mine/classes -name '*.class' | wc -l | tr -d ' ') classes"
   echo "  its last line:"
   harness "$run" 18899
-  echo "the solution's command (exercise/solution/SOLUTION.md), run exactly as written:"
-  harness "$sol" 18899; }
+  echo "the solution's command (exercise/solution/SOLUTION.md), run exactly as written - from .harness/mine/after, where the README's last line left the shell:"
+  harness "$sol" 18899 .harness/mine/after; }
 cap exercise exercise
 
 echo
@@ -337,8 +353,12 @@ printf '%s\n' "$DB" | grep -qxF '         - @ConditionalOnThreading did not find
 printf '%s\n' "$DA" | grep -qxF '  OnThreadingCondition lines in the report: 4 · each under a bean method of TaskExecutorConfigurations or TaskSchedulingConfigurations: 4' || die "decides A: every threading condition in the task configurations"
 printf '%s\n' "$DB" | grep -qxF '  OnThreadingCondition lines in the report: 6 · each under a bean method of TaskExecutorConfigurations or TaskSchedulingConfigurations: 6' || die "decides B: every threading condition in the task configurations"
 [ "$(n decides "^  exit 0 · the seven responses: 7 lines · md5 $S115\$")" = 3 ] || die "decides: the seven responses, 115c36ba..., every run"
+# "the scheduler came with our jobs" (RED #60): TiffinBox's own context, switch off or on, never gets Boot's scheduler - its
+# configuration waits for the bean @EnableScheduling registers, and TiffinBox has none (own: 0 files)
+[ "$(n decides '^   TaskSchedulingConfigurations\.TaskSchedulerConfiguration:$')" = 3 ] || die "decides: Boot's scheduler configuration's block, every run"
+[ "$(n decides '^         - @ConditionalOnBean \(names: org\.springframework\.scheduling\.config\.internalScheduledAnnotationProcessor; SearchStrategy: all\) did not find any beans named org\.springframework\.scheduling\.config\.internalScheduledAnnotationProcessor \(OnBeanCondition\)$')" = 3 ] || die "decides: Boot's scheduler did not match - no scheduling processor - every run"
 [ "$(n decides '^  listens on: 127\.0\.0\.1:1889[01] · WARN lines 0 · ERROR lines 0$')" = 3 ] || die "decides: three runs, no warning"
-echo "  decides: default false, 1 property · 2 methods, PLATFORM / VIRTUAL · A platform matched, B virtual, A' = A · 4/4, 6/6 · 115c36ba... x3"
+echo "  decides: default false, 1 property · 2 methods, PLATFORM / VIRTUAL · A platform matched, B virtual, A' = A · 4/4, 6/6 · Boot's scheduler: did not match x3 · 115c36ba... x3"
 
 # "Our harness ... hands Boot's executor twenty short tasks. Switch not set: ThreadPoolTaskExecutor ... The twenty tasks
 # shared eight platform threads. Switch on: SimpleAsyncTaskExecutor. Twenty tasks, twenty virtual threads. ... Off again:
@@ -350,17 +370,25 @@ printf '%s\n' "$SA" | grep -qxF "Boot's executor, the bean applicationTaskExecut
 printf '%s\n' "$SA" | grep -qxF '20 tasks -> distinct threads 8 · virtual [false]' || die "switch A: 20 tasks on 8 platform threads"
 printf '%s\n' "$SB" | grep -qxF "Boot's executor, the bean applicationTaskExecutor: org.springframework.core.task.SimpleAsyncTaskExecutor" || die "switch B: SimpleAsyncTaskExecutor"
 printf '%s\n' "$SB" | grep -qxF '20 tasks -> distinct threads 20 · virtual [true]' || die "switch B: 20 tasks on 20 virtual threads"
+# "twenty brand-new threads ... the switch made it true again" - for @Async itself (RED #58): Boot's pool, then a new virtual
+# thread for every call
+printf '%s\n' "$SA" | grep -qxF '20 @Async calls -> distinct threads 8 · virtual [false] · names task-1 … task-8' || die "switch A: @Async on Boot's eight pool threads"
+printf '%s\n' "$SB" | grep -qxF '20 @Async calls -> distinct threads 20 · virtual [true] · names task-21 … task-40' || die "switch B: @Async, twenty new virtual threads"
 printf '%s\n' "$SA" | grep -qxF 'the switch, as the environment holds it: spring.threads.virtual.enabled = (not set)' || die "switch A: the switch not set"
 printf '%s\n' "$SB" | grep -qxF 'the switch, as the environment holds it: spring.threads.virtual.enabled = true · from commandLineArgs' || die "switch B: the switch on, from the flag"
-# "The server's executor: ThreadPerTaskExecutor ... Switch off, on, off again: the same class." "The context holds two
+# "The server's executor: ThreadPerTaskExecutor ... Switch off, on, off again: the same class." "The harness's context holds two
 # executor beans, and both are Boot's."
 [ "$(n switch "^  TiffinBox's HttpServer executor: java\.util\.concurrent\.ThreadPerTaskExecutor\$")" = 3 ] || die "switch: the server's executor, the same class every run"
 [ "$(n switch "^  TiffinBox's OrderQueue executor: java\.util\.concurrent\.ThreadPerTaskExecutor\$")" = 3 ] || die "switch: the kitchen's executor, the same class every run"
 [ "$(n switch "^the context's beans of type java\.util\.concurrent\.Executor: 2 · applicationTaskExecutor taskScheduler\$")" = 3 ] || die "switch: two executor beans, both Boot's, every run"
 # "the harness adds two jobs, each firing every fifty milliseconds. Switch not set: ThreadPoolTaskScheduler. Six firings, one
-# thread, scheduling one, shared by both jobs. ... In Boot's default, it still does. Switch on: SimpleAsyncTaskScheduler. Six
+# thread, scheduling one, shared by both jobs. ... Boot adds a scheduler of its own, with one thread: spring.task.scheduling.pool.size, default one. So both jobs still share it.
+# Switch on: SimpleAsyncTaskScheduler. Six
 # firings, six virtual threads, and the jobs shared none. Off again: one thread."
 [ "$(grep -c '@Scheduled(fixedRate = 50)' harness/threads/VThreads.java)" = 2 ] && grep -qE '^    static final int FIRINGS = 3;$' harness/threads/VThreads.java || die "the harness: two jobs, every 50 ms, three firings each kept"
+# "Boot adds a scheduler of its own, one thread: spring.task.scheduling.pool.size, default one" (RED #57)
+x switch '^Boot.s own metadata, its entry for spring\.task\.scheduling\.pool\.size: in spring-boot-autoconfigure-4\.1\.1\.jar · defaultValue 1$'
+x switch "^  its description: Maximum allowed number of threads\. Doesn't have an effect if virtual threads are enabled\.\$"
 printf '%s\n' "$SA" | grep -qxF "Boot's scheduler, the bean taskScheduler: org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler" || die "switch A: ThreadPoolTaskScheduler"
 printf '%s\n' "$SA" | grep -qxF '  the 6 firings -> distinct threads 1 · used by both jobs 1 · virtual [false] · daemon [false] · names scheduling-1' || die "switch A: six firings, one thread, shared"
 printf '%s\n' "$SB" | grep -qxF "Boot's scheduler, the bean taskScheduler: org.springframework.scheduling.concurrent.SimpleAsyncTaskScheduler" || die "switch B: SimpleAsyncTaskScheduler"
@@ -369,7 +397,7 @@ printf '%s\n' "$SB" | grep -qE '^  the 6 firings -> distinct threads 6 · used b
 printf '%s\n' "$SA" | grep -qxF '  daemon [false] · names task-1 … task-8' || die "switch A: eight task threads, not daemons"
 printf '%s\n' "$SB" | grep -qxF '  daemon [true] · names task-1 … task-20' || die "switch B: twenty task threads, daemons"
 [ "$(n switch '^  Boot.s log \(standard output\): 18 lines, not shown · WARN lines 0 · ERROR lines 0 · exit 0 · listening on 1889[23] now: 0$')" = 3 ] || die "switch: three clean runs"
-echo "  switch: A ThreadPoolTaskExecutor 20 -> 8, B SimpleAsyncTaskExecutor 20 -> 20 virtual, A' = A · scheduler 6 -> 1 shared / 6 virtual, 0 shared · 2 Executor beans · ThreadPerTaskExecutor x3"
+echo "  switch: A ThreadPoolTaskExecutor 20 -> 8, B SimpleAsyncTaskExecutor 20 -> 20 virtual, A' = A · @Async 20 -> 8 / 20 virtual · pool.size default 1 · scheduler 6 -> 1 shared / 6 virtual, 0 shared · 2 Executor beans · ThreadPerTaskExecutor x3"
 
 # "A thread dump ... shows two that aren't daemons, switch off or on. DestroyJavaVM ... HTTP-Dispatcher runs the JDK's HTTP
 # server ... Boot's metadata describes a keep-alive property for apps with no such thread."
@@ -377,8 +405,11 @@ echo "  switch: A ThreadPoolTaskExecutor 20 -> 8, B SimpleAsyncTaskExecutor 20 -
 [ "$(n alive '^  "HTTP-Dispatcher", its frame from the JDK.s HTTP server \(version and line cut\): sun\.net\.httpserver\.ServerImpl\$Dispatcher\.run\(jdk\.httpserver\)$')" = 2 ] || die "alive: the dispatcher runs the JDK's HTTP server"
 [ "$(n alive "^  exit 0 · the seven responses: 7 lines · md5 $S115\$")" = 2 ] || die "alive: 115c36ba..., off and on"
 x alive '^  its description: Whether to keep the application alive even if there are no more non-daemon threads\.$'
-x alive '^\$ cd \.harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1\.0\.0\.jar --tiffinbox\.port=18895 --spring\.threads\.virtual\.enabled=true$'
-echo "  alive: 2 non-daemon threads (DestroyJavaVM, HTTP-Dispatcher) off and on · keep-alive described · 115c36ba... x2"
+# B's flip took effect (RED #59): the report of that run names the virtual method, A's the platform one
+LA=$(blk alive 'A - ' 'B - '); LB=$(blk alive 'B - ' '')
+printf '%s\n' "$LA" | grep -qxF "  the report: the bean method that built Boot's executor - applicationTaskExecutor" || die "alive A: the platform method built Boot's executor"
+printf '%s\n' "$LB" | grep -qxF "  the report: the bean method that built Boot's executor - applicationTaskExecutorVirtualThreads" || die "alive B: the switch took effect - the virtual method built Boot's executor"
+echo "  alive: the report - applicationTaskExecutor off, ...VirtualThreads on · 2 non-daemon threads (DestroyJavaVM, HTTP-Dispatcher) off and on · keep-alive described · 115c36ba... x2"
 
 # the exercise's end state: every line exercise/README.md calls "Done" is a line of this capture, after the solution's command
 XE=$(blk exercise "the solution's command" '')
@@ -388,7 +419,7 @@ for l in "the switch, as the environment holds it: spring.threads.virtual.enable
   awk '/^\*\*Done\*\*/ { f = 1 } f' exercise/README.md | grep -qxF -- "$l" || die "exercise/README.md: Done names no line: $l"
   grep -qxF -- "$l" exercise/solution/SOLUTION.md || die "SOLUTION.md: the measured run shows no line: $l"; done
 x exercise '^20 tasks -> distinct threads 8 · virtual \[false\]$'
-x exercise '^  exit 0 · printed: 0 line\(s\) · the token: 33 bytes, -rw------- · \.harness/mine/classes: 3 classes$'
+x exercise '^  exit 0 · printed: 0 line\(s\) · the token: 33 bytes, -rw------- · \.harness/mine/classes: 4 classes$'
 echo "  exercise: the README as written -> 8; the variable -> 20 virtual, from systemEnvironment, ThreadPerTaskExecutor"
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
 echo "c5-unit18: every capture 3/3 and = published; every spoken number asserted; 0 raw demo tokens in every capture"

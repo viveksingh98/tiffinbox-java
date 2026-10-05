@@ -92,7 +92,8 @@ Two new files and two changed ones; the Java sources are untouched — `change` 
 diffs:
 - `compose.yaml` — new, at the anchor's root: 24 lines, 10 of them comments. `name: tiffinbox-dev`; one service, `postgres`, the
   official `postgres:18-alpine`, with `POSTGRES_DB: tiffinbox`, `POSTGRES_USER: tiffinbox` and `POSTGRES_HOST_AUTH_METHOD: trust` — no
-  password anywhere, nothing secret committed; its port `"127.0.0.1:18881:5432"`, this computer's loopback alone; and its data in a
+  password anywhere, nothing secret committed; its port `"127.0.0.1:18881:5432"`, published on this computer's loopback alone (on
+  OrbStack the container's own address answers from the Mac too, unpublished — `lifecycle`; RED #53); and its data in a
   named volume, `data:/var/lib/postgresql` (a departure from ⚑6, argued in `volume` and *Found on the way*).
 - `tiffinbox-web/pom.xml` — `spring-boot-docker-compose`, no version (Boot's parent manages it), `<optional>true</optional>`, with a
   four-line comment: 9 lines.
@@ -145,7 +146,9 @@ are unchanged. The builder counts the token again in the script, the deck and th
   `docker compose -p tiffinbox-dev down -v`, repeated until Docker lists none of its containers, volumes or networks; the image and the
   container by name; the unnamed volume by its recorded ID. `tiffinbox-docker:*` (the Dockerfile lesson's) is never touched. A
   container, image or volume that was there before the run is never touched; `docker … prune` is never run (a third-party container
-  and its images live on this Docker). BuildKit's cache keeps the image's layers: no selective prune exists.
+  and its images live on this Docker). BuildKit's cache keeps the image's layers — its context, `after/`, holds no token — and no
+  prune is run: a filtered prune makes BuildKit match no earlier record afterwards, for every build on this Docker (measured in
+  `../c5-unit16/`, which prunes its own leak layer at its exit).
 
 ## Masks, filters and hygiene — every one, declared
 
@@ -190,18 +193,21 @@ made, 18881 published; (2) during `default`, `tiffinbox-nodev` running, 18887 pu
 processes with this unit's path in their command line, 0 `docker compose --file <this folder>/…` processes, 0 containers, volumes or
 networks of the project, 0 `tiffinbox-nodev` containers or images, 0 volumes and 0 images that were not there before the run, 0
 listeners on 18425 and 18880-18889, `.r-lock` gone — and the third-party container still running. (A fifth SIGINT, sent when a
-watcher gave up waiting during `docker`'s third run: 130, and nothing of the run left.)
+watcher gave up waiting during `docker`'s third run: 130, and nothing of the run left.) **Tested once more by BLUE part B**, after
+`lifecycle` gained its `docker inspect`, `pg_isready` and `nc` lines: SIGINT the moment `lifecycle`'s TiffinBox listened on 18880,
+`tiffinbox-dev-postgres-1` running with its volume → exit **130**; 5 s later 0 containers, volumes or networks of the project, 0
+listeners on 18425 and 18870-18899, no process with this unit's path, `.r-lock` gone, the third-party container running.
 
 ## 1 · Change — two new files, two changed; the jar; the class path; the module
 
-`.r-change.out` `c7a1f5a5f556cd749b8fa3156732aafc` — 70 lines
+`.r-change.out` `e29660c31f5f4a3495e79da49bd11f8a` — 70 lines
 
 ```
 files, README aside: the previous tree 20 · after/ 22 · in both 20: identical 18, changed 2
   only before: (none)
   only after:  compose.yaml tiffinbox-web/src/main/resources/application-dev.yaml
   changed:     tiffinbox-web/pom.xml tiffinbox-web/src/main/resources/application.yaml
-  README.md, the anchor's: lines added 46 · removed 0
+  README.md, the anchor's: lines added 48 · removed 0
 after/compose.yaml, whole - 24 lines, 10 of them comments:
   1  # TiffinBox's database for development: one official Postgres image. Boot's Docker Compose support starts it while the
   2  # profile "dev" is active (application-dev.yaml), from the folder TiffinBox starts in - this one - and stops it when
@@ -280,7 +286,7 @@ lesson.
 
 ## 2 · Lifecycle — what Boot does with Docker, start to stop
 
-`.r-lifecycle.out` `53f1693add1bcd75e399885af95cd01e` — 37 lines
+`.r-lifecycle.out` `454a58b2a98aaa0ee43efe7d83478916` — 43 lines
 
 ```
 the compose project tiffinbox-dev, before this run: containers 0 · volumes 0 · networks 0
@@ -289,6 +295,12 @@ $ docker image inspect -f '{{json .Config.Volumes}} {{json .Config.Healthcheck}}
 $ cd .harness/dev && java -cp "tiffinbox-web/target/classes:$(cat tiffinbox-web/target/classpath.txt)" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=18880 --spring.profiles.active=dev --logging.level.org.springframework.boot.docker.compose.core.ProcessRunner=trace
   listens on: 127.0.0.1:18880 · WARN lines 0 · ERROR lines 0
 the compose project while TiffinBox runs: tiffinbox-dev-postgres-1 running 127.0.0.1:18881->5432/tcp
+$ docker inspect -f '{{.State.Status}} · health status: {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' tiffinbox-dev-postgres-1
+  exit 0 · running · health status: none
+$ docker exec tiffinbox-dev-postgres-1 pg_isready
+  exit 0 · /var/run/postgresql:5432 - accepting connections (polled until it answered)
+$ nc -z -G 2 "$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tiffinbox-dev-postgres-1)" 5432
+  exit 0 · the container's own address, port 5432 - which no ports: entry publishes (polled until it answered)
 $ $CURLSET 18880 .harness/dev/secrets/tiffinbox/shutdown-token
 POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
@@ -327,8 +339,13 @@ command-line tool**, 8 times on `main` before TiffinBox listens: `docker version
 with the file named by `--file`, `config`, `ps`, `up --no-color --detach --wait`, `ps` again, and `docker inspect` of the container.
 `Using Docker Compose file …/.harness/dev/compose.yaml`: the folder TiffinBox started in. Compose's own lines follow `up`: the network,
 the volume, the container — `Creating`, `Created`, `Starting`, `Started`, `Waiting`, `Healthy`. The image declares no health check
-(`null`); `Healthy` is Compose's last word. Every name Compose made starts with the project's (3 of 3). TiffinBox then listens, the
-container runs with `127.0.0.1:18881->5432/tcp`, and the seven hash to `115c36bac276128e245ca57df11c2891`. **After POST /shutdown,
+(`null`); `Healthy` is Compose's last word, and here it means only running: while TiffinBox runs, `docker inspect` gives the
+container `running · health status: none` (RED #50 caught `pg_isready` answering `no response` the moment `--wait` returned; Boot's
+own readiness check is not named on screen, and not measured here). Every name Compose made starts with the project's (3 of 3).
+TiffinBox then listens, the container runs with `127.0.0.1:18881->5432/tcp`, and — Postgres polled with `pg_isready` until it
+accepts — the container's own address, port 5432, answers from the Mac: no `ports:` entry publishes it, OrbStack routes the
+container's address (`nc -z`, polled every 0.5 s: the first connection to a project network made a moment ago failed once in five
+probes, Postgres already accepting; RED #53). The seven hash to `115c36bac276128e245ca57df11c2891`. **After POST /shutdown,
 Boot runs one more command, on the shutdown hook's thread** (`[ionShutdownHook]`): `stop --timeout 10`. The container is `exited
 (exit code 0)` — stopped, not removed — and the volume and the network stay. `Pulling`: 0 — the image was here.
 
@@ -721,8 +738,9 @@ build -q` used the base already here).
 ## Found on the way
 
 - **The S3 probe left a Postgres volume on this Docker.** An unnamed volume created at 12:56:58 on 2026-10-05 — inside the probe's
-  window — holds a PostgreSQL 18 data folder (`18/docker`), and no container uses it: what `volume` B shows `down` leaving behind. The
-  probe notes say no volume of the probe was left. **Not removed here: it is not this unit's** (Vivek's call). It is why
+  window — held a PostgreSQL 18 data folder (`18/docker`), and no container used it: what `volume` B shows `down` leaving behind (and
+  a `down -v` run afterwards; `down -v` on the running project removes such a volume — RED #54). It was not removed by this unit; by
+  RED part B's runs the same day it was gone, and Docker listed only the third party's volume (the probe notes' errata). It is why
   `compose.yaml` names its volume.
 - **The probe's "TiffinBox … user `sa`, trust → `AUTO_INCREMENT`" needs the user in the URL.** TiffinBox's `Database` connects as
   `sa`; `compose.yaml` makes Postgres's user `tiffinbox`. Measured once in a scratch copy: without `?user=tiffinbox`, `FATAL: role "sa"
@@ -757,8 +775,9 @@ build -q` used the base already here).
 - **Unchanged:** the record `TiffinBoxProperties(jdbcUrl, cooks, days, port, address, mealTypes, shutdownToken)`; the listening line
   `TiffinBox listening on http://<address>:<port>`; the token from a config tree; a harness class path from `extract`; the seven via
   `../c5-unit11/curlset.sh PORT TOKENFILE`; the image as the Dockerfile lesson built it.
-- **Docker here:** `postgres:18-alpine` is on this Mac (18.6, digest above). The probe's unnamed volume is still there (above).
-- **RED:** the named volume is a departure from ⚑6 (argued: `volume`); `Healthy` is Compose's word, and the image has no health check;
+- **Docker here:** `postgres:18-alpine` is on this Mac (18.6, digest above). The probe's unnamed volume is gone (above).
+- **RED:** the named volume is a departure from ⚑6 (argued: `volume`); `Healthy` is Compose's word, and here it means running (the
+  image has no health check, the container no health status — measured);
   the trace flag is on screen in `lifecycle` and the jar's dev run, nowhere in the anchor; `mvn spring-boot:run` stays unmeasured; the
   exercise's answer leaves the volume by design; Course 11's Testcontainers is not named anywhere in the deck.
 

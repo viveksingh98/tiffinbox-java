@@ -7,7 +7,9 @@ heap limit, then give Java three quarters of it.**
 Run everything from this unit's folder (`c5-unit16/`), with its own `.m2-demo` (every Maven build is offline). The first two
 commands build the lesson's image, `tiffinbox-docker:1.0.0`, from `after/` — the jar on your machine, then the image from
 `after/Dockerfile`. The third runs Java in that image, not TiffinBox: `--entrypoint java` replaces the image's own command,
-and `-XX:+PrintFlagsFinal -version` prints every setting Java chose, then stops. `grep -w` keeps the heap limit's line:
+and `-XX:+PrintFlagsFinal -version` prints every setting Java chose, then stops. `grep -w` keeps the heap limit's line.
+**`tiffinbox-docker:1.0.0` is also the name the anchor's README builds:** if you built that image yourself, the second command
+replaces it with this one (the same Dockerfile, the same jar), and the last block below removes it.
 
 ```bash
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
@@ -28,7 +30,7 @@ changes: the Dockerfile bakes in no memory flag.
 **Done** when the same line says `MaxHeapSize = 402653184` — 384 MiB, three quarters of 512 MiB — and Java's first line on
 the terminal says it picked your option up. The measured answer, run exactly as written: `solution/SOLUTION.md`.
 
-When you are done:
+When you are done (this removes the image of that name, whoever built it — skip it to keep the anchor's image):
 
 ```bash
 docker image rm tiffinbox-docker:1.0.0

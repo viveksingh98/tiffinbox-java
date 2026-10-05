@@ -256,11 +256,14 @@ loader, asked first, loads the classes that header names from that folder — me
 One file changed, and nothing else: the root `pom.xml` gains one property,
 `<project.build.outputTimestamp>2026-09-15T00:00:00Z</project.build.outputTimestamp>` — the same line, with the same date,
 that Course 3's reproducible-build exercise put into its packaging POM (`../c3-unit23/pom.xml`). Every archive the build
-writes now stamps each entry with that instant instead of the build's clock, so **two clean builds of the same sources give
-the same bytes**: measured, `tiffinbox-web-1.0.0.jar` built twice has one md5, and the four layers Boot's index names
-(`BOOT-INF/layers.idx`: `dependencies`, `spring-boot-loader`, `snapshot-dependencies`, `application`) unpack to the same
-files. Without it, `tiffinbox-core`'s jar — the same classes, 18 of its 19 entries dated by its build — and with it the
-`application` layer of Boot's jar changed on every build, even with no change at all.
+writes now stamps each entry with that instant instead of the build's clock, so **two clean builds of the same sources,
+in one time zone, give the same bytes**: measured, `tiffinbox-web-1.0.0.jar` built twice has one md5, and the four
+layers Boot's index names (`BOOT-INF/layers.idx`: `dependencies`, `spring-boot-loader`, `snapshot-dependencies`,
+`application`) unpack to the same files. In another time zone the jar differs: Boot's repackage gives 8 entries under
+`BOOT-INF/classes/` an NTFS time field that follows the zone (measured: `TZ=UTC` against `TZ=Asia/Kolkata`, 5.5 hours
+apart; every entry's name, content and date the same; `tiffinbox-core`'s jar byte for byte the same) — `../c5-unit14/`,
+capture `moved`. Without it, `tiffinbox-core`'s jar — the same classes, 18 of its 19 entries dated by its build — and
+with it the `application` layer of Boot's jar changed on every build, even with no change at all.
 
 Nothing about building or running TiffinBox changes: the build, the jar's name and the run command are unit 13's
 (`java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431`, with its token). `tiffinbox-core` lands in
@@ -268,10 +271,11 @@ the `application` layer only when the reactor builds it — a build from this ro
 own takes `tiffinbox-core` from the local repository, as a library, into `dependencies`.
 
 The images this was measured with are not part of the anchor: Boot's two-stage Dockerfile recipe, a copy of
-host-extracted layer folders, and a fat-jar image live in `../c5-unit14/docker/`, with their evidence. **If you write a
-Dockerfile for this jar, run Boot's `extract` inside the build**, as the recipe's first stage does: with this fixed time, a
-layer folder extracted on the host keeps its files' sizes and times across a same-length change, Docker's build does not
-send the changed file again, and the image keeps the old class (measured in `../c5-unit14/`, capture `stale`).
+host-extracted layer folders, and a single-jar image (Boot's jar, copied whole) live in `../c5-unit14/docker/`, with
+their evidence. **If you write a Dockerfile for this jar, run Boot's `extract` inside the build**, as the recipe's first
+stage does: with this fixed time, a layer folder extracted on the host keeps its files' sizes and times across a
+same-length change, Docker's build does not send the changed file again, and the image keeps the old class (measured in
+`../c5-unit14/`, capture `stale`).
 
 ---
 

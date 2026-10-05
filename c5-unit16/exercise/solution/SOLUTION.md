@@ -9,7 +9,9 @@ docker run --rm -m 512m -e JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75 --entrypoin
 **Measured.** `../README.md`'s first bash block, then the block above, then `../README.md`'s clean-up block, every line exactly as
 written, in one clean shell (`env -i HOME=… PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin bash --noprofile --norc`), from
 `c5-unit16/`, on 2026-10-05. One thing is masked here: the image IDs `docker build -q` and `docker image rm` printed. Java's
-`-version` lines are its standard error, so they reach the terminal ahead of `grep`'s line.
+`-version` lines are its standard error, so they reach the terminal ahead of `grep`'s line. Re-run exactly as written in the same
+kind of clean shell by BLUE part B, 2026-10-05, after the README gained its note on the shared image name (prose only): the same
+transcript, line for line.
 
 ```
 $ export JAVA_HOME=/opt/homebrew/opt/openjdk@25

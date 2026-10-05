@@ -15,7 +15,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #             META-INF/spring.factories, whole
 #   lifecycle README.md's dev run (a developer's copy of after/: compose.yaml and a config tree beside the README, built the
 #             README's way), one logger at TRACE: every docker command Boot runs, Compose's own lines, the container while
-#             TiffinBox runs, the seven responses, the command Boot runs when TiffinBox stops, and what is left
+#             TiffinBox runs - its state and health status, and its own address reached from the Mac - the seven
+#             responses, the command Boot runs when TiffinBox stops, and what is left
 #   jar       the jar Boot ships: one copy of after/, built five times - A as declared · B excludeDockerCompose off · C
 #             includeOptional on · D both · A' = A - each jar's entries counted; and A's jar run with the profile, beside
 #             compose.yaml
@@ -54,8 +55,9 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # runs. The exit trap removes exactly those: the project with docker compose -p tiffinbox-dev down -v (repeated until Docker
 # lists none of its containers, volumes or networks), the image and the container by name, the volume by its recorded ID.
 # The project is the anchor's, so a developer's own dev run uses it too: this script refuses to start while Docker lists
-# anything of it, and touches it only after that check. BuildKit's cache is left: no selective prune exists, and a global
-# prune would touch other people's cache. Never a prune: a third-party container and its images live on this Docker.
+# anything of it, and touches it only after that check. BuildKit's cache records of the image's build are left: its context,
+# after/, holds no token, and the Dockerfile copies the jar alone. Never an unfiltered prune: a third-party container and its
+# images live on this Docker, and other people's build cache with them.
 set -e
 cd "$(dirname "$0")"
 # One run at a time: two runs share .harness/, the ports and the Docker names, and one would corrupt the other.
@@ -349,12 +351,22 @@ changecap() { local a b n=0 same=0 changed="" gone="" new="" f j1 j2 dc
 cap change changecap
 
 # ---- lifecycle: README's dev run, one logger at TRACE: what Boot does with Docker when TiffinBox starts, and when it stops -----
-lifecyclecap() { local n
+lifecyclecap() { local n k
   fresh
   runf "docker image inspect -f '{{json .Config.Volumes}} {{json .Config.Healthcheck}}' postgres:18-alpine"; echo "  $(cat .harness/run.out)"
   startjar "$C_LIFE"; up
   docker ps -a --filter "label=com.docker.compose.project=$PROJ" --format '{{.Names}} {{.State}} {{.Ports}}' > .harness/ps.txt
   echo "the compose project while TiffinBox runs: $(cat .harness/ps.txt)"
+  # Compose's "Healthy", for an image with no health check: the container's state and its health status, as Docker keeps them
+  runf "docker inspect -f '{{.State.Status}} · health status: {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' tiffinbox-dev-postgres-1"; echo "  exit $ec · $(cat .harness/run.out)"
+  # The container's own address, from the Mac: no ports: entry publishes it. Postgres is polled first (pg_isready, every 0.5 s,
+  # 30 s at most): Compose's Healthy came before Postgres accepted connections in RED's probe, so the first answer is timing
+  waitpg() { local i=0; until docker exec tiffinbox-dev-postgres-1 pg_isready -q > /dev/null 2>&1 || [ $i -ge 60 ]; do sleep 0.5; i=$((i + 1)); done; }
+  waitpg; runf "docker exec tiffinbox-dev-postgres-1 pg_isready"; echo "  exit $ec · $(cat .harness/run.out) (polled until it answered)"
+  # the first connection to a project network made a moment ago can fail while OrbStack sets its route up (one probe of
+  # five, Postgres already accepting): nc is polled too, every 0.5 s, 10 s at most
+  k=0; until nc -z -G 2 "$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tiffinbox-dev-postgres-1)" 5432 > /dev/null 2>&1 || [ $k -ge 20 ]; do k=$((k + 1)); sleep 0.5; done
+  runf "nc -z -G 2 \"\$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tiffinbox-dev-postgres-1)\" 5432"; echo "  exit $ec · the container's own address, port 5432 - which no ports: entry publishes (polled until it answered)"
   seven 18880 .harness/dev
   n=$(grep -c . .harness/jar.out); clines .harness/jar.out > .harness/cl.txt
   echo "the log, start to exit: $n lines · shown $(grep -c . .harness/cl.txt) - Boot's lines about Docker Compose, the profile and TiffinBox's listening line (README, filters); not shown $((n - $(grep -c . .harness/cl.txt))) - the banner, Boot's and TiffinBox's other lines, and the two ProcessRunner lines after each Running line: Waiting for process exit $(grep -cE 'ProcessRunner +: Waiting for process exit' .harness/jar.out || true) · Process exited with exit code 0 $(grep -cE 'ProcessRunner +: Process exited with exit code 0' .harness/jar.out || true)"
@@ -616,11 +628,16 @@ has1 "$SF" '  org.springframework.context.ApplicationListener=\' change
 echo "  change: compose.yaml (tiffinbox-dev, postgres:18-alpine, trust, 127.0.0.1:18881, a named volume) and application-dev.yaml new · 7 lines in application.yaml, 9 in the POM · the jar: 3 entries differ · the class path: +3 jars · 2 listeners"
 
 # "Boot runs Docker's own command-line tool: its version, the file's config, then compose up, and waits. Compose creates the
-# network, the volume and the container ... healthy ... the seven ... on the shutdown hook's thread, one more command: compose
+# network, the volume and the container ... healthy, which here only means running ... the seven ... on the shutdown hook's thread, one more command: compose
 # stop ... the container is exited, not removed; its network and its volume stay"
 x lifecycle '^  \{"/var/lib/postgresql":\{\}\} null$'
 x lifecycle '^  listens on: 127\.0\.0\.1:18880 · WARN lines 0 · ERROR lines 0$'
 x lifecycle '^the compose project while TiffinBox runs: tiffinbox-dev-postgres-1 running 127\.0\.0\.1:18881->5432/tcp$'
+# "Its last word is healthy, which here only means running" (RED #50): no health check in the image, none on the container
+x lifecycle '^  exit 0 · running · health status: none$'
+# chip (RED #53): "on OrbStack, the container's own address answers from this Mac too - not published"
+x lifecycle '^  exit 0 · /var/run/postgresql:5432 - accepting connections \(polled until it answered\)$'
+x lifecycle "^  exit 0 · the container's own address, port 5432 - which no ports: entry publishes \(polled until it answered\)\$"
 x lifecycle "^  exit 0 · the seven responses: 7 lines · md5 $S115\$"
 LG=$(blk lifecycle 'the log, start to exit: ' '  Running lines: ')
 for l in "  [main] Running 'docker version --format {{.Client.Version}}'" "  [main] Running 'docker compose --file …/.harness/dev/compose.yaml --ansi never config --format=json'" "  [main] Running 'docker compose --file …/.harness/dev/compose.yaml --ansi never up --no-color --detach --wait'" '  Network tiffinbox-dev_default Created' '  Volume tiffinbox-dev_data Created' '  Container tiffinbox-dev-postgres-1 Created' '  Container tiffinbox-dev-postgres-1 Started' '  Container tiffinbox-dev-postgres-1 Waiting' '  Container tiffinbox-dev-postgres-1 Healthy' '  TiffinBox listening on http://127.0.0.1:18880' "  [ionShutdownHook] Running 'docker compose --file …/.harness/dev/compose.yaml --ansi never stop --timeout 10'"; do
@@ -633,11 +650,11 @@ x lifecycle '^  Running lines: 9 · on the main thread: 8 · lines that say Pull
 x lifecycle '^  containers: tiffinbox-dev-postgres-1 exited \(exit code 0\)$'
 x lifecycle '^  volumes: tiffinbox-dev_data$'
 x lifecycle '^  networks: tiffinbox-dev_default$'
-echo "  lifecycle: 8 docker commands on main (version ... config ... up --wait), Compose's Created/Started/Waiting/Healthy, 3 names of 3 the project's · $S115 · stop --timeout 10 on [ionShutdownHook] · exited (0), the volume and the network kept · Pulling 0"
+echo "  lifecycle: 8 docker commands on main (version ... config ... up --wait), Compose's Created/Started/Waiting/Healthy, 3 names of 3 the project's · running, health status none · the container's own address answers · $S115 · stop --timeout 10 on [ionShutdownHook] · exited (0), the volume and the network kept · Pulling 0"
 
 # "the jar Boot ships holds none of this: zero entries of the module, zero of Jackson 3. Started with dev, beside compose.yaml,
-# Boot runs no Docker command ... include optional, off, keeps the module and its Jackson out. Exclude docker compose, on,
-# keeps the module out, but lets its Jackson in"
+# Boot runs no Docker command ... include optional, off, keeps the module and its Jackson out. With include optional on,
+# exclude docker compose still keeps the module out, but not its Jackson"
 JA=$(blk jar 'A   ' 'B   '); JB=$(blk jar 'B   ' 'C   '); JC=$(blk jar 'C   ' 'D   '); JD=$(blk jar 'D   ' 'A′  '); JA2=$(blk jar 'A′  ' '')
 has1 "$JA" '  BOOT-INF/lib/: 31 jars · spring-boot-docker-compose: 0 · Jackson 3, jackson-core-3 and jackson-databind-3: 0' jar
 has1 "$JA" "  the jar: after/'s, the same bytes: yes · .harness/dev's, the same bytes: yes" jar
@@ -715,7 +732,7 @@ has1 "$VB" '  exit 0 · {"com.docker.volume.anonymous":""}' volume
 has1 "$VB" '  exit 0 · lines it printed: 0 · the last: (none)' volume
 has1 "$VB" '  exit 0 · still there: yes' volume
 [ "$VA" = "$VA2" ] || die "volume: A' is not A, line for line"
-echo "  volume: A tiffinbox-dev_data, kept by down, removed by down -v · B no name (64 characters, anonymous), left by down and by down -v, removed by its ID · A' = A"
+echo "  volume: A tiffinbox-dev_data, kept by down, removed by down -v · B no name (64 characters, anonymous), left by down, and by a down -v run afterwards, removed by its ID · A' = A"
 
 # the exercise's end state: exited after the lesson's stop; nothing after the answer's; the volume kept, then removed
 EA=$(blk exercise "its second block - a second terminal" 'the measured answer'); EB=$(blk exercise 'its second block - the second terminal:' "exercise/README.md's last block")

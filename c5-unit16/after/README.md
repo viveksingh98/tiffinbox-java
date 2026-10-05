@@ -256,11 +256,14 @@ loader, asked first, loads the classes that header names from that folder — me
 One file changed, and nothing else: the root `pom.xml` gains one property,
 `<project.build.outputTimestamp>2026-09-15T00:00:00Z</project.build.outputTimestamp>` — the same line, with the same date,
 that Course 3's reproducible-build exercise put into its packaging POM (`../c3-unit23/pom.xml`). Every archive the build
-writes now stamps each entry with that instant instead of the build's clock, so **two clean builds of the same sources give
-the same bytes**: measured, `tiffinbox-web-1.0.0.jar` built twice has one md5, and the four layers Boot's index names
-(`BOOT-INF/layers.idx`: `dependencies`, `spring-boot-loader`, `snapshot-dependencies`, `application`) unpack to the same
-files. Without it, `tiffinbox-core`'s jar — the same classes, 18 of its 19 entries dated by its build — and with it the
-`application` layer of Boot's jar changed on every build, even with no change at all.
+writes now stamps each entry with that instant instead of the build's clock, so **two clean builds of the same sources,
+in one time zone, give the same bytes**: measured, `tiffinbox-web-1.0.0.jar` built twice has one md5, and the four
+layers Boot's index names (`BOOT-INF/layers.idx`: `dependencies`, `spring-boot-loader`, `snapshot-dependencies`,
+`application`) unpack to the same files. In another time zone the jar differs: Boot's repackage gives 8 entries under
+`BOOT-INF/classes/` an NTFS time field that follows the zone (measured: `TZ=UTC` against `TZ=Asia/Kolkata`, 5.5 hours
+apart; every entry's name, content and date the same; `tiffinbox-core`'s jar byte for byte the same) — `../c5-unit14/`,
+capture `moved`. Without it, `tiffinbox-core`'s jar — the same classes, 18 of its 19 entries dated by its build — and
+with it the `application` layer of Boot's jar changed on every build, even with no change at all.
 
 Nothing about building or running TiffinBox changes: the build, the jar's name and the run command are unit 13's
 (`java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431`, with its token). `tiffinbox-core` lands in
@@ -268,10 +271,11 @@ the `application` layer only when the reactor builds it — a build from this ro
 own takes `tiffinbox-core` from the local repository, as a library, into `dependencies`.
 
 The images this was measured with are not part of the anchor: Boot's two-stage Dockerfile recipe, a copy of
-host-extracted layer folders, and a fat-jar image live in `../c5-unit14/docker/`, with their evidence. **If you write a
-Dockerfile for this jar, run Boot's `extract` inside the build**, as the recipe's first stage does: with this fixed time, a
-layer folder extracted on the host keeps its files' sizes and times across a same-length change, Docker's build does not
-send the changed file again, and the image keeps the old class (measured in `../c5-unit14/`, capture `stale`).
+host-extracted layer folders, and a single-jar image (Boot's jar, copied whole) live in `../c5-unit14/docker/`, with
+their evidence. **If you write a Dockerfile for this jar, run Boot's `extract` inside the build**, as the recipe's first
+stage does: with this fixed time, a layer folder extracted on the host keeps its files' sizes and times across a
+same-length change, Docker's build does not send the changed file again, and the image keeps the old class (measured in
+`../c5-unit14/`, capture `stale`).
 
 ## Course 5 · unit 15 — an address a container can reach (2026-10-05)
 
@@ -285,9 +289,10 @@ Three files changed, and nothing else:
 **On the Mac, nothing changes:** the run command, the log line (`TiffinBox listening on http://127.0.0.1:18431`) and the
 seven responses (`115c36bac276128e245ca57df11c2891`). **In a container, `127.0.0.1` is the container's own address:** a
 port Docker publishes does not arrive there — measured: the log says `TiffinBox listening on http://127.0.0.1:18425`, and
-the Mac's `curl` gets `curl: (52) Empty reply from server`. Give the container `TIFFINBOX_ADDRESS=0.0.0.0` — every
-interface of the container — and publish the port on the Mac's `127.0.0.1` alone. Boot's own key, `server.address`
-(`SERVER_ADDRESS`), changes nothing here: TiffinBox's `HttpServer` never reads it.
+the Mac's `curl` gets `curl: (52) Empty reply from server` (on OrbStack; another Docker may answer differently). Give
+the container `TIFFINBOX_ADDRESS=0.0.0.0` — every interface of the container — and publish the port on the Mac's
+`127.0.0.1` alone. Boot's own key, `server.address` (`SERVER_ADDRESS`), changes nothing here: TiffinBox's `HttpServer`
+never reads it.
 
 **An image with no Dockerfile.** Boot's Maven plugin hands the jar to Paketo's buildpacks, in two steps: the first builds
 both modules (so `tiffinbox-core` lands in the `application` layer, unit 14's index), the second builds the web module's
@@ -297,7 +302,7 @@ when already present:
 ```bash
 mvn -B install
 mvn -B -pl tiffinbox-web spring-boot:build-image-no-fork -Dspring-boot.build-image.builder=paketobuildpacks/builder-noble-java-tiny@sha256:b95da27fce97b58037f0c11ae934760c50730da4c9a24976205b53638592eba9 -Dspring-boot.build-image.runImage=paketobuildpacks/ubuntu-noble-run-tiny:0.0.138 -Dspring-boot.build-image.pullPolicy=IF_NOT_PRESENT
-docker run -d --name tiffinbox -m 1g -e TIFFINBOX_ADDRESS=0.0.0.0 -v "$PWD/secrets:/workspace/secrets:ro" -p 127.0.0.1:18431:18425 tiffinbox-web:1.0.0
+docker run -d --name tiffinbox -m 1g --user "$(id -u):$(id -g)" -e TIFFINBOX_ADDRESS=0.0.0.0 -v "$PWD/secrets:/workspace/secrets:ro" -p 127.0.0.1:18431:18425 tiffinbox-web:1.0.0
 ```
 
 The image is `tiffinbox-web:1.0.0`, Boot's default name for this module. It runs as user `1002:1001` from `/workspace` —
@@ -307,9 +312,12 @@ the jar, unpacked — and holds no shell. The config tree goes there, read-only,
 spring-boot:build-image` from this folder:** it runs on `tiffinbox-core` first, fails (`Unable to find main class`), and
 leaves a container, its image and four `pack-*` volumes behind. A first build downloads, inside the build, BellSoft
 Liberica JRE 25.0.4 and syft (github.com) and spring-cloud-bindings 2.0.4 (Maven Central); the JRE is kept in the image's
-own layer, so a rebuild skips the download only while the previous image is still there. On the Mac, the container's user
-read the `0600` token file through OrbStack's file sharing; on a Linux host, check that before relying on it. Evidence in
-`../c5-unit15/`.
+own layer, so a rebuild skips the download only while the previous image is still there. `--user "$(id -u):$(id -g)"`
+runs the container as the owner of the `0600` token file. Where a file keeps its owner and mode — measured in a Docker
+volume, as on Linux — the image's own user, `1002:1001`, cannot read the folder, and the container exits 82 before Java
+starts (the buildpack's memory calculator: `open /workspace/secrets: permission denied`); run as your own user, it
+serves. On this Mac, OrbStack's file sharing lets the image's own user read a mounted file too. Evidence in
+`../c5-unit15/`, capture `user`.
 
 ## Course 5 · unit 16 — a Dockerfile of its own (2026-10-05)
 
@@ -347,8 +355,11 @@ container exits 143. Then `docker rm tiffinbox`. Arguments after the image name 
   `-e JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75`.
 - **The user:** as `ubuntu`, the container cannot delete the app's own jar; the same image run with `--user root` can.
   `ubuntu` is a member of Ubuntu's default groups, `sudo` among them; the image has no `sudo` command.
-- On the Mac the container's user read the `0600` token file through OrbStack's file sharing; on a Linux host, check that
-  before relying on it. Evidence in `../c5-unit16/`.
+- On the Mac the container's user, `ubuntu` (uid 1000), read the `0600` token file through OrbStack's file sharing.
+  Where a file keeps its owner and mode — measured in a Docker volume, as on Linux — it cannot read a tree another user
+  owns: TiffinBox stops before it listens (`Unable to find files in '/app/./secrets'`, caused by
+  `java.nio.file.AccessDeniedException`), exit 1. Run it as the tree's owner — `--user "$(id -u):$(id -g)"` in the
+  `docker run` line — and it serves the seven. Evidence in `../c5-unit16/`, capture `owner`.
 
 ---
 

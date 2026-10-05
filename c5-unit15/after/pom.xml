@@ -31,7 +31,8 @@
     <!-- Course 5: one fixed time for every entry of every archive this build writes - Course 3's reproducible-build
          exercise, landed in the anchor. Without it each jar entry carries the clock of its own build, so tiffinbox-core's
          jar - and with it the application layer of Boot's jar - changed on every build, even with no change at all. With
-         it, two clean builds of the same sources give the same bytes, and the same four layers. -->
+         it, two clean builds of the same sources in one time zone give the same bytes, and the same four layers
+         (another zone changes 8 entries' NTFS time field: ../c5-unit14, capture moved). -->
     <project.build.outputTimestamp>2026-09-15T00:00:00Z</project.build.outputTimestamp>
   </properties>
 

@@ -10,6 +10,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
@@ -34,11 +36,13 @@ import java.util.stream.Collectors;
  * What {@code spring.threads.virtual.enabled} reaches in TiffinBox's context, and what it leaves alone.
  *
  * <p>The harness lives outside {@code com.tiffinbox}, so TiffinBoxApp's component scan never finds it. It starts TiffinBox
- * - TiffinBoxApp, plus this harness's {@link Jobs} - with the arguments it is given, and then prints, to standard error
- * (standard output is Boot's log):
+ * - TiffinBoxApp, plus this harness's {@link Jobs} and {@link Calls} - with the arguments it is given, and then prints, to
+ * standard error (standard output is Boot's log):
  * <ul>
  *   <li>the switch as the environment holds it, and the property source it came from;</li>
  *   <li>Boot's executor, the bean {@code applicationTaskExecutor}: its class, and the threads twenty 100 ms tasks ran on;</li>
+ *   <li>the threads twenty calls of one {@code @Async} method ran on - the executor Spring picked for them is not asked, only
+ *       the threads it gave;</li>
  *   <li>Boot's scheduler, the bean {@code taskScheduler}: its class, and the threads each job's first three firings ran on.
  *       The bean exists because {@link Jobs} enables scheduling: TiffinBox schedules nothing;</li>
  *   <li>the names of the context's beans of type {@link Executor};</li>
@@ -62,9 +66,11 @@ public class VThreads {
         }
     }
 
-    /** Two scheduled jobs, each firing every 50 ms; each keeps the thread of its first three firings, and no more. */
+    /** Two scheduled jobs, each firing every 50 ms; each keeps the thread of its first three firings, and no more. It also
+     *  switches {@code @Async} on, for {@link Calls}. */
     @Configuration
     @EnableScheduling
+    @EnableAsync
     public static class Jobs {
         static final Map<String, List<Seen>> SEEN = new ConcurrentHashMap<>();
         static final CountDownLatch FIRST = new CountDownLatch(2 * FIRINGS);
@@ -86,8 +92,22 @@ public class VThreads {
         }
     }
 
+    /** One {@code @Async} method of 100 ms: each call records the thread it ran on. A bean of its own, registered with Jobs. */
+    public static class Calls {
+        @Async
+        public void call(List<Seen> seen, CountDownLatch done) {
+            seen.add(Seen.now());
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            done.countDown();
+        }
+    }
+
     public static void main(String[] args) throws Exception {
-        ConfigurableApplicationContext context = new SpringApplication(TiffinBoxApp.class, Jobs.class).run(args);
+        ConfigurableApplicationContext context = new SpringApplication(TiffinBoxApp.class, Jobs.class, Calls.class).run(args);
         try {
             report(context, System.err);
         } finally {
@@ -124,6 +144,15 @@ public class VThreads {
         if (!done.await(15, TimeUnit.SECONDS)) throw new IllegalStateException(TASKS + " tasks did not finish in 15 s");
         out.println(TASKS + " tasks -> distinct threads " + distinct(tasks) + " · virtual " + flags(tasks, Seen::virtual));
         out.println("  daemon " + flags(tasks, Seen::daemon) + " · names " + range(tasks));
+
+        // @Async: twenty calls of one @Async method, every one recording the thread it ran on.
+        List<Seen> calls = Collections.synchronizedList(new ArrayList<>());
+        CountDownLatch called = new CountDownLatch(TASKS);
+        Calls bean = context.getBean(Calls.class);
+        for (int i = 0; i < TASKS; i++) bean.call(calls, called);
+        if (!called.await(15, TimeUnit.SECONDS)) throw new IllegalStateException(TASKS + " @Async calls did not finish in 15 s");
+        out.println(TASKS + " @Async calls -> distinct threads " + distinct(calls) + " · virtual " + flags(calls, Seen::virtual)
+                + " · names " + range(calls));
 
         // Boot's scheduler: each job's first three firings.
         if (!Jobs.FIRST.await(15, TimeUnit.SECONDS)) throw new IllegalStateException("the jobs did not fire 3 times each in 15 s");
@@ -183,12 +212,14 @@ public class VThreads {
         return String.join(" ", sorted(seen));
     }
 
-    /** The distinct names as "first … last" when they are prefix-1 to prefix-N with none missing; otherwise every one. */
+    /** The distinct names as "first … last" when they are prefix-K to prefix-N with none missing; otherwise every one. */
     static String range(List<Seen> seen) {
         List<String> n = sorted(seen);
         String prefix = n.get(0).replaceAll("\\d+$", "");
+        if (prefix.equals(n.get(0))) return String.join(" ", n);
+        long first = Long.parseLong(n.get(0).substring(prefix.length()));
         for (int i = 0; i < n.size(); i++) {
-            if (!n.get(i).equals(prefix + (i + 1))) return String.join(" ", n);
+            if (!n.get(i).equals(prefix + (first + i))) return String.join(" ", n);
         }
         return n.size() == 1 ? n.get(0) : n.get(0) + " … " + n.get(n.size() - 1);
     }

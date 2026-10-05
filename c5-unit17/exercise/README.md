@@ -4,7 +4,9 @@ In the lesson, Boot started Postgres with TiffinBox and stopped it when TiffinBo
 compose containers. Then make the next stop remove Postgres instead of just stopping it.**
 
 Run everything from this unit's folder (`c5-unit17/`), with Docker running and this unit's own `.m2-demo` (every Maven build
-is offline). The first block copies the lesson's tree to `.harness/mine` (git-ignored; `receipts.sh` wipes `.harness/` when
+is offline). **The compose project is the anchor's own, `tiffinbox-dev`:** if Docker already lists it — your own development
+database, `docker volume ls` showing `tiffinbox-dev_data` — this exercise starts and stops that same Postgres, and its last block
+deletes the data volume (`down -v`). Back it up first, or skip the `-v`. The first block copies the lesson's tree to `.harness/mine` (git-ignored; `receipts.sh` wipes `.harness/` when
 it runs), builds it the lesson's way - the jar, and the class path file Maven writes - gives the copy a token of its own (32
 random hexadecimal characters, in a file only you can read) and starts TiffinBox there with the profile `dev`, on port 18888:
 
@@ -38,7 +40,8 @@ is `stop`.
 --filter label=com.docker.compose.project=tiffinbox-dev --format '{{.Name}}'` still prints `tiffinbox-dev_data`. The measured
 answer, run exactly as written: `solution/SOLUTION.md`.
 
-When you are done, from this unit's folder:
+When you are done, from this unit's folder (`-v` deletes the project's volume, `tiffinbox-dev_data`, whoever's data it holds — leave
+it off to keep it):
 
 ```bash
 docker compose -p tiffinbox-dev down -v

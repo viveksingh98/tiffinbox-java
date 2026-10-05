@@ -72,7 +72,7 @@ docker build -f docker/folders.Dockerfile -t tiffinbox-layers:folders .harness/c
 
 One file changed, none new (README aside) — `change`, below, shows every changed code line:
 - `pom.xml` (the root) — one property, `<project.build.outputTimestamp>2026-09-15T00:00:00Z</project.build.outputTimestamp>`, with a
-  four-line comment: the same line and the same date Course 3's packaging POM carries (`../c3-unit23/pom.xml`, where its
+  five-line comment (four until BLUE part B added part A's time-zone scope, RED #7): the same line and the same date Course 3's packaging POM carries (`../c3-unit23/pom.xml`, where its
   reproducible-build exercise put it). Every archive the build writes now stamps each entry with that instant instead of the build's
   clock (brief ⚑2).
 - `README.md` (the anchor's) — a new section, *Course 5 · unit 14 — one fixed build time*: what the property changes, that the run
@@ -191,13 +191,13 @@ jar — not a file format" still holds: an ordinary jar plus one index entry (le
 
 ## 2 · The change — one property in the root POM
 
-`.r-change.out` `462d56c770cc8b6bb46582a6cd2809bd` — 7 lines
+`.r-change.out` `7f9d78cc18b7ee6b3be976d2859f7077` — 7 lines
 
 ```
 files, README aside: the previous tree 18 · after/ 18 · in both 18: identical 17, changed 1
   only before: (none)
   only after:  (none)
-pom.xml, every changed line but comments and blanks (4 of those not shown):
+pom.xml, every changed line but comments and blanks (5 of those not shown):
 +    <project.build.outputTimestamp>2026-09-15T00:00:00Z</project.build.outputTimestamp>
   removed 0 · added 1
 the same line in Course 3's packaging POM ($C3POM), where its exercise put it: 1 time(s)
