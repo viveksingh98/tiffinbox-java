@@ -1,0 +1,4 @@
+# A developer's own settings, imported by application.yaml (optional:file:./tiffinbox-local.yaml): never committed.
+tiffinbox-local.yaml
+# The config tree application.yaml imports (optional:configtree:./secrets/): one file per secret. Never committed.
+secrets/
