@@ -11,9 +11,12 @@ docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' tiffinbox-web-mine
 docker wait tiffinbox-web-mine && docker rm tiffinbox-web-mine
 ```
 
-**Measured.** `../README.md`'s first bash block, then the block above, every line exactly as written, in one clean shell
-(`env -i HOME=… PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin bash --noprofile --norc`), from `c5-unit15/`, on 2026-10-05.
-Two things are masked here: the token (yours, 32 random hexadecimal characters) and the container IDs `docker run -d` printed.
+**Measured.** `../README.md`'s first bash block, then the block above, then the README's "When you are done" block — every line
+exactly as written, in one clean shell (`env -i HOME=… PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin bash --noprofile
+--norc`), from `c5-unit15/`, re-run by BLUE on 2026-10-05 after the README gained `--user "$(id -u):$(id -g)"` and the cache
+volumes' clean-up (RED #1, #32). Three things are masked here: the token (yours, 32 random hexadecimal characters), the
+container IDs `docker run -d` printed, and the image ID `docker image rm` printed. Afterwards: 0 new images, 0 new volumes, 0
+containers named `tiffinbox-web-*`.
 
 ```
 $ export JAVA_HOME=/opt/homebrew/opt/openjdk@25
@@ -26,7 +29,7 @@ $ mvn -o -q -B -f after/pom.xml -Dmaven.repo.local="$PWD/.m2-demo" -pl tiffinbox
   (exit 0)
 $ rm -rf .harness/mine && mkdir -p .harness/mine/secrets/tiffinbox && (umask 077 && openssl rand -hex 16 > .harness/mine/secrets/tiffinbox/shutdown-token)
   (exit 0)
-$ docker run -d --name tiffinbox-web-mine -m 1g -e TIFFINBOX_ADDRESS=0.0.0.0 -v "$PWD/.harness/mine/secrets:/workspace/secrets:ro" -p 127.0.0.1:18866:18425 tiffinbox-web:1.0.0
+$ docker run -d --name tiffinbox-web-mine -m 1g --user "$(id -u):$(id -g)" -e TIFFINBOX_ADDRESS=0.0.0.0 -v "$PWD/.harness/mine/secrets:/workspace/secrets:ro" -p 127.0.0.1:18866:18425 tiffinbox-web:1.0.0
 [a container ID]
   (exit 0)
 $ i=0; until docker logs tiffinbox-web-mine 2>&1 | grep -q 'TiffinBox listening'; do i=$((i + 1)); [ $i -lt 60 ] || break; sleep 1; done
@@ -56,6 +59,16 @@ $ { printf 'X-Shutdown-Token: '; head -n 1 .harness/mine/secrets/tiffinbox/shutd
 $ docker wait tiffinbox-web-mine && docker rm tiffinbox-web-mine
 0
 tiffinbox-web-mine
+  (exit 0)
+$ docker image rm tiffinbox-web:1.0.0
+Untagged: tiffinbox-web:1.0.0
+Deleted: sha256:[an image ID]
+  (exit 0)
+$ docker volume rm pack-cache-b6c0f6be399c.build pack-cache-b6c0f6be399c.launch
+pack-cache-b6c0f6be399c.build
+pack-cache-b6c0f6be399c.launch
+  (exit 0)
+$ rm -rf .harness/mine
   (exit 0)
 ```
 

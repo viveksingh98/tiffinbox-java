@@ -5,24 +5,28 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # four layers. This unit counts them, changes one line and hashes each layer, finds the layer that moves with NO change (the
 # build's clock inside tiffinbox-core's jar), and fixes that with one property in the root POM, project.build.outputTimestamp
 # (the anchor change: Course 3's reproducible-build exercise, landed). Then Docker: three Dockerfiles in docker/, the bytes a
-# one-line change makes new in a layered image and in a fat-jar image, the clock for both rebuilds, two image IDs that differ
-# with no layer changed, and a cache that hands the image yesterday's class. Nine captures, each run three times and hashed;
+# one-word change makes new in a layered image and in a single-jar image (Boot's jar, whole, in one COPY), the clock for both
+# rebuilds, two image IDs that differ with no layer changed, and a cache that hands the image yesterday's class. Nine captures, each run three times and hashed;
 # cap() DIES when a hash differs from receipts.md5; every number the video says is asserted at the bottom by a check that can
 # fail; the demo token is masked (gsub), and the last checks count 0 raw copies in every capture, every README, and every
 # layer of every image this script built.
 #   layers   after/'s jar: BOOT-INF/layers.idx, counted; list-layers; extract --layers --launcher, each layer counted (files,
 #            bytes); the tool's old name, layertools
 #   change   the previous tree against after/, file by file: every changed code line; the same line in Course 3's POM
-#   moved    each jar unpacked into its layers, every layer folder hashed: one line changed (after/, at/); no change, built
-#            twice, without the timestamp (the previous tree) and with it (after/) - and tiffinbox-core's entries compared
-#   bytes    the layered image (docker/Dockerfile) and the fat-jar image (docker/fat.Dockerfile), each built for after/'s jar
-#            and at/'s: RootFS layers compared, docker history's sizes; then the layered one rebuilt with no change: layers
-#            and IDs compared - and C, the same twice with --provenance=false
+#   moved    each jar unpacked into its layers, every layer folder hashed - A/B, the flipped attribute the fixed time: one word
+#            changed and no change, each built without it (the previous tree, before-at/) and with it (after/, at/), and
+#            tiffinbox-core's entries compared; then after/ built in two time zones, its entries compared
+#   bytes    the layered image (docker/Dockerfile) and the single-jar image (docker/single.Dockerfile), each built for after/'s
+#            jar and at/'s: RootFS layers compared, docker history's sizes, the two saved together (docker save); then the
+#            layered one rebuilt with no change: layers and IDs compared - and C, the same twice with --provenance=false
 #   stale    the break: A docker/Dockerfile (extract inside the build) · B docker/folders.Dockerfile (extracted on the Mac,
 #            copied as folders) · C B again with --no-cache · D B again with the thin jar's file time set to now · A' = A;
-#            each image's class read by ./peek.sh (the image's own files, never run)
-#   timing   six rounds, each a fresh one-line change, both images rebuilt and timed - counted against five seconds, and the
-#            two images' medians compared; the Spring Framework course's folders, searched for a Dockerfile
+#            each image's class read by ./peek.sh (the image's own files, never run). D counts only the COPY steps of the three
+#            layers the change leaves alone: whether its new application folder comes from the cache depends on whether any
+#            earlier build - of any run, on this Docker - already copied that content
+#   timing   six rounds, each a fresh one-line change, both images rebuilt and timed - counted against five seconds, the two
+#            images' medians compared, and the steps each rebuild ran counted; the Spring Framework course's folders, searched
+#            for a Dockerfile
 #   serve    /app copied out of the layered image (created, never started) and run on the Mac with the image's own command:
 #            the seven responses
 #   exercise exercise/README.md's commands, read from the file and run as written: install, one line of tiffinbox-core
@@ -42,17 +46,22 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # Durations move from run to run, so no capture holds one: the timing capture counts them against five seconds and compares
 # the two images' medians; the seconds themselves are printed on the terminal only.
 # Ports (brief ⚑10, 18850-18859): serve 18850 - the only one bound. 18425 is checked free too (the old default port).
-# Docker names (no unit number): images tiffinbox-layers:<variant> (TAGS below), containers tiffinbox-layers-peek and
+# Docker names (no unit number): images tiffinbox-layers:<variant> (TAGS below; single-* is the single-jar image, Boot's jar
+# copied whole), containers tiffinbox-layers-peek and
 # tiffinbox-layers-copy (created, never started). The exit trap removes exactly those names; BuildKit's cache is left (no
 # selective prune exists, and a global prune would touch other people's cache).
 set -e
+# bash 5.2 and later turn an & in the replacement of ${x/pattern/replacement} into the matched text (patsub_replacement,
+# on by default): startjar's "&& exec java" became "&& java && java  exec java" and java printed its usage. Switched off,
+# so /bin/bash 3.2 (./receipts.sh) and a newer bash (bash receipts.sh) run the same commands; 3.2 has no such option.
+shopt -u patsub_replacement 2> /dev/null || true
 cd "$(dirname "$0")"
 # One run at a time: two runs share .harness/, the ports and the Docker names, and one would corrupt the other.
 mkdir .r-lock 2> /dev/null || { echo "  *** another receipts.sh is running in this folder (.r-lock exists) - if none is, rmdir .r-lock ***"; exit 1; }
 TAGS="tiffinbox-layers:recipe-on tiffinbox-layers:recipe-at tiffinbox-layers:recipe-again tiffinbox-layers:recipe-np1
- tiffinbox-layers:recipe-np2 tiffinbox-layers:fat-on tiffinbox-layers:fat-at tiffinbox-layers:folders-on
+ tiffinbox-layers:recipe-np2 tiffinbox-layers:single-on tiffinbox-layers:single-at tiffinbox-layers:folders-on
  tiffinbox-layers:folders-at tiffinbox-layers:folders-nocache tiffinbox-layers:folders-touched tiffinbox-layers:tick-recipe
- tiffinbox-layers:tick-fat"
+ tiffinbox-layers:tick-single"
 BOXES="tiffinbox-layers-peek tiffinbox-layers-copy"
 # On every exit - the end, a failed check, or Ctrl-C - stop the JVM this script started in the background, if it still runs;
 # remove this script's own containers and images, by name; drop the lock. A background job of a non-interactive shell
@@ -99,16 +108,20 @@ for p in 18425 18850 18851 18852 18853 18854 18855 18856 18857 18858 18859; do
 if ! docker info > /dev/null 2>&1; then
   command -v orb > /dev/null 2>&1 && { orb start > /dev/null 2>&1 || true; }
   i=0; until docker info > /dev/null 2>&1; do i=$((i + 1)); [ $i -lt 60 ] || die "Docker does not answer after 60 s - start it (OrbStack: orb start; Docker Desktop: open it), then run again"; sleep 1; done; fi
+echo "  Docker: server $(docker version -f '{{.Server.Version}}' 2> /dev/null) · $(docker info -f '{{.OperatingSystem}}' 2> /dev/null) · image store: $(docker info -f '{{range .DriverStatus}}{{if eq (index . 0) "driver-type"}}{{index . 1}}{{end}}{{end}}' 2> /dev/null | grep . || echo "the daemon's own")    (terminal only)"
 docker image inspect "$BASE" > /dev/null 2>&1 || die "$BASE is not on this machine - pull it once (docker pull $BASE: network, a build-time resolution), then run again"
 # This script's own names, left by an interrupted run: removed before anything else.
 docker rm -f $BOXES > /dev/null 2>&1 || true; docker image rm -f $TAGS > /dev/null 2>&1 || true
 
 # ---- build: after/ twice, clean, in place; the previous tree twice; at/ once - each clean, offline ------------------------------
-rm -rf .harness; mkdir -p .harness/ctx-recipe .harness/ctx-fat .harness/ctx-folders
+rm -rf .harness; mkdir -p .harness/ctx-recipe .harness/ctx-single .harness/ctx-folders
 rsync -a --exclude target ../c5-unit13/after/ .harness/before/
-rsync -a --exclude target after/ .harness/at/
+rsync -a --exclude target ../c5-unit13/after/ .harness/before-at/
+for d in at tz-utc tz-ist; do rsync -a --exclude target after/ ".harness/$d/"; done
 sed 's|"TiffinBox listening on http|"TiffinBox listening at http|' "after/$SRV" > ".harness/at/$SRV"
+sed 's|"TiffinBox listening on http|"TiffinBox listening at http|' ".harness/before/$SRV" > ".harness/before-at/$SRV"
 [ "$(diff "after/$SRV" ".harness/at/$SRV" | grep -c '^[<>]')" = 2 ] || die "at/ must differ from after/ in one line"
+[ "$(diff ".harness/before/$SRV" ".harness/before-at/$SRV" | grep -c '^[<>]')" = 2 ] || die "before-at/ must differ from the previous tree in one line"
 # build DIR LOG: a clean build, offline first, its log kept in LOG (never printed whole); Maven Central only if the offline
 # build could not resolve something - and the terminal says which (offline: yes / no), so a run that went online is never
 # silent.
@@ -127,7 +140,12 @@ build .harness/before .harness/build-before-1.log
 cp ".harness/before/$JAR" .harness/before-1.jar
 sleep 2
 build .harness/before .harness/build-before-2.log
+sleep 2
+build .harness/before-at .harness/build-before-at.log
 build .harness/at .harness/build-at.log
+# after/ twice more, each in a time zone named here - so the comparison does not depend on this Mac's own zone
+(export TZ=UTC; build .harness/tz-utc .harness/build-tz-utc.log) || exit 1
+(export TZ=Asia/Kolkata; build .harness/tz-ist .harness/build-tz-ist.log) || exit 1
 
 # ---- the folders the runs start in -----------------------------------------------------------------------------------------
 # tree FOLDER: a config tree in FOLDER/secrets holding one file, the token and a newline, readable by its owner alone
@@ -273,23 +291,58 @@ ents() { local n c t
   elif [ "$t" -gt 0 ]; then echo ": $(comm -12 .harness/t1.txt .harness/t2.txt | awk '{ print $1 }' | paste -sd' ' -) - it carries its source file's own time"; else echo; fi; }
 md5eq() { [ "$(md5 -q "$1")" = "$(md5 -q "$2")" ] && echo yes || echo no; }
 ICORE=application/BOOT-INF/lib/tiffinbox-core-1.0.0.jar
+# jarline JAR1 JAR2: the two jars' sizes, and whether their md5s are equal
+jarline() { echo "  the jar: $(stat -f %z "$1") bytes, then $(stat -f %z "$2") · md5 equal: $(md5eq "$1" "$2")"; }
+# tzcmp JAR1 JAR2: two builds of the same sources, compared entry by entry - by name, content (CRC-32) and the date each entry
+# carries; then the entries whose extra fields still differ, where they sit, and by how much their NTFS time field (extra
+# field 0x000a: a modification time in 100-nanosecond steps) differs
+tzcmp() { python3 - "$1" "$2" <<'PYZ'
+import sys, zipfile, struct
+def ents(p): return {i.filename: i for i in zipfile.ZipFile(p).infolist()}
+a, b = ents(sys.argv[1]), ents(sys.argv[2])
+same = [k for k in a if k in b and (a[k].CRC, a[k].date_time) == (b[k].CRC, b[k].date_time)]
+diff = sorted(k for k in a if k in b and a[k].extra != b[k].extra)
+def ntfs(ex):
+    i = 0
+    while i + 4 <= len(ex):
+        hid, sz = struct.unpack("<HH", ex[i:i + 4])
+        if hid == 0x000a and sz >= 16: return struct.unpack("<Q", ex[i + 12:i + 20])[0]
+        i += 4 + sz
+    return None
+gaps = sorted({abs(ntfs(b[k].extra) - ntfs(a[k].extra)) / 1e7 / 3600 for k in diff if ntfs(a[k].extra) is not None and ntfs(b[k].extra) is not None})
+under = "yes" if diff and all(k.startswith("BOOT-INF/classes/") for k in diff) else "no"
+print(f"  entries {len(a)} and {len(b)} · the same name, content (CRC-32) and date {len(same)} · whose extra fields differ {len(diff)}, every one under BOOT-INF/classes/: {under}")
+print("  in what: their NTFS time field (extra field 0x000a) - " + (f"{gaps[0]:g} hours apart, every one" if len(gaps) == 1 else f"apart by {gaps}"))
+PYZ
+}
 moved() {
-  echo "each jar unpacked by Boot's own tool, every layer folder hashed (each file's path and md5, sorted by path):"
-  echo "one line changed - after/, then at/ (after/ with TiffinBoxServer's listening line saying \"at\" where it says \"on\"):"
-  ex "$AJ" .harness/moved/after; ex ".harness/at/$JAR" .harness/moved/at
-  echo "  the jar: $(stat -f %z "$AJ") bytes, then $(stat -f %z ".harness/at/$JAR") · md5 equal: $(md5eq "$AJ" ".harness/at/$JAR")"
-  lcmp .harness/moved/after .harness/moved/at
-  echo "no change, built twice - the previous tree (the anchor before this lesson: no project.build.outputTimestamp):"
-  ex .harness/before-1.jar .harness/moved/before-1; ex ".harness/before/$JAR" .harness/moved/before-2
-  echo "  the jar: $(stat -f %z .harness/before-1.jar) bytes, then $(stat -f %z ".harness/before/$JAR") · md5 equal: $(md5eq .harness/before-1.jar ".harness/before/$JAR")"
-  lcmp .harness/moved/before-1 .harness/moved/before-2
-  ents .harness/moved/before-1/$ICORE .harness/moved/before-2/$ICORE
-  echo "no change, built twice - after/, with it:"
-  ex .harness/after-1.jar .harness/moved/after-1
-  echo "  (build 2 is after/'s jar, unpacked above)"
-  echo "  the jar: $(stat -f %z .harness/after-1.jar) bytes, then $(stat -f %z "$AJ") · md5 equal: $(md5eq .harness/after-1.jar "$AJ")"
+  echo "each jar unpacked by Boot's own tool, every layer folder hashed (each file's path and md5, sorted by path) - the flipped"
+  echo "  attribute: project.build.outputTimestamp, absent in the previous tree (the anchor before this lesson), present in after/:"
+  echo "one word changed, without it - the previous tree, then before-at/ (the same tree, TiffinBoxServer's listening line saying \"at\""
+  echo "  where it says \"on\"):"
+  ex ".harness/before/$JAR" .harness/moved/before; ex ".harness/before-at/$JAR" .harness/moved/before-at
+  jarline ".harness/before/$JAR" ".harness/before-at/$JAR"
+  lcmp .harness/moved/before .harness/moved/before-at
+  echo "no change, built twice, without it - the previous tree:"
+  ex .harness/before-1.jar .harness/moved/before-1
+  echo "  (build 2 is the previous tree's jar, unpacked above)"
+  jarline .harness/before-1.jar ".harness/before/$JAR"
+  lcmp .harness/moved/before-1 .harness/moved/before
+  ents .harness/moved/before-1/$ICORE .harness/moved/before/$ICORE
+  echo "no change, built twice, with it - after/:"
+  ex .harness/after-1.jar .harness/moved/after-1; ex "$AJ" .harness/moved/after
+  jarline .harness/after-1.jar "$AJ"
   lcmp .harness/moved/after-1 .harness/moved/after
-  ents .harness/moved/after-1/$ICORE .harness/moved/after/$ICORE; }
+  ents .harness/moved/after-1/$ICORE .harness/moved/after/$ICORE
+  echo "one word changed, with it - after/, then at/ (after/ with the same word changed):"
+  ex ".harness/at/$JAR" .harness/moved/at
+  echo "  (after/'s jar is unpacked above)"
+  jarline "$AJ" ".harness/at/$JAR"
+  lcmp .harness/moved/after .harness/moved/at
+  echo "after/ built twice more, clean, with it - in two time zones, TZ=UTC and TZ=Asia/Kolkata:"
+  jarline ".harness/tz-utc/$JAR" ".harness/tz-ist/$JAR"
+  echo "  tiffinbox-core-1.0.0.jar inside them, byte for byte the same: $(unzip -p ".harness/tz-utc/$JAR" BOOT-INF/lib/tiffinbox-core-1.0.0.jar | md5 -q | grep -cxF "$(unzip -p ".harness/tz-ist/$JAR" BOOT-INF/lib/tiffinbox-core-1.0.0.jar | md5 -q)" | sed 's/^1$/yes/; s/^0$/no/')"
+  tzcmp ".harness/tz-utc/$JAR" ".harness/tz-ist/$JAR"; }
 cap moved moved
 
 # ---- Docker helpers ------------------------------------------------------------------------------------------------------------
@@ -305,6 +358,16 @@ ctxsize() { awk '/^#[0-9]+ \[internal\] load build context$/ { s = $1 } s != "" 
 sent() { local v; v=$(ctxsize "$1")
   echo "transferring context: $v - less than the thin jar alone ($2 bytes): $(awk -v v="$v" -v b="$2" 'BEGIN { n = v + 0; u = v; sub(/^[0-9.]+/, "", u); m = (u == "kB" ? 1000 : u == "MB" ? 1000000 : u == "B" ? 1 : -1); if (m < 0) { print "(unknown unit " u ")"; exit } print (n * m < b ? "yes" : "no") }')"; }
 copies() { awk '/^#[0-9]+ \[[^]]*\] COPY / { c[$1] = 1 } /^#[0-9]+ CACHED$/ { k[$1] = 1 } END { for (x in c) { n++; if (x in k) m++ } printf "COPY steps CACHED: %d of %d", m, n }' "$1"; }
+# copies3 LOG: the COPY steps of the three layers a one-word change leaves alone - dependencies, spring-boot-loader,
+# snapshot-dependencies - and how many of them the log marked CACHED. The application folder's COPY is left out on purpose:
+# when its content is new to this run, BuildKit still finds it CACHED if any earlier build on this Docker copied the same
+# content (BuildKit keys its cache on content), so that count depends on the daemon's past, not on this run
+copies3() { awk '/^#[0-9]+ \[[^]]*\] COPY extracted\/(dependencies|spring-boot-loader|snapshot-dependencies)\/ / { c[$1] = 1 } /^#[0-9]+ CACHED$/ { k[$1] = 1 } END { for (x in c) { n++; if (x in k) m++ } printf "COPY steps CACHED, the three layers the change leaves alone: %d of %d", m, n }' "$1"; }
+# saved IMG...: the images saved together (docker save, an OCI layout: one file per blob, named by its digest), counted - the
+# layers their manifests list, and the distinct layer files the archive holds
+saved() { rm -rf .harness/sv; mkdir -p .harness/sv; docker save -o .harness/sv/all.tar "$@" && (cd .harness/sv && tar -xf all.tar)
+  python3 -c 'import json; m = json.load(open(".harness/sv/manifest.json")); L = [l for x in m for l in x["Layers"]]; print(f"layers {len(L)} · distinct layer files {len(set(L))}")'
+  rm -rf .harness/sv; }
 dwarn() { cat "$@" | grep -ci 'warn' || true; }                                                   # warning lines in build logs
 downloads() { cat "$@" | grep -cE '^#[0-9]+ sha256:[0-9a-f]{64} [0-9.]+[kMG]?B / [0-9.]+[kMG]?B' || true; }   # layer downloads
 rootfs() { docker image inspect -f '{{range .RootFS.Layers}}{{println .}}{{end}}' "$1" | grep .; }
@@ -323,17 +386,17 @@ peek() { echo "\$ ./peek.sh $1"; ./peek.sh "$1" | sed 's/^/  /'; }
 
 # The build commands, read from README.md's "Commands" section - each run with its tag given a suffix (on, at, …).
 RBUILD=$(readme '^docker build -f docker/Dockerfile -t tiffinbox-layers:recipe \.harness/ctx-recipe$')
-FBUILD=$(readme '^docker build -f docker/fat\.Dockerfile -t tiffinbox-layers:fat \.harness/ctx-fat$')
+SBUILD=$(readme '^docker build -f docker/single\.Dockerfile -t tiffinbox-layers:single \.harness/ctx-single$')
 BBUILD=$(readme '^docker build -f docker/folders\.Dockerfile -t tiffinbox-layers:folders \.harness/ctx-folders$')
 BEXTRACT=$(readme '^java -Djarmode=tools -jar [^ ]+ extract --layers --destination \.harness/ctx-folders/extracted --application-filename application\.jar$')
-[ -n "$RBUILD" ] && [ -n "$FBUILD" ] && [ -n "$BBUILD" ] && [ -n "$BEXTRACT" ] || die "README.md no longer gives the three build commands and the extract command for the folders"
+[ -n "$RBUILD" ] && [ -n "$SBUILD" ] && [ -n "$BBUILD" ] && [ -n "$BEXTRACT" ] || die "README.md no longer gives the three build commands and the extract command for the folders"
 tagged() { printf '%s\n' "$1" | sed "s/ -t \(tiffinbox-layers:[a-z]*\) / -t \1-$2 /"; }                 # tagged CMD SUFFIX
 jarin() { printf 'cp %s %s/ && ' "$1" "$2"; }                                                           # jarin JAR CONTEXT
 BEX() { printf '%s\n' "$BEXTRACT" | sed "s|-jar [^ ]* extract|-jar $1 extract|"; }                         # BEX JAR
 
 # ---- bytes: the two images, and what one line makes new ---------------------------------------------------------------------
 bytes() {
-  echo "the layered image - docker/Dockerfile, built for after/'s jar, then for at/'s (one line changed); each context holds the jar alone:"
+  echo "the layered image - docker/Dockerfile, built for after/'s jar, then for at/'s (one word changed); each context holds the jar alone:"
   dbuild .harness/b-recipe-on.log "$(jarin "$AJ" .harness/ctx-recipe)$(tagged "$RBUILD" on)"; e1=$ec
   dbuild .harness/b-recipe-at.log "$(jarin ".harness/at/$JAR" .harness/ctx-recipe)$(tagged "$RBUILD" at)"; e2=$ec
   echo "  exit $e1, $e2 · warnings in the two build logs: $(dwarn .harness/b-recipe-on.log .harness/b-recipe-at.log) · layer downloads in them: $(downloads .harness/b-recipe-on.log .harness/b-recipe-at.log)"
@@ -341,13 +404,14 @@ bytes() {
   echo "  the recipe's own steps in tiffinbox-layers:recipe-at - docker history --human=false, each one's size and step:"
   own tiffinbox-layers:recipe-at 6
   echo "  the layer that differs, counted from the base up: $(paste -d' ' .harness/r1.txt .harness/r2.txt | awk '$1 != $2 { print NR }' | paste -sd' ' -) of $(wc -l < .harness/r2.txt | tr -d ' ')"
-  echo "the fat-jar image - docker/fat.Dockerfile, the same two jars:"
-  dbuild .harness/b-fat-on.log "$(jarin "$AJ" .harness/ctx-fat)$(tagged "$FBUILD" on)"; e1=$ec
-  dbuild .harness/b-fat-at.log "$(jarin ".harness/at/$JAR" .harness/ctx-fat)$(tagged "$FBUILD" at)"; e2=$ec
-  echo "  exit $e1, $e2 · warnings in the two build logs: $(dwarn .harness/b-fat-on.log .harness/b-fat-at.log) · layer downloads in them: $(downloads .harness/b-fat-on.log .harness/b-fat-at.log)"
-  echo "  RootFS layers: $(lsame tiffinbox-layers:fat-on tiffinbox-layers:fat-at) · the base image's own layers first, unchanged: $(base tiffinbox-layers:fat-at)"
-  echo "  its own steps in tiffinbox-layers:fat-at - docker history --human=false, each one's size and step:"
-  own tiffinbox-layers:fat-at 3
+  echo "  the two, saved together (docker save): $(saved tiffinbox-layers:recipe-on tiffinbox-layers:recipe-at)"
+  echo "the single-jar image - docker/single.Dockerfile, Boot's jar copied whole, the same two jars:"
+  dbuild .harness/b-single-on.log "$(jarin "$AJ" .harness/ctx-single)$(tagged "$SBUILD" on)"; e1=$ec
+  dbuild .harness/b-single-at.log "$(jarin ".harness/at/$JAR" .harness/ctx-single)$(tagged "$SBUILD" at)"; e2=$ec
+  echo "  exit $e1, $e2 · warnings in the two build logs: $(dwarn .harness/b-single-on.log .harness/b-single-at.log) · layer downloads in them: $(downloads .harness/b-single-on.log .harness/b-single-at.log)"
+  echo "  RootFS layers: $(lsame tiffinbox-layers:single-on tiffinbox-layers:single-at) · the base image's own layers first, unchanged: $(base tiffinbox-layers:single-at)"
+  echo "  its own steps in tiffinbox-layers:single-at - docker history --human=false, each one's size and step:"
+  own tiffinbox-layers:single-at 3
   echo "  the layer that differs, counted from the base up: $(paste -d' ' .harness/r1.txt .harness/r2.txt | awk '$1 != $2 { print NR }' | paste -sd' ' -) of $(wc -l < .harness/r2.txt | tr -d ' ')"
   echo "the layered image again - after/'s jar, nothing changed:"
   dbuild .harness/b-recipe-again.log "$(jarin "$AJ" .harness/ctx-recipe)$(tagged "$RBUILD" again)"
@@ -383,7 +447,7 @@ stale() { local s1 s2 t1 t2 m1 m2
   echo "  exit $ec · $(sent .harness/s-c.log "$s2") · $(copies .harness/s-c.log)"; peek tiffinbox-layers:folders-nocache
   echo "D   B's last build again, the thin jar's file time set to now first:"
   dbuild .harness/s-d.log "touch $XA && $(tagged "$BBUILD" touched)"
-  echo "  exit $ec · $(sent .harness/s-d.log "$s2") · $(copies .harness/s-d.log)"; peek tiffinbox-layers:folders-touched
+  echo "  exit $ec · $(sent .harness/s-d.log "$s2") · $(copies3 .harness/s-d.log)"; peek tiffinbox-layers:folders-touched
   echo "A′  A, re-run:"
   dbuild .harness/s-a2-on.log "$(jarin "$AJ" .harness/ctx-recipe)$(tagged "$RBUILD" on)"; echo "  exit $ec"; peek tiffinbox-layers:recipe-on
   dbuild .harness/s-a2-at.log "$(jarin ".harness/at/$JAR" .harness/ctx-recipe)$(tagged "$RBUILD" at)"
@@ -398,28 +462,31 @@ cap stale stale
 # other work on this Mac one layered rebuild took 3.139 s where they usually take 1.3-1.9 s (README.md, "The timing") - so the
 # capture counts them against five seconds, and compares the two images' medians, which one slow round cannot flip.
 SECS_ALL=""
-TR="${RBUILD/:recipe /:tick-recipe }"; TFT="${FBUILD/:fat /:tick-fat }"     # the README's two build commands, each with its own tag
-timing() { local r n secr secf er ef under_r=0 under_f=0 real=0 sr="" sf="" mr mf
+TR="${RBUILD/:recipe /:tick-recipe }"; TST="${SBUILD/:single /:tick-single }"     # the README's two build commands, each with its own tag
+# ran LOG: the build's COPY and RUN steps, and how many of them ran (not CACHED), and whether a RUN that starts java ran
+ran() { awk '/^#[0-9]+ \[[^]]*\] (COPY|RUN) / { c[$1] = 1; if ($0 ~ /\] RUN java /) j[$1] = 1 } /^#[0-9]+ CACHED$/ { k[$1] = 1 } END { for (x in c) { n++; if (!(x in k)) { r++; if (x in j) jr++ } } printf "%d of %d%s", r, n, (jr ? ", one a java process" : "") }' "$1"; }
+timing() { local r n secr secf er ef under_r=0 under_f=0 real=0 sr="" sf="" mr mf rr="" rf=""
   rm -rf .harness/tick; rsync -a --exclude target after/ .harness/tick/
   echo "six rounds after one warm-up round; each round: a fresh number at the end of TiffinBoxServer's listening line (never built"
   echo "  before, so neither image can come from the cache), mvn -o clean package, a one-second pause, then both images rebuilt,"
   echo "  each timed by bash:"
   echo "\$ time $TR > .harness/tick-r.log 2>&1"
-  echo "\$ time $TFT > .harness/tick-f.log 2>&1"
+  echo "\$ time $TST > .harness/tick-f.log 2>&1"
   for r in 0 1 2 3 4 5 6; do
     n="$(date +%s)$$$r"
     sed "s|\"TiffinBox listening on http://127.0.0.1:\" + port);|\"TiffinBox listening on http://127.0.0.1:\" + port + \" $n\");|" "after/$SRV" > ".harness/tick/$SRV"
     grep -q " $n\");" ".harness/tick/$SRV" || die "timing: the line did not change"
     mvn -o -q -B -f .harness/tick/pom.xml -Dmaven.repo.local="$M2" -DskipTests clean package > .harness/tick-build.log 2>&1 || { tail -20 .harness/tick-build.log >&3; die "timing: the offline build failed"; }
-    cp ".harness/tick/$JAR" .harness/ctx-recipe/; cp ".harness/tick/$JAR" .harness/ctx-fat/
-    docker image rm -f tiffinbox-layers:tick-recipe tiffinbox-layers:tick-fat > /dev/null 2>&1 || true
+    cp ".harness/tick/$JAR" .harness/ctx-recipe/; cp ".harness/tick/$JAR" .harness/ctx-single/
+    docker image rm -f tiffinbox-layers:tick-recipe tiffinbox-layers:tick-single > /dev/null 2>&1 || true
     sleep 1
     er=0; ef=0; TIMEFORMAT=%3R
     { time eval "$TR" > .harness/tick-r.log 2>&1 ; } 2> .harness/secs-r.txt || er=$?
-    { time eval "$TFT" > .harness/tick-f.log 2>&1 ; } 2> .harness/secs-f.txt || ef=$?
+    { time eval "$TST" > .harness/tick-f.log 2>&1 ; } 2> .harness/secs-f.txt || ef=$?
     [ $er = 0 ] && [ $ef = 0 ] || die "timing: a build failed (round $r)"
     [ $r = 0 ] && continue
     secr=$(tail -1 .harness/secs-r.txt); secf=$(tail -1 .harness/secs-f.txt); sr="$sr $secr"; sf="$sf $secf"
+    rr="$rr|$(ran .harness/tick-r.log)"; rf="$rf|$(ran .harness/tick-f.log)"
     # a real rebuild: the jar's COPY ran (not CACHED) in both, and extract ran in the layered one
     awk '/^#[0-9]+ \[[^]]*\] (COPY tiffinbox-web-1\.0\.0\.jar application\.jar|RUN java -Djarmode=tools)/ { s[$1] = 1 } /^#[0-9]+ CACHED$/ { c[$1] = 1 } END { for (x in s) { n++; if (x in c) k++ } exit !(n == 2 && k == 0) }' .harness/tick-r.log && real=$((real + 1))
     awk '/^#[0-9]+ \[[^]]*\] COPY tiffinbox-web-1\.0\.0\.jar application\.jar/ { s[$1] = 1 } /^#[0-9]+ CACHED$/ { c[$1] = 1 } END { for (x in s) { n++; if (x in c) k++ } exit !(n == 1 && k == 0) }' .harness/tick-f.log && real=$((real + 1))
@@ -427,11 +494,12 @@ timing() { local r n secr secf er ef under_r=0 under_f=0 real=0 sr="" sf="" mr m
     awk -v a="$secf" 'BEGIN { exit !(a < 5.0) }' && under_f=$((under_f + 1)); done
   med() { printf '%s\n' $1 | sort -n | awk '{ v[NR] = $1 } END { printf "%.3f", (v[3] + v[4]) / 2 }'; }
   mr=$(med "$sr"); mf=$(med "$sf")
-  docker image rm -f tiffinbox-layers:tick-recipe tiffinbox-layers:tick-fat > /dev/null 2>&1 || true
-  SECS_ALL="$SECS_ALL|layered$sr (median $mr) / fat$sf (median $mf)"
+  docker image rm -f tiffinbox-layers:tick-recipe tiffinbox-layers:tick-single > /dev/null 2>&1 || true
+  SECS_ALL="$SECS_ALL|layered$sr (median $mr) / single-jar$sf (median $mf)"
   echo "  every timed build re-ran its jar step, none from the cache: $real of 12"
-  echo "  rebuilds under five seconds: the layered image $under_r of 6 · the fat-jar image $under_f of 6"
-  echo "  the median of the six - the layered image's longer than the fat-jar image's: $(awk -v a="$mr" -v b="$mf" 'BEGIN { print (a > b ? "yes" : "no") }')"
+  echo "  rebuilds under five seconds: the layered image $under_r of 6 · the single-jar image $under_f of 6"
+  echo "  the median of the six - the layered image's longer than the single-jar image's: $(awk -v a="$mr" -v b="$mf" 'BEGIN { print (a > b ? "yes" : "no") }')"
+  echo "  COPY and RUN steps each rebuild ran, not from the cache - the layered image: $(printf '%s\n' "$rr" | tr '|' '\n' | grep . | sort | uniq -c | awk '{ c = $1; $1 = ""; printf "%s%s in %d of 6", (NR > 1 ? " / " : ""), substr($0, 2), c }') · the single-jar image: $(printf '%s\n' "$rf" | tr '|' '\n' | grep . | sort | uniq -c | awk '{ c = $1; $1 = ""; printf "%s%s in %d of 6", (NR > 1 ? " / " : ""), substr($0, 2), c }')"
   echo "the course after Course 3 - Spring Framework Core, the c4- folders of this repository:"
   echo "  folders $(ls -d ../c4-* | wc -l | tr -d ' ') · files named Dockerfile in them $(find ../c4-* -name Dockerfile -not -path '*/.m2-demo/*' | wc -l | tr -d ' ') · files that say docker, any case $(grep -rli docker ../c4-* --exclude-dir=.m2-demo --exclude-dir=target 2> /dev/null | wc -l | tr -d ' ')"; }
 cap timing timing
@@ -472,7 +540,7 @@ files() {
               else echo "$2, against $3:"; diff "$1" "$2" | sed 's/^/  /' || true; fi; }
   echo "docker/Dockerfile - the recipe, whole:"; sed 's/^/  /' docker/Dockerfile
   against docker/Dockerfile docker/folders.Dockerfile "docker/Dockerfile"
-  against docker/Dockerfile docker/fat.Dockerfile "docker/Dockerfile"
+  against docker/Dockerfile docker/single.Dockerfile "docker/Dockerfile"
   echo "at/'s TiffinBoxServer.java, against after/'s:"; diff "after/$SRV" ".harness/at/$SRV" | sed 's/^/  /' || true
   echo "peek.sh, whole:"; sed 's/^/  /' peek.sh; }
 cap files files
@@ -494,11 +562,11 @@ for f in .r-*.out README.md exercise/README.md exercise/solution/SOLUTION.md rec
 for f in .r-*.out; do ! grep -qE '/Users/|/private/|/home/' "$f" || die "$f holds an absolute path"; done
 # ... nor any layer of any image this script built: each image saved (docker save), its own layers - every one after the base
 # image's - unpacked from their gzip and searched, and its config too
-for t in tiffinbox-layers:recipe-on tiffinbox-layers:recipe-at tiffinbox-layers:fat-on tiffinbox-layers:fat-at tiffinbox-layers:folders-on tiffinbox-layers:folders-at tiffinbox-layers:folders-nocache tiffinbox-layers:folders-touched; do
+for t in tiffinbox-layers:recipe-on tiffinbox-layers:recipe-at tiffinbox-layers:single-on tiffinbox-layers:single-at tiffinbox-layers:folders-on tiffinbox-layers:folders-at tiffinbox-layers:folders-nocache tiffinbox-layers:folders-touched; do
   docker image inspect "$t" > /dev/null 2>&1 || die "$t is gone before its layers were searched"
   [ "$(base "$t")" != no ] || die "$t does not start with the base image's layers"; done
 rm -rf .harness/saved; mkdir -p .harness/saved
-docker save -o .harness/saved/all.tar tiffinbox-layers:recipe-on tiffinbox-layers:recipe-at tiffinbox-layers:fat-on tiffinbox-layers:fat-at tiffinbox-layers:folders-on tiffinbox-layers:folders-at tiffinbox-layers:folders-nocache tiffinbox-layers:folders-touched
+docker save -o .harness/saved/all.tar tiffinbox-layers:recipe-on tiffinbox-layers:recipe-at tiffinbox-layers:single-on tiffinbox-layers:single-at tiffinbox-layers:folders-on tiffinbox-layers:folders-at tiffinbox-layers:folders-nocache tiffinbox-layers:folders-touched
 (cd .harness/saved && tar -xf all.tar)
 NB=$(rootfs "$BASE" | wc -l | tr -d ' ')
 python3 - "$NB" > .harness/saved/own.txt <<'PY'
@@ -547,13 +615,15 @@ x change '^  removed 0 · added 1$'
 x change "^the same line in Course 3's packaging POM \(\\\$C3POM\), where its exercise put it: 1 time\(s\)\$"
 echo "  change: the root POM +1 code line, project.build.outputTimestamp 2026-09-15T00:00:00Z - Course 3's line, the same"
 
-# "fingerprint each layer folder: application moved, one class file; the other three stayed the same ... build twice with no
-# change and application still moves: tiffinbox-core's jar, the same contents, eighteen of its nineteen entries dated by their
-# build ... every entry now carries that date: the same bytes, and not one layer moves"
-M1=$(blk moved 'one line changed' 'no change, built twice - the previous'); M2B=$(blk moved 'no change, built twice - the previous' 'no change, built twice - after/'); M3=$(blk moved 'no change, built twice - after/' '')
-has1 "$M1" '  application            12 files · moved: BOOT-INF/classes/com/tiffinbox/web/TiffinBoxServer.class' moved
+# "one word changed: application moved, two files - the changed class, and tiffinbox-core's jar, which nobody touched; the
+# other three stayed the same ... build twice with no change and that jar still moves: the same contents, eighteen of its
+# nineteen entries dated by their build ... with it: every entry carries that date; in one time zone, two clean builds give
+# the same bytes, and not one layer moves; one changed word moves one class file" - and the time zone, measured
+M1=$(blk moved 'one word changed, without it' 'no change, built twice, without it'); M2B=$(blk moved 'no change, built twice, without it' 'no change, built twice, with it')
+M3=$(blk moved 'no change, built twice, with it' 'one word changed, with it'); M4=$(blk moved 'one word changed, with it' 'after/ built twice more'); MT=$(blk moved 'after/ built twice more' '')
+has1 "$M1" '  application            12 files · moved: BOOT-INF/classes/com/tiffinbox/web/TiffinBoxServer.class BOOT-INF/lib/tiffinbox-core-1.0.0.jar' moved
 has1 "$M1" '  layers that moved: 1 of 4' moved
-printf '%s\n' "$M1" | grep -qE '^  the jar: (16[0-9]{6}) bytes, then \1 · md5 equal: no$' || die "moved: one line - the same size, a new jar"
+printf '%s\n' "$M1" | grep -qE '^  the jar: (16[0-9]{6}) bytes, then \1 · md5 equal: no$' || die "moved: one word, without it - the same size, a new jar"
 has1 "$M2B" '  application            12 files · moved: BOOT-INF/lib/tiffinbox-core-1.0.0.jar' moved
 has1 "$M2B" '  layers that moved: 1 of 4' moved
 printf '%s\n' "$M2B" | grep -qE '^  the jar: [0-9]+ bytes, then [0-9]+ · md5 equal: no$' || die "moved: no change, no timestamp - two jars"
@@ -561,26 +631,34 @@ has1 "$M2B" "  tiffinbox-core-1.0.0.jar, build 1 against build 2: entries 19 · 
 printf '%s\n' "$M3" | grep -qE '^  the jar: ([0-9]+) bytes, then \1 · md5 equal: yes$' || die "moved: with the timestamp - the same bytes"
 has1 "$M3" '  layers that moved: 0 of 4' moved
 has1 "$M3" '  tiffinbox-core-1.0.0.jar, build 1 against build 2: entries 19 · the same content (CRC-32) 19 · the same time 19 · the time every entry carries: 20260915.000000 (19 of 19)' moved
-[ "$(printf '%s\n' "$M1" "$M2B" "$M3" | grep -cE '^  (dependencies|spring-boot-loader|snapshot-dependencies) +[0-9]+ files · same$')" = 9 ] || die "moved: the other three layers stay the same in all three comparisons"
-echo "  moved: one line -> application (TiffinBoxServer.class), 1 of 4 · no change, no timestamp -> application (tiffinbox-core: 19 entries, 18 dated by the build) · with it -> 0 of 4, md5 equal"
+has1 "$M4" '  application            12 files · moved: BOOT-INF/classes/com/tiffinbox/web/TiffinBoxServer.class' moved
+has1 "$M4" '  layers that moved: 1 of 4' moved
+printf '%s\n' "$M4" | grep -qE '^  the jar: (16[0-9]{6}) bytes, then \1 · md5 equal: no$' || die "moved: one word, with it - the same size, a new jar"
+[ "$(printf '%s\n' "$M1" "$M2B" "$M3" "$M4" | grep -cE '^  (dependencies|spring-boot-loader|snapshot-dependencies) +[0-9]+ files · same$')" = 12 ] || die "moved: the other three layers stay the same in all four comparisons"
+printf '%s\n' "$MT" | grep -qE '^  the jar: ([0-9]+) bytes, then \1 · md5 equal: no$' || die "moved: two time zones - the same size, two jars"
+has1 "$MT" '  tiffinbox-core-1.0.0.jar inside them, byte for byte the same: yes' moved
+has1 "$MT" '  entries 169 and 169 · the same name, content (CRC-32) and date 169 · whose extra fields differ 8, every one under BOOT-INF/classes/: yes' moved
+has1 "$MT" '  in what: their NTFS time field (extra field 0x000a) - 5.5 hours apart, every one' moved
+echo "  moved: one word, without it -> application: TiffinBoxServer.class + tiffinbox-core's jar · no change, without it -> tiffinbox-core (18 of 19 entries dated by the build) · with it: no change -> 0 of 4, md5 equal; one word -> TiffinBoxServer.class alone · two time zones: 8 entries' NTFS time 5.5 h apart, md5 differs"
 
-# "the layered image: eleven layers, ten shared, one new - under thirty thousand bytes ... the fat-jar image: eight layers,
-# one new - about sixteen million ... rebuild with no change: not one layer differs, yet the two image IDs do ... a record of
-# the build ... compare layers, not IDs"
-BL=$(blk bytes 'the layered image - docker/Dockerfile' 'the fat-jar image'); BF=$(blk bytes 'the fat-jar image' 'the layered image again'); BA=$(blk bytes 'the layered image again' '')
+# "the layered image: eleven layers, ten shared, one new - under thirty thousand bytes ... saved together, the two keep those
+# ten layers once ... the single-jar image: eight layers, one new - about sixteen million ... rebuild with no change: not one
+# layer differs, yet the two image IDs do ... a record of the build ... compare layers, not IDs"
+BL=$(blk bytes 'the layered image - docker/Dockerfile' 'the single-jar image'); BF=$(blk bytes 'the single-jar image' 'the layered image again'); BA=$(blk bytes 'the layered image again' '')
+has1 "$BL" '  the two, saved together (docker save): layers 22 · distinct layer files 10' bytes
 has1 "$BL" '  RootFS layers: 11 and 11 · the same 10 · different 1 · the base image'"'"'s own layers first, unchanged: yes, 6 of 6' bytes
 printf '%s\n' "$BL" | grep -qE '^    28672 +COPY /builder/extracted/application/ \./ # buildkit$' || die "bytes: the application layer, 28672 bytes"
 printf '%s\n' "$BL" | grep -qE '^    15[0-9]{6} +COPY /builder/extracted/dependencies/ \./ # buildkit$' || die "bytes: the dependencies layer"
 has1 "$BL" '  the layer that differs, counted from the base up: 11 of 11' bytes
 printf '%s\n' "$BL" | grep -qE '^  exit 0, 0 · warnings in the two build logs: 0 · layer downloads in them: 0$' || die "bytes: the layered builds"
 has1 "$BF" '  RootFS layers: 8 and 8 · the same 7 · different 1 · the base image'"'"'s own layers first, unchanged: yes, 6 of 6' bytes
-printf '%s\n' "$BF" | grep -qE '^    16134144 +COPY tiffinbox-web-1\.0\.0\.jar application\.jar # buildkit$' || die "bytes: the fat jar's layer, 16134144 bytes"
+printf '%s\n' "$BF" | grep -qE '^    16134144 +COPY tiffinbox-web-1\.0\.0\.jar application\.jar # buildkit$' || die "bytes: the single jar's layer, 16134144 bytes"
 has1 "$BF" '  the layer that differs, counted from the base up: 8 of 8' bytes
-printf '%s\n' "$BF" | grep -qE '^  exit 0, 0 · warnings in the two build logs: 0 · layer downloads in them: 0$' || die "bytes: the fat builds"
+printf '%s\n' "$BF" | grep -qE '^  exit 0, 0 · warnings in the two build logs: 0 · layer downloads in them: 0$' || die "bytes: the single-jar builds"
 has1 "$BA" '  exit 0 · RootFS layers, against tiffinbox-layers:recipe-on: 11 and 11 · the same 11 · different 0' bytes
 has1 "$BA" '  the two image IDs equal: no · what the ID names here: application/vnd.oci.image.index.v1+json · attestation manifests its build exported: 1' bytes
 has1 "$BA" '  exit 0, 0 · attestation manifests the two builds exported: 0 · RootFS layers: 11 and 11 · the same 11 · different 0 · the two image IDs equal: yes' bytes
-echo "  bytes: layered 11 layers, 10 the same, 1 new (application, 28672) · fat 8, 7, 1 new (16134144) · no change: 0 differ, IDs differ (an index with an attestation); --provenance=false: IDs equal"
+echo "  bytes: layered 11 layers, 10 the same, 1 new (application, 28672); saved together 22 layers in 10 files · single-jar 8, 7, 1 new (16134144) · no change: 0 differ, IDs differ (an index with an attestation); --provenance=false: IDs equal"
 
 # "the change is one word, on to at: the same size ... A: the image says at ... B: the build sends two kilobytes, every copy
 # comes from the cache, and the image still says on ... no cache didn't help ... touch it, and the build sends it ... A again"
@@ -592,7 +670,7 @@ TJ=$(sed -nE 's/^  application\.jar: ([0-9]+) bytes and .*/\1/p' .r-stale.out)
 printf '%s\n' "$SB" | grep -qE "^  exit 0 · transferring context: [0-9.]+kB - less than the thin jar alone \($TJ bytes\): yes · COPY steps CACHED: 4 of 4\$" || die "stale: B sent less than the jar, and every COPY came from the cache"
 printf '%s\n' "$SC" | grep -qE "^  exit 0 · transferring context: [0-9.]+kB - less than the thin jar alone \($TJ bytes\): yes · COPY steps CACHED: 0 of 4\$" || die "stale: C sent less than the jar, and nothing came from the cache"
 has1 "$SC" '  TiffinBox listening on' stale
-printf '%s\n' "$SD" | grep -qE "^  exit 0 · transferring context: [0-9.]+kB - less than the thin jar alone \($TJ bytes\): no · COPY steps CACHED: 4 of 4\$" || die "stale: D sent the jar"
+printf '%s\n' "$SD" | grep -qE "^  exit 0 · transferring context: [0-9.]+kB - less than the thin jar alone \($TJ bytes\): no · COPY steps CACHED, the three layers the change leaves alone: 3 of 3\$" || die "stale: D sent the jar; the three layers it leaves alone came from the cache"
 has1 "$SD" '  TiffinBox listening at' stale
 [ "$(printf '%s\n' "$SA" | grep -v '^\$ ')" = "$(printf '%s\n' "$SA2" | grep -v '^\$ ')" ] || die "stale: A' is not A, line for line"
 x stale '^warnings in the ten build logs: 0 · layer downloads in them: 0$'
@@ -601,8 +679,11 @@ echo "  stale: same size, same time, new md5 · A at · B less than the jar sent
 # "every rebuild took under five seconds, and the layered image was not the faster one ... the next course built no image ...
 # both rebuilds took seconds"
 x timing '^  every timed build re-ran its jar step, none from the cache: 12 of 12$'
-x timing '^  rebuilds under five seconds: the layered image 6 of 6 · the fat-jar image 6 of 6$'
-x timing "^  the median of the six - the layered image's longer than the fat-jar image's: yes\$"
+x timing '^  rebuilds under five seconds: the layered image 6 of 6 · the single-jar image 6 of 6$'
+x timing "^  the median of the six - the layered image's longer than the single-jar image's: yes\$"
+# "its recipe starts Java, to run extract, in every build": the layered rebuild ran three steps, one a java process; the
+# single-jar rebuild one
+x timing '^  COPY and RUN steps each rebuild ran, not from the cache - the layered image: 3 of 6, one a java process in 6 of 6 · the single-jar image: 1 of 1 in 6 of 6$'
 x timing '^  folders [0-9]+ · files named Dockerfile in them 0 · files that say docker, any case 0$'
 echo "  timing: 12 of 12 real rebuilds · under 5 s: 6 of 6 and 6 of 6 · the layered median the longer · Course 4: 0 Dockerfiles"
 
@@ -621,8 +702,8 @@ x exercise '^  - "dependencies": +- "BOOT-INF/lib/"$'
 x exercise '^  after/.s own jar, built from the root: - "application":   - "BOOT-INF/lib/tiffinbox-core-1\.0\.0\.jar"$'
 echo "  exercise: the README's commands -> tiffinbox-core-1.0.0.jar under dependencies/ (web alone), without the changed line; from the root, under application"
 
-# the demo files: the folder copy and the fat image each differ from the recipe where they say; at/ is one line
+# the demo files: the folder copy and the single-jar image each differ from the recipe where they say; at/ is one line
 [ "$(blk files 'at/'"'"'s TiffinBoxServer.java' 'peek.sh' | grep -c '^  [<>] ')" = 2 ] || die "files: at/ is one line"
-echo "  files: folders.Dockerfile and fat.Dockerfile against the recipe · at/ one line · peek.sh whole"
+echo "  files: folders.Dockerfile and single.Dockerfile against the recipe · at/ one line · peek.sh whole"
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
 echo "c5-unit14: every capture 3/3 and = published; every spoken number asserted; 0 raw demo tokens in every capture and image layer"

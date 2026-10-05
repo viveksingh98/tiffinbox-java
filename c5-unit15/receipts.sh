@@ -21,7 +21,11 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #            entries in BOOT-INF/lib/, one a link; the thread count one layer sets; and a shell that is not there
 #   required the image run with no token: the memory calculator's line, then the failure report
 #   address  the break: A TIFFINBOX_ADDRESS=0.0.0.0 · B no address · C Boot's server.address instead · A' = A; each with
-#            the config tree mounted read-only at /workspace/secrets and the port published on 127.0.0.1 only
+#            the config tree mounted read-only at /workspace/secrets, run as this script's own user (--user), and the port
+#            published on 127.0.0.1 only
+#   user     whose user reads the token: the tree copied into a Docker volume, where files keep their owner and mode, as on
+#            Linux - A --user "$(id -u):$(id -g)" · B the image's own user, 1002:1001 · A' = A · C the folder mounted from the
+#            Mac with the image's own user (OrbStack's file sharing, on this Mac)
 #   rebuild  at/ (after/ with one word changed) built into the same name: downloads, the JRE, the app layers, RootFS
 #   exercise exercise/README.md's commands and exercise/solution/SOLUTION.md's, read from the files and run as written
 # "before" is ../c5-unit14/after (the anchor as the last unit to change it left it), COPIED to .harness/before; this script
@@ -35,19 +39,24 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # buildpack log's kept lines are printed with Maven's "[INFO] " prefix dropped, and the lines not kept are counted. A
 # container's log line is printed from its message on (the time, level, PID, thread and logger columns dropped). No image
 # ID, layer digest or container ID is printed - layers are compared, and the comparison printed.
-# Ports (brief ⚑10, 18860-18869): change 18860 · address 18861 · exercise 18866. 18425 is checked free too (the old
+# Ports (brief ⚑10, 18860-18869): change 18860 · address 18861 · user 18862 · exercise 18866. 18425 is checked free too (the old
 # default port). Containers listen on 18425 inside, which binds nothing on the Mac; every -p publishes on 127.0.0.1 only.
 # Docker names (no unit number): the image tiffinbox-web:1.0.0 (Boot's default name for this module); containers
-# tiffinbox-web-address, -required, -peek, -shell, -mine. The exit trap removes exactly those names, the containers
+# tiffinbox-web-address, -required, -peek, -shell, -mine, -volume, -fill; the volume tiffinbox-web-secrets. The exit trap removes exactly those names, the containers
 # labelled author=spring-boot that appeared during the run (with the image each was created from), Boot's ephemeral
 # builder images that appeared, and the volumes named pack-* that appeared (taken before and after: the difference).
 # Never a prune: a third-party container and its images live on this Docker.
 set -e
+# bash 5.2 and later turn an & in the replacement of ${x/pattern/replacement} into the matched text (patsub_replacement,
+# on by default): startjar's "&& exec java" became "&& java && java  exec java" and java printed its usage. Switched off,
+# so /bin/bash 3.2 (./receipts.sh) and a newer bash (bash receipts.sh) run the same commands; 3.2 has no such option.
+shopt -u patsub_replacement 2> /dev/null || true
 cd "$(dirname "$0")"
 # One run at a time: two runs share .harness/, the ports and the Docker names, and one would corrupt the other.
 mkdir .r-lock 2> /dev/null || { echo "  *** another receipts.sh is running in this folder (.r-lock exists) - if none is, rmdir .r-lock ***"; exit 1; }
 IMAGE=tiffinbox-web:1.0.0
-BOXES="tiffinbox-web-address tiffinbox-web-required tiffinbox-web-peek tiffinbox-web-shell tiffinbox-web-mine"
+BOXES="tiffinbox-web-address tiffinbox-web-required tiffinbox-web-peek tiffinbox-web-shell tiffinbox-web-mine tiffinbox-web-volume tiffinbox-web-fill"
+VOL=tiffinbox-web-secrets                            # this script's own volume: the token's tree, as Linux keeps files
 pid=""; SNAP=""; VOL0=""; LAB0=""; IMG0=""; OLDIDS=""
 # newboxes / newvols / newbuilders: the containers labelled author=spring-boot (Boot's buildpack client labels the
 # lifecycle container it creates), the volumes named pack-*, and the images named pack.local/builder/* (Boot's ephemeral
@@ -59,6 +68,7 @@ newbuilders() { local i; for i in $(docker images -q --no-trunc --filter 'refere
 # Every command is guarded: a name already gone makes docker exit 1, and nothing here may end the clean-up early.
 sweep() { local c i v
   docker rm -f $BOXES > /dev/null 2>&1 || true
+  docker volume rm -f "$VOL" > /dev/null 2>&1 || true
   docker image rm -f "$IMAGE" $OLDIDS > /dev/null 2>&1 || true
   [ -n "$SNAP" ] || return 0
   for c in $(newboxes); do i=$(docker inspect -f '{{.Image}}' "$c" 2> /dev/null || true); docker rm -f "$c" > /dev/null 2>&1 || true
@@ -107,7 +117,7 @@ docker image inspect "$BUILDER" > /dev/null 2>&1 || die "the builder is not on t
 docker image inspect "$RUNIMAGE" > /dev/null 2>&1 || die "the run image is not on this machine - pull it once (docker pull $RUNIMAGE), then run again"
 # This script's own names, left by an interrupted run, removed before anything else - with any container Boot's client
 # left for one of this project's two image names, its image, and the volumes it mounted
-docker rm -f $BOXES > /dev/null 2>&1 || true; docker image rm -f "$IMAGE" > /dev/null 2>&1 || true
+docker rm -f $BOXES > /dev/null 2>&1 || true; docker image rm -f "$IMAGE" > /dev/null 2>&1 || true; docker volume rm -f "$VOL" > /dev/null 2>&1 || true
 for c in $(docker ps -aq --no-trunc --filter label=author=spring-boot --filter 'label=org.springframework.boot.builderFor=docker.io/library/tiffinbox-web:1.0.0' 2> /dev/null; docker ps -aq --no-trunc --filter label=author=spring-boot --filter 'label=org.springframework.boot.builderFor=docker.io/library/tiffinbox-core:1.0.0' 2> /dev/null); do
   i=$(docker inspect -f '{{.Image}}' "$c" 2> /dev/null || true); vs=$(docker inspect -f '{{range .Mounts}}{{.Name}} {{end}}' "$c" 2> /dev/null || true)
   docker rm -f "$c" > /dev/null 2>&1 || true; [ -z "$i" ] || docker image rm -f "$i" > /dev/null 2>&1 || true
@@ -194,7 +204,7 @@ mask() { awk -v t="$TOKEN" -v u="$U" -v up="$UP" -v hm="$HOME" '
     if ($0 ~ /^ *[0-9a-f]{64}$/) gsub(/[0-9a-f]{64}/, "[a container ID]"); gsub(/pack-cache-[0-9a-f]{12}/, "pack-cache-<hash>"); print }'; }
 
 # boxes: this script's own containers that exist right now
-boxes() { docker ps -a --format '{{.Names}}' | grep -cxE 'tiffinbox-web-(address|required|peek|shell|mine)' || true; }
+boxes() { docker ps -a --format '{{.Names}}' | grep -cxE 'tiffinbox-web-(address|required|peek|shell|mine|volume|fill)' || true; }
 unpub=""
 cap() { local nm=$1 h pub i; shift
   for i in 1 2 3; do "$@" > .harness/cap.raw 2>&1 || true; [ -z "$pid" ] || die "$nm left a JVM running"
@@ -217,12 +227,22 @@ C_INSTALL=$(readme '^mvn -o -B -f after/pom\.xml -Dmaven\.repo\.local="\$M2" -Ds
 C_IMAGE=$(readme '^mvn -o -B -f after/pom\.xml -Dmaven\.repo\.local="\$M2" -pl tiffinbox-web spring-boot:build-image-no-fork -Dspring-boot\.build-image\.builder="\$BUILDER" -Dspring-boot\.build-image\.runImage="\$RUNIMAGE" -Dspring-boot\.build-image\.pullPolicy=IF_NOT_PRESENT$')
 C_ROOT=$(readme '^mvn -o -B -f \.harness/root/pom\.xml -Dmaven\.repo\.local="\$M2" spring-boot:build-image -Dspring-boot\.build-image\.builder="\$BUILDER" -Dspring-boot\.build-image\.runImage="\$RUNIMAGE" -Dspring-boot\.build-image\.pullPolicy=IF_NOT_PRESENT$')
 C_REQ=$(readme '^docker run --rm --name tiffinbox-web-required -m 1g tiffinbox-web:1\.0\.0$')
-C_A=$(readme '^docker run -d --name tiffinbox-web-address -m 1g -e TIFFINBOX_ADDRESS=0\.0\.0\.0 -v "\$PWD/\.harness/tree/secrets:/workspace/secrets:ro" -p 127\.0\.0\.1:18861:18425 tiffinbox-web:1\.0\.0$')
-[ -n "$C_INSTALL" ] && [ -n "$C_IMAGE" ] && [ -n "$C_ROOT" ] && [ -n "$C_REQ" ] && [ -n "$C_A" ] || die "README.md no longer gives the five commands this script runs (Commands)"
+C_A=$(readme '^docker run -d --name tiffinbox-web-address -m 1g --user "\$\(id -u\):\$\(id -g\)" -e TIFFINBOX_ADDRESS=0\.0\.0\.0 -v "\$PWD/\.harness/tree/secrets:/workspace/secrets:ro" -p 127\.0\.0\.1:18861:18425 tiffinbox-web:1\.0\.0$')
+C_FILL=$(readme '^docker volume create tiffinbox-web-secrets > /dev/null && docker run --rm --name tiffinbox-web-fill --user 0 --entrypoint sh -v tiffinbox-web-secrets:/s -v "\$PWD/\.harness/tree/secrets:/src:ro" "\$BUILDER" -c .* - "\$\(id -u\):\$\(id -g\)"$')
+[ -n "$C_INSTALL" ] && [ -n "$C_IMAGE" ] && [ -n "$C_ROOT" ] && [ -n "$C_REQ" ] && [ -n "$C_A" ] && [ -n "$C_FILL" ] || die "README.md no longer gives the six commands this script runs (Commands)"
 # B and C: A with one flag changed - removed (B), or swapped for Boot's own key (C); each derivation asserted
 C_B=$(printf '%s\n' "$C_A" | sed 's| -e TIFFINBOX_ADDRESS=0\.0\.0\.0 | |')
 C_C=$(printf '%s\n' "$C_A" | sed 's| -e TIFFINBOX_ADDRESS=0\.0\.0\.0 | -e SERVER_ADDRESS=0.0.0.0 |')
 [ "$(printf '%s\n' "$C_A" | wc -w | tr -d ' ')" = $(( $(printf '%s\n' "$C_B" | wc -w | tr -d ' ') + 2 )) ] && [ "$(printf '%s\n' "$C_C" | wc -w | tr -d ' ')" = "$(printf '%s\n' "$C_A" | wc -w | tr -d ' ')" ] && [ "$C_C" != "$C_A" ] || die "B and C must be A with one flag changed"
+# user: A's command with the volume in place of the folder, its own name and port (C_V); B and C, C_V and A each without
+# --user; each derivation asserted
+U_FLAG=' --user "$(id -u):$(id -g)"'
+C_V=$(printf '%s\n' "$C_A" | sed 's|-v "\$PWD/\.harness/tree/secrets:/workspace/secrets:ro"|-v tiffinbox-web-secrets:/workspace/secrets:ro|; s|--name tiffinbox-web-address|--name tiffinbox-web-volume|; s|127\.0\.0\.1:18861:|127.0.0.1:18862:|')
+C_VB=$(printf '%s\n' "$C_V" | sed 's| --user "\$(id -u):\$(id -g)"||')
+C_VC=$(printf '%s\n' "$C_A" | sed 's| --user "\$(id -u):\$(id -g)"||; s|--name tiffinbox-web-address|--name tiffinbox-web-volume|; s|127\.0\.0\.1:18861:|127.0.0.1:18862:|')
+case "$C_V" in *"$U_FLAG"*tiffinbox-web-secrets:/workspace/secrets:ro*18862:18425*) ;; *) die "user: A is the address A with the volume, port 18862" ;; esac
+case "$C_VB$C_VC" in *--user*) die "user: B and C run as the image's own user" ;; esac
+[ "$(printf '%s\n' "$C_VC" | sed 's|-v "\$PWD/\.harness/tree/secrets:/workspace/secrets:ro"|-v tiffinbox-web-secrets:/workspace/secrets:ro|')" = "$(printf '%s\n' "$C_V" | sed 's| --user "\$(id -u):\$(id -g)"||')" ] || die "user: C is A without --user, the folder mounted instead of the volume"
 # at/'s two commands: the README's, with the tree swapped
 C_AT_INSTALL=$(printf '%s\n' "$C_INSTALL" | sed 's|-f after/pom\.xml|-f .harness/at/pom.xml|')
 C_AT_IMAGE=$(printf '%s\n' "$C_IMAGE" | sed 's|-f after/pom\.xml|-f .harness/at/pom.xml|')
@@ -289,9 +309,11 @@ buildcap() { local old
   old=$(imgid); rootfs "$IMAGE" > .harness/rf-held.txt
   runf "$C_IMAGE"; echo "  exit $ec · offline: yes (-o)"; cp .harness/run.out .harness/bp-build.log
   [ $ec = 0 ] || die "build: the image build failed"
-  bplog .harness/bp-build.log; drop "$old"
+  echo "  the goals this build ran (Maven's own lines): $(grep -cE '^\[INFO\] --- ' .harness/bp-build.log || true) - $(sed -nE 's/^\[INFO\] --- ([^ ]+ \([^)]*\)) @ .*/\1/p' .harness/bp-build.log | paste -sd' ' -)"
+  bplog .harness/bp-build.log
   rootfs "$IMAGE" > .harness/rf-built.txt
-  echo "  RootFS layers, against the image this name held before (the run's first build, the same jar): $(lcmp .harness/rf-held.txt .harness/rf-built.txt)"; }
+  echo "  RootFS layers, against the image this name held before (the run's first build, the same jar): $(lcmp .harness/rf-held.txt .harness/rf-built.txt)"
+  echo "  the image ID, against that image's: equal: $([ "$old" = "$(imgid)" ] && echo yes || echo no)"; drop "$old"; }
 cap build buildcap
 
 # ---- root: the obvious command, from the root, on a copy of after/ - and what it leaves behind -----------------------------------
@@ -351,7 +373,13 @@ PY
   echo "  the thread count one layer sets (paketo-buildpacks_spring-boot/web-application-type/env.launch/): $(cd .harness/peek/env.launch && for f in *; do printf '%s = %s' "$f" "$(cat "$f")"; done)"
   echo "  the helpers the bellsoft-liberica buildpack's layer runs before Java (helper/exec.d/): $(ls .harness/peek/exec.d | wc -l | tr -d ' ') · memory-calculator among them: $(ls .harness/peek/exec.d | grep -cx memory-calculator | sed 's/^1$/yes/; s/^0$/no/')"
   runf "docker run --rm --name tiffinbox-web-shell --entrypoint sh $IMAGE -c true"
-  echo "  exit $ec · $(grep -o 'exec: "sh": [a-z ]*\$PATH' .harness/run.err || echo '(no exec line)')"; }
+  echo "  exit $ec · $(grep -o 'exec: "sh": [a-z ]*\$PATH' .harness/run.err || echo '(no exec line)')"
+  echo "the run image under it, on its own - where the user and the missing shell come from:"
+  echo "\$ docker image inspect -f '{{.Config.User}}' \$RUNIMAGE"; echo "  $(docker image inspect -f '{{.Config.User}}' "$RUNIMAGE")"
+  runf "docker run --rm --name tiffinbox-web-shell --entrypoint sh \$RUNIMAGE -c true"
+  echo "  exit $ec · $(grep -o 'exec: "sh": [a-z ]*\$PATH' .harness/run.err || echo '(no exec line)')"
+  echo "\$ docker history --human=false $IMAGE     (the app's slices and the bill of materials: each one's size and name)"
+  docker history --human=false --format '{{.Size}}	{{.CreatedBy}}' "$IMAGE" | awk -F'\t' '$2 ~ /^Application Slice: / || $2 == "Software Bill-of-Materials" { printf "    %-9s %s\n", $1, $2 }'; }
 cap chose chosecap
 
 # ---- required: the image run with no token at all ----------------------------------------------------------------------------
@@ -395,8 +423,36 @@ addresscap() {
   drun "$C_C"; waitlog tiffinbox-web-address; dnone 18861 tiffinbox-web-address
   echo "A′  A re-run"
   drun "$C_A"; waitlog tiffinbox-web-address; dseven 18861 tiffinbox-web-address
-  echo "the config tree mounted in all four: $TF, $(stat -f '%Sp' ".harness/tree/$TF"), this script's user's - the container's user is $(docker image inspect -f '{{.Config.User}}' "$IMAGE")"; }
+  echo "the config tree mounted in all four: $TF, $(stat -f '%Sp' ".harness/tree/$TF"), this script's user's · the four commands that run as that user (--user): $(printf '%s\n' "$C_A" "$C_B" "$C_C" "$C_A" | grep -cF -- "$U_FLAG") · the image's own user: $(docker image inspect -f '{{.Config.User}}' "$IMAGE")"; }
 cap address addresscap
+
+# ---- user: whose user can read the token - in a Docker volume, files keep their owner and mode, as on Linux ----------------------
+usercap() { local own n i
+  echo "the token's config tree, copied into a Docker volume - storage the daemon keeps itself: its files keep their owner and"
+  echo "  mode, as on Linux, with no file sharing in between (the builder image, already here, copies them, as root):"
+  runf "$C_FILL"
+  own="$(id -u):$(id -g)"; n=$(grep -c . .harness/run.out || true)
+  echo "  exit $ec · entries $n: owned by this script's user and group $(grep -c "^$own " .harness/run.out || true) of $n · their modes: $(awk '{ print $2 }' .harness/run.out | paste -sd' ' -)"
+  echo "A   the volume, run as your own user: --user \"\$(id -u):\$(id -g)\""
+  drun "$C_V"; waitlog tiffinbox-web-volume; dseven 18862 tiffinbox-web-volume
+  echo "B   the volume, run as the image's own user, 1002:1001 - no --user"
+  drun "$C_VB"; i=0
+  while [ $i -lt 120 ] && [ "$(docker inspect -f '{{.State.Running}}' tiffinbox-web-volume 2> /dev/null)" = true ]; do sleep 0.25; i=$((i + 1)); done
+  docker logs tiffinbox-web-volume > .harness/c.log 2>&1 || true
+  if [ "$(docker inspect -f '{{.State.Running}}' tiffinbox-web-volume 2> /dev/null)" = true ]; then
+    docker rm -f tiffinbox-web-volume > /dev/null; echo "  still running after 30 s - removed"
+  else echo "\$ docker wait tiffinbox-web-volume"; echo "  $(docker wait tiffinbox-web-volume 2> /dev/null || echo none)"
+    sed $'s/\x1b\\[[0-9;]*m//g' .harness/c.log > .harness/c.txt
+    echo "  its log: $(grep -c . .harness/c.txt || true) lines · lines that say TiffinBox listening: $(grep -c 'TiffinBox listening' .harness/c.txt || true) · Boot's banner lines: $(grep -c ':: Spring Boot ::' .harness/c.txt || true) · the lines that name a cause, whole, sorted (the launcher's two streams interleave in no fixed order):"
+    grep -E 'permission denied|failed to launch|Caused by: ' .harness/c.txt | LC_ALL=C sort | sed 's/^/  /' || echo "  (none)"
+    echo "\$ docker rm tiffinbox-web-volume"; docker rm tiffinbox-web-volume > /dev/null; fi
+  echo "  listeners on 18862 now: $(listeners 18862)"
+  echo "A′  A re-run"
+  drun "$C_V"; waitlog tiffinbox-web-volume; dseven 18862 tiffinbox-web-volume
+  echo "C   the folder on the Mac, mounted, run as the image's own user - no --user (OrbStack's file sharing, on this Mac)"
+  drun "$C_VC"; waitlog tiffinbox-web-volume; dseven 18862 tiffinbox-web-volume
+  runf "docker volume rm $VOL > /dev/null"; echo "  exit $ec"; }
+cap user usercap
 
 # ---- rebuild: one word changed, the same image name ----------------------------------------------------------------------------
 rebuildcap() { local old
@@ -514,6 +570,8 @@ printf '%s\n' "$BB" | grep -qE '^  \[creator\]         \$BPL_JVM_THREAD_COUNT +2
 has1 "$BB" "  [creator]     Reused 5/5 app layer(s)" build
 printf '%s\n' "$BB" | grep -qE '^  log lines [0-9]+ · shown [0-9]+ · not shown [0-9]+ · lines that say Downloading from: 0 · lines that say Pulling: 0$' || die "build: no download, no pull"
 has1 "$BB" "  RootFS layers, against the image this name held before (the run's first build, the same jar): 20 and 20 · the same 20 · different 0" build
+has1 "$BB" "  the image ID, against that image's: equal: yes" build
+has1 "$BB" "  the goals this build ran (Maven's own lines): 1 - spring-boot:4.1.1:build-image-no-fork (default-cli)" build
 x build "^  Building image 'docker\.io/library/tiffinbox-web:1\.0\.0'\$"
 echo "  build: 6 of 26 · BP_JVM_VERSION 21, then Java 25 from MANIFEST.MF · Liberica JRE 25.0.4 reused · 4 slices · JarLauncher · 0 downloads, 0 pulls · 20 of 20 layers the same"
 
@@ -542,7 +600,13 @@ x chose '^  spring-cloud-bindings-2\.0\.4\.jar -> /layers/paketo-buildpacks_spri
 x chose "^  its 31 files, against the jar's own BOOT-INF/lib/ \(31 jars\): the same name and bytes 31\$"
 x chose '^  the thread count one layer sets \(paketo-buildpacks_spring-boot/web-application-type/env\.launch/\): BPL_JVM_THREAD_COUNT\.default = 50$'
 x chose "^  the helpers the bellsoft-liberica buildpack's layer runs before Java \(helper/exec\.d/\): [0-9]+ · memory-calculator among them: yes\$"
-x chose '^  exit 127 · exec: "sh": executable file not found in \$PATH$'
+[ "$(grep -c '^  exit 127 · exec: "sh": executable file not found in \$PATH$' .r-chose.out)" = 2 ] || die "chose: no sh in the image, nor in its run image"
+CR=$(blk chose 'the run image under it, on its own' '')
+has1 "$CR" '  1002:1001' chose
+printf '%s\n' "$CR" | grep -qE '^    0 +Application Slice: 5$' || die "chose: the fifth app layer is empty"
+printf '%s\n' "$CR" | grep -qE '^    0 +Application Slice: 3$' || die "chose: the snapshot slice is empty"
+[ "$(printf '%s\n' "$CR" | grep -cE '^    [0-9]+ +Application Slice: [1-5]$')" = 5 ] || die "chose: five app layers"
+printf '%s\n' "$CR" | grep -qE '^    [1-9][0-9]* +Software Bill-of-Materials$' || die "chose: a bill of materials, a layer of its own"
 echo "  chose: 1002:1001, /workspace, 1980 · 6 buildpacks · JarLauncher · Liberica JRE 25.0.4 from github.com · Build-Jdk-Spec 25 · 32 = 31 + 1 link · 50 threads · no sh (127)"
 
 # "with no token: the memory calculator first - one gigabyte, fifty threads - then must not be blank"
@@ -570,8 +634,22 @@ has1 "$AC" '  the address in that line: 127.0.0.1:18425' address
 has1 "$AC" '  exit 52 · curl: (52) Empty reply from server' address
 [ "$AA" = "$AA2" ] || die "address: A' is not A, line for line"
 [ "$(grep -c '^  listeners on 18861 now: 0$' .r-address.out)" = 4 ] || die "address: the port free after every run"
-x address '^the config tree mounted in all four: secrets/tiffinbox/shutdown-token, -rw-------, this script.s user.s - the container.s user is 1002:1001$'
-echo "  address: A 0.0.0.0 -> $S115, exit 0 · B 127.0.0.1 -> curl 52, stop 143 · C SERVER_ADDRESS -> 127.0.0.1, curl 52 · A' = A"
+x address '^the config tree mounted in all four: secrets/tiffinbox/shutdown-token, -rw-------, this script.s user.s · the four commands that run as that user \(--user\): 4 · the image.s own user: 1002:1001$'
+echo "  address: A 0.0.0.0 -> $S115, exit 0 · B 127.0.0.1 -> curl 52, stop 143 · C SERVER_ADDRESS -> 127.0.0.1, curl 52 · A' = A · all four --user"
+
+# "on Linux, a mount keeps the file's owner: only you can read it" - measured in a Docker volume, which keeps owners and modes:
+# your user reads it (A, A'), the image's own user cannot (B); the folder from the Mac, OrbStack's file sharing, lets it (C)
+UA=$(blk user 'A   ' 'B   '); UB=$(blk user 'B   ' 'A′  '); UA2=$(blk user 'A′  ' 'C   '); UC=$(blk user 'C   ' '')
+x user '^  exit 0 · entries 3: owned by this script.s user and group 3 of 3 · their modes: drwx------ drwx------ -rw-------$'
+has1 "$UA" '  the address in that line: 0.0.0.0:18425' user; has1 "$UA" "  the seven responses: 7 lines · md5 $S115" user; has1 "$UA" '  0' user
+has1 "$UB" '  82' user
+has1 "$UB" "  its log: 4 lines · lines that say TiffinBox listening: 0 · Boot's banner lines: 0 · the lines that name a cause, whole, sorted (the launcher's two streams interleave in no fixed order):" user
+has1 "$UB" '  open /workspace/secrets: permission denied' user
+has1 "$UB" "  ERROR: failed to launch: exec.d: failed to execute exec.d file at path '/layers/paketo-buildpacks_bellsoft-liberica/helper/exec.d/memory-calculator': exit status 1" user
+[ "$UA" = "$UA2" ] || die "user: A' is not A, line for line"
+has1 "$UC" '  the address in that line: 0.0.0.0:18425' user; has1 "$UC" "  the seven responses: 7 lines · md5 $S115" user
+[ "$(grep -c '^  listeners on 18862 now: 0$' .r-user.out)" = 4 ] || die "user: the port free after every run"
+echo "  user: the volume (owner and mode kept) - A --user -> $S115 · B the image's user 1002:1001 -> exit 82 before Java: the memory calculator cannot open /workspace/secrets · A' = A · C the Mac's folder, no --user -> $S115 (OrbStack)"
 
 # "one word changed, the same name: nothing downloaded, the JRE reused, four of five app layers reused, one added"
 RB=$(blk rebuild '$ mvn -o -B -f .harness/at/pom.xml -Dmaven.repo.local="$M2" -pl tiffinbox-web' '')

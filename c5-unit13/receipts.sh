@@ -18,7 +18,9 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #   folder   the break, in a deploy folder holding an older release's lib/ (TiffinBox before its shutdown token):
 #            A after/'s jar · B headerkept/'s (the same plugin, the jar plugin's <archive> kept) · A' = A
 #   shade    flattened instead: the same-named files the 31 jars carry; Boot's way (shade-boot/); Course 3's way
-#            (shade-c3/) as written, then with combine.self="override" - what each jar kept, and what each start does
+#            (shade-c3/) as written, then with combine.self="override" - what each jar kept, and what each start does;
+#            then that jar with spring-boot's own registrations added back: the YAML loader's key alone, then the chain that
+#            reads application.yaml at all
 #   extract  after/README.md's extract command, run as written from after/: the thin jar, lib/, and both of the README's
 #            ways to run it, -verbose:class on the first
 #   serve    after/README.md's run command, read from the file: the seven responses
@@ -39,8 +41,12 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # first line (the pid) becomes "<pid>:", and trailing blanks are dropped (sub); a failed start shows the lines that name its
 # cause, the rest counted; a manifest's folded lines are unfolded; Maven's build logs are read, never printed whole.
 # Ports (brief ⚑10, 18840-18849): launcher 18840 · folder A and A' 18841, B 18842 (never binds) · shade Boot's 18843,
-# Course 3's 18844 (never binds) · extract 18845 · serve 18846 · the jar alone 18847 (never binds) · the exercise 18849.
+# Course 3's 18844 (binds only with the chain added back) · extract 18845 · serve 18846 · the jar alone 18847 (never binds) · the exercise 18849.
 set -e
+# bash 5.2 and later turn an & in the replacement of ${x/pattern/replacement} into the matched text (patsub_replacement,
+# on by default): startjar's "&& exec java" became "&& java && java  exec java" and java printed its usage. Switched off,
+# so /bin/bash 3.2 (./receipts.sh) and a newer bash (bash receipts.sh) run the same commands; 3.2 has no such option.
+shopt -u patsub_replacement 2> /dev/null || true
 cd "$(dirname "$0")"
 # One run at a time: two runs share .harness/ and the ports, and one would corrupt the other.
 mkdir .r-lock 2> /dev/null || { echo "  *** another receipts.sh is running in this folder (.r-lock exists) - if none is, rmdir .r-lock ***"; exit 1; }
@@ -72,7 +78,6 @@ CURLSET=../c5-unit11/curlset.sh                      # the comparison set: the s
 C3POM=../c3-unit23/pom.xml                           # Course 3's packaging POM: its shade execution's two transformers
 PARENT="$M2/org/springframework/boot/spring-boot-starter-parent/4.1.1/spring-boot-starter-parent-4.1.1.pom"
 [ -x "$CURLSET" ] || [ -f "$CURLSET" ] || die "$CURLSET is missing"
-[ -f "$PARENT" ] || die "Boot's parent POM is not in .m2-demo"
 
 # The ports, BEFORE anything is wiped (a survivor of an interrupted run answers POST /shutdown only with its token, which
 # lives in .harness/ - so the message names the process to kill).
@@ -99,9 +104,15 @@ build() { local how=yes ec=0
     how="no - the offline build could not resolve an artifact, so Maven Central was asked"; ec=0
     (cd "$1" && mvn -B -Dmaven.repo.local="$M2" -DskipTests clean package > "$U/$2" 2>&1) || ec=$?; fi
   if [ "$3" = fails ]; then [ $ec != 0 ] || die "$1 was meant to fail its build, and passed"
-  else [ $ec = 0 ] || { tail -30 "$2" >&3; die "build failed: $1"; }; fi
+  else [ $ec = 0 ] || { tail -30 "$2" >&3
+    ! grep -qE 'Could not resolve|could not be resolved|Could not transfer|Cannot access' "$2" || die "build failed: $1 - Maven could resolve Boot's parent and plugins neither from .m2-demo nor from Maven Central: a fresh clone's first run needs the network once, to fill .m2-demo"
+    die "build failed: $1"; }; fi
   echo "  built $1 · offline: $how · exit $ec"; }
-build after .harness/build-after.log; build .harness/before .harness/build-before.log; build .harness/older .harness/build-older.log
+build after .harness/build-after.log
+# Boot's parent POM, read by two captures: in .m2-demo now - the first build put it there if it was not (a fresh clone's
+# .m2-demo is empty: git ignores it, and the offline build's failure sends that first build to Maven Central)
+[ -f "$PARENT" ] || die "Boot's parent POM is not in .m2-demo after the first build"
+build .harness/before .harness/build-before.log; build .harness/older .harness/build-older.log
 build .harness/headerkept .harness/build-headerkept.log
 build .harness/shade-boot .harness/build-shade-boot.log
 build .harness/shade-c3 .harness/build-shade-c3.log fails; build .harness/shade-c3o .harness/build-shade-c3o.log
@@ -218,6 +229,8 @@ change() { local a b n=0 same=0 changed="" gone="" new="" f all cod gb ga
     echo "$f, every changed line but comments and blanks ($(( all - $(echo "$cod" | grep -c . || true) )) of those not shown):"
     echo "${cod:-  (none)}"
     echo "  removed $(echo "$cod" | grep -c '^-' || true) · added $(echo "$cod" | grep -c '^+' || true)"; done
+  echo "after/'s $WEB, the plugin as declared, whole (its lines 48-51):"
+  sed -n 48,51p "after/$WEB"
   echo "Boot's parent, spring-boot-starter-parent 4.1.1 - what it manages for that plugin:"
   echo '$ sed -n 207,215p "$PARENT"'
   sed -n 207,215p "$PARENT"
@@ -294,7 +307,8 @@ fbad() { echo "$1"; echo "  the jar's Class-Path: $(cpath "$2")"
   loaded .harness/run.out $FOLDCLS
   echo "  Boot: $(said .harness/run.out 'Application run failed') · the \"Caused by:\" lines, each whole:"
   grep '^Caused by: ' .harness/run.out | sed 's/^/  /' || echo "  (none)"
-  echo "  … $(( $(cat .harness/run.out .harness/run.err | grep -vc '\[class,load\] ' || true) - 1 - $(grep -c '^Caused by: ' .harness/run.out || true) )) more line(s) of this run's output not shown: the banner, Boot's log, the stack frames - and the class-loading log's own lines, uncounted (their number moves from run to run) …"; }
+  echo "  … $(( $(cat .harness/run.out .harness/run.err | grep -vc '\[class,load\] ' || true) - 1 - $(grep -c '^Caused by: ' .harness/run.out || true) )) more line(s) of this run's output not shown: the banner, Boot's log, the stack frames …"
+  echo "  … and the class-loading log: $(cat .harness/run.out .harness/run.err | grep '\[class,load\] ' | grep -cE ' source: (file|jar):' || true) lines for classes read from a jar or a folder, and about $(cat .harness/run.out .harness/run.err | grep '\[class,load\] ' | grep -vcE ' source: (file|jar):' | awk '{ printf "%d", int(($1 + 50) / 100) * 100 }') more - the JDK's own classes and the ones generated while it runs, rounded to the hundred: their number moves by a line or two from run to run …"; }
 # said FILE MESSAGE: the first log line whose message starts with MESSAGE, its level kept and the rest of its prefix (time,
 # pid, thread, logger) cut by sub() - or "(no such line)"
 said() { awk -v m="$2" '{ s = $0; l = ""; if (match(s, /^[0-9][0-9][0-9][0-9]-[^ ]* +[A-Z]+ /)) { l = substr(s, RSTART, RLENGTH); sub(/^[^ ]* +/, "", l); sub(/ +$/, "", l) }
@@ -323,10 +337,28 @@ kept() { local w
   w=$(whose "$1" META-INF/spring.factories); echo "  META-INF/spring.factories: keys $(unzip -p "$1" META-INF/spring.factories | tr -d '\r' | grep -cE '^[A-Za-z][^=]*=' || true) · one jar's own copy: ${w:-none - a merge}"
   echo "    $(reg "$1" META-INF/spring.factories)"
   w=$(whose "$1" "$SVC"); echo "  the log4j service file: lines $(unzip -p "$1" "$SVC" | grep -c '^[^#]' || true) · one jar's own copy: ${w:-none - a merge}"; }
-# reg JAR FILE: in that jar's spring.factories, three of the classes spring-boot's own copy registers - the YAML loader, the
-# logging listener, the failure analyzers' key - each counted
+# reg JAR FILE: in that jar's spring.factories, five of the classes spring-boot's own copy registers - the run listener and
+# the config-data post-processor (two links of the chain that reads application.yaml at all), the YAML loader, the logging
+# listener, the failure analyzers' key - each counted
 reg() { unzip -p "$1" "$2" 2> /dev/null | tr -d '\r' > .harness/reg.txt || true
-  echo "the YAML loader (YamlPropertySourceLoader) $(grep -c 'YamlPropertySourceLoader' .harness/reg.txt || true) · the logging listener (LoggingApplicationListener) $(grep -c 'LoggingApplicationListener' .harness/reg.txt || true) · failure analyzers (FailureAnalyzer=) $(grep -c '^org\.springframework\.boot\.diagnostics\.FailureAnalyzer=' .harness/reg.txt || true)"; }
+  echo "the run listener (EventPublishingRunListener) $(grep -c 'EventPublishingRunListener' .harness/reg.txt || true) · the config-data post-processor (ConfigDataEnvironmentPostProcessor) $(grep -c 'ConfigDataEnvironmentPostProcessor' .harness/reg.txt || true) · the YAML loader (YamlPropertySourceLoader) $(grep -c 'YamlPropertySourceLoader' .harness/reg.txt || true) · the logging listener (LoggingApplicationListener) $(grep -c 'LoggingApplicationListener' .harness/reg.txt || true) · failure analyzers (FailureAnalyzer=) $(grep -c '^org\.springframework\.boot\.diagnostics\.FailureAnalyzer=' .harness/reg.txt || true)"; }
+# kv FILE KEY: the classes the spring.factories file FILE registers under KEY, one per line (a key's value may continue over
+# lines that end with a backslash)
+kv() { awk -v k="$2" 'f == 0 && index($0, k "=") == 1 { f = 1; $0 = substr($0, length(k) + 2) }
+  f == 1 { v = $0; c = (v ~ /\\[ \t]*$/); sub(/\\[ \t]*$/, "", v); gsub(/[ \t]/, "", v); n = split(v, a, ","); for (i = 1; i <= n; i++) if (a[i] != "") print a[i]; if (!c) f = 2 }' "$1"; }
+# putback DIR KEY=CLASS[,CLASS]...: the override jar copied into DIR, its spring.factories (spring-aop's) with each KEY added,
+# naming the CLASSes given - every one of them spring-boot's own registration under that KEY, or the script dies - and the
+# file put back into the jar (jar uf); prints the classes added, counted
+putback() { local d=$1 kc k c n=0; shift; rm -rf "$d"; mkdir -p "$d/META-INF"; cp ".harness/shade-c3o/$JAR" "$d/"
+  unzip -p ".harness/shade-c3o/$JAR" META-INF/spring.factories | tr -d '\r' > "$d/META-INF/spring.factories"
+  [ -z "$(tail -c 1 "$d/META-INF/spring.factories")" ] || echo >> "$d/META-INF/spring.factories"
+  unzip -p .harness/nested/spring-boot-4.1.1.jar META-INF/spring.factories | tr -d '\r' > .harness/boot.factories
+  for kc in "$@"; do k=${kc%%=*}; printf '%s=' "$k" >> "$d/META-INF/spring.factories"
+    for c in $(echo "${kc#*=}" | tr ',' ' '); do kv .harness/boot.factories "$k" | grep -qxF "$c" || die "putback: spring-boot's own spring.factories does not register $c under $k"
+      n=$((n + 1)); done
+    echo "${kc#*=}" >> "$d/META-INF/spring.factories"; done
+  (cd "$d" && jar uf tiffinbox-web-1.0.0.jar META-INF/spring.factories) || die "putback: jar uf failed"
+  echo "keys added $# · classes $n · the file now: keys $(grep -cE '^[A-Za-z][^=]*=' "$d/META-INF/spring.factories")"; }
 # overlap LOG: the shade plugin's warnings that name spring.factories or the imports file - each warning's first line (the jars)
 overlap() { awk -v i="$IMP" '/^\[WARNING\] .* define [0-9]+ overlapping / { h = $0; next } /^\[WARNING\]   - / { f = $0; sub(/^\[WARNING\]   - /, "", f); if (f == "META-INF/spring.factories" || f == i) { sub(/^\[WARNING\] /, "", h); print "    " h f } }' "$1"; }
 shade() { local j f o
@@ -352,7 +384,25 @@ shade() { local j f o
   echo "  log lines in Boot's format (date, level, pid, ---): $(grep -cE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[^ ]+ +[A-Z]+ [0-9]+ --- ' .harness/run.out || true) · in Logback's own (time [thread] LEVEL logger --): $(grep -cE '^[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3} \[[^]]+\] [A-Z]+ ' .harness/run.out || true) · the one at ERROR, its time cut:"
   grep -m1 -E '^[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3} \[[^]]+\] ERROR ' .harness/run.out | sed -E 's/^[0-9:.]+ /  /' || echo "  (none)"
   echo "  the last \"Caused by:\": $(grep '^Caused by: ' .harness/run.out | tail -1 | sed 's/^Caused by: //')"
-  echo "  the record's fields it rejects as null: $(cat .harness/run.out .harness/run.err | sed -nE "s/^.*Field error in object 'tiffinbox' on field '([A-Za-z]+)': rejected value \[null\].*$/\1/p" | sort -u | paste -sd' ' -) · port among them: $(grep -c "on field 'port'" .harness/run.out || true)"; }
+  echo "  the record's fields it rejects as null: $(nulls) · port among them: $(grep -c "on field 'port'" .harness/run.out || true)"
+  echo "that jar again, classes from spring-boot's own spring.factories added to spring-aop's file (jar uf) - then run alone:"
+  putback .harness/putback-yaml "$PSL" > .harness/putback.txt; echo "  + the YAML loader's key (PropertySourceLoader): $(cat .harness/putback.txt)"
+  runf "cd .harness/tree && java -jar ../putback-yaml/tiffinbox-web-1.0.0.jar --tiffinbox.port=18844"
+  echo "  exit $ec · listening on 18844: $(listeners 18844) · the record's fields it rejects as null: $(nulls)"
+  putback .harness/putback-config "$PSL" "${CFG[@]}" > .harness/putback.txt
+  echo "  + that key and five more - the run listener, the listener that runs environment post-processors, the config-data"
+  echo "    post-processor, its location resolvers and its loaders: $(cat .harness/putback.txt)"
+  startjar "cd .harness/tree && java -jar ../putback-config/tiffinbox-web-1.0.0.jar --tiffinbox.port=18844"; up; seven 18844; }
+# nulls: the fields of the record that the last run's binding rejected as null (.harness/run.out and run.err)
+nulls() { cat .harness/run.out .harness/run.err | sed -nE "s/^.*Field error in object 'tiffinbox' on field '([A-Za-z]+)': rejected value \[null\].*$/\1/p" | sort -u | paste -sd' ' -; }
+# what putback adds: the YAML loader's key, whole; then the five keys of the chain that reads application.yaml, each with only
+# the classes this lesson names (the third resolver and loader, for the environment-variable locations, left out)
+PSL=org.springframework.boot.env.PropertySourceLoader=org.springframework.boot.env.PropertiesPropertySourceLoader,org.springframework.boot.env.YamlPropertySourceLoader
+CFG=(org.springframework.boot.SpringApplicationRunListener=org.springframework.boot.context.event.EventPublishingRunListener
+     org.springframework.context.ApplicationListener=org.springframework.boot.support.EnvironmentPostProcessorApplicationListener
+     org.springframework.boot.EnvironmentPostProcessor=org.springframework.boot.context.config.ConfigDataEnvironmentPostProcessor
+     org.springframework.boot.context.config.ConfigDataLocationResolver=org.springframework.boot.context.config.ConfigTreeConfigDataLocationResolver,org.springframework.boot.context.config.StandardConfigDataLocationResolver
+     org.springframework.boot.context.config.ConfigDataLoader=org.springframework.boot.context.config.ConfigTreeConfigDataLoader,org.springframework.boot.context.config.StandardConfigDataLoader)
 cap shade shade
 
 # ---- extract: the jar, unpacked by Boot's own tool ------------------------------------------------------------------------
@@ -458,6 +508,8 @@ CP=$(blk change 'tiffinbox-web/pom.xml, every changed line' '  removed ')
 has1 "$CP" '+        <groupId>org.springframework.boot</groupId>' change; has1 "$CP" '+        <artifactId>spring-boot-maven-plugin</artifactId>' change
 [ "$(cnt "$CP" '^\+')" = 2 ] && [ "$(cnt "$CP" '^\+.*<(version|executions?)>')" = 0 ] || die "change: the plugin is declared bare - two lines, no version, no execution"
 has1 "$CP" '-              <classpathPrefix>lib/</classpathPrefix>' change; has1 "$CP" '-            <goals><goal>copy-dependencies</goal></goals>' change
+DECL=$(blk change "after/'s tiffinbox-web/pom.xml, the plugin as declared, whole" "Boot's parent")
+[ "$DECL" = "$(printf '      <plugin>\n        <groupId>org.springframework.boot</groupId>\n        <artifactId>spring-boot-maven-plugin</artifactId>\n      </plugin>')" ] || die "change: the declaration is four lines - two inside a <plugin> tag, no version, no execution"
 PB=$(blk change '$ sed -n 207,215p "$PARENT"' 'the goals each build ran')
 has1 "$PB" '          <artifactId>spring-boot-maven-plugin</artifactId>' change; has1 "$PB" '                <goal>repackage</goal>' change
 x change '^the goals each build ran in tiffinbox-web \(mvn -B clean package, its log\): the previous tree 8 · after/ 8$'
@@ -508,6 +560,7 @@ has1 "$FB" '  com.tiffinbox.web.TiffinBoxServer source: jar:nested:…/.harness/
 has1 "$FB" '  com.tiffinbox.TiffinBoxProperties source: file:…/.harness/deploy/lib/tiffinbox-core-1.0.0.jar' folder
 has1 "$FB" "  Caused by: java.lang.NoSuchMethodError: 'java.lang.String com.tiffinbox.TiffinBoxProperties.shutdownToken()'" folder
 [ "$FA" = "$FA2" ] || die "folder: A' is not A, line for line"
+printf '%s\n' "$FB" | grep -qE "^  … and the class-loading log: [1-9][0-9]* lines for classes read from a jar or a folder, and about [1-9][0-9]*00 more - " || die "folder: B's class-loading lines, counted"
 echo "  folder: A no Class-Path, serves 115c36ba... · B Class-Path 33, TiffinBoxProperties from deploy/lib, NoSuchMethodError shutdownToken() · A' = A"
 
 # "Five of TiffinBox's jars carry a file called spring dot factories. Two carry the imports file ... Boot's jar keeps every
@@ -518,7 +571,8 @@ x shade '^  META-INF/spring\.factories: in 5 jars - spring-aop-7\.0\.9 spring-bo
 x shade "^  $IMPL: in 2 jars - spring-boot-autoconfigure-4\.1\.1 spring-boot-validation-4\.1\.1\$"
 x shade '^  META-INF/services/org\.apache\.logging\.log4j\.util\.PropertySource: in 2 jars - log4j-api-2\.25\.5 spring-boot-4\.1\.1$'
 x shade '^  after/.s jar keeps every copy, each inside its own jar - at the top of the jar itself: 0$'
-SB=$(blk shade "Boot's way" "Course 3's way"); SC=$(blk shade "Course 3's way" 'the same file with'); SO=$(blk shade 'the same file with' '')
+SB=$(blk shade "Boot's way" "Course 3's way"); SC=$(blk shade "Course 3's way" 'the same file with'); SO=$(blk shade 'the same file with' 'that jar again')
+SP=$(blk shade 'that jar again' '')
 printf '%s\n' "$SB" | grep -qE '^  build: exit 0 · shade:3\.6\.2:shade \(default\) @ tiffinbox-web · its warnings naming those two files: 0$' || die "shade: Boot's way builds, no warning on those files"
 has1 "$SB" "  the imports file: lines 13 · ValidationAutoConfiguration among them 1 · one jar's own copy: none - a merge" shade
 has1 "$SB" "  META-INF/spring.factories: keys 17 · one jar's own copy: none - a merge" shade
@@ -527,10 +581,10 @@ printf '%s\n' "$SB" | grep -qE '^  the jar: entries [0-9]{4,} · jars inside it 
 printf '%s\n' "$SC" | grep -qF "  build: exit 1 · Unable to parse configuration of mojo org.apache.maven.plugins:maven-shade-plugin:3.6.2:shade for parameter resource: Cannot find 'resource' in class org.apache.maven.plugins.shade.resource.ManifestResourceTransformer" || die "shade: Course 3's transformers, pasted, do not parse"
 has1 "$SO" "  the imports file: lines 12 · ValidationAutoConfiguration among them 0 · one jar's own copy: spring-boot-autoconfigure-4.1.1" shade
 has1 "$SO" "  META-INF/spring.factories: keys 1 · one jar's own copy: spring-aop-7.0.9" shade
-REG3="the YAML loader (YamlPropertySourceLoader) 1 · the logging listener (LoggingApplicationListener) 1 · failure analyzers (FailureAnalyzer=) 1"
-REG0="the YAML loader (YamlPropertySourceLoader) 0 · the logging listener (LoggingApplicationListener) 0 · failure analyzers (FailureAnalyzer=) 0"
+REG3="the run listener (EventPublishingRunListener) 1 · the config-data post-processor (ConfigDataEnvironmentPostProcessor) 1 · the YAML loader (YamlPropertySourceLoader) 1 · the logging listener (LoggingApplicationListener) 1 · failure analyzers (FailureAnalyzer=) 1"
+REG0="the run listener (EventPublishingRunListener) 0 · the config-data post-processor (ConfigDataEnvironmentPostProcessor) 0 · the YAML loader (YamlPropertySourceLoader) 0 · the logging listener (LoggingApplicationListener) 0 · failure analyzers (FailureAnalyzer=) 0"
 has1 "$SO" "    $REG0" shade; has1 "$SB" "    $REG3" shade
-x shade "^  spring-boot-4\.1\.1\.jar's own spring\.factories: keys [0-9]+ · the YAML loader \(YamlPropertySourceLoader\) 1 · the logging listener \(LoggingApplicationListener\) 1 · failure analyzers \(FailureAnalyzer=\) 1\$"
+x shade "^  spring-boot-4\.1\.1\.jar's own spring\.factories: keys [0-9]+ · $(printf '%s' "$REG3" | sed 's/[().]/\\&/g')\$"
 has1 "$SC" '                    <resource>META-INF/spring.handlers</resource>' shade
 has1 "$SC" '                  <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">' shade
 has1 "$SO" "  the log4j service file: lines 3 · one jar's own copy: none - a merge" shade
@@ -538,7 +592,13 @@ printf '%s\n' "$SO" | grep -qE '^  exit 1 · listening on 18844: 0 · banner lin
 printf '%s\n' "$SO" | grep -qE "^  log lines in Boot's format \(date, level, pid, ---\): 0 · in Logback's own \(time \[thread\] LEVEL logger --\): [1-9][0-9]* · " || die "shade: Course 3's jar logs in Logback's own format, never Boot's"
 has1 "$SO" '  the last "Caused by:": org.springframework.boot.context.properties.bind.validation.BindValidationException: Binding validation errors on tiffinbox' shade
 has1 "$SO" "  the record's fields it rejects as null: cooks days jdbcUrl mealTypes shutdownToken · port among them: 0" shade
-echo "  shade: 5 / 2 / 2 same-named files · Boot's way 13 lines, 17 keys, serves · Course 3's: no parse; override: 12, 1 key (spring-aop's), log4j merged 3, exit 1, YAML keys null"
+# "Boot's own, which registers the code that reads application.yaml at all, is gone": the YAML loader's key put back alone
+# changes nothing; with the five keys of the chain that reads it, the same jar serves
+has1 "$SP" "  + the YAML loader's key (PropertySourceLoader): keys added 1 · classes 2 · the file now: keys 2" shade
+has1 "$SP" "  exit 1 · listening on 18844: 0 · the record's fields it rejects as null: cooks days jdbcUrl mealTypes shutdownToken" shade
+has1 "$SP" "    post-processor, its location resolvers and its loaders: keys added 6 · classes 9 · the file now: keys 7" shade
+has1 "$SP" "  exit 0 · the seven responses: 7 lines · md5 $S115" shade
+echo "  shade: 5 / 2 / 2 same-named files · Boot's way 13 lines, 17 keys, serves · Course 3's: no parse; override: 12, 1 key (spring-aop's), log4j merged 3, exit 1, YAML keys null · the YAML loader put back: still null · the config-data chain put back: serves"
 
 # "Extract gives back a thin jar, with a Class-Path of thirty-one, and a lib folder ... It serves the same hash, and loads
 # none of the launcher's classes."

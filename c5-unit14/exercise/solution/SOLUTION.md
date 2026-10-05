@@ -2,7 +2,8 @@
 
 **`dependencies`** — and the copy that landed there is **not the one you changed**.
 
-Run exactly as written in `../README.md`, every line of its bash block in order, in one clean shell (`env -i HOME=… PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin bash --noprofile --norc`), from `c5-unit14/`, on 2026-10-05:
+Run exactly as written in `../README.md`, every line of its bash block in order, in one clean shell (`env -i HOME=… PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin bash --noprofile --norc`), from `c5-unit14/`, on 2026-10-05 (re-run by BLUE the same day, after the README gained its fresh-clone note: the same
+transcript, line for line):
 
 ```
 $ export JAVA_HOME=/opt/homebrew/opt/openjdk@25

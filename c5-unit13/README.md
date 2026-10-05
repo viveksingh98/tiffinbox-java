@@ -22,11 +22,26 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ./receipts.sh     # 10 captures, 3 runs each; every spoken number asserted; 0 raw tokens; a published-md5 mismatch stops it
 ```
 
+**Either bash.** `./receipts.sh` runs macOS's `/bin/bash` 3.2; `bash receipts.sh` runs the first `bash` on your `PATH` — here
+Homebrew's 5.3. Both give the same ten hashes (2026-10-05, BLUE: 3/3 under each). From bash 5.2 on, an `&` in the replacement of
+`${x/pattern/replacement}` stands for the matched text (`patsub_replacement`, on by default), which turned `startjar`'s
+`&& exec java` into `&& java && java  exec java`; the script switches that option off (RED #13).
+
+**A fresh clone.** `.m2-demo` is git-ignored, so a clone's is empty: the first build's offline attempt cannot resolve Boot's
+parent, and `build()` asks Maven Central once (the terminal says `offline: no - …`); only then does the script check that the
+parent POM — which two captures read — is there. If neither `.m2-demo` nor Central can resolve it, the build stops with that
+said (RED #14). The exercise's commands are offline: run `./receipts.sh` once first. **Measured by BLUE (2026-10-05)** without
+asking Central for anything: a `git clone` of this repository with this unit's new files, its `.m2-demo` empty, Maven pointed by a
+`.mvn/maven.config` at the clone's root to a read-only mirror on 127.0.0.1 that served this unit's own `.m2-demo`. With the
+mirror down, the first build stopped with the message above. With it up, three builds went to it (`offline: no - …`: `after`,
+the previous tree, `shade-boot`), 1,139 requests, 0 not found; every capture 3/3 and `= published`, exit 0; then the exercise's
+three blocks, run as written in an `env -i` shell, printed the same transcript as `exercise/solution/SOLUTION.md`.
+
 (`receipts.sh` carries the same two `export` lines at its top; a bare `java` on this Mac is 23.0.1.) `receipts.sh` **dies**
 when a capture's md5 differs from `receipts.md5` — it prints the `DIFFERS` line first, so you can see which one moved
 (tested 2026-10-05: with `before`'s published hash altered by one character, the run printed `before … DIFFERS from the
 published c5a8d885…`, stopped with exit 1 and released its lock; `receipts.md5` was restored). A whole run takes about
-1 min 40 s on the author's Mac (9 builds, then 10 captures × 3).
+2 min 20 s on the author's Mac (9 builds, then 10 captures × 3).
 
 **The repository.** Every build runs `mvn -o` against this unit's own `.m2-demo` (`$M2` in the script): a copy of
 `../c5-unit11/.m2-demo`, plus the Section 3 seed `spring-boot/_research/m2-seed-s3/` (the S3 probe's repository: the shade
@@ -77,8 +92,8 @@ and `receipts.md5`: 0. The builder counts it again in the script, the deck and t
   `$PARENT` = `.m2-demo/org/springframework/boot/spring-boot-starter-parent/4.1.1/spring-boot-starter-parent-4.1.1.pom`;
   `$pid` = the java process `receipts.sh` started; `$C3POM` = `../c3-unit23/pom.xml` (Course 3's packaging POM; `files` only).
 - Ports (brief ⚑10, 18840-18849, checked free with `lsof` before anything is wiped): launcher 18840 · folder A and A′ 18841,
-  B 18842 (never binds) · shade Boot's 18843, Course 3's 18844 (never binds) · extract 18845 · serve 18846 · the jar alone 18847
-  (never binds). 18848-18849 unused (the exercise starts no server).
+  B 18842 (never binds) · shade Boot's 18843, Course 3's 18844 (binds only once the chain that reads `application.yaml` is put
+  back) · extract 18845 · serve 18846 · the jar alone 18847 (never binds). 18848-18849 unused (the exercise starts no server).
 
 ## Masks, filters and hygiene — every one, declared
 
@@ -86,10 +101,13 @@ and `receipts.md5`: 0. The builder counts it again in the script, the deck and t
    `[masked: the 26-character token]`; this folder's absolute path → `…`, also in its URL-encoded form (`%20` for each space:
    `-verbose:class` prints `file:` and `jar:nested:` URLs); the folder above it → `…/..`; the home folder → `~`. A last
    check fails if any capture still holds `/Users/`, `/private/` or `/home/`.
-2. **`-verbose:class`** prints thousands of lines whose count moves by a line or two from run to run: no total is printed.
-   Shown: the named classes' lines, each with its `[uptime][info][class,load]` prefix cut (`sub()`), and the count of
-   `org.springframework.boot.loader.*` classes logged (stable over every run here). A failed start's "not shown" count leaves
-   the class-loading lines out and says so.
+2. **`-verbose:class`** prints thousands of lines whose count moves by a line or two from run to run (a JDK class that some
+   runs load and some do not: `java.util.concurrent.ForkJoinTask$AdaptedRunnableAction`, from `jrt:/java.base`): no raw total
+   is printed. Shown: the named classes' lines, each with its `[uptime][info][class,load]` prefix cut (`sub()`), and the count
+   of `org.springframework.boot.loader.*` classes logged (stable over every run here). `folder` B's "not shown" lines count its
+   other output exactly, and its class-loading lines by a declared filter (RED #28): the lines whose source is `file:` or
+   `jar:` — classes read from a jar or a folder — counted exactly (3651, the same in 8 of 8 runs), and the rest, the JDK's own
+   classes and the ones generated while it runs, rounded to the hundred (about 3000: 3023 or 3024 here).
 3. **jcmd:** `VM.classloaders`' first line (the pid) → `<pid>:`; trailing blanks dropped (`sub()`), blank lines dropped.
 4. **Manifests** are unfolded (a line starting with one space continues the line before); a `Class-Path` is printed counted —
    entries, the first, and whether every one sits under `lib/` — never as its 33 names.
@@ -110,7 +128,10 @@ and `receipts.md5`: 0. The builder counts it again in the script, the deck and t
 lock — on a failed check and on Ctrl-C alike (a background job of a non-interactive shell ignores the terminal's Ctrl-C). Every
 command in the trap is guarded, so `set -e` cannot end it early, and `$pid` is cleared after every reap. Tested 2026-10-05:
 `SIGINT` sent to the script's process group the moment `folder` A's JVM listened on 18841 → `receipts.sh` exited 130; 5 s
-later nothing listened on 18840-18847, no java process ran a TiffinBox jar, and `.r-lock` was gone.
+later nothing listened on 18840-18847, no java process ran a TiffinBox jar, and `.r-lock` was gone. **Re-tested by BLUE the same
+day** on the new script (started as its own process group with SIGINT at its default, `perl -e '$SIG{INT} = "DEFAULT";
+setpgrp(0, 0); exec @ARGV' ./receipts.sh`, SIGINT to the group when 18841 listened, 47 s in): exit 130; 5 s later 0 listeners on
+18840-18849, 0 java processes running a TiffinBox jar, `.r-lock` gone.
 
 ## 1 · Before — the jar TiffinBox has shipped until now
 
@@ -143,7 +164,7 @@ before any port opens.
 
 ## 2 · The change — one plugin, declared; the parent's execution; the goals
 
-`.r-change.out` `674c44ec3cc503a0dba9598d319e8906` — 48 lines
+`.r-change.out` `7c6f785396f87fffcca6516b41e34f29` — 53 lines
 
 ```
 files, README aside: the previous tree 18 · after/ 18 · in both 18: identical 17, changed 1
@@ -179,6 +200,11 @@ tiffinbox-web/pom.xml, every changed line but comments and blanks (11 of those n
 +        <groupId>org.springframework.boot</groupId>
 +        <artifactId>spring-boot-maven-plugin</artifactId>
   removed 26 · added 2
+after/'s tiffinbox-web/pom.xml, the plugin as declared, whole (its lines 48-51):
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
 Boot's parent, spring-boot-starter-parent 4.1.1 - what it manages for that plugin:
 $ sed -n 207,215p "$PARENT"
           <artifactId>spring-boot-maven-plugin</artifactId>
@@ -196,7 +222,9 @@ the goals each build ran in tiffinbox-web (mvn -B clean package, its log): the p
   the last goal: the previous tree jar:3.5.0:jar (default-jar) · after/ spring-boot:4.1.1:repackage (repackage)
 ```
 
-Two lines added, 26 removed (comments and blanks aside). Boot's parent manages the plugin's version and its `repackage`
+Two lines added, 26 removed (comments and blanks aside); the declaration, printed whole from `after/`, is four lines — the two
+inside a `<plugin>` tag, whose own `<plugin>` and `</plugin>` lines the diff aligns with the old blocks' (RED #25: the voice says
+"two lines inside a plugin tag"). Boot's parent manages the plugin's version and its `repackage`
 execution (lines 207-215, printed); the previous build's goals in `tiffinbox-web` held no `spring-boot` goal, and this build's
 last goal is `spring-boot:4.1.1:repackage (repackage)`. Course 4's comment "even Boot's own parent does not make an executable
 jar happen by itself" (ledger P24) held for every tree under that parent until this one: the declaration is the act.
@@ -290,7 +318,7 @@ URLs: the jars are read where they sit inside the file, not flattened (ledger P1
 
 ## 5 · The folder beside the jar — A/B/A′
 
-`.r-folder.out` `618082d1db36e87994ac81ccd4077ab9` — 31 lines
+`.r-folder.out` `d6041b05bb1747622c3bf3dbf6cfbe84` — 32 lines
 
 ```
 deploy/: an older release's server folder - lib/ (33 jars: TiffinBox before its shutdown token, built with the
@@ -314,7 +342,8 @@ $ cp .harness/headerkept/tiffinbox-web/target/tiffinbox-web-1.0.0.jar .harness/d
   Boot: ERROR Application run failed · the "Caused by:" lines, each whole:
   Caused by: org.springframework.beans.BeanInstantiationException: Failed to instantiate [com.tiffinbox.web.TiffinBoxServer]: Constructor threw exception
   Caused by: java.lang.NoSuchMethodError: 'java.lang.String com.tiffinbox.TiffinBoxProperties.shutdownToken()'
-  … 55 more line(s) of this run's output not shown: the banner, Boot's log, the stack frames - and the class-loading log's own lines, uncounted (their number moves from run to run) …
+  … 55 more line(s) of this run's output not shown: the banner, Boot's log, the stack frames …
+  … and the class-loading log: 3651 lines for classes read from a jar or a folder, and about 3000 more - the JDK's own classes and the ones generated while it runs, rounded to the hundred: their number moves by a line or two from run to run …
 A′  A, re-run
   the jar's Class-Path: none
 $ cp after/tiffinbox-web/target/tiffinbox-web-1.0.0.jar .harness/deploy/ && cd .harness/deploy && java -verbose:class -jar tiffinbox-web-1.0.0.jar --tiffinbox.port=18841
@@ -337,7 +366,7 @@ two copies of one name, the loader asked first wins). **A′** = A, line for lin
 
 ## 6 · Shade — the same-named files, Boot's way, Course 3's way
 
-`.r-shade.out` `9cbbba5c94d0da4f6e0129947ac4f8ed` — 40 lines
+`.r-shade.out` `442df805ed696e69f9d0efac3b876d9b` — 51 lines
 
 ```
 the same-named files TiffinBox's 31 jars carry - the jars inside after/'s jar, each read where it is:
@@ -345,13 +374,13 @@ the same-named files TiffinBox's 31 jars carry - the jars inside after/'s jar, e
   META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports: in 2 jars - spring-boot-autoconfigure-4.1.1 spring-boot-validation-4.1.1
   META-INF/services/org.apache.logging.log4j.util.PropertySource: in 2 jars - log4j-api-2.25.5 spring-boot-4.1.1
   after/'s jar keeps every copy, each inside its own jar - at the top of the jar itself: 0
-  spring-boot-4.1.1.jar's own spring.factories: keys 13 · the YAML loader (YamlPropertySourceLoader) 1 · the logging listener (LoggingApplicationListener) 1 · failure analyzers (FailureAnalyzer=) 1
+  spring-boot-4.1.1.jar's own spring.factories: keys 13 · the run listener (EventPublishingRunListener) 1 · the config-data post-processor (ConfigDataEnvironmentPostProcessor) 1 · the YAML loader (YamlPropertySourceLoader) 1 · the logging listener (LoggingApplicationListener) 1 · failure analyzers (FailureAnalyzer=) 1
 Boot's way - shade-boot/: the shade plugin declared bare (Boot's parent: its version, an execution, Boot's transformers)
   build: exit 0 · shade:3.6.2:shade (default) @ tiffinbox-web · its warnings naming those two files: 0
   the jar: entries 9898 · jars inside it 0 · its Main-Class: com.tiffinbox.web.TiffinBoxServer
   the imports file: lines 13 · ValidationAutoConfiguration among them 1 · one jar's own copy: none - a merge
   META-INF/spring.factories: keys 17 · one jar's own copy: none - a merge
-    the YAML loader (YamlPropertySourceLoader) 1 · the logging listener (LoggingApplicationListener) 1 · failure analyzers (FailureAnalyzer=) 1
+    the run listener (EventPublishingRunListener) 1 · the config-data post-processor (ConfigDataEnvironmentPostProcessor) 1 · the YAML loader (YamlPropertySourceLoader) 1 · the logging listener (LoggingApplicationListener) 1 · failure analyzers (FailureAnalyzer=) 1
   the log4j service file: lines 3 · one jar's own copy: none - a merge
 $ cd .harness/tree && java -jar ../shade-boot/tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18843
   listens on: 127.0.0.1:18843 · WARN lines 0 · ERROR lines 0
@@ -372,7 +401,7 @@ the same file with <transformers combine.self="override"> (shade-c3/pom-override
   the jar: entries 9898 · jars inside it 0 · its Main-Class: com.tiffinbox.web.TiffinBoxServer
   the imports file: lines 12 · ValidationAutoConfiguration among them 0 · one jar's own copy: spring-boot-autoconfigure-4.1.1
   META-INF/spring.factories: keys 1 · one jar's own copy: spring-aop-7.0.9
-    the YAML loader (YamlPropertySourceLoader) 0 · the logging listener (LoggingApplicationListener) 0 · failure analyzers (FailureAnalyzer=) 0
+    the run listener (EventPublishingRunListener) 0 · the config-data post-processor (ConfigDataEnvironmentPostProcessor) 0 · the YAML loader (YamlPropertySourceLoader) 0 · the logging listener (LoggingApplicationListener) 0 · failure analyzers (FailureAnalyzer=) 0
   the log4j service file: lines 3 · one jar's own copy: none - a merge
 $ cd .harness/tree && java -jar ../shade-c3o/tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18844
   exit 1 · listening on 18844: 0 · banner lines 1 · APPLICATION FAILED TO START: 0 · standard error 0 lines
@@ -380,6 +409,17 @@ $ cd .harness/tree && java -jar ../shade-c3o/tiffinbox-web/target/tiffinbox-web-
   [main] ERROR org.springframework.boot.SpringApplication -- Application run failed
   the last "Caused by:": org.springframework.boot.context.properties.bind.validation.BindValidationException: Binding validation errors on tiffinbox
   the record's fields it rejects as null: cooks days jdbcUrl mealTypes shutdownToken · port among them: 0
+that jar again, classes from spring-boot's own spring.factories added to spring-aop's file (jar uf) - then run alone:
+  + the YAML loader's key (PropertySourceLoader): keys added 1 · classes 2 · the file now: keys 2
+$ cd .harness/tree && java -jar ../putback-yaml/tiffinbox-web-1.0.0.jar --tiffinbox.port=18844
+  exit 1 · listening on 18844: 0 · the record's fields it rejects as null: cooks days jdbcUrl mealTypes shutdownToken
+  + that key and five more - the run listener, the listener that runs environment post-processors, the config-data
+    post-processor, its location resolvers and its loaders: keys added 6 · classes 9 · the file now: keys 7
+$ cd .harness/tree && java -jar ../putback-config/tiffinbox-web-1.0.0.jar --tiffinbox.port=18844
+  listens on: 127.0.0.1:18844 · WARN lines 0 · ERROR lines 0
+$ $CURLSET 18844 .harness/tree/secrets/tiffinbox/shutdown-token
+POST  /shutdown   -> 200 application/json  {"stopping":true}
+  exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
 ```
 
 Same-named files across the 31 jars: `META-INF/spring.factories` in 5, the imports file in 2, the log4j `PropertySource`
@@ -390,10 +430,20 @@ pasted into this Boot-parented POM, do not parse: Maven merged the child's list 
 parent's first entry is an `AppendingTransformer` with a `<resource>`. With `combine.self="override"` it builds (BUILD
 SUCCESS, two overlap warnings), and the services transformer merges the one service file two jars share (3 lines) — but
 `spring.factories` and the imports file are not service files: the imports file is spring-boot-autoconfigure's own (12 lines,
-validation's gone) and `spring.factories` is spring-aop's own (1 key). spring-boot's own copy, which registers the YAML loader,
-the logging listener and the failure analyzers, is gone: the start reads no `application.yaml` (5 of the record's 6 fields
-rejected as null; `port` came from the command line), logs in Logback's own format, prints no failure report, exits 1
-(ledger P15, the fat-jar half).
+validation's gone) and `spring.factories` is spring-aop's own (1 key). spring-boot's own copy is gone — the run listener, the
+config-data post-processor, the YAML loader, the logging listener, the failure analyzers: 0 of each in the shaded file — and
+the start reads no `application.yaml` (5 of the record's 6 fields rejected as null; `port` came from the command line), logs in
+Logback's own format, prints no failure report, exits 1 (ledger P15, the fat-jar half).
+
+**Which lines it was missing** (RED #4: the cause is not the YAML loader alone). The same shaded jar, with lines of spring-boot's
+own `spring.factories` added to spring-aop's (`jar uf`, each class checked against spring-boot's own registration under that
+key): the YAML loader's key alone (`PropertySourceLoader`, 2 classes) → exit 1, the same five fields null; that key plus the
+five keys of the chain that reads `application.yaml` at all (`SpringApplicationRunListener` → `EventPublishingRunListener`,
+`ApplicationListener` → `EnvironmentPostProcessorApplicationListener`, `EnvironmentPostProcessor` →
+`ConfigDataEnvironmentPostProcessor`, `ConfigDataLocationResolver` and `ConfigDataLoader` → their config-tree and standard
+classes: 9 classes, 7 keys) → it listens on 18844 and serves `115c36ba…`. The third resolver and loader (environment-variable
+locations) and every other key stay out. The voice says "Boot's own, which registers the code that reads application dot yaml,
+is gone".
 
 ## 7 · Extract — the jar, unpacked by Boot's own tool
 
@@ -568,7 +618,7 @@ written out; `pom-override.xml` differs from `pom.xml` in one attribute. The exe
 
 ## Exercise
 
-`exercise/README.md` — in `.harness/mine`, a copy of after/: add `exercise/PrintRoutes.java` (a second class with a `main`),
+`exercise/README.md` — run `./receipts.sh` once first on a fresh clone (it fills `.m2-demo`). In `.harness/mine`, a copy of after/: add `exercise/PrintRoutes.java` (a second class with a `main`),
 package, and the build stops: `Unable to find a single main class from the following candidates
 [com.tiffinbox.web.TiffinBoxServer, com.tiffinbox.web.tools.PrintRoutes]`. Make the build choose TiffinBox again without
 deleting it, changing only web's POM: done is `Start-Class: com.tiffinbox.web.TiffinBoxServer` with `PrintRoutes` still in the
@@ -588,7 +638,12 @@ jar. Run exactly as written in a clean shell (`env -i`): `exercise/solution/SOLU
 - **More same-named files than the three counted:** `META-INF/spring.handlers` and `META-INF/spring.schemas` sit in 3 jars each
   (spring-aop, spring-beans, spring-context). Boot's parent's shade execution appends both; Course 3's two transformers keep one
   copy of each (they are among the overlaps the override build warns about). Not spoken: nothing in TiffinBox reads them.
-- **`-verbose:class` totals move by a line from run to run** (6,869 vs 6,870 in one run of three): no total is printed.
+- **`-verbose:class` totals move by a line from run to run** (6,869 vs 6,870 in one run of three): no raw total is printed;
+  `folder` B counts its class-loading lines through a declared filter instead (*Masks*, 2).
+- **The cause behind the null settings is the chain, not the YAML loader** (BLUE, after RED #4): putting the YAML loader's key
+  back alone changes nothing; the five keys of the chain that reads `application.yaml` make the shaded jar serve (`shade`).
+- **"The last course" is Course 4 from here** (RED #2): the fat-jar definition and the services transformer are Course 3's
+  (unit 23), and the voice says "Course 3" in all seven places that said "the last course".
 
 ## For the next units — 14, 18 — and for RED
 

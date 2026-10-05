@@ -18,8 +18,14 @@ no README, no slide and **no layer of either image this unit tags** holds the de
 ```
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
 export PATH="$JAVA_HOME/bin:$PATH"
-./receipts.sh     # 8 captures, 3 runs each; every spoken number asserted; 0 raw tokens, image layers included; a published-md5 mismatch stops it
+./receipts.sh     # 9 captures, 3 runs each; every spoken number asserted; 0 raw tokens, image layers included; a published-md5 mismatch stops it
 ```
+
+**Either bash.** `./receipts.sh` runs macOS's `/bin/bash` 3.2; `bash receipts.sh` runs the first `bash` on your `PATH` — here
+Homebrew's 5.3. Both give the published hashes (BLUE, 2026-10-05: every capture 3/3 under each). From bash 5.2 on, an `&` in the
+replacement of `${x/pattern/replacement}` stands for the matched text (`patsub_replacement`, on by default), which broke
+`startjar`'s `&& exec java`; the script switches that option off (RED #13). On a fresh clone `.m2-demo` is empty (git-ignored):
+the first builds' offline attempts fail and `build()` asks Maven Central, saying so (`offline: no - …`).
 
 (`receipts.sh` carries the same two `export` lines at its top.) `receipts.sh` **dies** when a capture's md5 differs from
 `receipts.md5` — it prints the `DIFFERS` line first, so you can see which one moved. A whole run takes about four minutes on the
@@ -49,7 +55,8 @@ RUNIMAGE=paketobuildpacks/ubuntu-noble-run-tiny:0.0.138
 mvn -o -B -f after/pom.xml -Dmaven.repo.local="$M2" -DskipTests clean install
 mvn -o -B -f after/pom.xml -Dmaven.repo.local="$M2" -pl tiffinbox-web spring-boot:build-image-no-fork -Dspring-boot.build-image.builder="$BUILDER" -Dspring-boot.build-image.runImage="$RUNIMAGE" -Dspring-boot.build-image.pullPolicy=IF_NOT_PRESENT
 docker run --rm --name tiffinbox-web-required -m 1g tiffinbox-web:1.0.0
-docker run -d --name tiffinbox-web-address -m 1g -e TIFFINBOX_ADDRESS=0.0.0.0 -v "$PWD/.harness/tree/secrets:/workspace/secrets:ro" -p 127.0.0.1:18861:18425 tiffinbox-web:1.0.0
+docker run -d --name tiffinbox-web-address -m 1g --user "$(id -u):$(id -g)" -e TIFFINBOX_ADDRESS=0.0.0.0 -v "$PWD/.harness/tree/secrets:/workspace/secrets:ro" -p 127.0.0.1:18861:18425 tiffinbox-web:1.0.0
+docker volume create tiffinbox-web-secrets > /dev/null && docker run --rm --name tiffinbox-web-fill --user 0 --entrypoint sh -v tiffinbox-web-secrets:/s -v "$PWD/.harness/tree/secrets:/src:ro" "$BUILDER" -c 'cp -R /src/. /s && chown -R "$1" /s && chmod 700 /s /s/tiffinbox && chmod 600 /s/tiffinbox/shutdown-token && stat -c "%u:%g %A" /s /s/tiffinbox /s/tiffinbox/shutdown-token' - "$(id -u):$(id -g)"
 ```
 
 - **The image takes two steps (brief ⚑4).** `install` from the root builds both modules in one reactor, so `tiffinbox-core` lands in
@@ -66,7 +73,15 @@ mvn -o -B -f .harness/root/pom.xml -Dmaven.repo.local="$M2" spring-boot:build-im
 ```
 
 - **B and C are A with one flag changed** — B without `-e TIFFINBOX_ADDRESS=0.0.0.0`, C with `-e SERVER_ADDRESS=0.0.0.0` in its
-  place; `receipts.sh` derives both from A's line and asserts the one difference. **at/** — `after/` with one word of
+  place; `receipts.sh` derives both from A's line and asserts the one difference.
+- **Every run that mounts the token's folder runs as your own user: `--user "$(id -u):$(id -g)"`** (RED #1). The token file is
+  `0600` in `0700` folders, yours; the image's own user is `1002:1001`. On this Mac, OrbStack's file sharing lets any container user
+  read a mounted file, so the flag changes nothing here — but where a file keeps its owner, as on Linux, the image's own user
+  cannot read it. **Measured** (`user`): the fill command above copies the tree into a Docker volume, as root, owners and modes kept
+  (the volume is the daemon's own storage: no file sharing in between); A runs `--user` and serves; B, the image's own user, exits
+  82 before Java starts — the bellsoft-liberica memory calculator walks `/workspace` to count classes and cannot open
+  `/workspace/secrets`; A′ = A; C mounts the Mac's folder without `--user` and serves (OrbStack). `user`'s commands are A's with the
+  volume in place of the folder, port 18862, and `--user` dropped for B and C (each derivation asserted). **at/** — `after/` with one word of
   `TiffinBoxServer`'s listening line changed (`on` → `at`) — is built with the two build commands, the tree swapped.
 
 ## The anchor change
@@ -94,10 +109,10 @@ seven requests read it from the file (`$CURLSET PORT TOKENFILE`), and **in a con
 read-only at `/workspace/secrets`** — the image's working folder is `/workspace`, and `application.yaml` imports
 `optional:configtree:./secrets/`. **No image holds it:** Boot's build sends the builder the jar alone. Every capture is masked — the
 token becomes `[masked: the 26-character token]` (`gsub`) — and `receipts.sh` counts the raw token in each run's own output
-**before** masking (`.harness/raw-*`: 0 in all 24 capture runs), then in every capture, this README, the anchor README, the
+**before** masking (`.harness/raw-*`: 0 in all 27 capture runs), then in every capture, this README, the anchor README, the
 exercise, its solution and `receipts.md5`: 0. Then **both images it tags** — `tiffinbox-web:1.0.0` as at/ built it and as after/
 built it — are saved (`docker save`), and every layer (the run image's too) is unpacked and searched, with each image config: 0
-copies (the run of record: 0 raw copies in 24 raw capture runs, in 8 captures, the READMEs, the exercise and its solution, and receipts.md5 - and in the 2 images' 21 distinct layers (every one, unpacked) and 2 configs; the exercise's own token: 0 raw copies in the captures; no absolute path in any capture). The builder counts it again in the script, the deck and the prompter: 0.
+copies (the run of record: 0 raw copies in 27 raw capture runs, in 9 captures, the READMEs, the exercise and its solution, and receipts.md5 - and in the 2 images' 21 distinct layers (every one, unpacked) and 2 configs; the exercise's own token: 0 raw copies in the captures; no absolute path in any capture). The builder counts it again in the script, the deck and the prompter: 0.
 
 **The exercise's token is the viewer's own:** 32 random hexadecimal characters (`openssl rand -hex 16`), written by the exercise's
 own commands into `.harness/mine/`. The exercise's answer puts it in an environment variable, and `docker inspect` then prints it —
@@ -108,17 +123,17 @@ the last one raw in every capture: 0.
 
 - `after/` — the frozen tree, built clean in place (`install`). `.harness/before/` — `../c5-unit14/after`, built clean once (`package`).
   `.harness/at/` — `after/` with one word changed (`rebuild`). `.harness/root/` — a fresh copy of `after/` for each run of the obvious
-  command. `.harness/tree/` — the config tree. `.harness/peek/` — what `chose` copies out of the image. `.harness/mine/` — the
+  command. `.harness/tree/` — the config tree (copied into the volume `tiffinbox-web-secrets` by `user`). `.harness/peek/` — what `chose` copies out of the image. `.harness/mine/` — the
   exercise's.
 - On screen: `$M2` = this unit's `.m2-demo`; `$BUILDER` and `$RUNIMAGE` (*Commands*); `$PWD` = the shell's current folder, this unit's;
   `$CURLSET` = `../c5-unit11/curlset.sh`, the comparison set since the secrets lesson (the seven requests, POST /shutdown with the
   token's header read from a file) — its folder carries a unit number, so no slide prints the path.
 - **Ports** (brief ⚑10, 18860-18869, checked free with `lsof` before anything is wiped, with 18425): `change` 18860 (the jars, on the
-  Mac) · `address` 18861 (the Mac's side of every published port: `-p 127.0.0.1:18861:18425`) · `exercise` 18866. Inside the
+  Mac) · `address` 18861 (the Mac's side of every published port: `-p 127.0.0.1:18861:18425`) · `user` 18862 · `exercise` 18866. Inside the
   container TiffinBox listens on 18425, which binds nothing on the Mac.
 - **Docker names** (no unit number, §R.4): the image `tiffinbox-web:1.0.0` (Boot's default name for this module, brief ⚑11);
-  containers `tiffinbox-web-address`, `-required`, `-peek` (created, never started), `-shell`, `-mine`. **Removed by the exit trap**
-  — after a pass, a failure or Ctrl-C: those names; the containers labelled `author=spring-boot` that appeared during the run, with
+  containers `tiffinbox-web-address`, `-required`, `-peek` (created, never started), `-shell`, `-mine`, `-volume`, `-fill`; the
+  volume `tiffinbox-web-secrets`. **Removed by the exit trap** — after a pass, a failure or Ctrl-C: those names; the containers labelled `author=spring-boot` that appeared during the run, with
   the image each was created from (Boot's ephemeral builder); images named `pack.local/builder/*` that appeared; and every volume
   named `pack-*` that appeared during the run — the buildpack's two cache volumes for the image's name included (taken before and
   after: the difference, brief S3.4). A volume, container or image that was there before the run is never touched; `docker …
@@ -142,7 +157,10 @@ the last one raw in every capture: 0.
 4. **Container logs** are read with `docker logs`; a log line is printed from its message on (the time, level, PID, thread and logger
    columns dropped). The `address` capture prints the listening line, then the address in it without its scheme
    (`the address in that line: 0.0.0.0:18425`) — the deck shows that second line, because `check_unit5.py` reads a printed
-   `http://0.0.0.0…` as a demo URL that is not loopback.
+   `http://0.0.0.0…` as a demo URL that is not loopback. `user` B's log is the buildpack launcher's: its colour codes (ANSI
+   escapes) are stripped (`sed`), and the lines that name a cause are printed whole, **sorted** — `docker logs` merges the
+   launcher's standard output and standard error, and the two came in either order (one capture run of three, BLUE's first
+   final run: the drift `cap()` exists to catch).
 5. **The image's records** (`chose`) are read from `docker image inspect`'s JSON by a few lines of Python: the user, the working folder,
    the entrypoint, the creation date, three labels, the number of buildpacks in the build record, the default process, the source of
    every layer whose record names a download (printed as host and file name, never as a URL), and the run image.
@@ -155,8 +173,8 @@ the last one raw in every capture: 0.
    scratch volumes), before it starts. Every container runs with `-m 1g`, so the buildpack's memory calculator prints the limit, never
    this Mac's memory (`required`: 0 lines naming the machine's memory).
 
-**Interrupted.** `receipts.sh`'s exit trap stops the JVM it started in the background, if one still runs; removes its five container names and its
-image, the containers labelled `author=spring-boot` that appeared during the run (with the image each was created from), any
+**Interrupted.** `receipts.sh`'s exit trap stops the JVM it started in the background, if one still runs; removes its seven container names, its
+volume and its image, the containers labelled `author=spring-boot` that appeared during the run (with the image each was created from), any
 `pack.local/builder/*` image that appeared, and the `pack-*` volumes that appeared; and drops the lock — on a failed check and on
 Ctrl-C alike. Every command in the trap is guarded, so `set -e` cannot end it early, and `$pid` is cleared after every reap.
 **Tested 2026-10-05, three times.** Each time `receipts.sh` ran in the foreground of a driver shell that leads its own process
@@ -166,7 +184,10 @@ group (`perl -e '$SIG{INT} = "DEFAULT"; setpgrp(0, 0); exec @ARGV' bash driver.s
 lifecycle's container running (1 `author=spring-boot` container, 1 image, 4 `pack-` volumes); (3) while `address`'s container
 published 18861. `receipts.sh` exited **130** each time, and 5 s later: 0 listeners on 18425 and 18860-18869, 0 java processes
 running this unit's jar, 0 containers named `tiffinbox-web-*`, 0 labelled `author=spring-boot`, 0 images `tiffinbox-web:1.0.0` or
-`pack.local/builder/*`, 0 `pack-*` volumes, and `.r-lock` gone.
+`pack.local/builder/*`, 0 `pack-*` volumes, and `.r-lock` gone. **Re-tested by BLUE the same day** on the new script, the same
+way, SIGINT to the group while `user`'s container `tiffinbox-web-volume` ran (122 s in): exit 130; 5 s later 0 listeners on 18425
+and 18860-18869, 0 containers named `tiffinbox-web-*`, 0 labelled `author=spring-boot`, the volume `tiffinbox-web-secrets` gone,
+0 new volumes, 0 new images, `tiffinbox-web:1.0.0` gone, `.r-lock` gone.
 
 ## 1 · Change — the address, in three files; on the Mac, nothing moves
 
@@ -218,13 +239,14 @@ change is invisible on the Mac.
 
 ## 2 · Build — README's two commands, and what the log says it chose
 
-`.r-build.out` `3d15a88b547d21c12b903009efcf52bb` — 29 lines
+`.r-build.out` `cb625234b08ac9277d3d641e844df7d4` — 31 lines
 
 ```
 $ mvn -o -B -f after/pom.xml -Dmaven.repo.local="$M2" -DskipTests clean install
   exit 0 · offline: yes (-o) · BUILD SUCCESS lines: 1
 $ mvn -o -B -f after/pom.xml -Dmaven.repo.local="$M2" -pl tiffinbox-web spring-boot:build-image-no-fork -Dspring-boot.build-image.builder="$BUILDER" -Dspring-boot.build-image.runImage="$RUNIMAGE" -Dspring-boot.build-image.pullPolicy=IF_NOT_PRESENT
   exit 0 · offline: yes (-o)
+  the goals this build ran (Maven's own lines): 1 - spring-boot:4.1.1:build-image-no-fork (default-cli)
   Building image 'docker.io/library/tiffinbox-web:1.0.0'
   [creator]     6 of 26 buildpacks participating
   [creator]     paketo-buildpacks/ca-certificates   3.13.0
@@ -250,6 +272,7 @@ $ mvn -o -B -f after/pom.xml -Dmaven.repo.local="$M2" -pl tiffinbox-web spring-b
   Successfully built image 'docker.io/library/tiffinbox-web:1.0.0'
   log lines 152 · shown 23 · not shown 129 · lines that say Downloading from: 0 · lines that say Pulling: 0
   RootFS layers, against the image this name held before (the run's first build, the same jar): 20 and 20 · the same 20 · different 0
+  the image ID, against that image's: equal: yes
 ```
 
 Every captured build finds, under the same name, the image the same jar made a moment before — the run's first build (*What the
@@ -282,7 +305,7 @@ removes exactly that, by ID and name: 0 left. (The container mounts the Docker s
 
 ## 4 · Chose — the image's own records, its files, and what is not there
 
-`.r-chose.out` `d11baba21ee754fdd2bb6c933303a9a7` — 23 lines
+`.r-chose.out` `033d70457a98dd43c535eb7f381a3c2f` — 35 lines
 
 ```
 $ docker image inspect tiffinbox-web:1.0.0
@@ -308,9 +331,22 @@ $ docker create --name tiffinbox-web-peek tiffinbox-web:1.0.0 > /dev/null && doc
   the helpers the bellsoft-liberica buildpack's layer runs before Java (helper/exec.d/): 11 · memory-calculator among them: yes
 $ docker run --rm --name tiffinbox-web-shell --entrypoint sh tiffinbox-web:1.0.0 -c true
   exit 127 · exec: "sh": executable file not found in $PATH
+the run image under it, on its own - where the user and the missing shell come from:
+$ docker image inspect -f '{{.Config.User}}' $RUNIMAGE
+  1002:1001
+$ docker run --rm --name tiffinbox-web-shell --entrypoint sh $RUNIMAGE -c true
+  exit 127 · exec: "sh": executable file not found in $PATH
+$ docker history --human=false tiffinbox-web:1.0.0     (the app's slices and the bill of materials: each one's size and name)
+    0         Application Slice: 5
+    57344     Application Slice: 4
+    0         Application Slice: 3
+    618496    Application Slice: 2
+    15986688  Application Slice: 1
+    364544    Software Bill-of-Materials
 ```
 
-- The image runs as `1002:1001` — a user and a group, by number; not root — from `/workspace`, which holds the jar unpacked
+- The image runs as `1002:1001` — a user and a group, by number; not root — **set by its run image**, which has the same user and
+  no shell either (the run image on its own: `1002:1001`; `sh` → 127; RED #31) — from `/workspace`, which holds the jar unpacked
   (`BOOT-INF META-INF org`). Its entrypoint is the buildpacks' launcher for the `web` process, which the image's build record names:
   `java org.springframework.boot.loader.launch.JarLauncher`, run directly. Its creation date is fixed, `1980-01-01T00:00:01Z`: the
   same jar gave the same 20 layers (`build`), so `docker images` calls it 46 years old.
@@ -323,6 +359,9 @@ $ docker run --rm --name tiffinbox-web-shell --entrypoint sh tiffinbox-web:1.0.0
   before Java; `memory-calculator` is one of them.
 - **There is no shell**: `--entrypoint sh` → exit 127, `exec: "sh": executable file not found in $PATH`. Look inside with `docker cp`
   and `docker inspect`, as this capture does (the container is created, copied from and removed; it never starts).
+- **`docker history`** names the app's five layers `Application Slice: 1` to `5`: the four slices of the jar's layer index, and a
+  fifth for whatever they leave — 0 bytes here, like the snapshot slice (RED #30); and one `Software Bill-of-Materials` layer,
+  syft's list of what the image holds (364,544 bytes on disk here).
 
 ## 5 · Required — the image with no token
 
@@ -346,11 +385,11 @@ not shown, and its numbers move.
 
 ## 6 · Address — the break (A/B/A′, with C)
 
-`.r-address.out` `7fc571c23df4915849fb116a62808630` — 43 lines
+`.r-address.out` `13e7df2896b75a5dbf284a4cb9250f89` — 43 lines
 
 ```
 A   the address set: TIFFINBOX_ADDRESS=0.0.0.0 - the anchor's new key, tiffinbox.address
-$ docker run -d --name tiffinbox-web-address -m 1g -e TIFFINBOX_ADDRESS=0.0.0.0 -v "$PWD/.harness/tree/secrets:/workspace/secrets:ro" -p 127.0.0.1:18861:18425 tiffinbox-web:1.0.0
+$ docker run -d --name tiffinbox-web-address -m 1g --user "$(id -u):$(id -g)" -e TIFFINBOX_ADDRESS=0.0.0.0 -v "$PWD/.harness/tree/secrets:/workspace/secrets:ro" -p 127.0.0.1:18861:18425 tiffinbox-web:1.0.0
   the log: TiffinBox listening on http://0.0.0.0:18425
   the address in that line: 0.0.0.0:18425
 $ $CURLSET 18861 .harness/tree/secrets/tiffinbox/shutdown-token
@@ -361,7 +400,7 @@ $ docker wait tiffinbox-web-address
 $ docker rm tiffinbox-web-address
   listeners on 18861 now: 0
 B   no address: application.yaml's default, 127.0.0.1
-$ docker run -d --name tiffinbox-web-address -m 1g -v "$PWD/.harness/tree/secrets:/workspace/secrets:ro" -p 127.0.0.1:18861:18425 tiffinbox-web:1.0.0
+$ docker run -d --name tiffinbox-web-address -m 1g --user "$(id -u):$(id -g)" -v "$PWD/.harness/tree/secrets:/workspace/secrets:ro" -p 127.0.0.1:18861:18425 tiffinbox-web:1.0.0
   the log: TiffinBox listening on http://127.0.0.1:18425
   the address in that line: 127.0.0.1:18425
 $ curl -sS http://127.0.0.1:18861/kitchen
@@ -371,7 +410,7 @@ $ docker stop tiffinbox-web-address
 $ docker rm tiffinbox-web-address
   listeners on 18861 now: 0
 C   Boot's own key instead: SERVER_ADDRESS=0.0.0.0, server.address
-$ docker run -d --name tiffinbox-web-address -m 1g -e SERVER_ADDRESS=0.0.0.0 -v "$PWD/.harness/tree/secrets:/workspace/secrets:ro" -p 127.0.0.1:18861:18425 tiffinbox-web:1.0.0
+$ docker run -d --name tiffinbox-web-address -m 1g --user "$(id -u):$(id -g)" -e SERVER_ADDRESS=0.0.0.0 -v "$PWD/.harness/tree/secrets:/workspace/secrets:ro" -p 127.0.0.1:18861:18425 tiffinbox-web:1.0.0
   the log: TiffinBox listening on http://127.0.0.1:18425
   the address in that line: 127.0.0.1:18425
 $ curl -sS http://127.0.0.1:18861/kitchen
@@ -381,7 +420,7 @@ $ docker stop tiffinbox-web-address
 $ docker rm tiffinbox-web-address
   listeners on 18861 now: 0
 A′  A re-run
-$ docker run -d --name tiffinbox-web-address -m 1g -e TIFFINBOX_ADDRESS=0.0.0.0 -v "$PWD/.harness/tree/secrets:/workspace/secrets:ro" -p 127.0.0.1:18861:18425 tiffinbox-web:1.0.0
+$ docker run -d --name tiffinbox-web-address -m 1g --user "$(id -u):$(id -g)" -e TIFFINBOX_ADDRESS=0.0.0.0 -v "$PWD/.harness/tree/secrets:/workspace/secrets:ro" -p 127.0.0.1:18861:18425 tiffinbox-web:1.0.0
   the log: TiffinBox listening on http://0.0.0.0:18425
   the address in that line: 0.0.0.0:18425
 $ $CURLSET 18861 .harness/tree/secrets/tiffinbox/shutdown-token
@@ -391,7 +430,7 @@ $ docker wait tiffinbox-web-address
   0
 $ docker rm tiffinbox-web-address
   listeners on 18861 now: 0
-the config tree mounted in all four: secrets/tiffinbox/shutdown-token, -rw-------, this script's user's - the container's user is 1002:1001
+the config tree mounted in all four: secrets/tiffinbox/shutdown-token, -rw-------, this script's user's · the four commands that run as that user (--user): 4 · the image's own user: 1002:1001
 ```
 
 The flipped attribute is the address TiffinBox binds inside the container. **A** sets the new key through the environment,
@@ -400,11 +439,77 @@ The flipped attribute is the address TiffinBox binds inside the container. **A**
 application.yaml's `127.0.0.1` — the container's own loopback — and the Mac's `curl` gets `curl: (52) Empty reply from server`
 while the log says TiffinBox listens; `docker stop` then ends it (143: SIGTERM). **C** is the brief's loser C, measured: Boot's own
 `server.address` (`SERVER_ADDRESS=0.0.0.0`) is a key TiffinBox's `HttpServer` never reads, so C behaves like B. **A′** = A, line for line.
-B never sends POST /shutdown (a stop capture must not, brief S3.4). The Mac side of every run is `127.0.0.1:18861` only. **On this
-Mac** the container's user, 1002, read the `0600` token file owned by the Mac's user through OrbStack's file sharing; on a Linux
-host that read is unmeasured.
+B never sends POST /shutdown (a stop capture must not, brief S3.4). The Mac side of every run is `127.0.0.1:18861` only. Every run
+here is `--user "$(id -u):$(id -g)"`, the owner of the `0600` token file; without it, the image's own user reads the file on this
+Mac only through OrbStack's file sharing — `user`, next, measures both sides.
 
-## 7 · Rebuild — one word, the same name
+## 7 · User — whose user reads the token (A/B/A′, with C)
+
+`.r-user.out` `938aeee2bce7c183a56a1be1758dc942` — 48 lines
+
+```
+the token's config tree, copied into a Docker volume - storage the daemon keeps itself: its files keep their owner and
+  mode, as on Linux, with no file sharing in between (the builder image, already here, copies them, as root):
+$ docker volume create tiffinbox-web-secrets > /dev/null && docker run --rm --name tiffinbox-web-fill --user 0 --entrypoint sh -v tiffinbox-web-secrets:/s -v "$PWD/.harness/tree/secrets:/src:ro" "$BUILDER" -c 'cp -R /src/. /s && chown -R "$1" /s && chmod 700 /s /s/tiffinbox && chmod 600 /s/tiffinbox/shutdown-token && stat -c "%u:%g %A" /s /s/tiffinbox /s/tiffinbox/shutdown-token' - "$(id -u):$(id -g)"
+  exit 0 · entries 3: owned by this script's user and group 3 of 3 · their modes: drwx------ drwx------ -rw-------
+A   the volume, run as your own user: --user "$(id -u):$(id -g)"
+$ docker run -d --name tiffinbox-web-volume -m 1g --user "$(id -u):$(id -g)" -e TIFFINBOX_ADDRESS=0.0.0.0 -v tiffinbox-web-secrets:/workspace/secrets:ro -p 127.0.0.1:18862:18425 tiffinbox-web:1.0.0
+  the log: TiffinBox listening on http://0.0.0.0:18425
+  the address in that line: 0.0.0.0:18425
+$ $CURLSET 18862 .harness/tree/secrets/tiffinbox/shutdown-token
+POST  /shutdown   -> 200 application/json  {"stopping":true}
+  the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
+$ docker wait tiffinbox-web-volume
+  0
+$ docker rm tiffinbox-web-volume
+  listeners on 18862 now: 0
+B   the volume, run as the image's own user, 1002:1001 - no --user
+$ docker run -d --name tiffinbox-web-volume -m 1g -e TIFFINBOX_ADDRESS=0.0.0.0 -v tiffinbox-web-secrets:/workspace/secrets:ro -p 127.0.0.1:18862:18425 tiffinbox-web:1.0.0
+$ docker wait tiffinbox-web-volume
+  82
+  its log: 4 lines · lines that say TiffinBox listening: 0 · Boot's banner lines: 0 · the lines that name a cause, whole, sorted (the launcher's two streams interleave in no fixed order):
+  ERROR: failed to launch: exec.d: failed to execute exec.d file at path '/layers/paketo-buildpacks_bellsoft-liberica/helper/exec.d/memory-calculator': exit status 1
+  open /workspace/secrets: permission denied
+$ docker rm tiffinbox-web-volume
+  listeners on 18862 now: 0
+A′  A re-run
+$ docker run -d --name tiffinbox-web-volume -m 1g --user "$(id -u):$(id -g)" -e TIFFINBOX_ADDRESS=0.0.0.0 -v tiffinbox-web-secrets:/workspace/secrets:ro -p 127.0.0.1:18862:18425 tiffinbox-web:1.0.0
+  the log: TiffinBox listening on http://0.0.0.0:18425
+  the address in that line: 0.0.0.0:18425
+$ $CURLSET 18862 .harness/tree/secrets/tiffinbox/shutdown-token
+POST  /shutdown   -> 200 application/json  {"stopping":true}
+  the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
+$ docker wait tiffinbox-web-volume
+  0
+$ docker rm tiffinbox-web-volume
+  listeners on 18862 now: 0
+C   the folder on the Mac, mounted, run as the image's own user - no --user (OrbStack's file sharing, on this Mac)
+$ docker run -d --name tiffinbox-web-volume -m 1g -e TIFFINBOX_ADDRESS=0.0.0.0 -v "$PWD/.harness/tree/secrets:/workspace/secrets:ro" -p 127.0.0.1:18862:18425 tiffinbox-web:1.0.0
+  the log: TiffinBox listening on http://0.0.0.0:18425
+  the address in that line: 0.0.0.0:18425
+$ $CURLSET 18862 .harness/tree/secrets/tiffinbox/shutdown-token
+POST  /shutdown   -> 200 application/json  {"stopping":true}
+  the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
+$ docker wait tiffinbox-web-volume
+  0
+$ docker rm tiffinbox-web-volume
+  listeners on 18862 now: 0
+$ docker volume rm tiffinbox-web-secrets > /dev/null
+  exit 0
+```
+
+The flipped attribute is the user the container runs as, with the token's tree where a file keeps its owner and mode: a Docker
+volume, filled as root by the builder image already on this Mac (no pull), the files then chowned to this script's user and group
+and chmodded back to `700/700/600` — the owners and modes the folder has on the Mac. **A**, `--user "$(id -u):$(id -g)"`: TiffinBox
+reads the token and serves the seven. **B**, the image's own user `1002:1001`: the container exits **82** before Java starts — the
+bellsoft-liberica buildpack's memory calculator walks `/workspace` to count classes, cannot open `/workspace/secrets`
+(`permission denied`), and the launcher stops (`failed to launch: exec.d: … memory-calculator: exit status 1`). (RED's probe of the
+same tree with the plain jar, uid 1002, got Boot's `AccessDeniedException: /app/./secrets`: in this image the calculator fails
+first.) **A′** = A, line for line. **C**, the folder on the Mac mounted as before, the image's own user: it serves — OrbStack's file
+sharing shows the file as readable by the container's user. So the commands carry `--user`, which works both ways; the voice scopes
+"On this Mac, it could" to this Mac.
+
+## 8 · Rebuild — one word, the same name
 
 `.r-rebuild.out` `76f9c7785966c569720a1482237ba722` — 35 lines
 
@@ -452,9 +557,9 @@ reused, the web-application-type layer runs again (`Non-web application detected
 **19 of the 20 RootFS layers are the same** — the 16th, counted from the base up, differs. The image the name held before is left
 without a tag, and removed by its recorded ID.
 
-## 8 · Exercise — the token, in the environment instead of the folder
+## 9 · Exercise — the token, in the environment instead of the folder
 
-`.r-exercise.out` `03dba61d1448b9c7694051372312efdd` — 39 lines
+`.r-exercise.out` `79a867f2bf31049aa25329caa8d757c6` — 39 lines
 
 ```
 exercise/README.md's commands, read from the file and run as written, in order (its two export lines aside):
@@ -464,7 +569,7 @@ $ mvn -o -q -B -f after/pom.xml -Dmaven.repo.local="$PWD/.m2-demo" -pl tiffinbox
   exit 0
 $ rm -rf .harness/mine && mkdir -p .harness/mine/secrets/tiffinbox && (umask 077 && openssl rand -hex 16 > .harness/mine/secrets/tiffinbox/shutdown-token)
   exit 0
-$ docker run -d --name tiffinbox-web-mine -m 1g -e TIFFINBOX_ADDRESS=0.0.0.0 -v "$PWD/.harness/mine/secrets:/workspace/secrets:ro" -p 127.0.0.1:18866:18425 tiffinbox-web:1.0.0
+$ docker run -d --name tiffinbox-web-mine -m 1g --user "$(id -u):$(id -g)" -e TIFFINBOX_ADDRESS=0.0.0.0 -v "$PWD/.harness/mine/secrets:/workspace/secrets:ro" -p 127.0.0.1:18866:18425 tiffinbox-web:1.0.0
   exit 0
   [a container ID]
 $ i=0; until docker logs tiffinbox-web-mine 2>&1 | grep -q 'TiffinBox listening'; do i=$((i + 1)); [ $i -lt 60 ] || break; sleep 1; done
@@ -535,6 +640,12 @@ and the bindings, which are *cache* layers, from the build cache). Every capture
   unit 14). Still, layers are what this unit compares.
 - **The `docker run -d` ID and a container's environment order are the only run-to-run differences** the exercise capture had before
   its masks and its sort.
+- **Without `--user`, where owners are kept, this image fails before Java** (`user` B): the memory calculator, not Boot, is the
+  first to read `/workspace/secrets`. RED's probe with the plain jar (uid 1002) got Boot's own `AccessDeniedException`.
+- **The cache volumes' names are the same on every machine**: `pack-cache-` + the first 12 hexadecimal characters of the SHA-256 of
+  the image's full name (`index.docker.io/library/tiffinbox-web:1.0.0` → `b6c0f6be399c`; a probe name gave `b8bafca2596b` the same
+  way), so the exercise's clean-up names them (RED #32).
+- **One image build ran one Maven goal**: `build-image-no-fork` (`build`: `the goals this build ran: 1`), on the jar `install` made.
 
 ## For the next unit — 16 — and for RED
 
@@ -545,20 +656,22 @@ and the bindings, which are *cache* layers, from the build cache). Every capture
   the listening line prints it: `TiffinBox listening on http://<address>:<port>`. **A container needs `TIFFINBOX_ADDRESS=0.0.0.0`**
   (brief ⚑5's `ENV TIFFINBOX_ADDRESS=0.0.0.0`); with it unset, a published port answers `curl: (52) Empty reply from server` (B, on
   OrbStack). `SERVER_ADDRESS` does nothing (C). A harness that constructs the record by hand needs the new argument.
-- **Unchanged:** the jar runs alone and is byte-reproducible (`after/`'s jar: `92452ee1f9a22920d8aa7e2655f2bdc0`, 16,134,264 bytes, on this Mac); the token
+- **Unchanged:** the jar runs alone and gives the same bytes in one time zone (`after/`'s jar: `92452ee1f9a22920d8aa7e2655f2bdc0`,
+  16,134,264 bytes, on this Mac, in its zone — another zone gives another md5: `../c5-unit14/`, `moved`); the token
   from a config tree (`secrets/tiffinbox/shutdown-token`, umask 077, the token and a newline) or `TIFFINBOX_SHUTDOWN_TOKEN`; a harness
   class path from `java -Djarmode=tools -jar <jar> extract --destination <a folder that does not exist>`; the seven:
   `../c5-unit11/curlset.sh PORT TOKENFILE` → `115c36bac276128e245ca57df11c2891` — measured here on the Mac (`change`) and from a
   container (`address` A).
 - **In a container:** mount the config tree read-only where the image's working folder is (`/workspace/secrets` here; the brief's
-  `/app/secrets` for a Dockerfile image working in `/app`); publish on `127.0.0.1:<port>:18425`; give `-m` (without it, Java — and
+  `/app/secrets` for a Dockerfile image working in `/app`), and run as the file's owner — `--user "$(id -u):$(id -g)"` — or the
+  image's own user cannot read it where owners are kept (`user` B: exit 82; OrbStack hides this); publish on `127.0.0.1:<port>:18425`; give `-m` (without it, Java — and
   this buildpack's calculator — read the VM's memory, which is machine-specific). POST /shutdown stops TiffinBox and the container
   exits 0; `docker stop` sends SIGTERM and Java exits 143 here (the buildpack's launcher runs Java as PID 1 directly).
 - **Docker here:** OrbStack, context `orbstack`, server 29.4.0, the containerd image store. `tiffinbox-web:1.0.0` is this unit's
   name; `receipts.sh` removes it and its two cache volumes at the end of every run — use your own (⚑11: `tiffinbox-docker:*`).
   `eclipse-temurin:25-jre`, the builder and the run image are on this Mac.
 - **RED:** the curl error for B is OrbStack's (another Docker may say `Connection reset`, exit 56); the 0600 read by uid 1002 is
-  OrbStack's file sharing; the first build of every run needs github.com and repo1.maven.org (the run stops if they are unreachable);
+  OrbStack's file sharing (measured both ways now: `user`); the first build of every run needs github.com and repo1.maven.org (the run stops if they are unreachable);
   the exercise's build commands repeat the README's with the variables written out.
 
 ## Exercise

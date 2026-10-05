@@ -4,8 +4,10 @@ Boot's index sorts TiffinBox's jars into four layers. Built from the root, `tiff
 TiffinBox's own classes (`BOOT-INF/layers.idx`, the lesson's first capture). Change one line in `tiffinbox-core`, package
 **only** `tiffinbox-web`, and find which layer `tiffinbox-core` lands in — and whether your line is in it.
 
-Run from this folder (`c5-unit14/`), with this unit's own `.m2-demo` (the seeded repository: every build is offline). A
-module built on its own resolves its sibling from the local repository, so the first `mvn` installs the copy's modules there
+Run from this folder (`c5-unit14/`), with this unit's own `.m2-demo` (the seeded repository: every build is offline). **On a
+fresh clone, run `./receipts.sh` once first:** `.m2-demo` is git-ignored, so a clone's is empty, and that run fills it — its first
+build asks Maven Central for what the offline build cannot find. A module built on its own resolves its sibling from the local
+repository, so the first `mvn` installs the copy's modules there
 once — then the line changes, then only the web module is packaged:
 
 ```bash

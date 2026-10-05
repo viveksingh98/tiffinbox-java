@@ -7,7 +7,9 @@ Boot's `repackage` writes the jar's `Start-Class` — the class its launcher han
 found the one class in `tiffinbox-web` with a `main` method. This exercise gives it two.
 
 Run everything from `c5-unit13/`, in a copy of `after/` under `.harness/mine` (git-ignored; `receipts.sh` wipes
-`.harness/` when it runs). Builds use this unit's own repository, `.m2-demo`, offline.
+`.harness/` when it runs). Builds use this unit's own repository, `.m2-demo`, offline. **On a fresh clone, run
+`./receipts.sh` once first:** `.m2-demo` is git-ignored, so a clone's is empty, and that run fills it — its first build asks
+Maven Central for what the offline build cannot find.
 
 ```bash
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
