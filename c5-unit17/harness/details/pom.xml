@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Not TiffinBox's: the harness's own class path for the details capture, and nothing else. Two dependencies, their
+     versions Boot's (this POM's parent is Boot's): Spring Boot's JDBC module and the Postgres driver. receipts.sh asks
+     Maven for their class path (dependency:build-classpath) and puts it after TiffinBox's - so these jars live on this
+     harness's class path only, never in the anchor. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.1.1</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>harness</groupId>
+  <artifactId>tiffinbox-details-classpath</artifactId>
+  <version>1</version>
+  <packaging>pom</packaging>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-jdbc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+    </dependency>
+  </dependencies>
+</project>
