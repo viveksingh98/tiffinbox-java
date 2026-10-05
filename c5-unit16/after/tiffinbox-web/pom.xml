@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.tiffinbox</groupId>
+    <artifactId>tiffinbox-parent</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
+  <artifactId>tiffinbox-web</artifactId>
+  <name>TiffinBox Web</name>
+  <description>The HTTP server, the router and the JSON. No SQL in here.</description>
+
+  <dependencies>
+    <!-- Neither of these names a version: both are managed by the parent. -->
+    <dependency>
+      <groupId>com.tiffinbox</groupId>
+      <artifactId>tiffinbox-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+    </dependency>
+    <!-- Course 5: Bean Validation for TiffinBoxProperties - Hibernate Validator (the implementation), the API it
+         implements, and spring-boot-validation, whose own imports file adds ValidationAutoConfiguration. Without an
+         implementation, the API jar alone (which tiffinbox-core brings) stops the start even with a good configuration. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- Course 5: Boot's plugin, declared bare - no version, no execution. Boot's parent manages both, and declaring
+           the plugin is what binds its repackage goal to package: the jar becomes Boot's executable jar, a jar of jars -
+           TiffinBox's classes under BOOT-INF/classes, every jar it needs under BOOT-INF/lib, kept whole, and Boot's
+           launcher at the top. The run command is unchanged. Gone with it: the jar plugin's Main-Class/Class-Path manifest
+           and the copy-dependencies execution that filled target/lib - a Class-Path header survives repackage, and makes
+           the jar load the classes it names from a lib/ folder beside it, whatever version sits there. -->
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+
+      <!-- exec:exec forks a real JVM. It no longer has to pass the preview flag. -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <configuration>
+          <executable>java</executable>
+          <arguments>
+            <argument>-Djava.util.logging.config.file=logging.properties</argument>
+            <argument>-classpath</argument>
+            <classpath/>
+            <argument>com.tiffinbox.web.TiffinBoxServer</argument>
+          </arguments>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
