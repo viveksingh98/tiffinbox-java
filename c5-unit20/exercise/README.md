@@ -9,9 +9,12 @@ the hint out, run the AOT step again, and see what the file says about `Customer
 the plain JDK.
 
 Run everything from `c5-unit20/`. The commands below copy TiffinBox — `after/`, the anchor as this lesson leaves it, hints and
-all — to `.harness/mine` (git-ignored; `receipts.sh` wipes `.harness/` when it runs) and run the AOT step once, with Boot's
-profile `native`, offline against this unit's own repository, `.m2-demo` (on a fresh clone, run `./receipts.sh` once first: its
-first build fills `.m2-demo` from Maven Central).
+all — to `.harness/mine` (git-ignored; `receipts.sh` wipes `.harness/` when it runs) and run the AOT step once, with the Maven
+profile `native` from Boot's parent, offline against this unit's own repository, `.m2-demo`. On a fresh clone `.m2-demo` is
+empty: run `./receipts.sh` once first — no GraalVM needed for that. Its first build fills `.m2-demo` from Maven Central,
+GraalVM's metadata repository included; without `GRAALVM_HOME` it then stops before the native builds, after this exercise's own
+capture. Do not skip it: when that metadata repository is not in `.m2-demo`, GraalVM's plugin downloads it from GitHub, even
+offline (`README.md`, *The repository*).
 
 ```bash
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25

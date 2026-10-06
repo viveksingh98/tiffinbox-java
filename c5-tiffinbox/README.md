@@ -416,7 +416,8 @@ version, no execution. Boot's parent manages its version, **1.1.8** (`native-bui
 1.1.13 by hand). Nothing else in TiffinBox changed: a build without the profile `native` gives the same executable jar as
 before, but for the copy of this POM Maven puts in every jar (169 of 170 entries the same). The plugin is now a build extension
 of every build of the web module (Boot's parent declares it with `<extensions>true</extensions>`): the first build downloads it
-from Maven Central, with its metadata repository.
+from Maven Central, with its metadata repository. The plugin reads that metadata repository (a zip) from the local Maven
+repository — and when the zip is not there, it does not stop, even offline (`-o`): it downloads the zip from GitHub instead.
 
 **Spring's ahead-of-time step (AOT), on the plain JDK.** Boot's parent's profile `native` runs Boot's `process-aot` on the web
 module: at build time it reads TiffinBox's configuration — the scan, the conditions, the constructors — without starting the
@@ -454,8 +455,10 @@ java -XX:AOTCache=tiffinbox-web/target/tiffinbox.aot -Dspring.aot.enabled=true -
 ```
 
 Measured on an Apple M1 (8 cores, 16 GB), from the process's start to the first answer, the middle of five runs: the executable
-jar, with or without Spring's AOT, and the jar extracted, between half a second and two seconds; with the JDK's AOT cache, under
-half the executable jar's. Never the `Started … in` line. Evidence in `../c5-unit19/`, capture `ladder`.
+jar over a second; Spring's AOT alone a little faster (its median under the jar's, over three quarters of it); the jar extracted,
+faster; extracted and with the JDK's AOT cache, with or without Spring's AOT, under half the executable jar's. On the executable
+jar itself the cache does less: over half the jar's time. Never the `Started … in` line. Evidence in `../c5-unit19/`, capture
+`ladder`.
 
 **A native image** — needs a GraalVM JDK 25 (`GRAALVM_HOME`; the course used GraalVM CE 25.3.4.1) and minutes of CPU. First
 install both modules, then build the binary from the web module alone:
@@ -492,7 +495,8 @@ Each hint taken out on its own, the other two in (`../c5-unit20/`, capture `brea
 - without `@Reflective` on the annotation `Route`, the router still finds its five routes (`routes mapped: [GET /customers, GET
   /dashboard, GET /kitchen, GET /revenue, POST /shutdown]`), but calling one fails on the request's thread (`Cannot reflectively
   invoke method 'java.lang.Object com.tiffinbox.web.TiffinBoxServer.kitchen()'`) and the client gets no answer — POST /shutdown
-  included: only a signal stops it;
+  included: only a signal stops it. GraalVM's refusal is an `Error` (a `LinkageError`), and the handler catches only `Exception`,
+  so no 500 is sent;
 - without `@RegisterReflectionForBinding(Customer.class)` on `TiffinBoxServer`, `/customers` answers
   `500 {"error":"InvalidDefinitionException"}` (Jackson's), and the other six answers are the same.
 
@@ -512,14 +516,17 @@ annotation (capture `metadata`, E; not in the anchor, which keeps `TiffinBoxApp`
 
 **The binary's class path.** The plugin builds the binary from Maven's class path, not from the jar's. Unit 19's binary held the
 optional `spring-boot-docker-compose` and its two Jackson 3 jars (36 jars against the jar's 31; in its bytes, 34 distinct names
-from the Compose module and 991 from Jackson 3). The plugin's `<exclusions>` keep those three jars out: 33 jars — the jar's 31
-less `spring-boot-jarmode-tools`, plus three starters that hold no class — and in the binary's bytes 0 names from the Compose
-module and 3 from Jackson 3 — names that classes of `spring-boot`'s own JSON support mention, not classes. The executable jar
-never held either.
+from the Compose module and 991 from Jackson 3, 24 and 884 of them class names). The plugin's `<exclusions>` keep those three jars
+out: 33 jars — the jar's 31 less `spring-boot-jarmode-tools`, plus three starters that hold no class — and in the binary's bytes
+0 names from the Compose module and 3 from Jackson 3 (2 of them class names) — names that classes of `spring-boot`'s own JSON
+support mention. The executable jar never held either. TiffinBox's own Jackson, version 2 (`com.fasterxml`), stays on the
+binary's class path.
 
 Build and run the binary with unit 19's four lines (above). Measured on an Apple M1 (8 cores, 16 GB), from the process's start to
-the first answer, the middle of five runs: the binary under a tenth of a second, and under a tenth of the executable jar's time.
-That is a start, on one Mac: no size and no throughput figure (Course 3's rule). Evidence in `../c5-unit20/`.
+the first answer, the middle of five runs after a warm-up round: the binary's warmed-up start under a tenth of a second, under a
+tenth of the executable jar's time, and under a fifth of the fastest JVM way (the jar extracted, with the JDK's AOT cache and
+Spring's AOT). That is one measure, start time, on one Mac: no size, and no throughput figure — the work done once it runs is
+Course 18's to measure (Course 3's rule). Evidence in `../c5-unit20/`.
 
 ---
 

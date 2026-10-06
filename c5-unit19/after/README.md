@@ -416,7 +416,8 @@ version, no execution. Boot's parent manages its version, **1.1.8** (`native-bui
 1.1.13 by hand). Nothing else in TiffinBox changed: a build without the profile `native` gives the same executable jar as
 before, but for the copy of this POM Maven puts in every jar (169 of 170 entries the same). The plugin is now a build extension
 of every build of the web module (Boot's parent declares it with `<extensions>true</extensions>`): the first build downloads it
-from Maven Central, with its metadata repository.
+from Maven Central, with its metadata repository. The plugin reads that metadata repository (a zip) from the local Maven
+repository — and when the zip is not there, it does not stop, even offline (`-o`): it downloads the zip from GitHub instead.
 
 **Spring's ahead-of-time step (AOT), on the plain JDK.** Boot's parent's profile `native` runs Boot's `process-aot` on the web
 module: at build time it reads TiffinBox's configuration — the scan, the conditions, the constructors — without starting the
@@ -454,8 +455,10 @@ java -XX:AOTCache=tiffinbox-web/target/tiffinbox.aot -Dspring.aot.enabled=true -
 ```
 
 Measured on an Apple M1 (8 cores, 16 GB), from the process's start to the first answer, the middle of five runs: the executable
-jar, with or without Spring's AOT, and the jar extracted, between half a second and two seconds; with the JDK's AOT cache, under
-half the executable jar's. Never the `Started … in` line. Evidence in `../c5-unit19/`, capture `ladder`.
+jar over a second; Spring's AOT alone a little faster (its median under the jar's, over three quarters of it); the jar extracted,
+faster; extracted and with the JDK's AOT cache, with or without Spring's AOT, under half the executable jar's. On the executable
+jar itself the cache does less: over half the jar's time. Never the `Started … in` line. Evidence in `../c5-unit19/`, capture
+`ladder`.
 
 **A native image** — needs a GraalVM JDK 25 (`GRAALVM_HOME`; the course used GraalVM CE 25.3.4.1) and minutes of CPU. First
 install both modules, then build the binary from the web module alone:

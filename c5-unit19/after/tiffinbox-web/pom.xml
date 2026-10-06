@@ -61,9 +61,9 @@
 
       <!-- Course 5: GraalVM's Native Build Tools plugin, declared bare - no version, no execution. Boot's parent manages
            its version, 1.1.8 (Course 3 pinned 1.1.13 by hand). Boot's parent's profile "native" already runs Boot's
-           process-aot, Spring's ahead-of-time step; with the plugin declared it also runs the plugin's
-           add-reachability-metadata, and this module gets the goal native:compile-no-fork, which builds the native binary
-           from the jar's classes. From the root, native:compile fails on the parent POM: run it on this module alone. -->
+           process-aot, Spring's ahead-of-time step; with the plugin declared it also runs add-reachability-metadata, and
+           this module gets native:compile-no-fork, which builds the binary from this module's classes and Maven's class
+           path. From the root, native:compile fails on the parent POM: run it on this module alone. -->
       <plugin>
         <groupId>org.graalvm.buildtools</groupId>
         <artifactId>native-maven-plugin</artifactId>

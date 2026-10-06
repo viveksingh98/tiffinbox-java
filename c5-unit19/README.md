@@ -22,7 +22,8 @@ export GRAALVM_HOME=/path/to/a/graalvm-jdk-25      # GraalVM CE 25.3.4.1 for the
 ```
 
 (`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) It runs for about
-11-13 minutes (648-751 s over seven full runs) on the author's Mac — three native builds of about two minutes each are most of it. It **dies** when a capture's md5
+11-16 minutes on the author's Mac (668-970 s over the three full runs of 2026-10-06: 702 s under `bash receipts.sh`, 970 s under
+`./receipts.sh` on a Mac warm from the next unit's fifteen native builds) — three native builds of two to three minutes each are most of it. It **dies** when a capture's md5
 differs from `receipts.md5` (it prints the `DIFFERS` line first, so you can see which one moved).
 
 ## The GraalVM
@@ -37,6 +38,12 @@ sha256; it sits in the author's home folder, outside any system location. The Or
 GraalVM's folder is never printed: every capture masks it as `$GRAALVM_HOME` (`gsub`, before the home folder's own mask), and
 the last checks fail if a capture holds an absolute path. Nothing on the JVM side uses the GraalVM: every Maven run and every
 `java` here is the plain JDK 25.0.4.1 (`JAVA_HOME`); only `native-image` comes from `GRAALVM_HOME`.
+
+**Without a GraalVM** (`GRAALVM_HOME` not set — RED #82): `receipts.sh` still runs. It says so at once, fills `.m2-demo` (its first
+build), makes every capture that needs no GraalVM — `change`, `generated`, `onjvm`, `frozen`, `async`, `ladder` — and the exercise's,
+each checked against `receipts.md5` as always, and then stops where the native build would start, naming this section (exit 1). A
+viewer with only a JDK can therefore fill `.m2-demo` and do the exercise. Set to anything that is not GraalVM CE 25.3.4.1, the variable
+is still refused at once. Tested on a fresh clone (*Found on the way*).
 
 ## The repository, and what was downloaded
 
@@ -85,8 +92,25 @@ reachability metadata repository (a zip, read by the plugin's `add-reachability-
 
 Since then every build here is offline (`offline: yes` on the terminal and in the captures; a run that went online would change
 a capture's hash, and `cap()` would stop). Every `_remote.repositories` marker says `central`. The native build itself downloads
-nothing. **The plugin is now part of every build of the web module:** Boot's parent declares it with `<extensions>true</extensions>`,
+nothing — while the metadata repository is in `.m2-demo` (below). **The plugin is now part of every build of the web module:** Boot's parent declares it with `<extensions>true</extensions>`,
 so a plain `mvn -o package` resolves it too (measured: a plain offline build of `after/` against a repository without the plugin stops at once — *Found on the way*).
+
+**One way out is not Maven's (RED #81).** GraalVM's plugin reads its metadata repository — the zip above — from the Maven repository,
+and when the zip is not there it does **not** fail, even under `-o`: it logs `Unable to find the GraalVM reachability metadata
+repository in Maven repository. Falling back to the default repository.` and downloads `graalvm-reachability-metadata-1.0.9.zip` from
+**GitHub** into `target/` (so every `clean` build fetches it again); with GitHub unreachable the build fails, `Failed to download from
+https://github.com/…`. github.com is outside the course's network tier, so `receipts.sh` never lets that happen silently: (1) the first
+build is the README's native install, which needs every artifact any capture's Maven line needs, the zip included — on a fresh clone
+it fills `.m2-demo` from Maven Central, once; (2) a native-profile build while the zip is not in `.m2-demo` goes to Maven Central at once
+(`offline: no - GraalVM's metadata repository was not in .m2-demo, so Maven Central was asked for it`), never offline first; (3) after
+the first build the script checks the zip is in `$M2`, beside Boot's parent and the plugin; (4) every build's log — the native build's
+too — is searched for the plugin's own download line (`Downloaded GraalVM reachability metadata repository from http…`, `Failed to
+download from http…`): found, the build's line says `offline: no`, and the run stops. Measured 2026-10-06 (BLUE's probe, three builds
+of `after/`, `-Pnative -DskipTests clean install`, against a copy of `.m2-demo` without the zip and a mirror of Central made from the
+same files): online → `Downloaded from central: …graalvm-reachability-metadata-1.1.8-repository.zip (3.4 MB …)`, the plugin read it from
+the repository, exit 0, no GitHub line; online with every HTTPS proxy refused (GitHub unreachable) → the same, exit 0; offline, no zip,
+GitHub unreachable → `Failed to download from https://github.com/oracle/graalvm-reachability-metadata/releases/download/1.0.9/…`,
+`BUILD FAILURE` — the line step (4) catches. The exercise's README says the same: run `./receipts.sh` once first.
 
 ## The demo token — fake, and never printed
 
@@ -120,7 +144,7 @@ the prompter: 0. The exercise makes no token of its own: it builds and reads a f
   is printed whole.
 - Ports (brief ⚑10, 18900-18909, checked free with `lsof` before anything is wiped, 18425 too): `onjvm` 18900 (A, A′), 18901 (B),
   its harness 18902 (A, A′), 18903 (B) · `frozen` 18904 (A, A′), 18905 (B), 18906 (C) · `async` 18907 (A, A′), 18908 (B) · `ladder`
-  18909 (the two training runs, which start the server during the refresh, and all 30 timed starts) · `native` 18909 (the binary,
+  18909 (the three training runs, which start the server during the refresh, and all 36 timed starts) · `native` 18909 (the binary,
   which stops before it binds). The exercise binds nothing.
 
 ## Masks, filters and hygiene — every one, declared
@@ -132,14 +156,17 @@ the prompter: 0. The exercise makes no token of its own: it builds and reads a f
 2. **Boot's log** is counted, never printed whole: its line count and its WARN and ERROR lines. Its first line is printed from
    its message on and cut before ` with PID` (the PID and the folder that follow move).
 3. **Maven's logs** are read, never printed whole: the goals it ran on `tiffinbox-web` (its own `--- … @ tiffinbox-web ---` lines),
-   its `offline`/`exit` line, and named lines of `add-reachability-metadata`'s log, each counted.
+   its `offline`/`exit` line, and named lines of `add-reachability-metadata`'s log, each counted; every build's log — the native
+   build's too — is searched for the plugin's metadata-repository download line (*The repository*). The GraalVM's mask (1) is
+   skipped when `GRAALVM_HOME` is not set.
 4. **native-image's log**, in `native`: the plugin's goal line and the line naming the GraalVM it found, the builder's Java line,
    its warnings (the file URL in the first cut to `'…'`), the eight stage names (their timings and memory cut by `sub`), the
    analysis's "found reachable" line, the warning count and `BUILD SUCCESS`; the rest counted. Its class path is read from the
    plugin's own command line, as jar names only.
 5. **What is never captured, and why** — the native build is not byte-for-byte reproducible here, so only what held in every
    build is hashed (*The native build, deterministic and not*). No duration is captured: the ladder prints each way's median
-   (the middle of its five counted runs) against a stated bound — a median, so one busy moment cannot move it — the native build its
+   (the middle of its five counted runs) — the executable jar's against a floor, every other way's against the executable jar's, as a
+   ratio: a median, so one busy moment cannot move it — the native build its
    duration against a bound (1 minute or more, under 10), and the seconds go to the terminal (quoted in this README as ranges, measured). The AOT cache's size in bytes is cut.
 6. **Hygiene:** `receipts.sh` unsets every `TIFFINBOX_*` and `SPRING_*` variable, `JAVA_TOOL_OPTIONS`, `JDK_JAVA_OPTIONS`,
    `MAVEN_OPTS`, `MAVEN_ARGS` and `NATIVE_IMAGE_OPTIONS` before it runs anything; it refuses to run twice at once in this folder
@@ -155,6 +182,13 @@ foreground job is) and `SIGINT` sent to the whole group the moment native-image'
 first of its three builds; at that moment 1 native-image launcher, 1 builder JVM and 1 Maven ran): **exit 130**; 5 s later 0
 native-image processes, 0 builder JVMs, 0 Maven, 0 TiffinBox or harness processes, 0 listeners on 18425 and 18900-18909, and `.r-lock`
 gone. (Two earlier, unplanned interrupts — one during `change`'s Maven builds, one just after `native` — left nothing behind either.)
+Since BLUE part C the trap also `sweep()`s this run's process group, as the next unit's does: anything of a native build still alive —
+native-image's driver (in `$GRAALVM_HOME/bin`), its builder JVM (`java @…/vminvocation.args`, no class name to look for) or a TiffinBox
+binary under `.harness/` — gets TERM, then KILL after 5 s. **Re-tested 2026-10-06 after that change**, the same way: `SIGINT` to the
+group 20 s after the first native build's builder JVM appeared (369 s into the run; in the group, 5 processes: 1 Maven, 1 native-image
+driver, 1 builder JVM among them): **exit 130**; 5 s later 0 processes in the group, and anywhere 0 native-image drivers, 0 builder
+JVMs, 0 Maven, 0 TiffinBox binaries or jars, 0 listeners on 18425 and 18900-18909, `.r-lock` gone, no partial capture file left — and the
+six captures made before the interrupt still equal to `receipts.md5`.
 
 ## The native build, deterministic and not
 
@@ -165,7 +199,9 @@ two counts native-image prints — the methods registered for reflection (3,838 
 warnings, the eight stages, the analysis's line (`19,027 types, 27,275 fields, and 90,458 methods found reachable`), the warning
 count, `BUILD SUCCESS`, the exit code, the binary's type (`file`), the files written beside it, the jars on native-image's class
 path, the token count in the binary's bytes, and everything the binary printed. Its duration is counted against a bound: **1
-minute or more, under 10 minutes** — 113-140 s over the 21 native builds of seven full runs on 2026-10-05/06 (the final runs of record: 118-134 s under `./receipts.sh`, 132-136 s under `bash receipts.sh`). The binary's size is not printed and not compared: Course 3 refused size
+minute or more, under 10 minutes** — 113-140 s over the 21 native builds of seven full runs on 2026-10-05/06, and 113-176 s over the 9
+of BLUE part C's three full runs on 2026-10-06 (the runs of record: 118-133 s under `bash receipts.sh`, 174-176 s under `./receipts.sh`
+on the warm Mac). The binary's size is not printed and not compared: Course 3 refused size
 comparisons, and so does Section 3's rule S3.14.
 
 ## 1 · change — the previous tree against after/
@@ -382,9 +418,12 @@ The harness with `--spring.threads.virtual.enabled=true` after the port: A on th
 twenty virtual threads; B with `-Dspring.aot.enabled=true` → the environment still says `true · from commandLineArgs`, and Boot's executor
 is `ThreadPoolTaskExecutor`, eight platform threads — Boot's log has 0 WARN and 0 ERROR lines; A′ = A. C: a second copy, built with the
 switch on while `process-aot` ran (`-Dspring-boot.aot.jvmArguments=…`), run with AOT and **without** the switch → `SimpleAsyncTaskExecutor`,
-twenty virtual threads. The last two lines read the generated code itself: in each tree, which bean method makes `applicationTaskExecutor`.
+twenty virtual threads. Then the generated code itself: in each tree, the one bean method that makes `applicationTaskExecutor`
+(`bean methods named for it: 1`). And why (RED #85): Boot's own class, read with `javap -v`, gives each of its two candidates a
+condition — `applicationTaskExecutorVirtualThreads` `@ConditionalOnThreading(VIRTUAL)`, `applicationTaskExecutor`
+`@ConditionalOnThreading(PLATFORM)`. `process-aot` evaluated the condition while it built the jar, and wrote down only the winner.
 
-`.r-frozen.out` · md5 `2002fc3b3db1e238a10aa39a4aa3dff2` · 3 of 3
+`.r-frozen.out` · md5 `d71f6fc99039576076ea08056328a84f` · 3 of 3
 
 ```
 the harness again, the switch on after the port - spring.threads.virtual.enabled=true:
@@ -426,8 +465,11 @@ the context's bean definitions: 55
   (the definitions' names: 55 lines, not shown)
   Boot's log (standard output): 18 lines, not shown · WARN lines 0 · ERROR lines 0 · exit 0 · listening on 18906 now: 0
 the code process-aot generated for Boot's executor, sources/org/springframework/boot/autoconfigure/task/TaskExecutorConfigurations__BeanDefinitions.java:
-  .harness/after - the bean applicationTaskExecutor comes from: the bean method applicationTaskExecutor, type ThreadPoolTaskExecutor
-  .harness/built-on - the bean applicationTaskExecutor comes from: the bean method applicationTaskExecutorVirtualThreads, type SimpleAsyncTaskExecutor
+  .harness/after - the bean applicationTaskExecutor comes from: the bean method applicationTaskExecutor, type ThreadPoolTaskExecutor · bean methods named for it: 1
+  .harness/built-on - the bean applicationTaskExecutor comes from: the bean method applicationTaskExecutorVirtualThreads, type SimpleAsyncTaskExecutor · bean methods named for it: 1
+the condition on each candidate, in Boot's own class - javap -v, TaskExecutorConfigurations$TaskExecutorConfiguration, in $M2's spring-boot-autoconfigure-4.1.1.jar:
+  the bean method applicationTaskExecutorVirtualThreads · @ConditionalOnThreading(VIRTUAL)
+  the bean method applicationTaskExecutor · @ConditionalOnThreading(PLATFORM)
 ```
 
 ## 5 · async — @Async under AOT
@@ -471,38 +513,60 @@ Boot's executor, the bean applicationTaskExecutor: org.springframework.core.task
 
 `harness/ttfr.py` forks the command, asks `/kitchen` every 2 ms until the first `200`, then sends POST /shutdown with the
 token's header and waits for the exit: the clock starts before the process exists and stops when a client is served — never Boot's
-`Started … in` line (P23). Five ways, six rounds, each round the five ways in turn (a busy moment slows them all alike); round 1 is a
-warm-up. Two training runs first — `-XX:AOTCacheOutput=…` records a run and writes the cache in one command, `spring.context.exit=onRefresh`
+`Started … in` line (P23). Six ways, six rounds, each round the six ways in turn (a busy moment slows them all alike); round 1 is a
+warm-up. Three training runs first — `-XX:AOTCacheOutput=…` records a run and writes the cache in one command, `spring.context.exit=onRefresh`
 ends the run once the context is refreshed (TiffinBox's server starts during the refresh, so the training binds 18909 briefly); the
-cache's size is cut. The capture prints each way's median — the middle of its five counted runs — against its bound: a median, because a single run is
-at the mercy of whatever else the Mac is doing (a run of record died once on a per-run bound, the executable jar at 2.070 s while the
-deck was being rendered beside it). The seconds go to the terminal only. Measured, the
-runs of record (rounds 2-6, three captures each): the executable jar 1.198-1.475 s (its medians 1.229-1.388 s) · + Spring's AOT 1.052-1.240 s (1.088-1.199) · the jar extracted 0.952-1.061 s (0.955-1.045) · + the JDK's AOT cache 0.429-0.506 s (0.450-0.478) · + both 0.359-0.421 s (0.367-0.400) — the final runs of record, both shells. The busiest of the seven full runs gave the jar medians up to 1.467 s and the cache's up to 0.505 s, inside every bound. On this Mac: Apple M1, 8 cores, 16 GB, JDK 25.0.4.1.
+cache's size is cut. Way 6 (RED #83) is a cache trained on, and run with, the executable jar itself. The capture prints each way's
+median — the middle of its five counted runs (`each way's runs counted: 5 of 6`, computed, RED #92's kind) — a median, because a single
+run is at the mercy of whatever else the Mac is doing. It judges **the executable jar against a floor only** (`over 1 s`: the opening's
+"over a second") and **every other way against the executable jar's median, as a ratio** (RED #84, #88): on this Mac a JVM's start
+moves with the machine's state, and the ratios held while the seconds moved half as much again. The seconds go to the terminal only.
+Measured 2026-10-06, the three full runs of this version (rounds 2-6, three captures each; *quiet*: the two `bash receipts.sh` runs;
+*warm*: the `./receipts.sh` run, which followed the next unit's fifteen native builds):
 
-`.r-ladder.out` · md5 `cf1f7e8e64e3150ef9d09292234f9dec` · 3 of 3
+| way | medians, quiet | medians, warm | its median ÷ the jar's |
+|---|---|---|---|
+| 1 the executable jar | 1.175-1.248 s | 1.801-1.860 s | — (the floor: over 1 s) |
+| 2 + Spring's AOT | 1.033-1.097 s | 1.482-1.572 s | 82-90 % (under it, over three quarters) |
+| 3 the jar extracted | 0.912-0.965 s | 1.258-1.366 s | 70-79 % (under it) |
+| 4 extracted + the JDK's AOT cache | 0.430-0.459 s | 0.574-0.623 s | 32-38 % (under half) |
+| 5 extracted + the cache + Spring's AOT | 0.345-0.369 s | 0.504-0.516 s | 27-31 % (under half) |
+| 6 the executable jar + its own cache | 0.820-0.857 s | 1.145-1.244 s | 63-71 % (under it, over half) |
+
+Single runs of the jar: 1.144-1.940 s. A ceiling on the jar would not have lasted: the old bound, under 2 s, sat 0.14 s above the warm
+run's slowest median, and the next unit's ladder, on the same Mac an hour into its native builds, timed the same kind of jar at medians
+2.008-2.125 s (RED #88). On this Mac: Apple M1, 8 cores, 16 GB, JDK 25.0.4.1.
+
+`.r-ladder.out` · md5 `c06b6d49a0afa7bb16d006ae7243546d` · 3 of 3
 
 ```
 the start, timed from outside the JVM: harness/ttfr.py forks the command, asks /kitchen until the first 200, then sends POST /shutdown
-with the token. Every way runs from .harness/after, port 18909; 6 rounds, each round the five ways in turn; round 1 is a warm-up, not counted.
-first, the README's extract (done in .harness/after already) and two training runs - one command records the run and writes the cache:
+with the token. Every way runs from .harness/after, port 18909; 6 rounds, each round the six ways in turn; round 1 is a warm-up, not counted.
+first, the README's extract (done in .harness/after already) and three training runs - one command records the run and writes the cache:
 $ cd .harness/after && java -Djarmode=tools -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar extract --destination tiffinbox-web/target/extracted
 $ cd .harness/after && java -XX:AOTCacheOutput=tiffinbox-web/target/plain.aot -Dspring.context.exit=onRefresh -jar tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar --tiffinbox.port=18909
   exit 0 · the JDK's own line: AOTCache creation is complete: tiffinbox-web/target/plain.aot [its size in bytes]
 $ cd .harness/after && java -XX:AOTCacheOutput=tiffinbox-web/target/tiffinbox.aot -Dspring.aot.enabled=true -Dspring.context.exit=onRefresh -jar tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar --tiffinbox.port=18909
   exit 0 · the JDK's own line: AOTCache creation is complete: tiffinbox-web/target/tiffinbox.aot [its size in bytes]
-the five ways:
+$ cd .harness/after && java -XX:AOTCacheOutput=tiffinbox-web/target/jar.aot -Dspring.context.exit=onRefresh -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18909
+  exit 0 · the JDK's own line: AOTCache creation is complete: tiffinbox-web/target/jar.aot [its size in bytes]
+the six ways:
   1 $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18909
   2 $ cd .harness/after && java -Dspring.aot.enabled=true -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18909
   3 $ cd .harness/after && java -jar tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar --tiffinbox.port=18909
   4 $ cd .harness/after && java -XX:AOTCache=tiffinbox-web/target/plain.aot -jar tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar --tiffinbox.port=18909
   5 $ cd .harness/after && java -XX:AOTCache=tiffinbox-web/target/tiffinbox.aot -Dspring.aot.enabled=true -jar tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar --tiffinbox.port=18909
-  every run: a 200, then exit 0 after POST /shutdown: 30 of 30
-the 5 counted rounds - each way's median, the middle of its 5 runs, against its bound (the seconds go to the terminal, never to this capture):
-  1 the executable jar: its median over 0.5 s and under 2 s: yes
-  2 + Spring's AOT: its median over 0.5 s and under 2 s: yes
-  3 the jar extracted: its median over 0.5 s and under 2 s: yes
+  6 $ cd .harness/after && java -XX:AOTCache=tiffinbox-web/target/jar.aot -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18909
+  every run: a 200, then exit 0 after POST /shutdown: 36 of 36
+each way's median, the middle of its counted runs - the executable jar's against a floor, every other way's against the executable
+jar's (the seconds go to the terminal, never to this capture):
+  each way's runs counted: 5 of 6 - round 1 left out
+  1 the executable jar: its median over 1 s: yes
+  2 + Spring's AOT: its median under the executable jar's: yes · over three quarters of it: yes
+  3 the jar extracted: its median under the executable jar's: yes
   4 extracted + the JDK's AOT cache: its median under half the executable jar's: yes
   5 extracted + the JDK's AOT cache + Spring's AOT: its median under half the executable jar's: yes
+  6 the executable jar + the JDK's AOT cache: its median under the executable jar's: yes · over half of it: yes
 ```
 
 ## 7 · native — the native build, the binary, and the root
@@ -511,11 +575,13 @@ A copy of `after/` with a config tree beside its README, rebuilt in each of the 
 offline, with `GRAALVM_HOME` set. The lines shown are named in the script; the rest are counted. The binary is checked with `file`, its
 bytes searched for the token, the files beside it listed (11 `.dylib`, the JDK's AWT libraries, which native-image copies out of the
 GraalVM), and its class path compared with the jar's. Then it is run from beside its config tree, as the README runs it: it never
-listens, prints Boot's banner and first line, and exits 1 — the cause, whole, is the last `Caused by:` line, and the frame under it that
-is neither GraalVM's nor the JDK's is Hibernate Validator's. The method it could not call is shown from `after/`'s source. C: `native:compile`
+listens, prints Boot's banner and first line, and exits 1 — the exception Boot names and every `Caused by:` under it, each cut after
+the bean it names and the lines between counted (Course 4's rule; RED #89): `tiffinBoxServer`, `customerRepository`, `database`, the
+settings record, then GraalVM's refusal on the token-length rule; the frame under that last one that is neither GraalVM's nor the
+JDK's is Hibernate Validator's. The native build's line says `offline: yes`: its log holds no download line of the plugin's. The method it could not call is shown from `after/`'s source. C: `native:compile`
 from the root, as a single-module project would run it — exit 1 on the parent POM, before any module.
 
-`.r-native.out` · md5 `b0704b66c36c99cf444f9ee3123d9a0c` · 3 of 3
+`.r-native.out` · md5 `8e952c5fc5c45c68d87119ff307eaf9b` · 3 of 3
 
 ```
 after/, copied to .harness/native, a config tree beside its README - the README's two Maven lines, offline; $GRAALVM_HOME names the GraalVM:
@@ -539,7 +605,7 @@ $ cd .harness/native && mvn -o -B -Dmaven.repo.local="$M2" -Pnative -pl tiffinbo
     19,027 types,  27,275 fields, and  90,458 methods found reachable
     The build process encountered 2 warnings.
     BUILD SUCCESS
-  exit 0 · stages it printed: 8 of the 8 it announces · its duration, against the bound: 1 minute or more, under 10 minutes
+  exit 0 · stages it printed: 8 of the 8 it announces · its duration, against the bound: 1 minute or more, under 10 minutes · offline: yes
 the binary, .harness/native/tiffinbox-web/target/tiffinbox-web:
   file: Mach-O 64-bit executable · the demo token in its bytes: 0 · the files native-image wrote beside it: 11 .dylib - libawt libawt_lwawt libfontmanager …
   the jars on native-image's class path (the plugin's command line, names only): 36 · in the executable jar's BOOT-INF/lib: 31 · only on native-image's: jackson-core-3.1.5.jar jackson-databind-3.1.5.jar spring-boot-docker-compose-4.1.1.jar spring-boot-starter-4.1.1.jar spring-boot-starter-logging-4.1.1.jar spring-boot-starter-validation-4.1.1.jar · only in the jar: 1
@@ -549,8 +615,16 @@ $ cd .harness/native && tiffinbox-web/target/tiffinbox-web --tiffinbox.port=1890
   Boot's banner, its last line: :: Spring Boot ::                (v4.1.1)
   Boot's first line: Starting AOT-processed TiffinBoxServer using Java 25.0.4.1
   then: Application run failed
-  its causes, the last one whole: 4 lines start 'Caused by: ' - the last:
-    Caused by: org.graalvm.nativeimage.MissingReflectionRegistrationError: Cannot reflectively invoke method 'public boolean com.tiffinbox.TiffinBoxProperties.isShutdownTokenLongEnough()'. To allow this operation, add the following to the 'reflection' section of 'reachability-metadata.json' and rebuild the native image:
+  the exception it names, then its causes - 4 lines start 'Caused by: ' - each cut after the bean it names, the last after the method; the lines between, counted:
+    org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'tiffinBoxServer' …
+    … 23 lines not shown …
+    Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'customerRepository' …
+    … 19 lines not shown …
+    Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'database' …
+    … 19 lines not shown …
+    Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'tiffinbox-com.tiffinbox.TiffinBoxProperties' …
+    … 15 lines not shown …
+    Caused by: org.graalvm.nativeimage.MissingReflectionRegistrationError: Cannot reflectively invoke method 'public boolean com.tiffinbox.TiffinBoxProperties.isShutdownTokenLongEnough()'.
   its first frame outside GraalVM's own and the JDK's: org.hibernate.validator.internal.util.ReflectionHelper.getValue(ReflectionHelper.java:121)
   exit 1 · listening on 18909 now: 0 · its output: 136 lines, 0 on standard error
   that method, in after/'s tiffinbox-core/src/main/java/com/tiffinbox/TiffinBoxProperties.java (its line and the one above):
@@ -586,8 +660,9 @@ reflection entries naming com.tiffinbox: 9 · com.tiffinbox.Customer: 0
 ## Exercise
 
 `exercise/README.md`: *"Your turn: count TiffinBox's entries in the generated reachability metadata, then find the class its JSON
-needs that is missing."* (21 words, the deck's last slide before the recap card). It builds a copy of `after/` with the profile
-`native` — no GraalVM — and leaves the file to the viewer. Done: `reflection entries naming com.tiffinbox: 9 ·
+needs that is missing."* (20 words, the deck's last slide before the recap card). It builds a copy of `after/` with the Maven
+profile `native` — no GraalVM — and leaves the file to the viewer. On a fresh clone `.m2-demo` is empty: `./receipts.sh` fills it
+first, and needs no GraalVM to do so (*The GraalVM*; RED #82). Done: `reflection entries naming com.tiffinbox: 9 ·
 com.tiffinbox.Customer: 0`. The measured answer, run exactly as written in a clean shell: `exercise/solution/SOLUTION.md`.
 `receipts.sh` runs the README's lines and the solution's line exactly as written (`exercise`), and asserts the Done line is a
 line of that capture, of the README and of the solution.
@@ -626,9 +701,25 @@ line of that capture, of the README and of the solution.
 - **The training run starts the server.** `spring.context.exit=onRefresh` ends the run once the context is refreshed — and TiffinBox's
   `@PostConstruct` starts its server during the refresh, so a training run binds its port for a moment (`ladder` checks 18909 free after
   each).
-- **On the executable jar itself, the cache helps less** (by hand, 4 runs: 0.80-0.93 s, against about 1.2 s without it and about 0.45 s
-  on the extracted jar). Why was not measured, and it is not a capture, so it is not on screen: the deck says only "trained once on the
-  extracted jar".
+- **On the executable jar itself, the cache helps less** — first by hand (4 runs: 0.80-0.93 s, against about 1.2 s without it and about
+  0.45 s on the extracted jar), now a capture (RED #83): `ladder`'s way 6, a cache trained on the executable jar and run with it — its
+  median under the jar's and **over half of it** (63-71 % of the jar's median over nine captures, against 32-38 % for way 4, the extracted
+  jar with its cache, in the same interleaved rounds). So the recap says "with the jar extracted and the JDK's cache". Why the unextracted jar gains less was
+  not measured, and nothing on screen says why.
+- **GraalVM's plugin goes to GitHub when `.m2-demo` lacks its metadata repository, even under `-o`** (RED #81): *The repository* has the
+  three measured builds and the four guards; every build's line now says what its log says.
+- **A fresh clone, without a GraalVM, then with one** (RED #82). Tested 2026-10-06 on a `git clone` of the BLUE part C commit into
+  `/private/tmp`, every command in an `env -i` shell, Maven pointed at a local mirror of Central made from `.m2-demo` and every HTTP(S)
+  proxy at a closed port — so nothing could reach the internet, GitHub included. `./receipts.sh` without `GRAALVM_HOME`: the first
+  build went to the mirror at once (`offline: no - GraalVM's metadata repository was not in .m2-demo, so Maven Central was asked for it`;
+  468 files, the zip among them; no log line names github.com but native-image's own documentation link), `change`, `generated`,
+  `onjvm`, `frozen`, `async`, `ladder` and `exercise` each 3/3 and = published, then the stop naming *The GraalVM* — exit 1, 396 s. The
+  exercise's four lines and the solution's line, as written: the Done line. Then `./receipts.sh` with `GRAALVM_HOME`, on the
+  `.m2-demo` that first build filled: every build `offline: yes`, all eight captures 3/3 and = published, exit 0, 974 s.
+- **The executable jar's start drifts with the Mac** (RED #88): its medians were 1.18-1.25 s in this unit's quiet runs, 1.80-1.86 s in
+  its warm one, and 2.01-2.13 s in the next unit's ladder, on the same Mac, an hour into its native builds. So `ladder` judges the executable jar against a floor only ("over 1
+  s", the opening's "over a second") and every other way as a ratio of it, measured in the same rounds — a ceiling of 2 s would have
+  failed that hour.
 - **AWT's libraries beside the binary:** native-image wrote 11 `.dylib` files next to it (the JDK's AWT, font and image libraries —
   `libawt`, `libawt_lwawt`, `libfontmanager` …). The binary did not reach a point where they matter; what pulls AWT in was not measured.
 - **`@Async` under AOT runs on the frozen pool** (`async`): the answer to the question the virtual-threads lesson carried here.
@@ -640,7 +731,9 @@ line of that capture, of the README and of the solution.
 
 - **The repository.** Seed `.m2-demo` from this unit's: it holds `native-maven-plugin` 1.1.8, the 33 other artifacts it needs, and
   `graalvm-reachability-metadata-1.1.8-repository.zip` (the table above). Without the plugin even a plain offline build of the anchor
-  stops: the plugin is a build extension of every web-module build now (*Found on the way*).
+  stops: the plugin is a build extension of every web-module build now (*Found on the way*). Without the zip a native-profile build
+  does not stop — the plugin fetches it from GitHub, even under `-o` — so a receipt's first build must need it, and every build log is
+  searched for the plugin's download line (*The repository*; RED #81).
 - **The GraalVM.** `GRAALVM_HOME` = GraalVM CE 25.3.4.1 (native-image 25.0.4.1); this unit's receipts refuse another. Never print its
   folder: mask it as `$GRAALVM_HOME`, before the home folder's mask (it lives under it).
 - **The unhinted binary stops at start** (`native`): `MissingReflectionRegistrationError` on `TiffinBoxProperties.isShutdownTokenLongEnough()`,
@@ -652,8 +745,8 @@ line of that capture, of the README and of the solution.
 - **The counts on this tree** (`generated`): 262 reflection entries, not the brief's 260 (the optional Compose module's two listeners);
   9 TiffinBox entries; `Customer` 0; `Route` 0; `TiffinBoxServer`: `start stop`; `TiffinBoxProperties`: `<init>` only. ⚑9's "260 → 261"
   must be re-measured from 262.
-- **The native rung of the ladder (P17) is yours.** This unit's binary never answers, so the startup ladder here has the five JVM ways
-  only. `harness/ttfr.py` is the clock (fork → first 200 from `/kitchen`, then POST /shutdown with the token); with three hand entries,
+- **The native rung of the ladder (P17) is yours.** This unit's binary never answers, so the startup ladder here has JVM ways
+  only (six). `harness/ttfr.py` is the clock (fork → first 200 from `/kitchen`, then POST /shutdown with the token); with three hand entries,
   0.031-0.035 s by hand. No size comparison (S3.14).
 - **The native build:** about two minutes here (15 builds over five full runs, 113-140 s; `--no-fallback` warned twice in every one), not byte-for-byte
   reproducible (two md5s, and the reflection-registered method count moved: 3,838 / 3,859); the "found reachable" line held in every

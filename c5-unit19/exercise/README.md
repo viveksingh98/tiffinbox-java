@@ -9,9 +9,12 @@ TiffinBox's server out of it. Now read it yourself: how many of its reflection e
 that record in the file at all?
 
 Run everything from `c5-unit19/`. The commands below build a copy of TiffinBox — `after/`, the anchor as this lesson leaves
-it — under `.harness/mine` (git-ignored; `receipts.sh` wipes `.harness/` when it runs), with Boot's profile `native`, on the
-plain JDK: no GraalVM needed for this one. The build uses this unit's own repository, `.m2-demo`, offline (on a fresh clone,
-run `./receipts.sh` once first: its first build fills `.m2-demo` from Maven Central).
+it — under `.harness/mine` (git-ignored; `receipts.sh` wipes `.harness/` when it runs), with the Maven profile `native` from
+Boot's parent, on the plain JDK: no GraalVM needed for this one. The build uses this unit's own repository, `.m2-demo`, offline.
+On a fresh clone `.m2-demo` is empty: run `./receipts.sh` once first — no GraalVM needed for that either. Its first build fills
+`.m2-demo` from Maven Central, GraalVM's metadata repository included; without `GRAALVM_HOME` it then stops before the native
+build, after this exercise's own capture. Do not skip it: when that metadata repository is not in `.m2-demo`, GraalVM's plugin
+downloads it from GitHub, even offline (`README.md`, *The repository*).
 
 ```bash
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25

@@ -12,7 +12,7 @@ f=.harness/mine/after/tiffinbox-web/target/spring-aot/main/resources/META-INF/na
 (The closing quote matters: without it, `com.tiffinbox.Customer` also matches `com.tiffinbox.CustomerRepository`, which is in
 the file — the scan found it, and Spring builds it — and the count would say 1.)
 
-## Measured — `exercise/README.md` run exactly as written, then the line above (2026-10-05)
+## Measured — `exercise/README.md` run exactly as written, then the line above (2026-10-05; again 2026-10-06, after BLUE's part C edits — the same)
 
 In one clean shell — `env -i HOME="$HOME" PATH="/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin" bash --noprofile --norc`: no
 variable of mine, Homebrew's `bin` for `mvn` — from `c5-unit19/`, JDK 25.0.4.1, Maven 3.9.16, offline against `.m2-demo`, no GraalVM.
@@ -29,3 +29,8 @@ The nine: `CustomerRepository`, `Dashboard`, `Database`, `MealType`, `OrderQueue
 `web.TiffinBoxServer` and `web.TiffinBoxServer__ApplicationContextInitializer` — classes Spring itself builds, binds or calls,
 and its own generated initializer. `Customer` is not one of them: Spring never builds a `Customer`; TiffinBox's own code does,
 and Jackson turns it into JSON by reflection, which no build step saw. The same lines are in this unit's `exercise` capture.
+
+The 2026-10-06 run (`env -i`, the same shell, the README's four lines typed in as written, then the line above): every line exit 0;
+the README's lines printed 0, 0, 0 and 9 non-blank lines; the file 55,436 bytes; the line above printed the Done line. `.m2-demo` held
+GraalVM's metadata repository (receipts.sh checks it is there after its first build): without it, the Maven line's plugin would have
+fetched it from GitHub, even with `-o` (README.md, *The repository*).

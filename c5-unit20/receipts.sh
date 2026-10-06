@@ -1,7 +1,8 @@
 #!/bin/bash
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25        # JDK 25.0.4.1 on the author's Mac: point it at your JDK 25
 export PATH="$JAVA_HOME/bin:$PATH"
-# GRAALVM_HOME must name a GraalVM JDK 25 before you run this (README.md, "The GraalVM"): the native builds read it.
+# GRAALVM_HOME names a GraalVM JDK 25 (README.md, "The GraalVM"): the native builds read it. Without it, this script makes every
+# capture that needs no GraalVM - the JVM's, and the exercise's - filling .m2-demo on the way, then stops before the native builds.
 # Course 5 · What Breaks in Native, and the Hints That Fix It - this unit's receipts. A native image calls by reflection only
 # what its build registered. Spring's ahead-of-time step (AOT) registers what Spring itself calls; TiffinBox's router, its JSON
 # writer and its settings' validator call more. The anchor change: three hints, Spring's own annotations, one line each -
@@ -19,14 +20,18 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #             what the three hints add to 262; after/'s jar run with the generated code (the seven); E, the general tool: a copy
 #             of after/ whose token rule is registered by a RuntimeHintsRegistrar instead of @Reflective - the file it writes
 #   native    the README's native build of the previous tree, then of after/: the build's lines, the jars on native-image's class
-#             path against the executable jar's, the names from the Compose module and from Jackson 3 in each binary's bytes,
-#             and each binary run from beside its config tree - the previous tree's stops at start, after/'s serves the seven
+#             path against the executable jar's, the names from the Compose module and from Jackson 3 in each binary's bytes (and
+#             the class names among them), TiffinBox's own Jackson (version 2) on after/'s class path, and each binary run from
+#             beside its config tree - the previous tree's stops at start (the exception, and every cause under it), after/'s
+#             serves the seven
 #   breaks    the hints one at a time: A after/'s binary · B the binding hint out · A' = A · C the route annotation's hint out ·
 #             D the token rule's hint out (the other two in) - each of B, C, D a copy of after/ with one line deleted, built as
-#             the README builds it, its metadata against A's, and its binary run
-#   ladder    the start, timed from outside (harness/ttfr.py: from the fork to the first 200): the executable jar and after/'s
-#             binary, six rounds, round 1 a warm-up - the binary's median against a band, and against the jar's median; never
-#             the seconds (terminal only)
+#             the README builds it, its metadata against A's, and its binary run; for C, what invoke threw (javap, GraalVM's own
+#             class) and every catch clause in TiffinBox's handler; for D, the exception and every cause under it
+#   ladder    the start, timed from outside (harness/ttfr.py: from the fork to the first 200), three ways: the executable jar, the
+#             AOT lesson's fastest way (the jar extracted, with the JDK's AOT cache and Spring's AOT) and after/'s binary - six
+#             rounds, round 1 a warm-up: the binary's median against a band, and against each other way's median; never the
+#             seconds (terminal only)
 #   exercise  exercise/README.md's commands and exercise/solution/SOLUTION.md's, read from the files and run as written
 # "before" is ../c5-unit19/after (the anchor as the AOT lesson left it), COPIED under .harness/; this script never writes into
 # another unit's folder. after/ is this unit's frozen copy of ../c5-tiffinbox after the change; it is copied, never built in
@@ -34,6 +39,12 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # README asks: TiffinBox does not start without its token. Commands are printed exactly as they run: each goes through eval.
 # "$CURLSET" is the comparison set since the secrets lesson (../c5-unit11/curlset.sh: the seven requests, POST /shutdown with the
 # token's header read from the file). "$M2" is this unit's own repository, .m2-demo.
+# The network: every build runs offline (-o) against .m2-demo and says so ("offline: yes"); a build that cannot resolve an
+# artifact offline goes to Maven Central once, and says that ("offline: no - ..."). One more way out is caught, never allowed:
+# GraalVM's native plugin, under the profile native, reads its metadata repository (a zip) from .m2-demo - and when the zip is
+# not there, it does not fail, even under -o: it downloads the zip from GitHub (README.md, The repository). So a native-profile
+# build without the zip goes to Maven Central for it, never offline first; and every build's log - the native builds' too - is
+# searched for the plugin's own download line: if the plugin went to GitHub, the build's line says "offline: no", and the run stops.
 # Masks and filters (README.md declares each; sub/gsub only): the demo token becomes "[masked: the 26-character token]"; the
 # GraalVM's folder "$GRAALVM_HOME"; this folder's absolute path "…", the folder above it "…/..", the home folder "~"; your user
 # name "<user>" - in every line of every capture. A Boot log line is printed from its message on, and its first line is cut
@@ -41,7 +52,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # rest counted. No duration is captured: each one is judged against a bound, and its seconds go to the terminal.
 # Ports (brief ⚑10, 18910-18919): change 18910 (the previous tree's jar), 18911 (after/'s) · metadata 18912 · native 18913
 # (after/'s binary), 18914 (the previous tree's, which stops before it binds) · breaks 18913 (A, A'), 18915 (B), 18916 (C), 18917
-# (D, which stops before it binds) · ladder 18918 · 18919 unused. 18425 is checked free too: it is TiffinBox's default port.
+# (D, which stops before it binds) · ladder 18918 (the training run and every timed start) · 18919 unused. 18425 is checked free
+# too: it is TiffinBox's default port.
 set -e
 # bash 5.2 and later turn an & in the replacement of ${x/pattern/replacement} into the matched text (patsub_replacement, on by
 # default): start()'s "&& exec " would become "&& && exec ". Switched off, so /bin/bash 3.2 (./receipts.sh) and a newer bash
@@ -82,10 +94,16 @@ command -v curl > /dev/null || die "curl is needed: the seven requests are curl'
 for v in $(env | sed -n 's/^\(TIFFINBOX_[A-Za-z0-9_]*\|SPRING_[A-Za-z0-9_]*\|JAVA_TOOL_OPTIONS\|JDK_JAVA_OPTIONS\|MAVEN_OPTS\|MAVEN_ARGS\|NATIVE_IMAGE_OPTIONS\)=.*/\1/p'); do unset "$v"; done
 # The GraalVM: named by GRAALVM_HOME, never guessed and never printed (its folder is masked). The captures were made with
 # GraalVM CE 25.3.4.1 (native-image 25.0.4.1); another build would print other lines, so it is refused here, not minutes in.
-[ -n "${GRAALVM_HOME:-}" ] && [ -x "$GRAALVM_HOME/bin/native-image" ] || die "GRAALVM_HOME must name a GraalVM JDK 25 (its bin/native-image) - README.md, The GraalVM"
-NIV=$("$GRAALVM_HOME/bin/native-image" --version 2>&1 || true)
-printf '%s\n' "$NIV" | grep -q '^native-image 25\.0\.4\.1 ' && printf '%s\n' "$NIV" | grep -q 'GraalVM CE 25\.3\.4\.1+1\.1' || die "the published captures were made with GraalVM CE 25.3.4.1 (native-image 25.0.4.1); GRAALVM_HOME gives: $(printf '%s\n' "$NIV" | head -1)"
-export GRAALVM_HOME
+# Not set at all: no native build - the run fills .m2-demo, makes every capture that needs no GraalVM, the exercise's included,
+# and stops where the native builds would start (GOK=no).
+GOK=yes
+if [ -z "${GRAALVM_HOME:-}" ]; then GOK=no; unset GRAALVM_HOME
+  echo "  GRAALVM_HOME is not set: this run fills .m2-demo, makes the captures that need no GraalVM - the JVM's, and the exercise's - and stops before the native builds (README.md, The GraalVM)"
+else
+  [ -x "$GRAALVM_HOME/bin/native-image" ] || die "GRAALVM_HOME must name a GraalVM JDK 25 (its bin/native-image) - README.md, The GraalVM"
+  NIV=$("$GRAALVM_HOME/bin/native-image" --version 2>&1 || true)
+  printf '%s\n' "$NIV" | grep -q '^native-image 25\.0\.4\.1 ' && printf '%s\n' "$NIV" | grep -q 'GraalVM CE 25\.3\.4\.1+1\.1' || die "the published captures were made with GraalVM CE 25.3.4.1 (native-image 25.0.4.1); GRAALVM_HOME gives: $(printf '%s\n' "$NIV" | head -1)"
+  export GRAALVM_HOME; fi
 [ -e secrets ] && die "this folder holds a secrets/ - remove it: every run here starts in a folder under .harness/"
 [ -e after/secrets ] || [ -e after/tiffinbox-local.yaml ] || [ -e after/target ] && die "after/ holds a secrets/, a tiffinbox-local.yaml or a target/ - it is the anchor's frozen copy, never built in place; remove them"
 M2="$PWD/.m2-demo"; U="$PWD"; UP="$(cd .. && pwd)"; ME="$(id -un)"
@@ -119,6 +137,9 @@ R_PLAIN=$(readme 'mvn -B package')
 R_PKG=$(readme 'mvn -B -Pnative package')
 R_RUN=$(readme 'java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431')
 R_AOTRUN=$(readme 'java -Dspring.aot.enabled=true -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431')
+R_EXTRACT=$(readme 'java -Djarmode=tools -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar extract --destination tiffinbox-web/target/extracted')
+R_TRAIN=$(readme 'java -XX:AOTCacheOutput=tiffinbox-web/target/tiffinbox.aot -Dspring.aot.enabled=true -Dspring.context.exit=onRefresh -jar tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431')
+R_CACHED=$(readme 'java -XX:AOTCache=tiffinbox-web/target/tiffinbox.aot -Dspring.aot.enabled=true -jar tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431')
 R_GRAAL=$(readme 'export GRAALVM_HOME=/path/to/a/graalvm-jdk-25')
 R_INSTALL=$(readme 'mvn -B -Pnative install')
 R_NATIVE=$(readme 'mvn -B -Pnative -pl tiffinbox-web native:compile-no-fork')
@@ -132,36 +153,50 @@ off() { local c=${2/mvn -B /mvn -o -B -Dmaven.repo.local=\"\$M2\" }
 dev() { local c=${1#cd * && }; c=${c/ -o -B -Dmaven.repo.local=\"\$M2\" / -B }; c=${c/ -DskipTests clean / }; printf '%s\n' "$c"; }
 # at DIR PORT 'README LINE': the README's line run from DIR, its port 18431 made PORT
 at() { printf 'cd %s && %s\n' "$1" "${3/--tiffinbox.port=18431/--tiffinbox.port=$2}"; }
-C_AFTER=$(off .harness/after "$R_PLAIN" package)
+C_AFTER=$(off .harness/after "$R_INSTALL" install)
 for c in "$C_AFTER" "$(off .harness/x "$R_PKG" package)" "$(off .harness/x "$R_INSTALL" install)" "$(off .harness/x "$R_NATIVE")"; do
   r=$(dev "$c"); [ "$r" = "$R_PLAIN" ] || [ "$r" = "$R_PKG" ] || [ "$r" = "$R_INSTALL" ] || [ "$r" = "$R_NATIVE" ] || die "not a README line with the offline changes: $c"; done
 [ "$(at .harness/x 18913 "$R_BIN")" = "cd .harness/x && tiffinbox-web/target/tiffinbox-web --tiffinbox.port=18913" ] || die "the binary's run line"
-echo "  the commands: after/README.md gives all 8 lines this script runs or derives from"
+echo "  the commands: after/README.md gives all 11 lines this script runs or derives from"
 
-# ---- build: one tree before the captures - after/, the plain way - for the ladder's jar; then the parent check -------------
+# ---- build: one tree before the captures - after/, the README's native install - for the ladder; then what .m2-demo holds ---
 rm -rf .harness; mkdir -p .harness
 rsync -a --exclude target --exclude secrets "$PREV/" .harness/before/
 rsync -a after/ .harness/after/
+# ZIP: GraalVM's reachability metadata repository, as Maven Central serves it - the native plugin reads it from .m2-demo
+ZIP="$M2/org/graalvm/buildtools/graalvm-reachability-metadata/1.1.8/graalvm-reachability-metadata-1.1.8-repository.zip"
+# ghub LOG: the native plugin went over the network for its metadata repository - downloaded it (from GitHub, when the zip is not
+# in $M2), or tried to (its own two lines). Never allowed: the caller says "offline: no" and stops.
+ghub() { grep -qE 'Downloaded GraalVM reachability metadata repository from http|Failed to download from http' "$1"; }
 # mbuild 'COMMAND' LOG LABEL: the command, run as printed (eval), its log kept in LOG (never printed whole); Maven Central only
 # if the offline build could not resolve something - and the line says which (offline: yes / no), so a run that went online is
-# never silent (inside a capture, "no" changes the capture's hash: cap() then dies).
-mbuild() { local how=yes ec=0
-  (eval "$1") > "$2" 2>&1 < /dev/null || ec=$?
-  if [ $ec != 0 ] && grep -qE 'offline mode|Could not resolve|could not be resolved|Cannot access' "$2"; then
+# never silent (inside a capture, "no" changes the capture's hash: cap() then dies). A native-profile build while the metadata
+# repository is not in $M2 goes to Maven Central at once (offline, the plugin would fetch it from GitHub instead).
+mbuild() { local how=yes ec=0 c=$1
+  case $c in *' -Pnative '*) [ -f "$ZIP" ] || { c=${c/mvn -o -B /mvn -B }; how="no - GraalVM's metadata repository was not in .m2-demo, so Maven Central was asked for it"; } ;; esac
+  (eval "$c") > "$2" 2>&1 < /dev/null || ec=$?
+  if [ $ec != 0 ] && [ "$how" = yes ] && grep -qE 'offline mode|Could not resolve|could not be resolved|Cannot access' "$2"; then
     how="no - the offline build could not resolve an artifact, so Maven Central was asked"; ec=0
-    (eval "${1/mvn -o -B /mvn -B }") > "$2" 2>&1 < /dev/null || ec=$?; fi
+    (eval "${c/mvn -o -B /mvn -B }") > "$2" 2>&1 < /dev/null || ec=$?; fi
+  if ghub "$2"; then echo "  built $3 · offline: no - GraalVM's native plugin went to GitHub for its metadata repository · exit $ec"
+    die "$3: GraalVM's native plugin went over the network for its metadata repository - $(grep -m1 -E 'Downloaded GraalVM reachability metadata repository from http|Failed to download from http' "$2" | sed 's/^\[[A-Z]*\] //') - README.md, The repository"; fi
   [ $ec = 0 ] || { tail -30 "$2" >&3
     ! grep -qE 'Could not resolve|could not be resolved|Could not transfer|Cannot access' "$2" || die "build failed: $3 - Maven could resolve Boot's parent and plugins neither from .m2-demo nor from Maven Central: a fresh clone's first run needs the network once, to fill .m2-demo"
     die "build failed: $3"; }
   echo "  built $3 · offline: $how · exit $ec"; }
 # tree FOLDER: a config tree in FOLDER/secrets holding one file, the token and a newline, readable by its owner alone
 tree() { mkdir -p "$1/secrets/tiffinbox"; (umask 077 && printf '%s\n' "$TOKEN" > "$1/$TF"); chmod 700 "$1/secrets" "$1/secrets/tiffinbox"; }
-mbuild "$C_AFTER" .harness/build-after.log ".harness/after (after/, the plain way)"
-# Boot's parent POM: in .m2-demo now - the first build put it there if it was not (a fresh clone's .m2-demo is empty: git
-# ignores it, and the offline build's failure sends that first build to Maven Central, once)
+# The first build is the README's native install: it needs every artifact the captures' Maven lines need - the plain ones, the
+# profile native's (process-aot, the plugin's add-reachability-metadata and its metadata repository) and install's - so on a
+# fresh clone, whose .m2-demo is empty (git ignores it), this one build fills .m2-demo from Maven Central, once. Its jar is the
+# ladder's (run as the README runs it, and extracted as the README extracts it).
+mbuild "$C_AFTER" .harness/build-after.log ".harness/after (after/, the profile native, both modules into \$M2)"
 [ -f "$M2/org/springframework/boot/spring-boot-starter-parent/4.1.1/spring-boot-starter-parent-4.1.1.pom" ] || die "Boot's parent POM is not in .m2-demo after the first build"
 [ -f "$M2/org/graalvm/buildtools/native-maven-plugin/1.1.8/native-maven-plugin-1.1.8.jar" ] || die "GraalVM's native plugin 1.1.8 is not in .m2-demo after the first build (it is a build extension of the web module)"
+[ -f "$ZIP" ] || die "GraalVM's metadata repository is not in .m2-demo after the first build - README.md, The repository"
+echo "  .m2-demo holds Boot's parent, GraalVM's native plugin 1.1.8 and its metadata repository ($(wc -c < "$ZIP" | tr -d ' ') bytes)"
 tree .harness/after
+(cd .harness/after && eval "$R_EXTRACT") > .harness/extract-after.log 2>&1 || { cat .harness/extract-after.log >&3; die "the README's extract command failed in .harness/after"; }
 
 # ---- helpers ------------------------------------------------------------------------------------------------------------
 # raw TOKEN FILE...: how many times TOKEN appears, raw, in the files (occurrences, not lines; binary files read as text)
@@ -199,19 +234,31 @@ seven() { local i e=0
 stops() { local e=0
   echo "  listened on: $(listening)"
   wait "$pid" || e=$?; pid=""
-  echo "  then: $(grep -m1 -E '^Application run failed$' .harness/run.out || echo '(no failure line)') · lines starting 'Caused by: ' $(grep -c '^Caused by: ' .harness/run.out || true) - the last, to the method it names:"
-  grep '^Caused by: ' .harness/run.out | tail -1 | sed "s/'\. To allow this operation.*\$/'./" | sed 's/^/    /'
+  echo "  then: $(grep -m1 -E '^Application run failed$' .harness/run.out || echo '(no failure line)') · lines starting 'Caused by: ' $(grep -c '^Caused by: ' .harness/run.out || true) - the exception it names, then each cause, cut after the bean it names (the last after the method); the lines between, counted:"
+  causes .harness/run.out
   echo "  its first frame outside GraalVM's own and the JDK's: $(awk '/^Caused by: org\.graalvm\.nativeimage\.MissingReflectionRegistrationError/ { f = 1 } f && /^\tat / && !/com\.oracle\.svm|java\.base/ { sub(/^\tat /, ""); print; exit }' .harness/run.out)"
   echo "  exit $e · listening on $1 now: $(listeners "$1") · its output: $(wc -l < .harness/run.out | tr -d ' ') lines, $(wc -l < .harness/run.err | tr -d ' ') on standard error"; }
 
+# causes LOG: the exception Boot's failure line names, then each 'Caused by: ' line, in order - each cut after the bean it names
+# (GraalVM's, the last, after the method it names) - and before each, how many lines of the log are not shown: the whole chain,
+# every gap counted (Course 4's rule)
+causes() { awk -v q="'" '
+  /^Application run failed$/ { f = NR; next }
+  f && (NR == f + 1 || /^Caused by: /) {
+    l = $0
+    if (match(l, "Error creating bean with name " q "[^" q "]*" q)) l = substr(l, 1, RSTART + RLENGTH - 1) " …"
+    else if (match(l, q "\\. To allow this operation")) l = substr(l, 1, RSTART + 1)
+    if (p) printf "    … %d lines not shown …\n", NR - p - 1
+    print "    " l; p = NR }' "$1"; }
+
 # mask: the demo token becomes a label naming its length; the GraalVM's folder "$GRAALVM_HOME"; this folder's path "…", the
 # folder above it "…/..", the home folder "~" (each also in its URL form, spaces as %20); the user name "<user>" - in every
-# line (gsub). The GraalVM's folder is masked before the home folder, which holds it.
-mask() { awk -v t="$TOKEN" -v g="$GRAALVM_HOME" -v u="$U" -v up="$UP" -v hm="$HOME" -v me="$ME" '
+# line (gsub). The GraalVM's folder is masked before the home folder, which holds it (and not at all when GRAALVM_HOME is not set).
+mask() { awk -v t="$TOKEN" -v g="${GRAALVM_HOME:-}" -v u="$U" -v up="$UP" -v hm="$HOME" -v me="$ME" '
   function lit(x) { gsub(/[][\\.^$*+?(){}|\/]/, "\\\\&", x); return x }
   function enc(x) { gsub(/ /, "%20", x); return x }
   BEGIN { T = lit(t); G = lit(g); GE = lit(enc(g)); P = lit(u); Q = lit(up); H = lit(hm); PE = lit(enc(u)); QE = lit(enc(up)); M = lit(me) }
-  { gsub(T, "[masked: the 26-character token]"); gsub(G, "$GRAALVM_HOME"); gsub(GE, "$GRAALVM_HOME"); gsub(P, "…"); gsub(PE, "…")
+  { gsub(T, "[masked: the 26-character token]"); if (g != "") { gsub(G, "$GRAALVM_HOME"); gsub(GE, "$GRAALVM_HOME") }; gsub(P, "…"); gsub(PE, "…")
     gsub(Q, "…/.."); gsub(QE, "…/.."); gsub(H, "~"); gsub(M, "<user>"); print }'; }
 
 unpub=""
@@ -267,7 +314,8 @@ nbuild() { local ci cn s0 s1
   echo "\$ $ci"; mbuild "$ci" "$1.install.log" "$1 (both modules, into \$M2)"
   echo "\$ $cn"
   NB_E=0; s0=$(date +%s); (eval "$cn") > "$1.native.log" 2>&1 < /dev/null || NB_E=$?; s1=$(date +%s); NB_S=$((s1 - s0))
-  echo "  (terminal only) the native build in $1 took $NB_S s" >&3; }
+  echo "  (terminal only) the native build in $1 took $NB_S s" >&3
+  if ghub "$1.native.log"; then echo "  offline: no - GraalVM's native plugin went to GitHub for its metadata repository"; die "the native build in $1: GraalVM's native plugin went over the network for its metadata repository - README.md, The repository"; fi; }
 # nlines LOG: native-image's lines a capture shows, in order - the plugin's goal and the GraalVM it found, the builder's Java,
 # its warnings (the file URL cut), the stage names (their timings cut), what the analysis found reachable, the warning count and
 # Maven's result - and how many it does not show
@@ -280,8 +328,8 @@ nlines() {
   grep -E 'found reachable$' "$1" | sed 's/^ */    /'
   grep -E '^The build process encountered |^\[INFO\] BUILD ' "$1" | sed 's/^\[INFO\] //' | sed 's/^/    /'; }
 # nresult LOG: the native build's result - its exit, Maven's result, the stages against the count it announces, its duration
-# against the bound (1 minute or more, under 10 minutes)
-nresult() { echo "  exit $NB_E · $(grep -m1 -oE 'BUILD (SUCCESS|FAILURE)' "$1" || echo 'no BUILD line') · stages it printed: $(grep -cE '^\[[1-8]/8\] ' "$1" || true) of the $(grep -m1 -oE '^\[1/[0-9]+\]' "$1" | sed 's/.*\///; s/]//') it announces · its duration, against the bound: $( [ $NB_S -ge 60 ] && echo '1 minute or more' || echo 'under 1 minute' ), $( [ $NB_S -lt 600 ] && echo 'under 10 minutes' || echo '10 minutes or more' )"; }
+# against the bound (1 minute or more, under 10 minutes), and the network (offline: nbuild stopped the run if the plugin went out)
+nresult() { echo "  exit $NB_E · $(grep -m1 -oE 'BUILD (SUCCESS|FAILURE)' "$1" || echo 'no BUILD line') · stages it printed: $(grep -cE '^\[[1-8]/8\] ' "$1" || true) of the $(grep -m1 -oE '^\[1/[0-9]+\]' "$1" | sed 's/.*\///; s/]//') it announces · its duration, against the bound: $( [ $NB_S -ge 60 ] && echo '1 minute or more' || echo 'under 1 minute' ), $( [ $NB_S -lt 600 ] && echo 'under 10 minutes' || echo '10 minutes or more' ) · offline: yes"; }
 # names BINARY PREFIX: the distinct names in the binary's bytes that start with PREFIX (a package name, dotted)
 names() { LC_ALL=C grep -aoE "$(printf '%s' "$2" | sed 's/\./\\./g')[A-Za-z0-9_.\$]+" "$1" | LC_ALL=C sort -u || true; }
 # cpath DIR: the jars on native-image's class path (the plugin's own command line, names only) against the executable jar's
@@ -293,11 +341,15 @@ cpath() { local o
   echo "  the jars on native-image's class path (the plugin's command line, names only): $(wc -l < "$1.ni-cp.txt" | tr -d ' ') · in the executable jar's BOOT-INF/lib: $(wc -l < "$1.jar-lib.txt" | tr -d ' ') · only in the jar: $(LC_ALL=C comm -13 "$1.ni-cp.txt" "$1.jar-lib.txt" | paste -sd' ' -)"
   echo "  only on native-image's: $o"
   for j in $o; do echo "    $j - its class files: $(unzip -Z1 "$(find "$M2" -name "$j" -type f | head -1)" | grep -c '\.class$' || true)"; done; }
-# inbin DIR: the names from the Compose module and from Jackson 3 in DIR's binary's bytes - each list counted, the short one shown
+# classes FILE: how many of FILE's names are class names - the last dotted part capitalised, a lambda's name ($$Lambda) not counted;
+# the rest are package names (".package" among them)
+classes() { awk -F. '$NF ~ /^[A-Z]/ && !/\$\$Lambda/ { n++ } END { print n + 0 }' "$1"; }
+# inbin DIR: the names from the Compose module and from Jackson 3 in DIR's binary's bytes - each list counted, its class names
+# counted, the short one shown
 inbin() { local b=$1/$BIN c j
   names "$b" 'org.springframework.boot.docker.compose.' > "$1.compose.txt"; names "$b" 'tools.jackson.' > "$1.jackson3.txt"
   c=$(wc -l < "$1.compose.txt" | tr -d ' '); j=$(wc -l < "$1.jackson3.txt" | tr -d ' ')
-  echo "  in the binary's bytes, distinct names under org.springframework.boot.docker.compose.: $c · under tools.jackson.: $j"
+  echo "  in the binary's bytes, distinct names under org.springframework.boot.docker.compose.: $c, class names among them $(classes "$1.compose.txt") · under tools.jackson.: $j, class names $(classes "$1.jackson3.txt")"
   if [ "$j" -le 5 ] && [ "$j" -gt 0 ]; then
     echo "    those $j: $(paste -sd' ' "$1.jackson3.txt")"
     echo "    each one named in a class of spring-boot-4.1.1.jar, under org/springframework/boot/json/: $(n=0; while read -r x; do unzip -p "$M2/org/springframework/boot/spring-boot/4.1.1/spring-boot-4.1.1.jar" 'org/springframework/boot/json/*.class' | LC_ALL=C grep -aqF -e "$x" -e "$(printf '%s' "$x" | tr . /)" && n=$((n + 1)); done < "$1.jackson3.txt"; echo "$n of $j")"; fi; }
@@ -386,10 +438,10 @@ native() {
   nresult .harness/nat-a.native.log
   echo "  file: $(file -b ".harness/nat-a/$BIN" | sed 's/ [A-Za-z0-9_]*$//') · the demo token in its bytes: $(raw "$TOKEN" ".harness/nat-a/$BIN")"
   cpath .harness/nat-a
+  echo "  TiffinBox's own Jackson, version 2 (com.fasterxml), on native-image's class path: $(grep -E '^jackson-(annotations|core|databind)-2\.' .harness/nat-a.ni-cp.txt | paste -sd' ' -)"
   inbin .harness/nat-a
   echo "its binary, run from beside its config tree as the README runs it, port 18913:"
   start "$(at .harness/nat-a 18913 "$R_BIN")"; up; seven 18913 .harness/nat-a; }
-cap native native
 
 # ---- breaks: the hints, one at a time ----------------------------------------------------------------------------------------
 # variant LETTER LINE FILE: after/ copied to .harness/nat-LETTER, LINE deleted from FILE, built as the README builds it; its
@@ -419,46 +471,66 @@ breaks() { local e
   variant c '@Reflective' "$ROUTE"
   start "$(at .harness/nat-c 18916 "$R_BIN")"; up
   echo "  TiffinBox's own line: $(grep -m1 ' : routes mapped: ' .harness/run.out | sed 's/^.* : //')"
-  printf '%s\n' "\$ curl -s -m 5 -o /dev/null -w '%{http_code}\\n' http://127.0.0.1:18916/kitchen"
-  e=0; o=$(curl -s -m 5 -o /dev/null -w '%{http_code}\n' http://127.0.0.1:18916/kitchen) || e=$?; echo "  printed: $o · curl exit $e"
-  echo "\$ harness/shutdown.sh 18916 .harness/nat-c/$TF"
-  harness/shutdown.sh 18916 ".harness/nat-c/$TF" | sed 's/^/  /'
+  c="curl -s -m 5 -o /dev/null -w '%{http_code}\n' http://127.0.0.1:18916/kitchen"
+  printf '%s\n' "\$ $c"; e=0; o=$(eval "$c") || e=$?; echo "  printed: $o · curl exit $e"
+  c="harness/shutdown.sh 18916 .harness/nat-c/$TF"
+  printf '%s\n' "\$ $c"; (eval "$c") | sed 's/^/  /'
   echo "  still running: $(kill -0 "$pid" 2> /dev/null && echo yes || echo no) · its standard error, each line naming a thread, to the method it names:"
   grep '^Exception in thread ' .harness/run.err | sed "s/'\. To allow this operation.*\$/'./" | sed 's/^/    /'
-  echo "\$ kill \$pid    # SIGTERM, to the binary this script started"
-  e=0; kill "$pid"; wait "$pid" || e=$?; pid=""
+  echo "  what invoke threw - GraalVM's own class, by its javap - and the class above that:"
+  "$GRAALVM_HOME/bin/javap" org.graalvm.nativeimage.MissingReflectionRegistrationError 2> /dev/null | grep -m1 '^public ' | sed 's/ {$//; s/^/    /'
+  javap java.lang.LinkageError 2> /dev/null | grep -m1 '^public ' | sed 's/ {$//; s/^/    /'
+  echo "  what TiffinBox's handler catches - every catch clause in TiffinBoxServer.java's handle() (grep -n): $(awk '/private void handle\(/ { f = 1 } f && /catch \(/ { n++ } f && /^    }$/ { exit } END { print n + 0 }' ".harness/nat-c/$SRV")"
+  awk '/private void handle\(/ { f = 1 } f && /catch \(/ { sub(/^ */, ""); print "    " NR ": " $0 } f && /^    }$/ { exit }' ".harness/nat-c/$SRV"
+  c='kill $pid'
+  printf '%s\n' "\$ $c    # SIGTERM, to the binary this script started"
+  e=0; eval "$c"; wait "$pid" || e=$?; pid=""
   echo "  exit $e · listening on 18916 now: $(listeners 18916)"
   echo "D - without the token rule's @Reflective - the router's and the record's hints still in - in .harness/nat-d:"
   variant d '    @Reflective' "$PROPS"
   start "$(at .harness/nat-d 18917 "$R_BIN")"; stops 18917; }
-cap breaks breaks
 
 # ---- ladder: the binary's start, timed from outside --------------------------------------------------------------------------
-L1=$(at .harness/after 18918 "$R_RUN"); L2=$(at .harness/nat-a 18918 "$R_BIN")
+L1=$(at .harness/after 18918 "$R_RUN"); L2=$(at .harness/after 18918 "$R_CACHED"); L3=$(at .harness/nat-a 18918 "$R_BIN")
+# train 'COMMAND': the README's training run - the context refreshes, then exits (spring.context.exit=onRefresh); the JDK writes
+# the cache
+train() { local e=0
+  echo "\$ $1"; (eval "$1") > .harness/train.log 2>&1 < /dev/null || e=$?
+  [ "$(listeners 18918)" = 0 ] || die "the training run left 18918 bound"
+  echo "  exit $e · the JDK's own line: $(grep -m1 '^AOTCache creation is complete: ' .harness/train.log | sed 's/ [0-9][0-9]* bytes$/ [its size in bytes]/')"; }
 ladder() { local r w s line d
   echo "the start, timed from outside: harness/ttfr.py forks the command, asks /kitchen until the first 200, then sends POST /shutdown"
-  echo "with the token. Two ways, each from beside its config tree, port 18918; 6 rounds, each round both ways in turn; round 1 is a warm-up."
+  echo "with the token. Three ways, each from beside its config tree, port 18918; 6 rounds, each round the three ways in turn; round 1 is a warm-up."
   echo "  (terminal only) this Mac: $(sysctl -n machdep.cpu.brand_string) · $(sysctl -n hw.ncpu) cores · $(( $(sysctl -n hw.memsize) / 1073741824 )) GB · $(java -version 2>&1 | head -1)" >&3
-  echo "  1 the executable jar, after/ built the plain way - \$ $L1"
-  echo "  2 after/'s binary, built by capture native - \$ $L2"
+  echo "first, for way 2, the README's extract (done in .harness/after already) and its training run - one command records the run and writes the cache:"
+  echo "\$ cd .harness/after && $R_EXTRACT"
+  rm -f .harness/after/tiffinbox-web/target/*.aot .harness/after/tiffinbox-web/target/*.aot.config
+  train "$(at .harness/after 18918 "$R_TRAIN")"
+  echo "  1 the executable jar, after/ built with the profile native - \$ $L1"
+  echo "  2 the AOT lesson's fastest way: the jar extracted, the JDK's AOT cache, Spring's AOT - \$ $L2"
+  echo "  3 after/'s binary, built by capture native - \$ $L3"
   : > .harness/times.txt
-  r=1; while [ $r -le 6 ]; do w=1; while [ $w -le 2 ]; do eval "line=\$L$w"; d=${line#cd }; d=${d%% && *}
+  r=1; while [ $r -le 6 ]; do w=1; while [ $w -le 3 ]; do eval "line=\$L$w"; d=${line#cd }; d=${d%% && *}
       s=$(cd "$d" && python3 "$U/harness/ttfr.py" 18918 "$TF" "$U/.harness/ttfr.out" "$U/.harness/ttfr.err" -- ${line#cd * && })
       printf '%s %s %s\n' "$r" "$w" "$s" >> .harness/times.txt
       [ "$(listeners 18918)" = 0 ] || die "a timed run left 18918 bound"; w=$((w + 1)); done; r=$((r + 1)); done
   echo "  every run: a 200, then exit 0 after POST /shutdown: $(grep -c ' first 200 after [0-9.]* s · exit 0$' .harness/times.txt || true) of $(wc -l < .harness/times.txt | tr -d ' ')"
-  echo "the 5 counted rounds - each way's median, the middle of its 5 runs; the binary's against a band, then against the jar's (the seconds go to the terminal, never to this capture):"
+  echo "each way's median, the middle of its counted runs; the binary's against a band, then against each other way's (the seconds go to the"
+  echo "terminal, never to this capture):"
   awk '
-    { if ($1 == 1) next; t[$2, $1] = $6 + 0 }
-    END {
-      for (w = 1; w <= 2; w++) { n = 0
+    { all[$2]++; if ($1 == 1) next; t[$2, $1] = $6 + 0; k[$2]++ }
+    END { q = "\047"
+      lk = k[1]; hk = k[1]; for (w = 2; w <= 3; w++) { if (k[w] < lk) lk = k[w]; if (k[w] > hk) hk = k[w] }
+      printf "  each way%ss runs counted: %s of %d - round 1 left out\n", q, (lk == hk) ? lk : lk "-" hk, all[1]
+      for (w = 1; w <= 3; w++) { n = 0
         for (r = 2; r <= 6; r++) { x = t[w, r]; i = n; while (i > 0 && v[i] > x) { v[i + 1] = v[i]; i-- }; v[i + 1] = x; n++ }
         med[w] = v[3]; lo[w] = v[1]; hi[w] = v[5] }
-      printf "  2 the binary: its median over 0.01 s and under 0.1 s: %s\n", (med[2] > 0.01 && med[2] < 0.1) ? "yes" : "no"
-      printf "  2 against 1: the binary%ss median under a tenth of the jar%ss: %s\n", "\047", "\047", (med[2] < med[1] / 10) ? "yes" : "no"
+      printf "  3 the binary: its median over 0.01 s and under 0.1 s: %s\n", (med[3] > 0.01 && med[3] < 0.1) ? "yes" : "no"
+      printf "  3 against 1: the binary%ss median under a tenth of the jar%ss: %s\n", q, q, (med[3] < med[1] / 10) ? "yes" : "no"
+      printf "  3 against 2: the binary%ss median under a fifth of the AOT lesson%ss fastest way%ss: %s\n", q, q, q, (med[3] < med[2] / 5) ? "yes" : "no"
       printf "  (terminal only) 1 the executable jar: %.3f-%.3f s, median %.3f s\n", lo[1], hi[1], med[1] > "/dev/stderr"
-      printf "  (terminal only) 2 the binary: %.3f-%.3f s, median %.3f s\n", lo[2], hi[2], med[2] > "/dev/stderr" }' .harness/times.txt 2>&3; }
-cap ladder ladder
+      printf "  (terminal only) 2 extracted + the JDK%ss AOT cache + Spring%ss AOT: %.3f-%.3f s, median %.3f s\n", q, q, lo[2], hi[2], med[2] > "/dev/stderr"
+      printf "  (terminal only) 3 the binary: %.3f-%.3f s, median %.3f s - 1/%.0f of the jar%ss, 1/%.1f of way 2%ss\n", lo[3], hi[3], med[3], med[1] / med[3], q, med[2] / med[3], q > "/dev/stderr" }' .harness/times.txt 2>&3; }
 
 # ---- exercise: the README's commands, exactly as written, then the solution's ---------------------------------------------
 # block FILE: the lines of FILE's first ```bash block
@@ -476,6 +548,15 @@ exercise() { local setup sol ec=0
   echo "\$ $sol"
   ec=0; (eval "$sol") 2>&1 < /dev/null || ec=$?
   echo "  exit $ec"; }
+
+# ---- the captures that need a GraalVM, then the exercise's ----------------------------------------------------------------------
+# Without a GraalVM the run stops here, the exercise's capture made first (it needs none): .m2-demo is filled, and every capture
+# so far matched receipts.md5 - or cap() would have stopped the run.
+if [ $GOK = no ]; then cap exercise exercise
+  die "GRAALVM_HOME is not set: .m2-demo is filled, and the captures that need no GraalVM matched receipts.md5, the exercise's included; the native builds need a GraalVM JDK 25 - README.md, The GraalVM"; fi
+cap native native
+cap breaks breaks
+cap ladder ladder
 cap exercise exercise
 
 echo
@@ -555,11 +636,17 @@ echo "  metadata: the plain JDK · 262 -> 263 · Customer new, 4 accessors · th
 # Boot's own JSON code mentions."
 NP=$(blk native 'the previous tree - the AOT lesson' 'after/ - the three hints'); NA=$(blk native 'after/ - the three hints' '')
 [ "$(n native '^  built \.harness/nat-[pa] \(both modules, into \$M2\) · offline: yes · exit 0$')" = 2 ] || die "native: two offline installs"
-[ "$(n native '^  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: 1 minute or more, under 10 minutes$')" = 2 ] || die "native: two green builds, 8 of 8, 1-10 min"
+[ "$(n native '^  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: 1 minute or more, under 10 minutes · offline: yes$')" = 2 ] || die "native: two green builds, 8 of 8, 1-10 min, offline"
 has "$NP" "  the jars on native-image's class path (the plugin's command line, names only): 36 · in the executable jar's BOOT-INF/lib: 31 · only in the jar: spring-boot-jarmode-tools-4.1.1.jar" "native, the previous tree"
 has "$NP" "  only on native-image's: jackson-core-3.1.5.jar jackson-databind-3.1.5.jar spring-boot-docker-compose-4.1.1.jar spring-boot-starter-4.1.1.jar spring-boot-starter-logging-4.1.1.jar spring-boot-starter-validation-4.1.1.jar" "native, the previous tree"
-has "$NP" "  in the binary's bytes, distinct names under org.springframework.boot.docker.compose.: 34 · under tools.jackson.: 991" "native, the previous tree"
+has "$NP" "  in the binary's bytes, distinct names under org.springframework.boot.docker.compose.: 34, class names among them 24 · under tools.jackson.: 991, class names 884" "native, the previous tree"
 has "$NP" "  listened on: nothing" "native, the previous tree"
+# the whole chain: the server, its repository, the database, the settings record, then GraalVM's refusal - every gap counted
+has "$NP" "    org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'tiffinBoxServer' …" "native, the previous tree"
+has "$NP" "    Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'customerRepository' …" "native, the previous tree"
+has "$NP" "    Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'database' …" "native, the previous tree"
+has "$NP" "    Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'tiffinbox-com.tiffinbox.TiffinBoxProperties' …" "native, the previous tree"
+[ "$(printf '%s\n' "$NP" | grep -cE '^    … [0-9]+ lines not shown …$')" = 4 ] || die "native, the previous tree: the chain's four gaps, counted"
 has "$NP" "    Caused by: org.graalvm.nativeimage.MissingReflectionRegistrationError: Cannot reflectively invoke method 'public boolean com.tiffinbox.TiffinBoxProperties.isShutdownTokenLongEnough()'." "native, the previous tree"
 printf '%s\n' "$NP" | grep -qE "^  its first frame outside GraalVM's own and the JDK's: org\.hibernate\.validator\.internal\.util\.ReflectionHelper\.getValue\(ReflectionHelper\.java:[0-9]+\)\$" || die "native, the previous tree: Hibernate Validator's frame"
 printf '%s\n' "$NP" | grep -qE '^  exit 1 · listening on 18914 now: 0 · ' || die "native, the previous tree: exit 1"
@@ -571,11 +658,12 @@ has "$NA" "  file: Mach-O 64-bit executable · the demo token in its bytes: 0" "
 has "$NA" "  the jars on native-image's class path (the plugin's command line, names only): 33 · in the executable jar's BOOT-INF/lib: 31 · only in the jar: spring-boot-jarmode-tools-4.1.1.jar" "native, after/"
 has "$NA" "  only on native-image's: spring-boot-starter-4.1.1.jar spring-boot-starter-logging-4.1.1.jar spring-boot-starter-validation-4.1.1.jar" "native, after/"
 [ "$(printf '%s\n' "$NA" | grep -c '^    spring-boot-starter[a-z-]*-4\.1\.1\.jar - its class files: 0$')" = 3 ] || die "native, after/: three starters, no class in any"
-has "$NA" "  in the binary's bytes, distinct names under org.springframework.boot.docker.compose.: 0 · under tools.jackson.: 3" "native, after/"
+has "$NA" "  TiffinBox's own Jackson, version 2 (com.fasterxml), on native-image's class path: jackson-annotations-2.22.jar jackson-core-2.22.2.jar jackson-databind-2.22.2.jar" "native, after/"
+has "$NA" "  in the binary's bytes, distinct names under org.springframework.boot.docker.compose.: 0, class names among them 0 · under tools.jackson.: 3, class names 2" "native, after/"
 has "$NA" "    each one named in a class of spring-boot-4.1.1.jar, under org/springframework/boot/json/: 3 of 3" "native, after/"
 has "$NA" "  Boot's first line: Starting AOT-processed TiffinBoxServer using Java 25.0.4.1" "native, after/"
 has "$NA" "  exit 0 · the seven responses: 7 lines · md5 $S115" "native, after/"
-echo "  native: the previous tree - 8 of 8, 36 jars, Compose 34 and Jackson 3 991 names, exit 1 on the token rule, Hibernate Validator's frame · after/ - 8 of 8, 33 jars (+3 empty starters), 0 and 3 (spring-boot's JSON classes name them), AOT-processed, 115c36ba..."
+echo "  native: the previous tree - 8 of 8, offline, 36 jars, Compose 34 names (24 class names) and Jackson 3 991 (884), exit 1 on the token rule after the chain server -> repository -> database -> settings, Hibernate Validator's frame · after/ - 8 of 8, offline, 33 jars (+3 empty starters), Jackson 2 kept, 0 and 3 names (0 and 2 class names; spring-boot's JSON classes name all 3), AOT-processed, 115c36ba..."
 
 # "A is the binary with all three. B deletes the binding hint ... Its metadata loses Customer. Slash customers now answers five
 # hundred: InvalidDefinitionException, from Jackson. The other six answers are unchanged. A again: the same seven." "C deletes
@@ -595,29 +683,41 @@ has "$BA2" "  its seven against A's, line for line: the same" "breaks A'"
 [ "$(printf '%s\n' "$BA" | grep '^\$ cd ')" = "$(printf '%s\n' "$BA2" | grep '^\$ cd ')" ] || die "breaks: A' is not A's command"
 has "$BC" "  different: com.tiffinbox.web.TiffinBoxServer · allDeclaredFields · methods customers dashboard kitchen revenue shutdown start stop -> start stop" "breaks C"
 has "$BC" "  TiffinBox's own line: routes mapped:  [GET /customers, GET /dashboard, GET /kitchen, GET /revenue, POST /shutdown]" "breaks C"
+has "$BC" "\$ curl -s -m 5 -o /dev/null -w '%{http_code}\n' http://127.0.0.1:18916/kitchen" "breaks C"
 has "$BC" "  printed: 000 · curl exit 28" "breaks C"
 has "$BC" "  POST /shutdown -> 000 · curl exit 28" "breaks C"
 has "$BC" "  still running: yes · its standard error, each line naming a thread, to the method it names:" "breaks C"
 has "$BC" "    Exception in thread \"\" org.graalvm.nativeimage.MissingReflectionRegistrationError: Cannot reflectively invoke method 'java.lang.Object com.tiffinbox.web.TiffinBoxServer.kitchen()'." "breaks C"
 has "$BC" "    Exception in thread \"\" org.graalvm.nativeimage.MissingReflectionRegistrationError: Cannot reflectively invoke method 'java.lang.Object com.tiffinbox.web.TiffinBoxServer.shutdown()'." "breaks C"
+# "GraalVM's refusal is an Error, not an Exception, and TiffinBox's handler catches only exceptions: no five hundred, no answer"
+has "$BC" "    public final class org.graalvm.nativeimage.MissingReflectionRegistrationError extends java.lang.LinkageError" "breaks C"
+has "$BC" "    public class java.lang.LinkageError extends java.lang.Error" "breaks C"
+has "$BC" "  what TiffinBox's handler catches - every catch clause in TiffinBoxServer.java's handle() (grep -n): 1" "breaks C"
+printf '%s\n' "$BC" | grep -qE '^    [0-9]+: \} catch \(Exception e\) \{$' || die "breaks C: the handler's one catch, Exception"
+[ "$(printf '%s\n' "$BC" | grep -c ' -> 500 ')" = 0 ] || die "breaks C: no 500"
 has "$BC" "  exit 143 · listening on 18916 now: 0" "breaks C"
 has "$BD" "  different: com.tiffinbox.TiffinBoxProperties · allDeclaredFields · methods <init> isShutdownTokenLongEnough -> <init>" "breaks D"
 has "$BD" "  listened on: nothing" "breaks D"
 has "$BD" "    Caused by: org.graalvm.nativeimage.MissingReflectionRegistrationError: Cannot reflectively invoke method 'public boolean com.tiffinbox.TiffinBoxProperties.isShutdownTokenLongEnough()'." "breaks D"
 printf '%s\n' "$BD" | grep -qE '^  exit 1 · listening on 18917 now: 0 · ' || die "breaks D: exit 1"
-[ "$(n breaks '^  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: 1 minute or more, under 10 minutes$')" = 3 ] || die "breaks: three green builds"
+has "$BD" "    Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'tiffinbox-com.tiffinbox.TiffinBoxProperties' …" "breaks D"
+[ "$(printf '%s\n' "$BD" | grep -cE '^    … [0-9]+ lines not shown …$')" = 4 ] || die "breaks D: the chain's four gaps, counted"
+[ "$(n breaks '^  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: 1 minute or more, under 10 minutes · offline: yes$')" = 3 ] || die "breaks: three green builds, offline"
 [ "$(n breaks '^  built \.harness/nat-[bcd] \(both modules, into \$M2\) · offline: yes · exit 0$')" = 3 ] || die "breaks: three offline installs"
 [ "$(n breaks '^  the demo token in its bytes: 0 · ')" = 3 ] || die "breaks: no token in a binary"
-echo "  breaks: A 115c36ba... · B Customer gone, /customers 500 InvalidDefinitionException, 1 line of 7 · A' = A · C routes mapped 5, no answer in 5 s (GET, POST /shutdown), invoke kitchen()/shutdown(), SIGTERM 143 · D exit 1 on the token rule"
+echo "  breaks: A 115c36ba... · B Customer gone, /customers 500 InvalidDefinitionException, 1 line of 7 · A' = A · C routes mapped 5, no answer in 5 s (GET, POST /shutdown), invoke kitchen()/shutdown(), the refusal a LinkageError (an Error), the handler's one catch Exception, no 500, SIGTERM 143 · D exit 1 on the token rule, the whole chain"
 
-# "Same clock, from the process's start to its first answer, two ways, six rounds, the first a warm-up, on this Mac." "The
-# binary's middle run: under a tenth of a second, and under a tenth of the jar's." (The jar's own seconds are a reference, judged
-# only through the ratio: they moved from about 1.3 s to about 1.6 s between two runs of this script, on the same Mac.)
-x ladder '^  every run: a 200, then exit 0 after POST /shutdown: 12 of 12$'
-x ladder '^the 5 counted rounds - each way'
-x ladder '^  2 the binary: its median over 0\.01 s and under 0\.1 s: yes$'
-x ladder "^  2 against 1: the binary's median under a tenth of the jar's: yes\$"
-echo "  ladder: 12 of 12 served · the binary's median 0.01-0.1 s, under a tenth of the jar's"
+# "Same clock: from the process's start to its first answer. Three ways, six rounds, the first a warm-up, on this Mac." "The
+# binary's middle run: under a tenth of a second, and under a tenth of the jar's." "its warmed-up start under a tenth of a second
+# here" (the recap). On screen: under a fifth of the AOT lesson's fastest way. (The JVM ways' own seconds are references, judged
+# only through the ratios: the jar's moved from about 1.3 s to about 2.1 s between runs of these scripts, on the same Mac.)
+x ladder '^  every run: a 200, then exit 0 after POST /shutdown: 18 of 18$'
+x ladder "^  exit 0 · the JDK's own line: AOTCache creation is complete: tiffinbox-web/target/tiffinbox\.aot \[its size in bytes\]\$"
+x ladder "^  each way's runs counted: 5 of 6 - round 1 left out\$"
+x ladder '^  3 the binary: its median over 0\.01 s and under 0\.1 s: yes$'
+x ladder "^  3 against 1: the binary's median under a tenth of the jar's: yes\$"
+x ladder "^  3 against 2: the binary's median under a fifth of the AOT lesson's fastest way's: yes\$"
+echo "  ladder: 18 of 18 served · the cache trained · 5 of 6 counted · the binary's median 0.01-0.1 s, under a tenth of the jar's, under a fifth of the AOT lesson's fastest way's"
 
 # the exercise's end state: the line exercise/README.md calls "Done" is a line of this capture, after the solution's line - and of
 # SOLUTION.md's measured run
@@ -632,7 +732,7 @@ echo "  exercise: the README as written, then the solution's line -> with the hi
 # the anchor's README states the same numbers
 grep -qF '262 reflection entries before,' after/README.md && grep -qF '263 after' after/README.md || die "after/README.md: the metadata counts"
 grep -qF '`500 {"error":"InvalidDefinitionException"}`' after/README.md || die "after/README.md: B's answer"
-grep -qF '34 distinct names' after/README.md && grep -qF '991 from Jackson 3' after/README.md || die "after/README.md: the binary's bytes"
-grep -qF 'the binary under a tenth of a second' after/README.md || die "after/README.md: the start"
+grep -qF '34 distinct names' after/README.md && grep -qF '991 from Jackson 3' after/README.md && grep -qF '24 and 884 of them class names' after/README.md || die "after/README.md: the binary's bytes"
+grep -qF "the binary's warmed-up start under a tenth of a second" after/README.md && grep -qF 'under a fifth of the fastest JVM way' after/README.md || die "after/README.md: the start"
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
 echo "c5-unit20: every capture 3/3 and = published; every spoken number asserted; 0 raw demo tokens in every capture"
