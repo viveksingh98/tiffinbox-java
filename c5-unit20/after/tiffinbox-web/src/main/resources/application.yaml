@@ -1,0 +1,44 @@
+# TiffinBox's settings: the four keys application.properties held, one level of nesting per dot.
+tiffinbox:
+  jdbc-url: jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1
+  cooks: 3
+  days: 30
+  port: 18425
+  # The address TiffinBox listens on: this computer only. In a container, set TIFFINBOX_ADDRESS=0.0.0.0 - every
+  # interface of the container - and publish the port on the Mac's 127.0.0.1 alone (docker run -p 127.0.0.1:...).
+  address: 127.0.0.1
+  # The meal types TiffinBox serves. Boot keeps a list as one key per item: meal-types[0], [1], [2].
+  meal-types:
+    - VEG
+    - NON_VEG
+    - VEGAN
+# How Boot composes the rest: a profile group, one more file, and the secrets.
+spring:
+  profiles:
+    group:
+      # --spring.profiles.active=lunch switches on the rush and the audit together.
+      lunch: rush,audit
+  config:
+    import:
+      # A developer's own settings, from the folder TiffinBox starts in. "optional:" - a missing file is no error.
+      # tiffinbox-local.yaml is never committed: .gitignore, beside this project's README.
+      - optional:file:./tiffinbox-local.yaml
+      # The secrets: a config tree, one file per key, in ./secrets/ - tiffinbox.shutdown-token is the file
+      # secrets/tiffinbox/shutdown-token. Never committed either (.gitignore). "optional:" - a missing folder is no
+      # error here, but the record requires the token, so the start still stops, and names the key.
+      - optional:configtree:./secrets/
+  # Boot's Docker Compose support (spring-boot-docker-compose, an optional dependency of tiffinbox-web): off. On a class
+  # path that holds the module - the one Maven lists for tiffinbox-web does; the executable jar does not - it would
+  # otherwise run docker compose up from the folder TiffinBox starts in, and stop the start where that folder holds no
+  # compose.yaml, or where Docker does not answer. The profile "dev" switches it on: application-dev.yaml.
+  docker:
+    compose:
+      enabled: false
+---
+# A second document in the same file, read only while the profile "rush" is active.
+spring:
+  config:
+    activate:
+      on-profile: rush
+tiffinbox:
+  cooks: 6
