@@ -8,7 +8,7 @@ crosses a restart (Course 2's "identity is name plus loader", on TiffinBox's own
 Reload (deprecated), the guards that keep DevTools out of what ships, the one line the native binary needs, and the exit code a
 DevTools run ends with.
 
-**The anchor does not change (brief ⚑7).** `anchor` in this folder is a link to `../c5-unit21/after` — TiffinBox as the Actuator
+**The anchor does not change (brief ⚑7).** `anchor` in this folder is a link to `../c5-unit24/after` — TiffinBox as the logging
 lesson left it. Every capture copies it under `.harness/` and changes the copy: one line in the web module's POM,
 
 ```
@@ -16,8 +16,9 @@ lesson left it. Every capture copies it under `.harness/` and changes the copy: 
 ```
 
 and, for the native binary, one `<exclusion>` of `org.springframework.boot:spring-boot-devtools` in the native plugin. Nothing
-under `anchor/` is built or written. The brief re-points this unit to the logging lesson's tree before RED: the link is the one
-place that changes (then the five tree-dependent numbers at the top of `receipts.sh`'s checks, and this README's text).
+under `anchor/` is built or written. This unit was first built on `../c5-unit21/after` (the Actuator lesson's tree) and re-pointed
+here before RED, as the brief planned: the link changed, then the tree-dependent expectations at the top of `receipts.sh`'s checks,
+and every capture was made again (see "The re-point", at the end).
 
 ```
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
@@ -26,9 +27,9 @@ export GRAALVM_HOME=/path/to/a/graalvm-jdk-25      # GraalVM CE 25.3.4.1 for the
 ./receipts.sh     # 11 captures, 3 runs each; every spoken number asserted; 0 raw tokens; a published-md5 mismatch stops it
 ```
 
-(`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) It ran for 2,129 s under `bash receipts.sh` (Homebrew bash 5.3.9) and 2,305 s under `./receipts.sh` (/bin/bash 3.2.57) — the two runs of record, 2026-10-07, each EXIT 0 with all eleven captures = published — on a Mac that other jobs kept busy (one-minute load averages 65-194 as the timed captures began; native builds beside them); its six native builds, 192-269 s each (1,253 s and 1,402 s in all), are about three fifths of it. The hashes in `receipts.md5` were made by the two runs before those: nine (`added` to `exits`) under bash 5.3, 3/3, `native` and `exercise` under /bin/bash 3.2, 3/3; both runs of record matched all eleven.
+(`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) It ran for 2,673 s under `./receipts.sh` (/bin/bash 3.2.57) and 2,563 s under `bash receipts.sh` (Homebrew bash 5.3.9) — the two runs of record on the logging lesson's tree, 2026-10-07, each EXIT 0 with all eleven captures = published — on a Mac that another unit's native builds kept busy (one-minute load averages 17-27 as the timed captures began, past 150 during the native builds); its six native builds, 188-314 s each (1,534 s and 1,512 s in all), are over half of it. The hashes in `receipts.md5` were made by the run before those, under bash 5.3, 3/3 each (1,586 s): six captures moved with the tree and five did not — those five hashes are the ones the Actuator lesson's tree published ("The re-point", at the end). On that tree the two runs of record took 2,129 s and 2,305 s.
 It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first, so you can see which one moved).
-Published hashes: added `e6e17c0e25993a642937252392040a30` · loaders `ab81385e35c5ec1c182be20671b095ac` · restart `a5b72f622c926ca6facfe5845f3a79fa` · timing `0fc985516b6985f73c043bf65580c1c2` · identity `cdf54a312467ecbf166f7de80d000ab5` · which `a15cbcacdf0960f6809cede439c4d389` · livereload `53d74d02048a07c451ed4308e4ac5978` · ship `0f4fae6fc74cb53951c29671a199e98b` · exits `f3f160fb64a80c16a967b0e4eba21a24` · native `e2a620fd509723b89411d0551bd8d10e` · exercise `9b48c795e9543274eb9d10c4463049c1`.
+Published hashes: added `aa2e2929f1165c758fbbbf8d6352ef4a` · loaders `31932a8561380caf709ac37530b90633` · restart `a5b72f622c926ca6facfe5845f3a79fa` · timing `0fc985516b6985f73c043bf65580c1c2` · identity `cdf54a312467ecbf166f7de80d000ab5` · which `02b1b496da15b94e587bd66b7048824d` · livereload `245eaab2d150323fc61850b42a312824` · ship `16eb4a4674231f5cf8aed0a8143bbfd5` · exits `96656dea659642d4ef7f9456e66adad2` · native `e2a620fd509723b89411d0551bd8d10e` · exercise `9b48c795e9543274eb9d10c4463049c1`.
 
 ## The GraalVM
 
@@ -44,9 +45,10 @@ exercise's, each checked against `receipts.md5`, then stops where the native bui
 ## The repository, and what was downloaded
 
 Every build runs `mvn -o` against this unit's own `.m2-demo` (`$M2` on screen): `../c5-unit21/.m2-demo` copied **less
-`com/tiffinbox/`** (every native build installs its own two modules) — 5,418 files, DevTools 4.1.1 among them (Section 4's seed,
-`spring-boot/_research/m2-seed-s4/`, brought it). **Nothing was downloaded** for this unit: every build said `offline: yes`, the
-native-profile ones included.
+`com/tiffinbox/`** (every native build installs its own two modules) — 5,418 files, DevTools 4.1.1 and Micrometer's Prometheus
+registry among them (Section 4's seed, `spring-boot/_research/m2-seed-s4/`, brought both). It is file for file
+`../c5-unit24/.m2-demo` less `com/tiffinbox/`, so the re-point needed no new artifact. **Nothing was downloaded** for this unit: every
+build said `offline: yes`, the native-profile ones included.
 
 **One way out is not Maven's.** GraalVM's native plugin reads its metadata repository (a zip,
 `graalvm-reachability-metadata-1.1.8-repository.zip`, 3,362,517 bytes, from Maven Central) from the Maven repository — and when the
@@ -58,7 +60,7 @@ not in `.m2-demo` goes to Maven Central at once, never offline first; (3) after 
 POM, DevTools 4.1.1, Boot's plugin, the native plugin 1.1.8 and the zip are in `$M2`; (4) every build's log is searched for the
 plugin's own download line — found, the build's line says `offline: no` and the run stops.
 
-**From a clone, sealed (2026-10-07).** The repository was cloned (its HEAD, `f06e43c`, with this unit's files added as the commit adds them, less this README, which records the runs) into an empty folder — no `.m2-demo`, no seed — and `./receipts.sh` run under `env -i`: a `HOME` whose `.mavenrc` points Maven's `user.home` at a settings file that sends every repository to a `file://` copy of Central's files made from `.m2-demo` (4,061 files), and every proxy setting, the shell's and Java's, pointed at a port that refuses. **Without `GRAALVM_HOME`:** exit 1 after 706 s — the first build said `offline: no` (GraalVM's metadata repository was not in the empty `.m2-demo`) and took 490 files from the copy, the second said `offline: no` too (the dependency plugin) and took 171; 0 files from anywhere else, and no build inside a capture downloaded anything; `.m2-demo` ended with 1,808 files; the ten captures that need no GraalVM = published, the exercise's included; then the stop the script announces. **With `GRAALVM_HOME`** (a fresh clone, sealed the same way): exit 0 after 2,023 s — all eleven captures = published, every spoken number asserted, 0 raw demo tokens; again 490 and 171 files from the copy, 0 from anywhere else, `.m2-demo` 1,808 files at the end: the native builds needed nothing more. An earlier clone run the same day was not sealed — Maven reads `user.home` from the account, not from `$HOME`, so its settings file was never read — and it filled `.m2-demo` from Maven Central itself, 661 files over HTTPS: the same ten captures = published, the same stop (exit 1 after 642 s). That is the path a viewer's first run takes.
+**From a clone, sealed (2026-10-07, on the logging lesson's tree).** The repository was cloned (its HEAD, `8ab95db`, with this unit's files put in as the commit adds them, less this README, which records the runs) into an empty folder — no `.m2-demo` here, in unit 24's or in unit 21's, no seed — and `receipts.sh` run under `env -i`: a `HOME` whose `.mavenrc` points Maven's `user.home` there (Java reads `user.home` from the account, not from `$HOME`) and every Java proxy property at a port that refuses, and whose Maven settings send every repository to a `file://` copy of Central's files made from `.m2-demo` (4,060 files: its own installs, `_remote.repositories`, `*.lastUpdated`, `resolver-status.properties` and `.DS_Store` left out); `http_proxy`, `https_proxy`, their capitals and `ALL_PROXY` at the same refusing port. **Without `GRAALVM_HOME`, `bash receipts.sh` (bash 5.3): exit 1 after 869 s** — the first build said `offline: no` (GraalVM's metadata repository was not in the empty `.m2-demo`) and took 510 files from the copy, the second said `offline: no` too (the dependency plugin) and took 171; 0 transfers from anywhere else, and no build inside a capture downloaded anything; `.m2-demo` ended with 1,861 files; the ten captures that need no GraalVM = published, the exercise's included; then the stop the script announces. **With `GRAALVM_HOME`, `./receipts.sh` (/bin/bash 3.2): exit 0 after 1,433 s** — all eleven captures = published, every spoken number asserted, 0 raw demo tokens; again 510 and 171 files from the copy, 0 from anywhere else, `.m2-demo` 1,861 files at the end: the native builds needed nothing more. `github` appears 0 times in either run's log (in the build logs only as the copy's own `com/github/…` paths and native-image's documentation link). A first try put the anchor's new link in the wrong place (inside the old link's folder, so the clone still pointed at `../c5-unit21/after`): its first capture, `added`, DIFFERED from `receipts.md5` and the run stopped — the published hashes pin the tree. On the Actuator lesson's tree the same two runs took 706 s and 2,023 s (490 and 171 files from the copy, `.m2-demo` 1,808 at the end), and an unsealed one — a `HOME` alone, which Maven does not read — filled `.m2-demo` from Maven Central itself, 661 files over HTTPS: the path a viewer's first run takes.
 
 ## The demo token — fake, and never printed
 
@@ -103,14 +105,16 @@ environment's variables — and the exit trap deletes it again. The exercise mak
    them counted.
 4. **The condition report** (`livereload`, `ship`): its header and the block named, whole, every other line counted.
 5. **jcmd** (`loaders`, `exits`): `VM.classloaders show-classes=true` is read for the loader tree, the classes the restart loader
-   defined, TiffinBox's classes in the application loader and counts of the rest — never its first line (the pid) and never its
-   length (it moves); `Thread.print` for the threads named `main` and `DestroyJavaVM`, counted, and the names of the Java threads that
-   are not daemons — never a stack, a thread number or a pid.
+   defined (**sorted by name**: jcmd lists them in the order they were defined, and on the logging lesson's tree that order moved
+   between runs — two of ActuatorRoutes' lambdas are made by the first request to an endpoint, here a readiness poll that can arrive
+   mid-start, and KitchenMetrics' two when Micrometer binds it), TiffinBox's classes in the application loader and counts of the rest
+   — never its first line (the pid) and never its length (it moves); `Thread.print` for the threads named `main` and `DestroyJavaVM`,
+   counted, and the names of the Java threads that are not daemons — never a stack, a thread number or a pid.
 6. **env's answer** (`added`): the property sources' names in order (the config tree's and `application.yaml`'s by label: their names
    hold absolute paths), the source `devtools`' keys and how many of its values are not `******` — never a value, and never another
    source's keys (environment variables, system properties).
 7. **Maven's and native-image's logs** are read, never printed whole: each build's `offline`/`exit` line; native-image's exit, Maven's
-   result, the stages it printed against the count it announces, its duration against a bound (1 minute or more, under 10 minutes),
+   result, the stages it printed against the count it announces, its duration against a bound (1 minute or more, under 20 minutes),
    how many of native-image's class-path entries (the plugin's `Executing:` line) are DevTools' jar; a binary's bytes are searched for
    the token and for names under `org.springframework.boot.devtools` (counted).
 8. **No duration is captured**: `timing` prints the cold start's median against a floor and the restart's and noticing's medians as
@@ -128,14 +132,14 @@ environment's variables — and the exit trap deletes it again. The exercise mak
    DevTools run, jcmd confirms the first `main` thread has gone (`settled`): DevTools ends it once the restarted context is up, and a stop
    that raced it could change the exit code (the probes saw one 0 in 14 runs; this unit never did).
 
-**Interrupted.** `receipts.sh`'s exit trap stops the process it started in the background (a TiffinBox JVM: DevTools' restarts happen inside it, and Live Reload's server is one of its threads), if one still runs, then `sweep()`s this run's process group for anything of this run — a TiffinBox JVM (a jar, a class-path run), a binary, native-image's driver or its builder JVM (`java @…/vminvocation.args`), the clock, the JVM-rule harness — TERM, then KILL after 5 s; then it deletes env's answer if a run left one, and, after an interrupt only, the capture runs left unfinished (`.r-NAME.1-3`; after a failed check they stay, for the diff the message names); then it drops the lock. Maven, native-image, javap, jcmd and `harness/clock.py` run in the foreground: Ctrl-C reaches them directly. Every command in the trap is guarded, so `set -e` cannot end it early. **Tested 2026-10-07, twice**, with `receipts.sh` as a job of its own process group (job control on, as a terminal's foreground job is) and `SIGINT` sent to the whole group: **(1) while Live Reload listened** — 368 s in, during `livereload`'s run with it on (in the group then: the DevTools JVM, two shells and a `sleep`; 19049 listened on) — **exit 130**; 5 s later 0 processes in the group, and anywhere 0 java, native-image, python3 or bash processes working in this folder; 18425, 8080, 35729 and 19040-19049 free, 19049 included; `.r-lock` gone; no unfinished capture file and no env answer left; **(2) during the native build** — 411 s in (a quiet Mac: the run reached `native` in under seven minutes), 20 s after native-image's builder JVM appeared (in the group then: two shells, Maven's JVM, the native-image driver and its builder) — **exit 130**; the same: nothing left, every port free, the lock gone. Both times the captures made before the interrupt still equalled `receipts.md5`.
+**Interrupted.** `receipts.sh`'s exit trap stops the process it started in the background (a TiffinBox JVM: DevTools' restarts happen inside it, and Live Reload's server is one of its threads), if one still runs, then `sweep()`s this run's process group for anything of this run — a TiffinBox JVM (a jar, a class-path run), a binary, native-image's driver or its builder JVM (`java @…/vminvocation.args`), the clock, the JVM-rule harness — TERM, then KILL after 5 s; then it deletes env's answer if a run left one, and, after an interrupt only, the capture runs left unfinished (`.r-NAME.1-3`; after a failed check they stay, for the diff the message names); then it drops the lock. Maven, native-image, javap, jcmd and `harness/clock.py` run in the foreground: Ctrl-C reaches them directly. Every command in the trap is guarded, so `set -e` cannot end it early. **Tested 2026-10-07 on the logging lesson's tree, twice** (as it was twice on the Actuator lesson's), with `receipts.sh` as a job of its own process group (job control on, as a terminal's foreground job is) and `SIGINT` sent to the whole group: **(1) while Live Reload listened** — 282 s in, during `livereload`'s run with it on (in the group then: the DevTools JVM with Live Reload's flag, two shells and a `sleep`; 19049 listened on) — **exit 130**; 5 s later 0 processes in the group, and anywhere 0 java, native-image, python3 or bash processes working in this folder; 18425, 8080, 35729 and 19040-19049 free, 19049 included; `.r-lock` gone; no unfinished capture file and no env answer left; **(2) during the native build** — 732 s in, 20 s after native-image's builder JVM appeared (in the group then: two shells, Maven's JVM, the native-image driver and its builder) — **exit 130**; the same: nothing left, every port free, the lock gone. Both times the captures made before the interrupt (six, then nine) still equalled `receipts.md5`. A first try at (1) came a moment late — 497 s in, on a loaded Mac, between two of `livereload`'s runs — and ended the same way: exit 130, nothing left.
 
 ## 1 · added — DevTools in a copy
 
 The anchor copied twice — as it is, and with DevTools' line, inserted by the `perl` shown (`diff`: one line added). The anchor's copy
 built the README's plain way, the DevTools copy the way the README builds the class path Maven lists (the Compose lesson's
-`package dependency:build-classpath`). Their jars hold the same 39 jars, and the copy's holds **no entry that names devtools**: an
-optional dependency stays out of the jar. The class path Maven lists for the copy's web module: 47 entries, all jars, DevTools'
+`package dependency:build-classpath`). Their jars hold the same 46 jars, and the copy's holds **no entry that names devtools**: an
+optional dependency stays out of the jar. The class path Maven lists for the copy's web module: 54 entries, all jars, DevTools'
 among them, tiffinbox-core as the reactor's jar; the classes folder the README's `java -cp` line puts in front is not in the file. The
 tree both probes measured, with the same line: **37 entries, all jars** (RE-MEASURE 5, below). Then the README's class-path run,
 without the profile `dev` (it is Docker's), with the README's flag that exposes env (the Actuator lesson's): DevTools' log line,
@@ -143,26 +147,26 @@ TiffinBox's own lines on the thread `restartedMain` — none on `main` — and e
 `application.yaml`, with **seven** keys, every one for a web layer TiffinBox does not have (error pages, templates, static resources:
 Course 6) or for Compose's readiness wait.
 
-`.r-added.out` · md5 `e6e17c0e25993a642937252392040a30` · 3 of 3
+`.r-added.out` · md5 `aa2e2929f1165c758fbbbf8d6352ef4a` · 3 of 3
 
 ```
-the anchor as the Actuator lesson left it, copied twice: .harness/base as it is, .harness/dev with one line more in the web
+the anchor as the logging lesson left it, copied twice: .harness/base as it is, .harness/dev with one line more in the web
 module's POM - DevTools, optional. The copy built as the README builds the class path Maven lists (the Compose lesson's), the
 anchor's copy the README's plain way - both offline:
 $ perl -0pi -e 's|\n  </dependencies>|\n    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-devtools</artifactId><optional>true</optional></dependency>\n  </dependencies>|' .harness/dev/tiffinbox-web/pom.xml
   lines added: 1
 $ diff .harness/base/tiffinbox-web/pom.xml .harness/dev/tiffinbox-web/pom.xml
-  53a54
+  61a62
   >     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-devtools</artifactId><optional>true</optional></dependency>
 $ cd .harness/base && mvn -o -B -Dmaven.repo.local="$M2" -DskipTests clean package
   built the anchor's copy · offline: yes · exit 0
 $ cd .harness/dev && mvn -o -B -Dmaven.repo.local="$M2" -DskipTests clean package dependency:build-classpath -Dmdep.outputFile=target/classpath.txt
   built the copy · offline: yes · exit 0
 the two executable jars:
-  jars under BOOT-INF/lib: 39 and 39 · the same names: yes
+  jars under BOOT-INF/lib: 46 and 46 · the same names: yes
   entries of its jar that name devtools: 0
 the class path Maven lists for the copy's web module - the classes folder the README's java -cp line puts in front is not in it:
-  target/classpath.txt: 47 entries · jars 47 · spring-boot-devtools-4.1.1.jar among them: 1 · tiffinbox-core as: tiffinbox-core/target/tiffinbox-core-1.0.0.jar
+  target/classpath.txt: 54 entries · jars 54 · spring-boot-devtools-4.1.1.jar among them: 1 · tiffinbox-core as: tiffinbox-core/target/tiffinbox-core-1.0.0.jar
 the same line in the tree both Section 4 probes measured (the hints lesson's - before Actuator), copied to .harness/probes:
 $ perl -0pi -e 's|\n  </dependencies>|\n    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-devtools</artifactId><optional>true</optional></dependency>\n  </dependencies>|' .harness/probes/tiffinbox-web/pom.xml
   lines added: 1
@@ -197,13 +201,14 @@ $ $CURLSET 19040 .harness/dev/secrets/tiffinbox/shutdown-token
 
 The same run (no env flag), asked by **jcmd** — the JDK's tool that asks a running JVM — once readiness answered 200:
 `VM.classloaders show-classes=true`. Four loaders: bootstrap, platform, the application's (`"app"`, every jar on the class path) and
-DevTools' **RestartClassLoader** under it, which defined 10 classes — TiffinBox's web module (TiffinBoxServer, TiffinBoxApp,
-Route, ActuatorRoutes), one proxy class the JDK generated, and the lambdas of TiffinBoxServer and ActuatorRoutes. The
+DevTools' **RestartClassLoader** under it, which defined 14 classes (listed by name) — every class of TiffinBox's web module
+(ActuatorRoutes, KitchenHealthIndicator, KitchenMetrics, Route, TiffinBoxApp, TiffinBoxServer), the lambdas of ActuatorRoutes,
+KitchenMetrics and TiffinBoxServer, and one proxy class the JDK generated. The
 application loader defined TiffinBoxServer and TiffinBoxApp too — the first `main` loaded both before DevTools restarted it on
 `restartedMain` — every tiffinbox-core class that had loaded by then (10), and DevTools' own classes; RestartClassLoader none
 of either.
 
-`.r-loaders.out` · md5 `ab81385e35c5ec1c182be20671b095ac` · 3 of 3
+`.r-loaders.out` · md5 `31932a8561380caf709ac37530b90633` · 3 of 3
 
 ```
 the copy's class-path run again, port 19041; once readiness answers 200, jcmd - the JDK's tool that asks a running JVM - lists
@@ -218,17 +223,21 @@ $ jcmd $pid VM.classloaders show-classes=true
        +-- "platform", jdk.internal.loader.ClassLoaders$PlatformClassLoader
           +-- "app", jdk.internal.loader.ClassLoaders$AppClassLoader
              +-- org.springframework.boot.devtools.restart.classloader.RestartClassLoader
-  the classes RestartClassLoader defined: 10 -
-    com.tiffinbox.web.TiffinBoxServer
-    com.tiffinbox.web.TiffinBoxApp
-    com.tiffinbox.web.Route
+  the classes RestartClassLoader defined, sorted by name: 14 -
     com.tiffinbox.web.ActuatorRoutes
+    com.tiffinbox.web.ActuatorRoutes$$Lambda
+    com.tiffinbox.web.ActuatorRoutes$$Lambda
+    com.tiffinbox.web.ActuatorRoutes$$Lambda
+    com.tiffinbox.web.KitchenHealthIndicator
+    com.tiffinbox.web.KitchenMetrics
+    com.tiffinbox.web.KitchenMetrics$$Lambda
+    com.tiffinbox.web.KitchenMetrics$$Lambda
+    com.tiffinbox.web.Route
+    com.tiffinbox.web.TiffinBoxApp
+    com.tiffinbox.web.TiffinBoxServer
+    com.tiffinbox.web.TiffinBoxServer$$Lambda
+    com.tiffinbox.web.TiffinBoxServer$$Lambda
     jdk.proxy<n>.$Proxy<n>
-    com.tiffinbox.web.ActuatorRoutes$$Lambda
-    com.tiffinbox.web.TiffinBoxServer$$Lambda
-    com.tiffinbox.web.TiffinBoxServer$$Lambda
-    com.tiffinbox.web.ActuatorRoutes$$Lambda
-    com.tiffinbox.web.ActuatorRoutes$$Lambda
   com.tiffinbox.web classes the application loader defined: 2 - com.tiffinbox.web.TiffinBoxApp com.tiffinbox.web.TiffinBoxServer
   tiffinbox-core classes (com.tiffinbox, outside .web) - defined by the application loader: 10 · by RestartClassLoader: 0
   DevTools' own classes (org.springframework.boot.devtools) - defined by the application loader: some · by RestartClassLoader: 0
@@ -302,7 +311,7 @@ against the restart (the seconds go to the terminal, never to this capture):
 ```
 
 
-**The seconds, on the terminal (this Mac, Apple M1, 2026-10-07):** over the six timed capture runs of the two runs of record (one-minute load averages 65-194): cold starts 2.24-4.75 s (medians 2.49-4.54 s), restarts 0.14-0.55 s (medians 0.24-0.32 s), noticing 1.07-1.41 s (medians 1.32-1.38 s) — the restart's median 0.070-0.094 of the cold start's. On a quiet Mac — the run of the second interrupt test, load averages 5-6, whose `timing` matched `receipts.md5` — cold starts 1.13-1.20 s (medians 1.15-1.19 s), restarts 0.11-0.17 s (medians 0.13-0.15 s), the ratio 0.116-0.128. Noticing stays near 1.0-1.4 s at any load: it is DevTools' own schedule (a look every second, then 400 ms of quiet), not work.
+**The seconds, on the terminal (this Mac, Apple M1, 2026-10-07):** over the six timed capture runs of the two runs of record (one-minute load averages 17-27, another unit's native builds beside them): cold starts 1.41-11.24 s (medians 1.58-6.11 s), restarts 0.12-1.60 s (medians 0.23-0.95 s), noticing 0.98-1.93 s (medians 1.34-1.39 s) — the restart's median 0.072-0.170 of the cold start's. On a quieter Mac — the publishing run's three, load 6-8 — cold starts 1.15-1.21 s (medians 1.17-1.19 s), restarts 0.14-0.18 s (medians 0.16 s), the ratio 0.135-0.139. Noticing's median stays near 1.4 s at any load (1.34-1.41 s in all nine): it is DevTools' own schedule (a look every second, then 400 ms of quiet), not work. (On the Actuator lesson's tree: the ratio 0.070-0.094 at load 65-194, 0.116-0.128 at load 5-6.)
 
 ## 5 · identity — the break: where the holder of an old object lives (A/B/A′)
 
@@ -367,7 +376,7 @@ of code below moves down one, so the class file changes (a comment after the las
 time, measured while writing this unit) — and the module is rebuilt alone, as the README's table builds it: the jar's md5 changed, and
 DevTools restarted nothing. Then one web class touched: one restart, one change, OrderQueue still from the application loader.
 
-`.r-which.out` · md5 `a15cbcacdf0960f6809cede439c4d389` · 3 of 3
+`.r-which.out` · md5 `02b1b496da15b94e587bd66b7048824d` · 3 of 3
 
 ```
 what restarts. A copy of the copy's kind (.harness/which: the anchor and the same line), built the same way; tiffinbox-core
@@ -376,7 +385,7 @@ $ perl -0pi -e 's|\n  </dependencies>|\n    <dependency><groupId>org.springframe
   lines added: 1
 $ cd .harness/which && mvn -o -B -Dmaven.repo.local="$M2" -DskipTests clean package dependency:build-classpath -Dmdep.outputFile=target/classpath.txt
   built the copy · offline: yes · exit 0
-  target/classpath.txt: 47 entries · jars 47 · spring-boot-devtools-4.1.1.jar among them: 1 · tiffinbox-core as: tiffinbox-core/target/tiffinbox-core-1.0.0.jar
+  target/classpath.txt: 54 entries · jars 54 · spring-boot-devtools-4.1.1.jar among them: 1 · tiffinbox-core as: tiffinbox-core/target/tiffinbox-core-1.0.0.jar
 its class-path run with the harness's Loaders (harness/probe/Loaders.java, from .harness/hc), port 19045:
 $ cd .harness/which && java -cp "../hc:tiffinbox-web/target/classes:$(cat tiffinbox-web/target/classpath.txt)" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19045 --spring.main.sources=probe.Loaders
   listens on: 127.0.0.1:19045
@@ -405,7 +414,7 @@ and nothing listens on 19049 or 35729. On, for one run, on 19049: `LiveReload se
 **every interface** (`*:19049`) beside TiffinBox's `127.0.0.1:19046`; it serves `livereload.js` — byte for byte DevTools' own file —
 and Boot's log says nothing about the deprecation. That run's POST /shutdown stops both.
 
-`.r-livereload.out` · md5 `53d74d02048a07c451ed4308e4ac5978` · 3 of 3
+`.r-livereload.out` · md5 `245eaab2d150323fc61850b42a312824` · 3 of 3
 
 ```
 Live Reload in DevTools' own metadata (META-INF/spring-configuration-metadata.json in spring-boot-devtools-4.1.1.jar):
@@ -416,11 +425,11 @@ the rest of the report counted:
 $ cd .harness/dev && java -cp "tiffinbox-web/target/classes:$(cat tiffinbox-web/target/classpath.txt)" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19046 --debug
   listens on: 127.0.0.1:19046
     CONDITIONS EVALUATION REPORT
-    … 432 lines not shown …
+    … 446 lines not shown …
        LocalDevToolsAutoConfiguration.LiveReloadConfiguration:
           Did not match:
              - @ConditionalOnBooleanProperty (spring.devtools.livereload.enabled=true) did not find property 'spring.devtools.livereload.enabled' (OnPropertyCondition)
-    … 169 lines not shown …
+    … 175 lines not shown …
   19049 listened on: 0 · 35729 (its default): 0
 $ $CURLSET 19046 .harness/dev/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
@@ -449,11 +458,11 @@ without URLs` — and the run ends with exit 0; **a default, not a lock**: `-Dsp
 (`Restart enabled irrespective of application packaging due to System property …`), TiffinBox starts on `restartedMain`, and the run
 exits 1. **C (labelled)** Boot's plugin told `includeOptional` and `excludeDevtools=false` (in its configuration — `includeOptional`
 has no property): one jar more, DevTools'. **The native profile's build** (the README's AOT line) on the anchor and on the copy: Spring's
-AOT step writes the same 144 files, byte for byte, none naming DevTools — Boot's process-aot goal filters DevTools out by name
+AOT step writes the same 149 files, byte for byte, none naming DevTools — Boot's process-aot goal filters DevTools out by name
 (`DEVTOOLS_EXCLUDE_FILTER`, read with javap). The copy's native-profile jar does hold DevTools entries: three — GraalVM's metadata file
 for DevTools and its two folders, which the native plugin's metadata step copies for every dependency Maven lists.
 
-`.r-ship.out` · md5 `0f4fae6fc74cb53951c29671a199e98b` · 3 of 3
+`.r-ship.out` · md5 `16eb4a4674231f5cf8aed0a8143bbfd5` · 3 of 3
 
 ```
 why it must never ship - three guards. 1 optional: the copy (capture added's):
@@ -476,11 +485,11 @@ its jar run as the README runs it, with --debug, port 19047:
 $ cd .harness/ship-forced && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19047 --debug
   listens on: 127.0.0.1:19047
     CONDITIONS EVALUATION REPORT
-    … 415 lines not shown …
+    … 429 lines not shown …
        LocalDevToolsAutoConfiguration:
           Did not match:
              - Initialized Restarter Condition initialized without URLs (OnInitializedRestarterCondition)
-    … 169 lines not shown …
+    … 175 lines not shown …
   lines on restartedMain: 0 · DevTools' 'Devtools property defaults active!': 0
 $ $CURLSET 19047 .harness/ship-forced/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
@@ -502,7 +511,7 @@ $ perl -0pi -e 's|\n        </configuration>|\n          <includeOptional>true</
   lines added: 1
 $ cd .harness/ship-opt && mvn -o -B -Dmaven.repo.local="$M2" -DskipTests clean package
   built C · offline: yes · exit 0
-  jars under BOOT-INF/lib against the anchor's: 40 and 39 · only in C's: spring-boot-devtools-4.1.1.jar · only in the anchor's: 0
+  jars under BOOT-INF/lib against the anchor's: 47 and 46 · only in C's: spring-boot-devtools-4.1.1.jar · only in the anchor's: 0
 the native profile's build - the README's AOT line, Spring's AOT step on the plain JDK - on the copy (.harness/aot-dev) and on
 the anchor (.harness/aot-base), offline:
 $ perl -0pi -e 's|\n  </dependencies>|\n    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-devtools</artifactId><optional>true</optional></dependency>\n  </dependencies>|' .harness/aot-dev/tiffinbox-web/pom.xml
@@ -512,7 +521,7 @@ $ cd .harness/aot-base && mvn -o -B -Dmaven.repo.local="$M2" -Pnative -DskipTest
 $ cd .harness/aot-dev && mvn -o -B -Dmaven.repo.local="$M2" -Pnative -DskipTests clean package
   built the copy · offline: yes · exit 0
 $ diff -rq .harness/aot-base/tiffinbox-web/target/spring-aot/main .harness/aot-dev/tiffinbox-web/target/spring-aot/main
-  files Spring's AOT step wrote: 144 and 144 · files that differ, or are in one only: 0 · naming devtools: 0
+  files Spring's AOT step wrote: 149 and 149 · files that differ, or are in one only: 0 · naming devtools: 0
 $ javap -c -p -cp "$M2/org/springframework/boot/spring-boot-maven-plugin/4.1.1/spring-boot-maven-plugin-4.1.1.jar" org.springframework.boot.maven.ProcessAotMojo
 $ javap -c -p -constants -cp "$M2/org/springframework/boot/spring-boot-maven-plugin/4.1.1/spring-boot-maven-plugin-4.1.1.jar" org.springframework.boot.maven.AbstractDependencyFilterMojo
   Boot's process-aot goal (ProcessAotMojo) reads DEVTOOLS_EXCLUDE_FILTER: 1 time(s) · the filter (AbstractDependencyFilterMojo, its static block): org.springframework.boot spring-boot-devtools
@@ -535,7 +544,7 @@ rule, nothing of Spring (`harness/probe/MainEnds.java`): a main thread that hide
 a daemon keeps the JVM up, ends the process with **1**; one that returns, with 0. Nothing is printed either way. So the brief's S4.21
 ("cause unmeasured") is measured here: it is how DevTools ends the first `main`, and never TiffinBox's failure.
 
-`.r-exits.out` · md5 `f3f160fb64a80c16a967b0e4eba21a24` · 3 of 3
+`.r-exits.out` · md5 `96656dea659642d4ef7f9456e66adad2` · 3 of 3
 
 ```
 how the copy's class-path run ends after a clean POST /shutdown - A the restart on (DevTools' default) · B off · A' = A ·
@@ -565,7 +574,7 @@ $ $CURLSET 19048 .harness/dev/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 1 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
 $ cd .harness/dev && tr ':' '\n' < tiffinbox-web/target/classpath.txt | grep -v '/spring-boot-devtools-' | paste -sd: - > tiffinbox-web/target/classpath-nodevtools.txt
-  entries: 47 and 46
+  entries: 54 and 53
 C - without DevTools' jar:
 $ cd .harness/dev && java -cp "tiffinbox-web/target/classes:$(cat tiffinbox-web/target/classpath-nodevtools.txt)" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19048
   listens on: 127.0.0.1:19048
@@ -688,8 +697,8 @@ measured answer, run exactly as written in a clean `env -i` shell, is `exercise/
 
 | # | What | 10-06 probe | 10-07 probe | This unit (receipts, 2026-10-07) |
 |---|---|---|---|---|
-| 4 | DevTools' restart against a cold start | about a tenth (0.09-0.14 s vs 0.95-0.99 s) | under a third (0.15-0.48 s vs 1.21-2.63 s, loaded) | **under a quarter, measured in the same runs** (the restart from the closed port to the first 200; medians of 15 restarts and 5 cold starts per capture run): 0.070-0.094 in the six timed capture runs of the two runs of record (load 65-194); 0.116-0.128 on a quiet Mac (load 5-6): about a tenth, as the 10-06 probe said — a heavy load slows the cold start more than the restart |
-| 5 | The DevTools run's class path | 37 jars | 36 entries | **The probes' tree, the README's line: 37 entries, all jars** (tiffinbox-core as the reactor's jar; the classes folder in front is not in the file) — the 10-06 count. With `compile` in place of `package`, the file still holds 37 entries, but tiffinbox-core comes as its classes folder: 36 jars (measured while writing this unit, not captured) — the likeliest source of the 10-07 count. **This tree (with Actuator): 47, all jars.** |
+| 4 | DevTools' restart against a cold start | about a tenth (0.09-0.14 s vs 0.95-0.99 s) | under a third (0.15-0.48 s vs 1.21-2.63 s, loaded) | **under a quarter, measured in the same runs** (the restart from the closed port to the first 200; medians of 15 restarts and 5 cold starts per capture run): 0.072-0.170 in the six timed capture runs of the two runs of record on the logging lesson's tree (load 17-27), 0.135-0.139 on a quieter Mac (load 6-8); on the Actuator lesson's tree 0.070-0.094 (load 65-194) and 0.116-0.128 (load 5-6) — a fourteenth to a sixth of a cold start, never a quarter; under load the ratio spreads both ways |
+| 5 | The DevTools run's class path | 37 jars | 36 entries | **The probes' tree, the README's line: 37 entries, all jars** (tiffinbox-core as the reactor's jar; the classes folder in front is not in the file) — the 10-06 count. With `compile` in place of `package`, the file still holds 37 entries, but tiffinbox-core comes as its classes folder: 36 jars (measured while writing this unit, not captured) — the likeliest source of the 10-07 count. **This tree (the logging lesson's: Actuator, and Micrometer's Prometheus registry): 54, all jars** (the Actuator lesson's tree, before the re-point: 47). |
 | — | Break A (the holder in a folder) | not run | not run | **measured** (`identity` A, A′): no old object kept, no cast |
 | — | The restart on a core folder | — | — | **measured** (the exercise): OrderQueue in the restart loader from the first start; one touch, one restart |
 
@@ -704,8 +713,10 @@ measured answer, run exactly as written in a clean `env -i` shell, is `exercise/
   that goal has no `exclusions` parameter (its descriptor), so neither the native plugin's `<exclusion>` nor Boot's `<exclude>` removes
   it (both measured while writing this unit). The anchor's own native-profile jar already carries Jackson 3's metadata files the same
   way. The plain jar holds no DevTools entry.
-- **RestartClassLoader holds 10 classes on this tree, not 6**, and the application loader holds TiffinBoxApp beside TiffinBoxServer
-  (the probe named only the server): the first `main` names both. ActuatorRoutes and its handler's lambdas joined the web module.
+- **RestartClassLoader holds 14 classes on this tree, not 6**, and the application loader holds TiffinBoxApp beside TiffinBoxServer
+  (the probe named only the server): the first `main` names both. ActuatorRoutes (the Actuator lesson), KitchenHealthIndicator (the
+  health lesson) and KitchenMetrics (the metrics lesson) joined the web module, with their lambdas (10 classes on the Actuator lesson's
+  tree, before the re-point).
 - **`includeOptional` brings DevTools alone on this tree** — the probe saw Jackson 3.1.5 come in and the Compose module stay out; the
   anchor's three Boot-plugin excludes (the Actuator lesson's) now keep all three out of the jar too.
 - **A change touched too early is missed.** TiffinBox answers mid-refresh; a class file touched at its first answer, before DevTools'
@@ -714,13 +725,39 @@ measured answer, run exactly as written in a clean `env -i` shell, is `exercise/
 - **Rebuilding the core module while TiffinBox runs restarts nothing** (`which`); whether the restart that follows sees the new jar's
   classes is not measured here — OrderQueue's loader is `app` before and after, and no response depends on the comment line.
 
-## For the re-point to `../c5-unit24/after`, and for RED
+## The re-point to `../c5-unit24/after` (2026-10-07), and for RED
 
-- Re-point: `ln -sfn ../c5-unit24/after anchor`, then run `./receipts.sh` (and `bash receipts.sh`); the captures will differ where the
-  tree does — the jars, the class path, RestartClassLoader's classes (units 22-24 add classes to the web module), tiffinbox-core's
-  loaded classes, Spring's AOT file count, every `diff` line number — so update `E_LIBS`, `E_CP`, `E_RCL`, `E_CORE` and `E_AOT` at the top of
-  the checks from the new captures, copy the new md5s into `receipts.md5`, and re-run 3/3 under both shells; then the builder
-  (`spring-boot/_builders/s525.py`, which derives every spoken number from the captures) and the gate. Also check that the anchor's
-  README still gives the 12 lines and the table row (`readme()`), and that its web POM still ends its dependencies with
-  `  </dependencies>` and its native plugin's exclusions with `          </exclusions>` (the `perl` lines' anchors).
+This unit was built on `../c5-unit21/after`, the Actuator lesson's tree (commit `9077840`), while the health, metrics and logging
+lessons were being written, and re-pointed before RED to the tree a viewer has when this lesson plays: `../c5-unit24/after`, the
+logging lesson's (the brief's "Code and anchor"). Between the two trees, the web module gained `KitchenHealthIndicator` (health),
+`KitchenMetrics` and Micrometer's Prometheus registry (metrics); `TiffinBoxServer` a timer and a DEBUG line per answer (metrics,
+logging); `ActuatorRoutes` one branch, for a scrape's bytes; and `application.yaml` a readiness group, `prometheus` in the exposure
+list and the log group `kitchen`. tiffinbox-core did not change. TiffinBoxServer's new DEBUG line stays silent in every capture: no run here sets a level. Checked on the DevTools copy after the runs of record (not captured): the seven answered, 0 DEBUG lines; with the logging lesson's `--logging.level.kitchen=debug`, 12 — Boot's `Running with Spring Boot` line, TiffinBox's 5 route lines at start, and 6 answers (`/nowhere` is the JDK server's own 404, which TiffinBox's handler never sees).
+
+| capture | on `../c5-unit21/after` | on `../c5-unit24/after` | what moved |
+|---|---|---|---|
+| `added` | `e6e17c0e25993a642937252392040a30` | `aa2e2929f1165c758fbbbf8d6352ef4a` | its first line names the logging lesson; `diff`'s hunk `53a54` → `61a62` (the web POM has eight lines more above DevTools' line: Prometheus' registry and its comment); jars under `BOOT-INF/lib` 39 and 39 → 46 and 46; the class path Maven lists 47 → 54 entries |
+| `loaders` | `ab81385e35c5ec1c182be20671b095ac` | `31932a8561380caf709ac37530b90633` | RestartClassLoader's classes 10 → 14 — KitchenHealthIndicator, KitchenMetrics and KitchenMetrics' two lambdas — and the list sorted by name |
+| `restart` | `a5b72f622c926ca6facfe5845f3a79fa` | `a5b72f622c926ca6facfe5845f3a79fa` | nothing: the same capture, byte for byte |
+| `timing` | `0fc985516b6985f73c043bf65580c1c2` | `0fc985516b6985f73c043bf65580c1c2` | nothing: the same capture, byte for byte |
+| `identity` | `cdf54a312467ecbf166f7de80d000ab5` | `cdf54a312467ecbf166f7de80d000ab5` | nothing: the same capture, byte for byte |
+| `which` | `a15cbcacdf0960f6809cede439c4d389` | `02b1b496da15b94e587bd66b7048824d` | the class path Maven lists 47 → 54 entries |
+| `livereload` | `53d74d02048a07c451ed4308e4ac5978` | `245eaab2d150323fc61850b42a312824` | the condition report's lines not shown: 432 and 169 → 446 and 175 |
+| `ship` | `0f4fae6fc74cb53951c29671a199e98b` | `16eb4a4674231f5cf8aed0a8143bbfd5` | the report's lines not shown, 415 and 169 → 429 and 175; C's jars against the anchor's 40 and 39 → 47 and 46; the files Spring's AOT step wrote 144 → 149 |
+| `exits` | `f3f160fb64a80c16a967b0e4eba21a24` | `96656dea659642d4ef7f9456e66adad2` | the class path's entries with and without DevTools' jar: 47 and 46 → 54 and 53 |
+| `native` | `e2a620fd509723b89411d0551bd8d10e` | `e2a620fd509723b89411d0551bd8d10e` | nothing: the same capture, byte for byte |
+| `exercise` | `9b48c795e9543274eb9d10c4463049c1` | `9b48c795e9543274eb9d10c4463049c1` | nothing: the same capture, byte for byte |
+
+- **The checks' tree-dependent expectations** (the top of `receipts.sh`'s checks): `E_LIBS` 39 → 46, `E_CP` 47 → 54, `E_RCL` 10 → 14,
+  `E_CORE` 10 → 10, `E_AOT` 144 → 149 — and a sixth, which had been hard-coded inside the `loaders` checks: the web module's classes in
+  RestartClassLoader, by name (four on the Actuator lesson's tree, six here), now `E_WEB`. The builder reads every spoken number off the
+  captures; two moved: "forty-seven jars" → "fifty-four jars", "ten classes of the web module" → "fourteen classes" (673 spoken
+  words, as before).
+- **`loaders` lists the restart loader's classes sorted by name** (Masks, 5): on this tree the order jcmd lists them in moved from one
+  run to the next (a first pass's and the first publishing run's), so a capture that kept jcmd's order could not stay the same.
+- **Unchanged by the tree:** the 11 lines `readme()` reads from the anchor's README, and its table row (the script's own message said
+  12 lines; corrected); the `perl` lines' anchors in the anchor's web POM — `  </dependencies>` once, `          </exclusions>` once, and
+  Boot's plugin's `        </configuration>`, the first of the three.
+- **For RED:** whether a level set through the `loggers` endpoint (the logging lesson's, exposed by a flag) survives a DevTools restart
+  is not measured here — it would need a capture of its own and words this unit does not have.
 - Ports used: 19040-19049 only; nothing of this unit listens after it ends (Interrupted).

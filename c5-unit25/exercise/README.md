@@ -6,7 +6,7 @@ The video changed a class of TiffinBox's web module and watched DevTools restart
 and watched nothing happen: Maven lists tiffinbox-core as a jar, and DevTools restarts only what sits in folders. Now hand DevTools
 tiffinbox-core as a folder: which class loader defines OrderQueue then, and what does a change to OrderQueue's class file do?
 
-Run everything from `c5-unit25/`. The commands below copy TiffinBox — `anchor/`, this folder's link to the anchor as the Actuator lesson left
+Run everything from `c5-unit25/`. The commands below copy TiffinBox — `anchor/`, this folder's link to the anchor as the logging lesson left
 it — to `.harness/mine` (git-ignored; `receipts.sh` wipes `.harness/` when it runs), add DevTools to its web module's POM as an
 optional dependency (the one line of the video), build it the way the anchor's README builds the class path Maven lists — offline,
 against this unit's own repository `.m2-demo` — compile the course's harness `harness/probe/Loaders.java` into `.harness/mine-hc`

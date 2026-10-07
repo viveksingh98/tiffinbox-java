@@ -5,7 +5,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # capture that needs no GraalVM - the JVM's, and the exercise's - filling .m2-demo on the way, then stops before the native build.
 # Course 5 · DevTools, Restart and Live Reload - this unit's receipts. DevTools restarts TiffinBox inside the same JVM when a class
 # file changes: a new class loader for what sits in folders, a new context, the same process. This unit changes NOTHING in the
-# anchor (brief ⚑7): DevTools lives in copies under .harness/, each one the anchor as the Actuator lesson left it plus one line in
+# anchor (brief ⚑7): DevTools lives in copies under .harness/, each one the anchor as the logging lesson left it plus one line in
 # its web module's POM - spring-boot-devtools, optional. Eleven captures, each run three times and hashed; cap() DIES when a hash
 # differs from receipts.md5; every number the video says is asserted at the bottom by a check that can fail; the demo token is
 # masked (gsub), and the last checks count 0 raw copies of it in every capture, every file this unit ships, and both binaries.
@@ -32,9 +32,9 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #   native     two copies built natively (the README's two Maven lines) - without and with one exclusion in the native plugin - and
 #              their binaries run
 #   exercise   exercise/README.md's commands and exercise/solution/SOLUTION.md's, read from the files and run as written
-# "The anchor" is anchor/, a link in this folder to ../c5-unit21/after (TiffinBox as the Actuator lesson left it; brief: built
-# against it first, re-pointed to the logging lesson's tree before RED - the link is the one place that changes), read and COPIED
-# under .harness/ - never built in place; this script never writes into another unit's folder. ../c5-unit20/after (the tree both Section 4 probes measured) is read once, for the class-path count the probes
+# "The anchor" is anchor/, a link in this folder to ../c5-unit24/after (TiffinBox as the logging lesson left it; brief: built
+# against ../c5-unit21/after first, the Actuator lesson's tree, then re-pointed here before RED - the link was the one place that
+# changed, then the tree-dependent expectations at the top of the checks), read and COPIED under .harness/ - never built in place; this script never writes into another unit's folder. ../c5-unit20/after (the tree both Section 4 probes measured) is read once, for the class-path count the probes
 # disagreed on. Every run of TiffinBox starts in a folder under .harness/ that holds a config tree with the demo token (secrets/),
 # as the anchor's README asks. Commands are printed exactly as they run: each goes through eval. "$CURLSET" is the comparison set
 # since the secrets lesson (../c5-unit11/curlset.sh: the seven requests, POST /shutdown with the token's header read from the file).
@@ -180,7 +180,7 @@ for c in "$(off .harness/x "$R_INSTALL" install)" "$(off .harness/x "$R_CPB" pac
 [ "$(off .harness/x "$R_CORE" package)" = 'cd .harness/x && mvn -o -B -Dmaven.repo.local="$M2" -DskipTests clean package -pl tiffinbox-core' ] || die "the core build line"
 [ "$(at .harness/x 19040 "$FR")" = 'cd .harness/x && java -cp "tiffinbox-web/target/classes:$(cat tiffinbox-web/target/classpath.txt)" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19040' ] || die "the DevTools run's line"
 [ "$(front "$(at .harness/x 19044 "$FR")" ../hc)" = 'cd .harness/x && java -cp "../hc:tiffinbox-web/target/classes:$(cat tiffinbox-web/target/classpath.txt)" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19044' ] || die "the harness's class path"
-echo "  the commands: the anchor's README gives all 12 lines and the table row this script runs or derives from"
+echo "  the commands: the anchor's README gives all 11 lines and the table row this script runs or derives from"
 
 # ---- build: two builds before the captures - they fill .m2-demo; then the harness ---------------------------------------------
 rm -rf .harness; mkdir -p .harness
@@ -344,7 +344,7 @@ classpath() { local f=$1/tiffinbox-web/target/classpath.txt
 
 # ---- added: DevTools in a copy ----------------------------------------------------------------------------------------------
 added() {
-  echo "the anchor as the Actuator lesson left it, copied twice: .harness/base as it is, .harness/dev with one line more in the web"
+  echo "the anchor as the logging lesson left it, copied twice: .harness/base as it is, .harness/dev with one line more in the web"
   echo "module's POM - DevTools, optional. The copy built as the README builds the class path Maven lists (the Compose lesson's), the"
   echo "anchor's copy the README's plain way - both offline:"
   copy "$BASE" .harness/base; copy "$BASE" .harness/dev
@@ -390,8 +390,11 @@ PY
 
 # ---- loaders: jcmd's view ---------------------------------------------------------------------------------------------------
 # loadertree FILE: jcmd's VM.classloaders answer, read - the tree of loaders (one line each), the classes the restart loader defined
-# (a lambda's and a proxy's generated numbers cut), TiffinBox's web classes in the application loader, how many of tiffinbox-core's
-# classes each loader defined, and DevTools' own classes in the application loader (counted)
+# (a lambda's and a proxy's generated numbers cut; sorted by name: jcmd lists them in the order they were defined, and on the logging
+# lesson's tree that order moved between runs - two of ActuatorRoutes' lambdas are made by the first request to an endpoint, here a
+# readiness poll that can arrive mid-start, and KitchenMetrics' two when Micrometer binds it), TiffinBox's web classes in the
+# application loader, how many of tiffinbox-core's classes each loader defined, and DevTools' own classes in the application loader
+# (counted)
 loadertree() { python3 - "$1" <<'PY'
 import re, sys
 tree, owner, classes = [], None, {}
@@ -411,8 +414,8 @@ rcl = [o for o in classes if o.endswith(".RestartClassLoader")]
 app = [o for o in classes if o.startswith('"app"')]
 assert len(rcl) == 1 and len(app) == 1, (rcl, app)
 r, a = [cut(c) for c in classes[rcl[0]]], classes[app[0]]
-print("  the classes RestartClassLoader defined: %d -" % len(r))
-for c in r: print("    " + c)
+print("  the classes RestartClassLoader defined, sorted by name: %d -" % len(r))
+for c in sorted(r): print("    " + c)
 web = [c for c in a if c.startswith("com.tiffinbox.web.")]
 print("  com.tiffinbox.web classes the application loader defined: %d - %s" % (len(web), " ".join(sorted(web))))
 core = lambda cs: [c for c in cs if c.startswith("com.tiffinbox.") and not c.startswith("com.tiffinbox.web.")]
@@ -735,13 +738,17 @@ blk() { awk -v a="$2" -v b="$3" 'index($0, a) == 1 { f = 1; next } b != "" && in
 # has 'TEXT' 'LINE' MESSAGE: TEXT (a variable holding a capture's block) holds the line, whole
 has() { printf '%s\n' "$1" | grep -qxF -- "$2" || die "$3: expected the line: $2"; }
 S115='115c36bac276128e245ca57df11c2891'
-# THE ANCHOR'S NUMBERS - the only lines here that depend on the tree anchor/ points at (the brief's re-point changes them; each is read
-# off its capture and asserted below, and the builder derives the spoken words from the captures, never from here):
-E_LIBS=39      # jars under the anchor's BOOT-INF/lib (a DevTools copy's: the same)
-E_CP=47        # entries of a DevTools copy's target/classpath.txt (all jars)
-E_RCL=10       # classes RestartClassLoader defined by the time readiness answered 200 (loaders)
-E_CORE=10      # tiffinbox-core classes the application loader defined by then
-E_AOT=144      # files Spring's AOT step wrote under target/spring-aot/main
+# THE ANCHOR'S NUMBERS - the only lines here that depend on the tree anchor/ points at (the brief's re-point changed them; each is read
+# off its capture and asserted below, and the builder derives the spoken words from the captures, never from here). The values are
+# the logging lesson's tree (../c5-unit24/after); the Actuator lesson's (../c5-unit21/after), which this unit was first built on, in
+# brackets:
+E_LIBS=46      # jars under the anchor's BOOT-INF/lib (a DevTools copy's: the same) [39]
+E_CP=54        # entries of a DevTools copy's target/classpath.txt (all jars) [47]
+E_RCL=14       # classes RestartClassLoader defined by the time readiness answered 200 (loaders) [10]
+E_WEB="TiffinBoxServer TiffinBoxApp Route ActuatorRoutes KitchenHealthIndicator KitchenMetrics"   # the web module's own classes
+               # among them, by name - the rest are 1 proxy and lambdas [the first four]
+E_CORE=10      # tiffinbox-core classes the application loader defined by then [10]
+E_AOT=149      # files Spring's AOT step wrote under target/spring-aot/main [144]
 E_FS=" · "     # (a separator, not a number)
 
 # THE TOKEN: no capture holds the demo token, raw - counted on each run's own output BEFORE masking - and neither does anything this
@@ -792,17 +799,19 @@ LT=$(blk loaders '  the loaders, as jcmd draws them:' '  the classes RestartClas
 has "$LT" '    +-- <bootstrap>' "loaders: the tree"; has "$LT" '       +-- "platform", jdk.internal.loader.ClassLoaders$PlatformClassLoader' "loaders: the tree"
 has "$LT" '          +-- "app", jdk.internal.loader.ClassLoaders$AppClassLoader' "loaders: the tree"
 has "$LT" '             +-- org.springframework.boot.devtools.restart.classloader.RestartClassLoader' "loaders: the tree"
-x loaders "^  the classes RestartClassLoader defined: $E_RCL -\$"
-RC=$(blk loaders '  the classes RestartClassLoader defined: ' '  com.tiffinbox.web classes the application')
-for c in TiffinBoxServer TiffinBoxApp Route ActuatorRoutes; do has "$RC" "    com.tiffinbox.web.$c" "loaders: $c in the restart loader"; done
-[ "$(printf '%s\n' "$RC" | grep -c '^    com\.tiffinbox\.web\.[A-Za-z]*$')" = 4 ] || die "loaders: four of TiffinBox's own classes in the restart loader"
+x loaders "^  the classes RestartClassLoader defined, sorted by name: $E_RCL -\$"
+RC=$(blk loaders '  the classes RestartClassLoader defined, sorted by name: ' '  com.tiffinbox.web classes the application')
+[ "$(printf '%s\n' "$RC" | LC_ALL=C sort)" = "$RC" ] || die "loaders: the restart loader's classes, sorted by name"
+NW=$(printf '%s\n' $E_WEB | grep -c .)
+for c in $E_WEB; do has "$RC" "    com.tiffinbox.web.$c" "loaders: $c in the restart loader"; done
+[ "$(printf '%s\n' "$RC" | grep -c '^    com\.tiffinbox\.web\.[A-Za-z]*$')" = "$NW" ] || die "loaders: $NW of TiffinBox's own classes in the restart loader"
 [ "$(printf '%s\n' "$RC" | grep -c '^    jdk\.proxy<n>\.\$Proxy<n>$')" = 1 ] || die "loaders: one proxy"
-[ "$(printf '%s\n' "$RC" | grep -c '^    com\.tiffinbox\.web\.[A-Za-z]*\$\$Lambda$')" = $((E_RCL - 5)) ] || die "loaders: the lambdas"
+[ "$(printf '%s\n' "$RC" | grep -c '^    com\.tiffinbox\.web\.[A-Za-z]*\$\$Lambda$')" = $((E_RCL - NW - 1)) ] || die "loaders: the lambdas"
 x loaders '^  com\.tiffinbox\.web classes the application loader defined: 2 - com\.tiffinbox\.web\.TiffinBoxApp com\.tiffinbox\.web\.TiffinBoxServer$'
 x loaders "^  tiffinbox-core classes \(com\.tiffinbox, outside \.web\) - defined by the application loader: $E_CORE · by RestartClassLoader: 0\$"
 x loaders '^  DevTools. own classes \(org\.springframework\.boot\.devtools\) - defined by the application loader: some · by RestartClassLoader: 0$'
 x loaders "^  exit 1 · the seven responses: 7 lines · md5 $S115\$"
-echo "  loaders: app -> RestartClassLoader; $E_RCL classes there (4 named, 1 proxy, $((E_RCL - 5)) lambdas); TiffinBoxServer and TiffinBoxApp in app too; core $E_CORE in app, 0 restarted"
+echo "  loaders: app -> RestartClassLoader; $E_RCL classes there ($NW named, 1 proxy, $((E_RCL - NW - 1)) lambdas); TiffinBoxServer and TiffinBoxApp in app too; core $E_CORE in app, 0 restarted"
 
 # "Now change one class file. DevTools sees it: restarting due to one class path change. ... in the same process. The kitchen cooks
 # again, and the same seven responses come back."

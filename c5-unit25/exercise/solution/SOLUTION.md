@@ -24,8 +24,10 @@ DevTools run here ends — the `exits` capture.)
 
 In one clean shell — `env -i HOME="$HOME" PATH="/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin" bash --noprofile --norc`: no
 variable of mine, Homebrew's `bin` for `mvn` — from `c5-unit25/`, JDK 25.0.4.1, Maven 3.9.16, offline against `.m2-demo`, no GraalVM,
-`anchor/` pointing at `../c5-unit21/after`. The README's seven lines ran as written, one after another in that shell, every one exit 0,
-none printing a line. The token file: 27 bytes (26 characters and a newline), `-rw-------`. Then the six lines above, which printed:
+`anchor/` pointing at `../c5-unit24/after`, the logging lesson's tree (run again after the unit was re-pointed there; the first run,
+on `../c5-unit21/after`, printed the same five lines). The README's seven lines ran as written, one after another in that shell, every
+one exit 0, none printing a line. The token file: 27 bytes (26 characters and a newline), `-rw-------`. Then the six lines above, which
+printed:
 
 ```
 LOADERS start 1 · TiffinBoxServer's loader RestartClassLoader · OrderQueue's loader RestartClassLoader
@@ -39,6 +41,7 @@ With tiffinbox-core as a folder, OrderQueue is defined by DevTools' restart load
 capture, with the jar, printed `OrderQueue's loader app` — and touching its class file is one class path change: DevTools restarts
 TiffinBox, and the second start's OrderQueue comes from a new restart loader. Edit `OrderQueue.java` instead (one comment line under
 its package line) and recompile the module while TiffinBox runs (`mvn -o -q -f .harness/mine/pom.xml -Dmaven.repo.local="$PWD/.m2-demo"
--pl tiffinbox-core compile`): measured once, the same day, the compiler wrote the module's classes again and DevTools restarted once,
-`Restarting due to 10 class path changes (0 additions, 0 deletions, 10 modifications)` — then exit 1 after POST /shutdown, as above.
+-pl tiffinbox-core compile`): measured once on each tree, the same day, the compiler wrote the module's classes again and DevTools
+restarted once, `Restarting due to 10 class path changes (0 additions, 0 deletions, 10 modifications)` — then exit 1 after POST
+/shutdown, as above.
 The same lines as the block above are in this unit's `exercise` capture.
