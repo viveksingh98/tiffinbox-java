@@ -1,0 +1,70 @@
+# TiffinBox's settings: the four keys application.properties held, one level of nesting per dot.
+tiffinbox:
+  jdbc-url: jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1
+  cooks: 3
+  days: 30
+  port: 18425
+  # The address TiffinBox listens on: this computer only. In a container, set TIFFINBOX_ADDRESS=0.0.0.0 - every
+  # interface of the container - and publish the port on the Mac's 127.0.0.1 alone (docker run -p 127.0.0.1:...).
+  address: 127.0.0.1
+  # The meal types TiffinBox serves. Boot keeps a list as one key per item: meal-types[0], [1], [2].
+  meal-types:
+    - VEG
+    - NON_VEG
+    - VEGAN
+# How Boot composes the rest: a profile group, one more file, and the secrets.
+spring:
+  profiles:
+    group:
+      # --spring.profiles.active=lunch switches on the rush and the audit together.
+      lunch: rush,audit
+  config:
+    import:
+      # A developer's own settings, from the folder TiffinBox starts in. "optional:" - a missing file is no error.
+      # tiffinbox-local.yaml is never committed: .gitignore, beside this project's README.
+      - optional:file:./tiffinbox-local.yaml
+      # The secrets: a config tree, one file per key, in ./secrets/ - tiffinbox.shutdown-token is the file
+      # secrets/tiffinbox/shutdown-token. Never committed either (.gitignore). "optional:" - a missing folder is no
+      # error here, but the record requires the token, so the start still stops, and names the key.
+      - optional:configtree:./secrets/
+  # Boot's Docker Compose support (spring-boot-docker-compose, an optional dependency of tiffinbox-web): off. On a class
+  # path that holds the module - the one Maven lists for tiffinbox-web does; the executable jar does not - it would
+  # otherwise run docker compose up from the folder TiffinBox starts in, and stop the start where that folder holds no
+  # compose.yaml, or where Docker does not answer. The profile "dev" switches it on: application-dev.yaml.
+  docker:
+    compose:
+      enabled: false
+# Logging. Boot's logging system is Logback, and TiffinBox's System.Logger reaches it through java.util.logging. A log
+# group is one name for several loggers: "kitchen" is TiffinBox's own logger (System.getLogger("tiffinbox")) and the loggers
+# under com.tiffinbox - Boot logs TiffinBox's startup under its main class's name. --logging.level.kitchen=debug sets them
+# all at start; the loggers endpoint - exposed by a flag, for one run - sets them while TiffinBox runs. Under Spring's AOT
+# step and in the native binary a level given at start still works; loggers is not in the exposure list below.
+logging:
+  group:
+    kitchen: tiffinbox, com.tiffinbox
+# Boot's Actuator: the endpoints TiffinBox's server answers under /actuator. Health, and prometheus - the meters in the
+# text a Prometheus server scrapes - and nothing else: widening it is a line someone reviews. Under Spring's AOT step,
+# and so in the native binary, this list is read when the jar is built: a --management.endpoints.web.exposure.include
+# given at run time changes nothing there.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  # Health's groups. Readiness - "send TiffinBox traffic?" - holds Boot's own readiness state and the kitchen
+  # (KitchenHealthIndicator: DOWN when the database does not answer). Liveness - "restart TiffinBox?" - stays Boot's own
+  # state alone: a restart cannot bring a database back. With probes switched off
+  # (management.endpoint.health.probes.enabled=false) readinessState does not exist, and this line stops the start.
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,kitchen
+---
+# A second document in the same file, read only while the profile "rush" is active.
+spring:
+  config:
+    activate:
+      on-profile: rush
+tiffinbox:
+  cooks: 6

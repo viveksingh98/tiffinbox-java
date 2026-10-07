@@ -1,0 +1,4 @@
+# Boot's own file of names, read by a loader. When a start fails, Boot loads every FailureAnalyzer named under this key, in
+# every META-INF/spring.factories on the class path, and asks each one in turn; the first that recognises the failure prints
+# its description and action instead of the stack trace. TiffinBox's analyzer explains its own port.
+org.springframework.boot.diagnostics.FailureAnalyzer=com.tiffinbox.web.PortTakenFailureAnalyzer
