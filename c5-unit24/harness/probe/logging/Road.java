@@ -16,9 +16,9 @@ import org.springframework.context.ApplicationListener;
  * The course's harness, never TiffinBox's: joined with --spring.main.sources=probe.logging.Road. When TiffinBox is ready
  * it prints the road one log line takes - java.util.logging's root logger (its handlers and its level, and what its
  * configuration file asked for), Logback's root logger (its appenders and its level) and Logback's listeners - then
- * TiffinBox's own logger as each of the three sees it. From then on, each time Logback's level for "tiffinbox" changes -
- * the loggers endpoint, for one - it prints that view again. Its lines start "harness: " and go to standard output, where
- * Boot's log goes, in the order they happen.
+ * TiffinBox's own logger as each of the three sees it. From then on, each time Logback's level for "tiffinbox" or for the
+ * root logger is set - the loggers endpoint, for one - it prints that view again. Its lines start "harness: " and go to
+ * standard output, where Boot's log goes, in the order they happen.
  */
 public class Road implements ApplicationListener<ApplicationReadyEvent> {
 
@@ -50,8 +50,8 @@ public class Road implements ApplicationListener<ApplicationReadyEvent> {
             @Override public void onReset(LoggerContext context) { }
             @Override public void onStop(LoggerContext context) { }
             @Override public void onLevelChange(Logger logger, Level level) {
-                if (logger.getName().equals("tiffinbox")) {
-                    view("Logback's tiffinbox changed");
+                if (logger.getName().equals("tiffinbox") || logger.getName().equals(Logger.ROOT_LOGGER_NAME)) {
+                    view("Logback's " + logger.getName() + " changed");
                 }
             }
         });

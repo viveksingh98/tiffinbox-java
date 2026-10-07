@@ -783,9 +783,10 @@ serve the seven and the scrape. Evidence in `../c5-unit23/`.
 
 ## Course 5 · unit 24 — one line per answer, and a level changed while it runs (2026-10-07)
 
-Two files changed. The seven responses are the same before and after (`115c36bac276128e245ca57df11c2891`);
-`tiffinbox-core`, `TiffinBoxApp.java`, `ActuatorRoutes.java`, `KitchenHealthIndicator.java` and `KitchenMetrics.java` are not
-touched, and neither are the two Java logging files of Course 3 (below):
+Two files changed, and three things of Course 3's retired. The seven responses are the same before and after
+(`115c36bac276128e245ca57df11c2891`); `tiffinbox-core`, `TiffinBoxApp.java`, `ActuatorRoutes.java`, `KitchenHealthIndicator.java`
+and `KitchenMetrics.java` are not touched. The two Java logging files of Course 3 and the exec plugin's argument that named one
+are deleted (below):
 - `TiffinBoxServer.java` — `handle()`'s `finally` logs **one line per answer at DEBUG**, through TiffinBox's own `System.Logger`
   (`tiffinbox`): the route and the status, `GET /customers -> 200` — the two values the timer tags (`UNKNOWN -> 405` for a verb no
   route declares). Never a header, never the token, never what the client typed. Silent at INFO, Boot's default. The line is
@@ -822,7 +823,9 @@ curl -s -w ' %{http_code}\n' -X POST -H 'Content-Type: application/json' -d '{"c
 ```
 
 Measured on one process: three requests at INFO, 0 lines; the POST, `204`; three more, 3 lines; `null`, `204`; three more,
-still 3. `loggers.json` lists every logger, Boot's groups `web` and `sql` beside `kitchen`, and the levels; it names only
+still 3. **`null` is not a clean reset:** Logback's propagator copies the level `tiffinbox` falls back to, INFO, into
+`java.util.logging`, and it stays there. A later POST to the root (`…/loggers/ROOT`, DEBUG) makes Actuator report `tiffinbox` at
+DEBUG while TiffinBox prints nothing; on a process where the group was never set, the same root POST prints the line. `loggers.json` lists every logger, Boot's groups `web` and `sql` beside `kitchen`, and the levels; it names only
 loggers, but it is long — read it through a filter. **Locked**, the way a production run would keep it:
 
 ```bash
@@ -868,16 +871,19 @@ print their six lines, and the log holds the token 0 times and the header's name
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.root=trace
 ```
 
-**The Java logging files of Course 3, under Boot.** `tiffinbox-web/logging.properties`, `logging-debug.properties` and the exec
-plugin's `-Djava.util.logging.config.file=logging.properties` are still here, and they change nothing: `java.util.logging`
-reads the file it is given (its `.level = FINE`), then Boot replaces the root logger's handler with its bridge and sets its
-level from Logback — 0 DEBUG lines; the exec plugin's run prints Logback's lines, not the file's bare format:
+**Retired here: the Java logging files of Course 3.** `tiffinbox-web/logging.properties`, `logging-debug.properties` and the
+exec plugin's `-Djava.util.logging.config.file=logging.properties` are deleted in this lesson, measured first on the previous
+tree, which still ships them (`../c5-unit24/`, `files`). Under Boot they changed nothing: `java.util.logging` read the file it was
+given (its `.level = FINE`), then Boot replaced the root logger's handler with its bridge and set its level from Logback — 0
+DEBUG lines, 0 lines on standard error, 0 lines in the file's bare format; the exec plugin's run printed Logback's lines. The line
+that measured the debug file, on that tree:
 
 ```bash
 java -Djava.util.logging.config.file=tiffinbox-web/logging-debug.properties -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431
 ```
 
-Whether to delete them is open (RED's call). **In the AOT jar and the native binary** the exposure list is the one they were
+The exec plugin stays, with its `-classpath … TiffinBoxServer` arguments: Course 3's two lines (below) still start TiffinBox, now
+without a logging file. **In the AOT jar and the native binary** the exposure list is the one they were
 built with: `loggers` by flag answers 404, so a level changes only at start — `--logging.level.kitchen=debug` works in both:
 
 ```bash
@@ -891,20 +897,27 @@ A copy built with `loggers` in `application.yaml`'s list switches live under AOT
 
 ## Course 5 · unit 26 — TiffinBox's port failure explained to Boot, and a 500 for a missing class (2026-10-07)
 
-Two files added, one changed. The seven responses are the same before and after (`115c36bac276128e245ca57df11c2891`);
-`tiffinbox-core`, `TiffinBoxApp.java`, `ActuatorRoutes.java`, `KitchenHealthIndicator.java`, `KitchenMetrics.java`, `Route.java`,
-`application.yaml` and the POMs are not touched:
+Two files added, two changed. The seven responses are the same before and after (`115c36bac276128e245ca57df11c2891`);
+`tiffinbox-core`, `TiffinBoxApp.java`, `KitchenHealthIndicator.java`, `KitchenMetrics.java`, `Route.java`, `application.yaml` and
+the POMs are not touched:
 - `PortTakenFailureAnalyzer.java` (new) — a **failure analyzer**: a class Boot asks, when the start fails, whether it recognises
-  the failure; the first that does prints a description and an action instead of the stack trace. This one recognises a
-  `java.net.BindException` — something else already listens on TiffinBox's port — and says where TiffinBox tried to listen, read
-  from the `Environment` Boot hands its constructor: `tiffinbox.address` and `tiffinbox.port`, never another setting.
+  the failure; the first that does prints a description and an action instead of the stack trace. This one recognises one
+  failure: a `java.net.BindException` whose message is `Address already in use`, thrown by the bind `TiffinBoxServer`'s `start`
+  makes (that method on the exception's stack) — something else already listens on TiffinBox's port — and says where TiffinBox
+  tried to listen, read from the `Environment` Boot hands its constructor: `tiffinbox.address` and `tiffinbox.port`, never another
+  setting. Any other `BindException` — an address this machine does not have, another bean's port — gets `null`: Boot prints the
+  trace, as it did before.
 - `tiffinbox-web/src/main/resources/META-INF/spring.factories` (new) — one line,
   `org.springframework.boot.diagnostics.FailureAnalyzer=com.tiffinbox.web.PortTakenFailureAnalyzer`. Boot reads its analyzers
   from this file of names, never from the context: the same class as a `@Component` changes nothing.
-- `TiffinBoxServer.java` — `handle()`'s catch around a route is **`catch (Exception | LinkageError e)`**: a route that needs a
-  class the class path or the native binary does not hold answers `500`, logged and timed like any other answer. Caught as an
-  `Exception` only, the error left `handle()`, the request's thread died and the client never got an answer — the hints lesson's
-  hang. An `OutOfMemoryError` or a `StackOverflowError` is still not caught.
+- `TiffinBoxServer.java` — `handle()`'s catch around a route is **`catch (Exception | LinkageError e)`**, and it logs the error
+  at ERROR, with its trace, under the route's name (`GET /customers failed`): a route that needs a class the class path or the
+  native binary does not hold answers `500`, and the answer is logged and timed like any other. Caught as an `Exception` only, the
+  error left `handle()`, the request's thread died and the client never got an answer — the hints lesson's hang — and at INFO the
+  log said nothing. An `OutOfMemoryError` or a `StackOverflowError` is still not caught.
+- `ActuatorRoutes.java` — its catch, already `Exception | LinkageError`, logs at ERROR too: a `LinkageError` with its trace, any
+  other failure by its class alone (`an actuator request failed: com.fasterxml.jackson.core.JsonParseException`) — an exception's
+  message can quote what the client sent, a body or a level, and the log never holds what a client typed.
 
 **Port taken.** Start TiffinBox twice on one port:
 
@@ -915,8 +928,15 @@ java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431
 The second exits 1 with two sentences and no stack trace — `TiffinBox could not listen on 127.0.0.1:18431: something else
 already listens there.` and `Stop the program on that port, or start TiffinBox on another: --tiffinbox.port=<a free port>.` Before
 this change it printed 40 stack frames and no analysis: Boot's own port analyzer, `PortInUseFailureAnalyzer`, lives in
-`spring-boot-web-server`, for Boot's own web servers, and TiffinBox's server is the JDK's. The same analysis comes from the AOT jar
-and from the native binary. **The trace is still there**, with Boot's condition report, under `--debug`:
+`spring-boot-web-server`, for Boot's own web servers, and it only knows Boot's own `PortInUseException`; TiffinBox's server is
+the JDK's. An address this machine does not have is not a taken port — the trace, and `Can't assign requested address`:
+
+```bash
+java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --tiffinbox.address=192.0.2.1
+```
+
+The analysis for the taken port comes from the AOT jar and from the native binary too. **The trace is still there**, with Boot's
+condition report, under `--debug`:
 
 ```bash
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --debug
@@ -951,6 +971,18 @@ curl -s -m 5 -w ' %{http_code}\n' http://127.0.0.1:18431/customers
 
 `/customers` answers `{"error":"ClassNotFoundException"} 500`, and the log's line says `GET /customers -> 500`. Before this
 change curl gave up after 5 seconds, while the log said `GET /customers -> -1` and the timer counted an answer no client received.
+**At INFO, Boot's default, the error is in the log:** `GET /customers failed`, at ERROR, then
+`java.lang.NoClassDefFoundError: com/fasterxml/jackson/databind/jdk14/JDK14Util` and its trace (before this change: nothing at
+all). The bridge's catch logs too: Actuator's `sbom` endpoint, exposed for this one run, needs the same class — `an actuator
+request failed`, with the trace; a request body the bridge cannot read is logged by its class alone, and the body's words appear
+0 times in the log:
+
+```bash
+java -jar tiffinbox-web/target/hang/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --management.endpoints.web.exposure.include=health,prometheus,sbom
+curl -s -w ' %{http_code}\n' http://127.0.0.1:18431/actuator/sbom
+curl -s -X GET -d 'oops, not json' -w ' %{http_code}\n' http://127.0.0.1:18431/actuator/health
+```
+
 In the native binary, the hints lesson's break (the route annotation's `@Reflective` deleted) answers
 `{"error":"MissingReflectionRegistrationError"} 500` instead of nothing. Evidence in `../c5-unit26/`.
 
@@ -1088,7 +1120,8 @@ from the module next door: to `tiffinbox-web`, core is a dependency like any oth
 > `java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.tiffinbox=debug`
 > (the port as a flag since Course 5 unit 06, which measured this command: 5 route lines). The rest of this section is
 > Course 3's text, kept as it was written — including "pass another as the first argument", which since unit 06 is
-> silently ignored (the server listens on 18425).
+> silently ignored (the server listens on 18425). **Since Course 5 unit 24, `logging.properties`, `logging-debug.properties` and
+> the exec plugin's `-D` argument are deleted:** the lines below that name them are history; `exec:exec` still starts TiffinBox.
 
 **No `--enable-preview`.** That is the whole point of the swap.
 

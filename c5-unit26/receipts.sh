@@ -18,23 +18,28 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #              that hold Boot's port analyzer, not shipped; the README's malformed-value line - Boot's analysis, the value printed
 #   cycle      the harness's Cook and Rail (each needs the other, through a setter): plain Spring starts them; joined to after/,
 #              Boot's default stops the start - the cycle drawn; Boot's metadata for the switch; the README's switch: the seven
-#   change     the previous tree against after/: the new analyzer (its code lines), its factories line, the catch clause
+#   change     the previous tree against after/: the new analyzer (its code lines), its factories line, the catch clause and
+#              its ERROR line, the bridge's catch and its ERROR lines
 #   analysis   the break, the analyzer's one line, a first TiffinBox holding the port: A after/ · B the line deleted · A' = A; then
-#              C (labelled): the same class as a @Component, no factories file - and that bean, read from its context
+#              C (labelled): the same class as a @Component, no factories file - Boot's loader of analyzers (javap), and that bean,
+#              read from its context; D (labelled): an address this machine does not have; E (labelled): another bean's bind on
+#              the held port (the harness's Elsewhere) - neither is TiffinBox's port taken, and neither gets the analysis
 #   debug      after/, the port held, the README's --debug line: the trace back beside the analysis, the condition report counted
 #   hang       C (labelled): the failure after the start - the README's lines delete one class jackson-databind needs from a copy
-#              of the extracted lib; the previous tree's catch, then after/'s: no answer against a 500, the log's line, the timer
+#              of the extracted lib; the previous tree's catch, then after/'s: no answer against a 500, the log's line, the timer;
+#              then after/'s copy at INFO: the error in the log, and the bridge's catch - a body it cannot read, logged by its class
 #   native     after/ built natively (the README's two Maven lines): what Spring's AOT step registered, the AOT jar and the binary
 #              each started twice on one port; then C (labelled): the hints lesson's break, the route annotation's @Reflective
-#              deleted, built natively - a 500 where that lesson's binary never answered
+#              deleted, built natively - a 500 where that lesson's binary never answered, and the error in its log
 #   exercise   exercise/README.md's commands and exercise/solution/SOLUTION.md's, read from the files and run as written
 # "before" is ../c5-unit24/after (the anchor as the logging lesson left it), COPIED under .harness/; this script never writes into
 # another unit's folder. after/ is this unit's frozen copy of ../c5-tiffinbox after the change; it is copied, never built in
 # place. Every run of TiffinBox starts in a folder under .harness/ that holds a config tree with the demo token (secrets/), as the
 # README asks. Commands are printed exactly as they run: each goes through eval. "$CURLSET" is the comparison set since the secrets
 # lesson (../c5-unit11/curlset.sh: the seven requests, POST /shutdown with the token's header read from the file). "$M2" is this
-# unit's own repository, .m2-demo. The harness (harness/probe/cycle/: Cook, Rail, Plain) is compiled into .harness/hc and joined
-# by --spring.main.sources (Plain runs alone): it lives outside com.tiffinbox, and it is the course's, never TiffinBox's.
+# unit's own repository, .m2-demo. The harness (harness/probe/cycle/: Cook, Rail, Plain, Tally; harness/probe/bind/: Elsewhere) is
+# compiled into .harness/hc and joined by --spring.main.sources (Plain runs alone): it lives outside com.tiffinbox, and it is the
+# course's, never TiffinBox's.
 # The network: every build runs offline (-o) against .m2-demo and says so ("offline: yes"); a build that cannot resolve an
 # artifact offline goes to Maven Central once, and says that ("offline: no - ..."). GraalVM's native plugin, under the profile
 # native, reads its metadata repository (a zip) from .m2-demo - and when the zip is not there it downloads it from GitHub, even
@@ -86,7 +91,7 @@ INTR=""; trap 'INTR=1; exit 130' INT TERM
 exec 3>&1                                            # die() speaks to the terminal even inside a redirected capture
 die() { echo "  *** $* ***" >&3; exit 1; }
 java -version 2>&1 | grep -q 'version "25' || die "JDK 25 needed; JAVA_HOME gives: $(java -version 2>&1 | head -1)"
-command -v javac > /dev/null || die "javac is needed: the harness's Cook, Rail and Plain are compiled here"
+command -v javac > /dev/null || die "javac is needed: the harness's classes are compiled here"
 command -v python3 > /dev/null || die "python3 is needed: the jars' spring.factories, Boot's metadata and the beans answer are read through a filter"
 command -v curl > /dev/null || die "curl is needed: every request here is curl's"
 command -v zip > /dev/null && command -v unzip > /dev/null || die "zip and unzip are needed: the hang's lines delete a class from a copy of a jar"
@@ -94,7 +99,12 @@ command -v zip > /dev/null && command -v unzip > /dev/null || die "zip and unzip
 # TIFFINBOX_*, SPRING_*, MANAGEMENT_*, SERVER_* and LOGGING_* variable, DEBUG (Boot reads it as --debug), the variables that inject
 # JVM flags, MAVEN_OPTS, MAVEN_ARGS and NATIVE_IMAGE_OPTIONS are removed first. GRAALVM_HOME stays: it says which GraalVM to use.
 # (A DEBUG of yours would print the condition report and the trace in every failed start a capture counts.)
-for v in $(env | sed -n 's/^\(TIFFINBOX_[A-Za-z0-9_]*\|SPRING_[A-Za-z0-9_]*\|MANAGEMENT_[A-Za-z0-9_]*\|SERVER_[A-Za-z0-9_]*\|LOGGING_[A-Za-z0-9_]*\|DEBUG\|JAVA_TOOL_OPTIONS\|JDK_JAVA_OPTIONS\|_JAVA_OPTIONS\|MAVEN_OPTS\|MAVEN_ARGS\|NATIVE_IMAGE_OPTIONS\)=.*/\1/p'); do unset "$v"; done
+# The list is an extended regular expression (sed -E): /usr/bin/sed's basic ones have no alternation, so the \| this loop once
+# used matched nothing and removed no variable at all (measured: RED C5-S4 #63). A canary is planted under every name first, and
+# the run stops if one survives the loop.
+for v in TIFFINBOX_CANARY SPRING_CANARY MANAGEMENT_CANARY SERVER_CANARY LOGGING_CANARY DEBUG JAVA_TOOL_OPTIONS JDK_JAVA_OPTIONS _JAVA_OPTIONS MAVEN_OPTS MAVEN_ARGS NATIVE_IMAGE_OPTIONS; do export "$v=planted-canary"; done
+for v in $(env | sed -n -E 's/^(TIFFINBOX_[A-Za-z0-9_]*|SPRING_[A-Za-z0-9_]*|MANAGEMENT_[A-Za-z0-9_]*|SERVER_[A-Za-z0-9_]*|LOGGING_[A-Za-z0-9_]*|DEBUG|JAVA_TOOL_OPTIONS|JDK_JAVA_OPTIONS|_JAVA_OPTIONS|MAVEN_OPTS|MAVEN_ARGS|NATIVE_IMAGE_OPTIONS)=.*/\1/p'); do unset "$v"; done
+[ -z "$(env | grep -- '=planted-canary$')" ] || die "a variable survived the clean-up above: $(env | grep -- '=planted-canary$' | sed 's/=.*//' | paste -sd' ' -)"
 # Every request this script makes goes to 127.0.0.1. An HTTP proxy named in your environment (http_proxy and the rest) would
 # carry curl's requests to that proxy instead of to TiffinBox: 127.0.0.1 and localhost go first in no_proxy and NO_PROXY.
 export no_proxy="127.0.0.1,localhost${no_proxy:+,$no_proxy}" NO_PROXY="127.0.0.1,localhost${NO_PROXY:+,$NO_PROXY}"
@@ -130,7 +140,7 @@ TOKEN=not-a-real-token-demo-only
 CURLSET=../c5-unit11/curlset.sh                      # the comparison set: the seven requests, POST /shutdown with the header
 [ -f "$CURLSET" ] || die "$CURLSET is missing"
 [ -f "$PREV/pom.xml" ] && [ -f after/pom.xml ] && [ -f after/README.md ] || die "the previous tree $PREV or after/ is missing"
-for f in harness/shutdown.sh harness/seven.sh harness/jars/pom.xml harness/probe/cycle/Cook.java harness/probe/cycle/Rail.java harness/probe/cycle/Plain.java; do [ -f "$f" ] || die "harness/ is missing $f"; done
+for f in harness/shutdown.sh harness/seven.sh harness/jars/pom.xml harness/probe/cycle/Cook.java harness/probe/cycle/Rail.java harness/probe/cycle/Plain.java harness/probe/cycle/Tally.java harness/probe/bind/Elsewhere.java; do [ -f "$f" ] || die "harness/ is missing $f"; done
 
 # The ports, BEFORE anything is wiped (a survivor of an interrupted run answers POST /shutdown only with its token, which lives
 # in .harness/ - so the message names the process to kill).
@@ -161,6 +171,10 @@ R_H1=$(readme 'rm -rf tiffinbox-web/target/hang && mkdir tiffinbox-web/target/ha
 R_H2=$(readme "zip -q -d tiffinbox-web/target/hang/lib/jackson-databind-2.22.2.jar 'com/fasterxml/jackson/databind/jdk14/JDK14Util*'")
 R_H3=$(readme 'java -jar tiffinbox-web/target/hang/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.kitchen=debug')
 R_H4=$(readme "curl -s -m 5 -w ' %{http_code}\n' http://127.0.0.1:18431/customers")
+R_H5=$(readme 'java -jar tiffinbox-web/target/hang/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --management.endpoints.web.exposure.include=health,prometheus,sbom')
+R_H7=$(readme "curl -s -w ' %{http_code}\n' http://127.0.0.1:18431/actuator/sbom")
+R_H6=$(readme "curl -s -X GET -d 'oops, not json' -w ' %{http_code}\n' http://127.0.0.1:18431/actuator/health")
+R_ADDR=$(readme 'java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --tiffinbox.address=192.0.2.1')
 # off DIR 'README mvn LINE' [PHASE]: the README's Maven line as this script runs it - from DIR, offline (-o), this unit's own
 # repository, and for a build phase (package, install) clean and without tests. dev() takes those four things back out, and
 # must give the README's line again: so the command on screen is the README's, with exactly those changes.
@@ -191,7 +205,8 @@ for c in "$C_AFTER" "$(off .harness/x "$R_PLAIN" package)" "$(off .harness/x "$R
   r=$(dev "$c"); [ "$r" = "$R_PLAIN" ] || [ "$r" = "$R_INSTALL" ] || [ "$r" = "$R_NATIVE" ] || die "not a README line with the offline changes: $c"; done
 [ "$(hcp .harness/x 19051 probe.cycle.Cook,probe.cycle.Rail "$F_CIRC")" = 'cd .harness/x && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19051 --spring.main.sources=probe.cycle.Cook,probe.cycle.Rail --spring.main.allow-circular-references=true' ] || die "the exploded run with the harness"
 [ "$(plain .harness/x)" = 'cd .harness/x && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" probe.cycle.Plain' ] || die "the harness's Plain"
-echo "  the commands: after/README.md gives all 23 lines this script runs or derives from"
+[ "$(hcp .harness/x 19053 probe.bind.Elsewhere --probe.bind.port=19052)" = 'cd .harness/x && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19053 --spring.main.sources=probe.bind.Elsewhere --probe.bind.port=19052' ] || die "the exploded run with the harness's Elsewhere"
+echo "  the commands: after/README.md gives all 27 lines this script runs or derives from"
 
 # ---- build: one tree before the captures - after/, the README's native install; then what .m2-demo holds ------------------
 rm -rf .harness; mkdir -p .harness
@@ -238,8 +253,8 @@ echo "  .m2-demo holds Boot's parent, GraalVM's native plugin 1.1.8 and its meta
 # The harness: Cook, Rail and Plain compiled against the jar the first build made (extracted: its classes and the jars it ships),
 # into .harness/hc - outside every tree, outside com.tiffinbox
 (cd .harness/after && eval "$R_EXTRACT") > .harness/extract-after.log 2>&1 || { cat .harness/extract-after.log >&3; die "the README's extract command failed in .harness/after"; }
-javac -d .harness/hc -cp ".harness/after/tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:.harness/after/$EXL/*" harness/probe/cycle/*.java > .harness/javac.log 2>&1 || { cat .harness/javac.log >&3; die "the harness did not compile"; }
-echo "  the harness: harness/probe/cycle/ compiled into .harness/hc ($(find .harness/hc -name '*.class' | wc -l | tr -d ' ') classes)"
+javac -d .harness/hc -cp ".harness/after/tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:.harness/after/$EXL/*" harness/probe/cycle/*.java harness/probe/bind/*.java > .harness/javac.log 2>&1 || { cat .harness/javac.log >&3; die "the harness did not compile"; }
+echo "  the harness: harness/probe/cycle/ and bind/ compiled into .harness/hc ($(find .harness/hc -name '*.class' | wc -l | tr -d ' ') classes)"
 
 # ---- helpers ------------------------------------------------------------------------------------------------------------
 # raw TOKEN FILE...: how many times TOKEN appears, raw, in the files (occurrences, not lines; binary files read as text)
@@ -551,7 +566,11 @@ change() { local f
   diff .harness/before/README.md .harness/after/README.md > .harness/file.diff || true
   echo "  README.md - the anchor's README: lines added $(grep -c '^> ' .harness/file.diff || true), removed $(grep -c '^< ' .harness/file.diff || true) - its new section (not shown)"
   echo "  tiffinbox-core against the previous tree's (diff -rq -x target): $(diff -rq -x target .harness/before/tiffinbox-core .harness/after/tiffinbox-core | wc -l | tr -d ' ') files differ"
-  for f in TiffinBoxApp ActuatorRoutes KitchenHealthIndicator KitchenMetrics Route; do f=tiffinbox-web/src/main/java/com/tiffinbox/web/$f.java
+  f=tiffinbox-web/src/main/java/com/tiffinbox/web/ActuatorRoutes.java
+  diff ".harness/before/$f" ".harness/after/$f" > .harness/file.diff || true
+  echo "  $f - diff adds $(grep -c '^> ' .harness/file.diff || true) lines, removes $(grep -c '^< ' .harness/file.diff || true); the lines that are code, not comment:"
+  grep -E '^[<>] ' .harness/file.diff | grep -vE '^[<>] +(\*|/\*\*|\*/|//)' | sed 's/^/    /'
+  for f in TiffinBoxApp KitchenHealthIndicator KitchenMetrics Route; do f=tiffinbox-web/src/main/java/com/tiffinbox/web/$f.java
     echo "  $(basename "$f") against the previous tree's, byte for byte: $(cmp -s ".harness/before/$f" ".harness/after/$f" && echo the same || echo different)"; done
   for f in tiffinbox-web/src/main/resources/application.yaml tiffinbox-web/pom.xml pom.xml; do
     echo "  $f against the previous tree's, byte for byte: $(cmp -s ".harness/before/$f" ".harness/after/$f" && echo the same || echo different)"; done; }
@@ -577,7 +596,17 @@ analysis() { local c
   echo "\$ diff -r -x target -x secrets after .harness/bean"; diff -r -x target -x secrets after .harness/bean | sed 's/^/  /' || true
   pbuild .harness/bean "the copy with the bean"
   fails "$(at .harness/bean 19052 "$R_RUN")"
-  echo "the first TiffinBox, after the four:"
+  echo "where Boot gets its analyzers - spring-boot 4.1.1's FailureAnalyzers, its calls read by javap (filtered, counted):"
+  echo "\$ javap -c -p -cp \"\$M2/org/springframework/boot/spring-boot/4.1.1/spring-boot-4.1.1.jar\" org.springframework.boot.diagnostics.FailureAnalyzers"
+  javap -c -p -cp "$M2/org/springframework/boot/spring-boot/4.1.1/spring-boot-4.1.1.jar" org.springframework.boot.diagnostics.FailureAnalyzers > .harness/javap.txt 2>&1 || die "javap could not read FailureAnalyzers"
+  sed -n 's#^.* \(invoke[a-z]*\) .*// .*Method org/springframework/core/io/support/SpringFactoriesLoader\.\([A-Za-z]*\):.*$#  \1 SpringFactoriesLoader.\2#p' .harness/javap.txt
+  echo "  calls that ask the context for a bean (getBean, getBeansOfType, getBeanProvider, getBeanNamesForType): $(grep -cE '\.(getBean|getBeansOfType|getBeanProvider|getBeanNamesForType):' .harness/javap.txt || true)"
+  echo "D (labelled) - an address this machine does not have (192.0.2.1, kept for documentation): the README's address line, port 19053:"
+  fails "$(at .harness/serve 19053 "$R_ADDR")"
+  echo "E (labelled) - another bean's bind, on the port the first TiffinBox holds: after/'s extracted class path with the harness's"
+  echo "Elsewhere joined (a bean that binds 127.0.0.1 and probe.bind.port when it is created); TiffinBox itself on 19053, free:"
+  fails "$(hcp .harness/serve 19053 probe.bind.Elsewhere --probe.bind.port=19052)"
+  echo "the first TiffinBox, after the six:"
   same 19052
   seven 19052 .harness/serve
   echo "C's context, on a free port - the README's beans line, port 19053:"
@@ -615,11 +644,24 @@ hangrun() { local c e=0 o
   ends 19055
   answers .harness/run.out
   errs .harness/run.err; }
-hang() {
+hang() { local c e=0 o
   echo "C (labelled) - the failure after the start: one class jackson-databind needs for a record, deleted from a copy of the"
   echo "extracted lib by the README's lines - in the previous tree, then in after/; port 19055."
   hangrun "$PREV" .harness/hb "the previous tree"
-  hangrun after .harness/ha "after/"; }
+  hangrun after .harness/ha "after/"
+  echo "after/'s copy again (.harness/ha), at INFO, Boot's default - the README's run line for the copy, no kitchen flag; it"
+  echo "exposes sbom for this one run (Actuator's endpoint for a software bill of materials: it needs the same class):"
+  start "$(at .harness/ha 19055 "$R_H5")"; up; ready 19055
+  c=$(url "$R_H4" 19055); echo "\$ $c"; o=$( (eval "$c") 2>&1 < /dev/null) || e=$?; printf '%s\n' "$o" | sed 's/^/  /'; echo "  curl exit $e"
+  scraped 19055 'GET /customers'
+  echo "the bridge's catch - the README's sbom line, then its line with a body the bridge cannot read as JSON:"
+  ask "$R_H7" 19055
+  ask "$R_H6" 19055
+  echo "\$ harness/shutdown.sh 19055 .harness/ha/$TF"; harness/shutdown.sh 19055 ".harness/ha/$TF" | sed 's/^/  /'
+  ends 19055
+  awk "$SHAPEAWK" .harness/run.out
+  echo "  the body's words in its log: oops $(cat .harness/run.out .harness/run.err | grep -c oops || true) · not json $(cat .harness/run.out .harness/run.err | grep -c 'not json' || true)"
+  errs .harness/run.err; }
 
 # ---- native: after/, built natively; the AOT jar and the binary on a taken port; C, the hints lesson's break -------------------
 # nbuild DIR: the README's native install, then its native:compile-no-fork - both offline, from DIR; the native build's log kept in
@@ -681,6 +723,7 @@ native() { local c e=0 o
   echo "  exit $e · listening on 19057 now: $(listeners 19057)"
   logtok
   answers .harness/run.out
+  awk "$SHAPEAWK" .harness/run.out | grep -v '^  DEBUG ' || true     # its errors; the DEBUG lines are counted above (the route lines' order is not fixed)
   errs .harness/run.err; }
 
 # ---- exercise: the README's commands, exactly as written, then the solution's ---------------------------------------------
@@ -741,7 +784,7 @@ cnt() { printf '%s\n' "$1" | grep -cxF -- "$2" || true; }
 # counted each, with the header's name), anything this unit ships for reading, nor either binary this run built
 for f in .harness/raw-*; do [ "$(cat "$f")" = 0 ] || die "a capture's raw output held the demo token ($f)"; done
 NBIN=0
-for f in .r-*.out README.md exercise/README.md exercise/solution/SOLUTION.md exercise/solution/probe/cycle/*.java receipts.md5 harness/shutdown.sh harness/seven.sh harness/jars/pom.xml harness/probe/cycle/*.java after/README.md "after/$ANA" "after/$FAC" "after/$SRV" .harness/nat/$BIN .harness/natc/$BIN; do
+for f in .r-*.out README.md exercise/README.md exercise/solution/SOLUTION.md exercise/solution/probe/cycle/*.java receipts.md5 harness/shutdown.sh harness/seven.sh harness/jars/pom.xml harness/probe/cycle/*.java harness/probe/bind/*.java after/README.md "after/$ANA" "after/$FAC" "after/$SRV" .harness/nat/$BIN .harness/natc/$BIN; do
   [ -f "$f" ] || continue; case $f in .harness/nat*) NBIN=$((NBIN + 1)) ;; esac
   [ "$(raw "$TOKEN" "$f")" = 0 ] || die "$f holds the demo token, raw"; done
 [ "$NBIN" = 2 ] || die "two binaries were built, $NBIN were checked"
@@ -801,12 +844,17 @@ has "$C3" "$SEVEN" "cycle: the seven"; has "$C3" "  its log: APPLICATION FAILED 
 echo "  cycle: plain Spring - started, allowCircularReferences true · Boot - exit 1, cook <-> rail drawn, the switch named; default false (metadata); the switch - the seven"
 
 # "The analyzer waits for a BindException, takes Boot's environment through its constructor, and builds two sentences from the
-# address and the port. Nothing else ... One line in spring factories names it. And one catch clause in handle"
-[ "$(n change '^  (Files|Only in) ')" = 4 ] || die "change: four paths"
+# address and the port - only when the port is in use and the bind is TiffinBox's own; otherwise it steps aside. Nothing else ...
+# One line in spring factories names it. And one catch clause in handle"
+[ "$(n change '^  (Files|Only in) ')" = 5 ] || die "change: five paths"
 x change '^  Only in \.harness/after/tiffinbox-web/src/main/java/com/tiffinbox/web: PortTakenFailureAnalyzer\.java$'
 x change '^  Only in \.harness/after/tiffinbox-web/src/main/resources: META-INF$'
-x change '^  tiffinbox-web/src/main/java/com/tiffinbox/web/PortTakenFailureAnalyzer\.java - new; its lines that are neither comment nor blank: 17$'
+x change '^  Files \.harness/before/tiffinbox-web/src/main/java/com/tiffinbox/web/ActuatorRoutes\.java and '
+x change '^  tiffinbox-web/src/main/java/com/tiffinbox/web/PortTakenFailureAnalyzer\.java - new; its lines that are neither comment nor blank: 28$'
 for t in '    class PortTakenFailureAnalyzer extends AbstractFailureAnalyzer<BindException> {' '        PortTakenFailureAnalyzer(Environment environment) {' \
+  '            if (!"Address already in use".equals(cause.getMessage()) || !thrownIn(TiffinBoxServer.class, "start", cause)) {' \
+  '                return null;                             // not TiffinBox'"'"'s port taken: Boot keeps the trace' \
+  '                if (frame.getClassName().equals(type.getName()) && frame.getMethodName().equals(method)) {' \
   '            String where = environment.getProperty("tiffinbox.address") + ":" + environment.getProperty("tiffinbox.port");' \
   '            return new FailureAnalysis("TiffinBox could not listen on " + where + ": something else already listens there.",'; do grep -qxF -- "$t" .r-change.out || die "change: $t"; done
 [ "$(grep -o 'getProperty(' .r-change.out | wc -l | tr -d ' ')" = 2 ] || die "change: two properties read, no more"
@@ -814,14 +862,19 @@ x change '^  tiffinbox-web/src/main/resources/META-INF/spring\.factories - new; 
 x change '^    org\.springframework\.boot\.diagnostics\.FailureAnalyzer=com\.tiffinbox\.web\.PortTakenFailureAnalyzer$'
 x change '^    before [0-9]+: \} catch \(Exception e\) \{$'; x change '^    after  [0-9]+: \} catch \(Exception \| LinkageError e\) \{ '
 [ "$(n change '^    (before|after ) [0-9]+: ')" = 2 ] || die "change: one catch clause in handle(), before and after"
+x change '^    >                 LOG\.log\(System\.Logger\.Level\.ERROR, key \+ " failed", e\);'
+CA=$(blk change '  tiffinbox-web/src/main/java/com/tiffinbox/web/ActuatorRoutes.java - diff adds' '  TiffinBoxApp.java')
+x change '^  tiffinbox-web/src/main/java/com/tiffinbox/web/ActuatorRoutes\.java - diff adds 6 lines, removes 0; the lines that are code, not comment:$'
+[ "$(printf '%s\n' "$CA" | grep -c 'log\.log(System\.Logger\.Level\.ERROR, "an actuator request failed')" = 2 ] || die "change: the bridge's catch logs, two ways"
+printf '%s\n' "$CA" | grep -qF 'log.log(System.Logger.Level.ERROR, "an actuator request failed: {0}", e.getClass().getName());' || die "change: the bridge logs an exception by its class alone"
 x change '^  tiffinbox-core against the previous tree.s \(diff -rq -x target\): 0 files differ$'
-for t in TiffinBoxApp.java ActuatorRoutes.java KitchenHealthIndicator.java KitchenMetrics.java Route.java tiffinbox-web/src/main/resources/application.yaml tiffinbox-web/pom.xml pom.xml; do x change "^  $t against the previous tree.s, byte for byte: the same\$"; done
-[ "$(diff -rq -x target -x secrets "$PREV" after | wc -l | tr -d ' ')" = 4 ] || die "change: after/ differs from the previous tree in more than the README, the server, the analyzer and META-INF"
-echo "  change: 4 paths · the analyzer, 17 code lines, two properties read · one factories line · one catch clause, Exception -> Exception | LinkageError · the rest the same"
+for t in TiffinBoxApp.java KitchenHealthIndicator.java KitchenMetrics.java Route.java tiffinbox-web/src/main/resources/application.yaml tiffinbox-web/pom.xml pom.xml; do x change "^  $t against the previous tree.s, byte for byte: the same\$"; done
+[ "$(diff -rq -x target -x secrets "$PREV" after | wc -l | tr -d ' ')" = 5 ] || die "change: after/ differs from the previous tree in more than the README, the server, the bridge, the analyzer and META-INF"
+echo "  change: 5 paths · the analyzer, 28 code lines, two properties read, null unless in use and TiffinBoxServer.start's own bind · one factories line · one catch clause, Exception -> Exception | LinkageError, its ERROR line · the bridge's catch: ERROR, the trace for a LinkageError, the class alone otherwise · the rest the same"
 
 # "A: the port taken, exit one, zero frames, two sentences. B: delete that one line, and the forty frames are back. A again: zero.
 # And C: the same class as a component, no line. Forty frames, though its context held the bean."
-NA=$(blk analysis 'A - after/' 'B - a copy'); NB=$(blk analysis 'B - a copy' "A' - A again"); NA2=$(blk analysis "A' - A again" 'C (labelled)'); NC=$(blk analysis 'C (labelled)' 'the first TiffinBox, after'); N6=$(blk analysis "C's context" '')
+NA=$(blk analysis 'A - after/' 'B - a copy'); NB=$(blk analysis 'B - a copy' "A' - A again"); NA2=$(blk analysis "A' - A again" 'C (labelled)'); NC=$(blk analysis 'C (labelled)' 'where Boot gets its analyzers'); NJ=$(blk analysis 'where Boot gets its analyzers' 'D (labelled)'); ND=$(blk analysis 'D (labelled)' 'E (labelled)'); NE=$(blk analysis 'E (labelled)' 'the first TiffinBox, after'); N6=$(blk analysis "C's context" '')
 for b in "$NA" "$NA2"; do has "$b" "  exit 1" "analysis A: exit 1"; has "$b" "$NOTRACE" "analysis A: 0 frames"; has "$b" "  TiffinBox could not listen on 127.0.0.1:19052: something else already listens there." "analysis A: the sentence"; has "$b" "$ACT" "analysis A: the action"; has "$b" "  ERROR o.s.b.d.LoggingFailureAnalysisReporter:" "analysis A: Boot's reporter"; has "$b" "$ERR0" "analysis A: no token"; done
 [ "$(printf '%s\n' "$NA" | sed -n '/^  Description:$/,$p' | grep -cvE '^  (Description|Action):$|^  its standard error: ')" = 2 ] || die "analysis A: two sentences"
 [ "$(printf '%s\n' "$NA" | grep '^\$ ')" = "$(printf '%s\n' "$NA2" | grep '^\$ ')" ] || die "analysis: A' is not A's command"
@@ -832,8 +885,17 @@ has "$NC" "  Only in after/tiffinbox-web/src/main/resources/META-INF: spring.fac
 x analysis '^  the process listening on 19052: the one started above: yes$'
 has "$N6" "  beans named portTakenFailureAnalyzer in its context: 1" "analysis C: the context held the bean"; has "$N6" "    type com.tiffinbox.web.PortTakenFailureAnalyzer · scope singleton" "analysis C: its type"
 has "$N6" "  the demo token in it: 0 · deleted: yes" "analysis C: the answer counted, deleted"
+# "Boot loads analyzers through spring factories' loader, and never asks the context for one."
+[ "$(printf '%s\n' "$NJ" | grep -E '^  invoke' | sort -u | paste -sd'|' -)" = '  invokestatic SpringFactoriesLoader.forDefaultResourceLocation|  invokevirtual SpringFactoriesLoader.load' ] || die "analysis: FailureAnalyzers loads through SpringFactoriesLoader, and only that"
+has "$NJ" "  calls that ask the context for a bean (getBean, getBeansOfType, getBeanProvider, getBeanNamesForType): 0" "analysis: no bean asked for"
+# "only when the port is in use and the bind is TiffinBox's own; anything else, it steps aside, and Boot prints the trace"
+for b in "$ND" "$NE"; do has "$b" "  exit 1" "analysis D/E: exit 1"; [ "$(printf '%s\n' "$b" | grep -c 'already listens')" = 0 ] || die "analysis D/E: no claim that something listens"
+  printf '%s\n' "$b" | grep -qE '^  its log, read after it exited: APPLICATION FAILED TO START 0 · stack frames [1-9][0-9]* ' || die "analysis D/E: the trace, no banner"; has "$b" "$ERR0" "analysis D/E: no token"; done
+has "$ND" "  Caused by: java.net.BindException: Can't assign requested address" "analysis D: not a taken port"
+has "$ND" "  org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'tiffinBoxServer': Invocation of init method failed" "analysis D: TiffinBox's own bind"
+has "$NE" "$BINDL" "analysis E: in use"; has "$NE" "  org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'elsewhere': Invocation of init method failed" "analysis E: another bean's bind"
 [ "$(n analysis "^$SEVEN\$")" = 2 ] || die "analysis: the seven, twice"
-echo "  analysis: A 0 frames, the sentence · B 40 · A' 0 · C 40, while its context holds the analyzer as a bean"
+echo "  analysis: A 0 frames, the sentence · B 40 · A' 0 · C 40 - Boot loads analyzers through SpringFactoriesLoader, asks the context for none · D (192.0.2.1) and E (another bean's bind): the trace, no claim"
 
 # "Add debug, and the trace comes back, thirty-nine frames, beside the analysis and Boot's condition report."
 D1=$(blk debug 'a second, on the same port' 'the first TiffinBox, after')
@@ -847,7 +909,7 @@ echo "  debug: 39 frames (the BindException's own: 15 + the 24 folded), the cond
 
 # "slash customers never answers, and curl gives up after five seconds. Yet the log says minus one, and the timer counted it ...
 # It's an error, not an exception, so it walked straight past catch exception. The new catch takes both: five hundred, logged and timed."
-HB=$(blk hang 'the previous tree, copied' 'after/, copied'); HA=$(blk hang 'after/, copied' '')
+HB=$(blk hang 'the previous tree, copied' 'after/, copied'); HA=$(blk hang 'after/, copied' "after/'s copy again"); HI=$(blk hang "after/'s copy again" '')
 [ "$R_H4" = "curl -s -m 5 -w ' %{http_code}\n' http://127.0.0.1:18431/customers" ] || die "hang: the five-second line"
 printf '%s\n' "$HB" | grep -qE '^    [0-9]+: \} catch \(Exception e\) \{$' || die "hang: the previous tree catches Exception"
 printf '%s\n' "$HA" | grep -qE '^    [0-9]+: \} catch \(Exception \| LinkageError e\) \{ ' || die "hang: after/ catches Exception | LinkageError"
@@ -860,7 +922,17 @@ printf '%s\n' "$HB" | grep -qE '^  its standard error: uncaught exceptions 1 · 
 has "$HA" '  {"error":"ClassNotFoundException"} 500' "hang: five hundred"; has "$HA" "  curl exit 0" "hang: answered"
 has "$HA" '  the scrape'"'"'s line for GET /customers: tiffinbox_requests_seconds_count{route="GET /customers",status="500"} 1' "hang: timed"
 has "$HA" "  ${ANS}GET /customers -> 500" "hang: logged"; has "$HA" "  its standard error: uncaught exceptions 0 · stack frames 0 · Caused by: 0" "hang: nothing uncaught"
-echo "  hang: catch (Exception e) - 000, curl exit 28, the line and the timer say -1, NoClassDefFoundError uncaught · catch (Exception | LinkageError e) - 500, logged and timed, 0 uncaught"
+# "The new catch takes both: five hundred, the error logged, and timed." - at INFO, Boot's default
+has "$HI" '  {"error":"ClassNotFoundException"} 500' "hang INFO: five hundred"; has "$HI" '  {"error":"NoClassDefFoundError"} 500' "hang INFO: sbom, five hundred"; has "$HI" '  {"error":"JsonParseException"} 500' "hang INFO: the body, five hundred"
+has "$HI" '  the scrape'"'"'s line for GET /customers: tiffinbox_requests_seconds_count{route="GET /customers",status="500"} 1' "hang INFO: timed"
+has "$HI" "  ERROR tiffinbox: GET /customers failed" "hang INFO: the route's error, logged"
+has "$HI" "  ERROR tiffinbox: an actuator request failed" "hang INFO: the bridge's LinkageError, logged"
+has "$HI" "  ERROR tiffinbox: an actuator request failed: com.fasterxml.jackson.core.JsonParseException" "hang INFO: the bridge's exception, by its class"
+[ "$(printf '%s\n' "$HI" | grep -cxF '  java.lang.NoClassDefFoundError: com/fasterxml/jackson/databind/jdk14/JDK14Util')" -ge 1 ] || die "hang INFO: the error's own line"
+printf '%s\n' "$HI" | grep -qE '^  its log, read after it exited: APPLICATION FAILED TO START 0 · stack frames [1-9][0-9]* ' || die "hang INFO: the traces, counted"
+has "$HI" "  the body's words in its log: oops 0 · not json 0" "hang INFO: never what the client sent"
+has "$HI" "  its standard error: uncaught exceptions 0 · stack frames 0 · Caused by: 0" "hang INFO: nothing uncaught"; has "$HI" "$LOGOK" "hang INFO: no token"
+echo "  hang: catch (Exception e) - 000, curl exit 28, the line and the timer say -1, NoClassDefFoundError uncaught · catch (Exception | LinkageError e) - 500, logged and timed, 0 uncaught · at INFO: the route's error and the bridge's at ERROR, the body's words 0"
 
 # "Built natively, the AOT jar and the binary, each started twice on one port, print the same two sentences: the AOT step registered
 # the file and the analyzer's constructors." "And in the native binary, the hints lesson's break, rebuilt: five hundred, missing
@@ -880,20 +952,22 @@ has "$NC5" '  the scrape'"'"'s line for GET /kitchen: tiffinbox_requests_seconds
 has "$NC5" "  POST /shutdown -> 500 · curl exit 0" "native C: shutdown is a route too"; has "$NC5" "  still running: yes" "native C: still running"
 has "$NC5" "  exit 143 · listening on 19057 now: 0" "native C: SIGTERM"; has "$NC5" "  ${ANS}GET /kitchen -> 500" "native C: logged"
 has "$NC5" "  its standard error: uncaught exceptions 0 · stack frames 0 · Caused by: 0" "native C: nothing uncaught"
+has "$NC5" "  ERROR tiffinbox: GET /kitchen failed" "native C: the error logged"; has "$NC5" "  ERROR tiffinbox: POST /shutdown failed" "native C: the shutdown route's error logged"
+[ "$(printf '%s\n' "$NC5" | grep -c '^  org\.graalvm\.nativeimage\.MissingReflectionRegistrationError: ')" -ge 1 ] || die "native C: the error's own line"
 echo "  native: 2 builds, 8 of 8, offline · the AOT step registered spring.factories and the analyzer · the AOT jar and the binary: the sentence, 0 frames · C: /kitchen 500 MissingReflectionRegistrationError, POST 500, SIGTERM 143"
 
 # the exercise's end state: the line exercise/README.md calls "Done" is a line of this capture, after the solution's line - and of
 # SOLUTION.md's measured run
 XE=$(blk exercise "the solution's line" '')
-l="Cook and Rail started · the seven $S115 · APPLICATION FAILED TO START 0"
+l="Cook and Rail started · cook depends on [shift] and counts 12 slips · rail depends on [shift] and counts 3 hands · the seven $S115 · APPLICATION FAILED TO START 0"
 has "$XE" "$l" "exercise"
 awk '/^\*\*Done\*\*/ { f = 1 } f' exercise/README.md | grep -qxF -- "$l" || die "exercise/README.md: Done names no such line"
 grep -qxF -- "$l" exercise/solution/SOLUTION.md || die "SOLUTION.md: the measured run shows no such line"
 x exercise '^  exit 0 · printed: 0 line\(s\)$'; x exercise '^  exit 0 · listening on 19059 now: 0$'
-echo "  exercise: the README as written, then the solution's line -> Cook and Rail started, 115c36ba..., 0 banners"
+echo "  exercise: the README as written, then the solution's line -> Cook and Rail started, each depending on the shift alone (12 slips, 3 hands), 115c36ba..., 0 banners"
 
 # the anchor's README states the same numbers
-for t in 'it printed 40 stack frames and no analysis' '21 in the jars TiffinBox ships (`spring-boot` 18, `spring-boot-autoconfigure` 2,' '`spring-boot-micrometer-metrics` 1)' '`PortInUseFailureAnalyzer`, lives in' 'defaults to `false`' '`{"error":"ClassNotFoundException"} 500`' '`GET /customers -> -1`' '`{"error":"MissingReflectionRegistrationError"} 500`' '**`catch (Exception | LinkageError e)`**' 'The same analysis comes from the AOT jar'; do
+for t in 'it printed 40 stack frames and no analysis' '21 in the jars TiffinBox ships (`spring-boot` 18, `spring-boot-autoconfigure` 2,' '`spring-boot-micrometer-metrics` 1)' '`PortInUseFailureAnalyzer`, lives in' 'defaults to `false`' '`{"error":"ClassNotFoundException"} 500`' '`GET /customers -> -1`' '`{"error":"MissingReflectionRegistrationError"} 500`' '**`catch (Exception | LinkageError e)`**' 'The analysis for the taken port comes from the AOT jar' '`Can'"'"'t assign requested address`' '`GET /customers failed`'; do
   grep -qF -- "$t" after/README.md || die "after/README.md no longer states: $t"; done
 cmp -s after/README.md ../c5-tiffinbox/README.md || echo "  (after/README.md and ../c5-tiffinbox/README.md differ - the anchor is not this unit's after/ yet)" >&3
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"

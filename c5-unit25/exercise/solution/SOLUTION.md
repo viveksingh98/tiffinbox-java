@@ -20,7 +20,7 @@ harness/shutdown.sh 19045 .harness/mine/secrets/tiffinbox/shutdown-token; wait $
 The `exec` makes the background job TiffinBox's own process, so `wait $!` returns when it exits, with its exit code: 1, as every
 DevTools run here ends — the `exits` capture.)
 
-## Measured — `exercise/README.md` run exactly as written, then the lines above (2026-10-07)
+## Measured — `exercise/README.md` run exactly as written, then the lines above (2026-10-07; again 2026-10-08, after RED C5-S4 part B's fixes and the anchor's retired logging files: the same five lines)
 
 In one clean shell — `env -i HOME="$HOME" PATH="/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin" bash --noprofile --norc`: no
 variable of mine, Homebrew's `bin` for `mvn` — from `c5-unit25/`, JDK 25.0.4.1, Maven 3.9.16, offline against `.m2-demo`, no GraalVM,

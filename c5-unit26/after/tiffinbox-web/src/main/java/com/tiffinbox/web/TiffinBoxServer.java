@@ -58,9 +58,10 @@ import static java.lang.System.Logger.Level.INFO;
  * runs. The line is written before the timer stops: once a scrape counts an answer, that answer's line has been decided.
  *
  * <p>Course 5: a route that throws a LinkageError - a class it needs that the class path or the native binary does not
- * hold: the JVM's NoClassDefFoundError, GraalVM's MissingReflectionRegistrationError - answers 500 like any exception, and
- * is logged and timed with it. Caught only as an Exception, the error left handle(), the request's thread died, and the
- * client waited for an answer that never came. Other errors - out of memory, a stack overflow - are still not caught.
+ * hold: the JVM's NoClassDefFoundError, GraalVM's MissingReflectionRegistrationError - answers 500 like any exception: the
+ * error is logged at ERROR with its trace, under the route's name, and the answer is logged and timed like any other. Caught
+ * only as an Exception, the error left handle(), the request's thread died, and the client waited for an answer that never
+ * came, while nothing reached the log at INFO. Other errors - out of memory, a stack overflow - are still not caught.
  */
 @Component
 @RegisterReflectionForBinding(Customer.class)
@@ -180,6 +181,7 @@ public final class TiffinBoxServer {
             try {
                 respond(exchange, 200, handler.invoke(this));
             } catch (Exception | LinkageError e) {   // a class the route needs, missing: 500, never a silent client
+                LOG.log(System.Logger.Level.ERROR, key + " failed", e);   // a route TiffinBox declares (its handler exists), and the trace
                 Throwable cause = e.getCause() == null ? e : e.getCause();
                 respond(exchange, 500, ordered("error", cause.getClass().getSimpleName()));
             }

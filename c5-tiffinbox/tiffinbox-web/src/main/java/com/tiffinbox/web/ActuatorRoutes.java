@@ -112,6 +112,12 @@ public class ActuatorRoutes {
             respond(exchange, pathFound ? 405 : 404, "application/json",
                     Map.of("error", pathFound ? "method not allowed" : "not found"));
         } catch (Exception | LinkageError e) {      // a LinkageError: a class, or a native binary's hint, is missing
+            System.Logger log = System.getLogger("tiffinbox");     // TiffinBox's own logger: every 500 here is logged, at ERROR
+            if (e instanceof LinkageError) {         // TiffinBox's own fault: the error and its trace
+                log.log(System.Logger.Level.ERROR, "an actuator request failed", e);
+            } else {                                 // its message can quote what the client sent - a body, a level: the class alone
+                log.log(System.Logger.Level.ERROR, "an actuator request failed: {0}", e.getClass().getName());
+            }
             respond(exchange, 500, "application/json", Map.of("error", e.getClass().getSimpleName()));
         }
     }

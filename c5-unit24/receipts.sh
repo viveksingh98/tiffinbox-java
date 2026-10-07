@@ -14,12 +14,17 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #   before    the previous tree with the first lesson's flag (TiffinBox's own logger at DEBUG from the start): the loggers
 #             endpoint 404, the seven, then its log - DEBUG lines by logger: the route lines at start, 0 for the answers
 #   change    the previous tree against after/: the files that differ, TiffinBoxServer.java's key lines (the DEBUG line, before
-#             the timer stops), what application.yaml gains; everything else byte for byte, the Java logging files included
+#             the timer stops), what application.yaml gains, the POM's one removed line and the two Java logging files, gone;
+#             everything else byte for byte
 #   path      after/ built and extracted, run with the harness's Road joined and the README's loggers flag: java.util.logging's
 #             root handler, Logback's root appender and listeners; the README's POST to DEBUG and back, each seen by Road from
-#             Logback, java.util.logging and System.Logger, and one request after each
-#   files     the two Java logging files of Course 3 and the exec plugin's argument: A the README's line with the debug file,
-#             Road joined (what java.util.logging read, what Boot left); B the README's exec:exec line (logging.properties)
+#             Logback, java.util.logging and System.Logger, and one request after each; then C (labelled): the root to DEBUG
+#             after the group's null - and on a fresh process
+#   files     the two Java logging files of Course 3 and the exec plugin's argument, measured on the previous tree, which still
+#             ships them: A the README's line with the debug file, Road joined (what java.util.logging read, what Boot left);
+#             B the README's exec:exec line (logging.properties); both read for the file's own output - standard error, its
+#             bare format; C (labelled) the harness's Jul, no Boot, with each file: that output, counted the same way; then
+#             retired here - after/ holds neither file nor the argument, and the exec line still serves
 #   groups    after/'s jar, the README's loggers flag: every logger through a filter (the groups, the levels, TiffinBox's
 #             loggers; never a total), the group alone; then Boot's own groups web and sql at DEBUG - the seven, the log
 #   runtime   after/'s jar, the README's loggers flag: three requests at INFO, the README's POST to DEBUG, three more, the
@@ -36,8 +41,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # place. Every run of TiffinBox starts in a folder under .harness/ that holds a config tree with the demo token (secrets/), as the
 # README asks. Commands are printed exactly as they run: each goes through eval. "$CURLSET" is the comparison set since the secrets
 # lesson (../c5-unit11/curlset.sh: the seven requests, POST /shutdown with the token's header read from the file). "$M2" is this
-# unit's own repository, .m2-demo. The harness (harness/probe/logging/Road.java) is compiled into .harness/hc and joined by
-# --spring.main.sources: it lives outside com.tiffinbox, and it is the course's, never TiffinBox's.
+# unit's own repository, .m2-demo. The harness (harness/probe/logging/: Road, joined by --spring.main.sources; Jul, a plain main
+# run alone) is compiled into .harness/hc: it lives outside com.tiffinbox, and it is the course's, never TiffinBox's.
 # The network: every build runs offline (-o) against .m2-demo and says so ("offline: yes"); a build that cannot resolve an
 # artifact offline goes to Maven Central once, and says that ("offline: no - ..."). GraalVM's native plugin, under the profile
 # native, reads its metadata repository (a zip) from .m2-demo - and when the zip is not there it downloads it from GitHub, even
@@ -92,7 +97,12 @@ command -v curl > /dev/null || die "curl is needed: every request here is curl's
 # TIFFINBOX_*, SPRING_*, MANAGEMENT_*, SERVER_* and LOGGING_* variable, DEBUG (Boot reads it as --debug), the variables that inject
 # JVM flags, MAVEN_OPTS, MAVEN_ARGS and NATIVE_IMAGE_OPTIONS are removed first. GRAALVM_HOME stays: it says which GraalVM to use.
 # (A LOGGING_LEVEL_ROOT of yours would change every log a capture counts.)
-for v in $(env | sed -n 's/^\(TIFFINBOX_[A-Za-z0-9_]*\|SPRING_[A-Za-z0-9_]*\|MANAGEMENT_[A-Za-z0-9_]*\|SERVER_[A-Za-z0-9_]*\|LOGGING_[A-Za-z0-9_]*\|DEBUG\|JAVA_TOOL_OPTIONS\|JDK_JAVA_OPTIONS\|_JAVA_OPTIONS\|MAVEN_OPTS\|MAVEN_ARGS\|NATIVE_IMAGE_OPTIONS\)=.*/\1/p'); do unset "$v"; done
+# The list is an extended regular expression (sed -E): /usr/bin/sed's basic ones have no alternation, so the \| this loop once
+# used matched nothing and removed no variable at all (measured: RED C5-S4 #63). A canary is planted under every name first, and
+# the run stops if one survives the loop.
+for v in TIFFINBOX_CANARY SPRING_CANARY MANAGEMENT_CANARY SERVER_CANARY LOGGING_CANARY DEBUG JAVA_TOOL_OPTIONS JDK_JAVA_OPTIONS _JAVA_OPTIONS MAVEN_OPTS MAVEN_ARGS NATIVE_IMAGE_OPTIONS; do export "$v=planted-canary"; done
+for v in $(env | sed -n -E 's/^(TIFFINBOX_[A-Za-z0-9_]*|SPRING_[A-Za-z0-9_]*|MANAGEMENT_[A-Za-z0-9_]*|SERVER_[A-Za-z0-9_]*|LOGGING_[A-Za-z0-9_]*|DEBUG|JAVA_TOOL_OPTIONS|JDK_JAVA_OPTIONS|_JAVA_OPTIONS|MAVEN_OPTS|MAVEN_ARGS|NATIVE_IMAGE_OPTIONS)=.*/\1/p'); do unset "$v"; done
+[ -z "$(env | grep -- '=planted-canary$')" ] || die "a variable survived the clean-up above: $(env | grep -- '=planted-canary$' | sed 's/=.*//' | paste -sd' ' -)"
 # Every request this script makes goes to 127.0.0.1. An HTTP proxy named in your environment (http_proxy and the rest) would
 # carry curl's requests to that proxy instead of to TiffinBox: 127.0.0.1 and localhost go first in no_proxy and NO_PROXY.
 export no_proxy="127.0.0.1,localhost${no_proxy:+,$no_proxy}" NO_PROXY="127.0.0.1,localhost${NO_PROXY:+,$NO_PROXY}"
@@ -118,7 +128,8 @@ TF=secrets/tiffinbox/shutdown-token                  # the config tree's file fo
 SRV=tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java
 YAML=tiffinbox-web/src/main/resources/application.yaml
 POM=tiffinbox-web/pom.xml
-JULF=tiffinbox-web/logging.properties                # the two Java logging files of Course 3, still shipped (brief ⚑6b)
+JULF=tiffinbox-web/logging.properties                # the two Java logging files of Course 3: the previous tree ships them,
+#                                                      after/ does not (brief ⚑6b, RED: deleted here, after files measured them)
 JULD=tiffinbox-web/logging-debug.properties
 # The demo token. FAKE, and meant to look it: it guards nothing but a demo server on 127.0.0.1 that every capture stops. It is
 # written into .harness/*/secrets/ (git-ignored) when this script runs, and no capture prints it: see mask().
@@ -127,7 +138,7 @@ TOKEN=not-a-real-token-demo-only
 CURLSET=../c5-unit11/curlset.sh                      # the comparison set: the seven requests, POST /shutdown with the header
 [ -f "$CURLSET" ] || die "$CURLSET is missing"
 [ -f "$PREV/pom.xml" ] && [ -f after/pom.xml ] && [ -f after/README.md ] || die "the previous tree $PREV or after/ is missing"
-for f in harness/shutdown.sh harness/probe/logging/Road.java; do [ -f "$f" ] || die "harness/ is missing $f"; done
+for f in harness/shutdown.sh harness/probe/logging/Road.java harness/probe/logging/Jul.java; do [ -f "$f" ] || die "harness/ is missing $f"; done
 
 # The ports, BEFORE anything is wiped (a survivor of an interrupted run answers POST /shutdown only with its token, which lives
 # in .harness/ - so the message names the process to kill).
@@ -187,14 +198,17 @@ flag() { printf '%s\n' "${1##*--tiffinbox.port=18431 }"; }
 topath() { printf '%s\n' "${1/\/customers\/7/$2}"; }
 # member NAME: the README's line that asks for the group kitchen, asking for the logger NAME instead
 member() { printf '%s\n' "${R_GROUP/loggers\/kitchen/loggers/$1}"; }
+# R_ROOT: the README's POST to DEBUG, sent to the root logger (ROOT, Boot's name for it) instead of the group
+R_ROOT=${R_DEBUG/loggers\/kitchen/loggers/ROOT}
 # hcp DIR PORT ['JVMFLAG'] ['FLAGS']: the README's exploded run - the extracted jar on the class path, TiffinBox's own main -
 # from DIR, its port made PORT, the harness's classes added to the class path (../hc) and Road joined (--spring.main.sources);
 # JVMFLAG, if given, before -cp (the README's debug-file line's -D), FLAGS after
 hcp() { local c; c=$(at "$1" "$2" "$R_CP"); c=${c/lib\/\*\"/lib\/*:..\/hc\"}; [ -z "$3" ] || c=${c/ java -cp / java $3 -cp }
   printf '%s --spring.main.sources=probe.logging.Road%s\n' "$c" "${4:+ $4}"; }
-# xc PORT: the README's exec:exec line as this script runs it - from the tree the first build installed, offline, this unit's own
-# repository, its port from TIFFINBOX_PORT (Boot reads the variable as tiffinbox.port; the exec plugin's arguments are fixed)
-xc() { printf 'cd .harness/after && env TIFFINBOX_PORT=%s %s\n' "$1" "${R_EXEC/mvn -q -B /mvn -o -q -B -Dmaven.repo.local=\"\$M2\" }"; }
+# xc DIR PORT: the README's exec:exec line as this script runs it - from DIR (its web module; tiffinbox-core as the first build
+# installed it), offline, this unit's own repository, its port from TIFFINBOX_PORT (Boot reads the variable as tiffinbox.port; the
+# exec plugin's arguments are fixed)
+xc() { printf 'cd %s && env TIFFINBOX_PORT=%s %s\n' "$1" "$2" "${R_EXEC/mvn -q -B /mvn -o -q -B -Dmaven.repo.local=\"\$M2\" }"; }
 F_LOGGERS=$(flag "$R_LOGGERS"); F_KITCHEN=$(flag "$R_KITCHEN"); J_DEBUGFILE=${R_JUL%% -jar *}; J_DEBUGFILE=${J_DEBUGFILE#java }
 [ "$F_LOGGERS" = --management.endpoints.web.exposure.include=health,prometheus,loggers ] && [ "$F_KITCHEN" = --logging.level.kitchen=debug ] || die "a README flag line does not end in its one flag"
 [ "$J_DEBUGFILE" = -Djava.util.logging.config.file=tiffinbox-web/logging-debug.properties ] || die "the README's debug-file line"
@@ -203,7 +217,8 @@ for c in "$C_AFTER" "$(off .harness/x "$R_PLAIN" package)" "$(off .harness/x "$R
   r=$(dev "$c"); [ "$r" = "$R_PLAIN" ] || [ "$r" = "$R_INSTALL" ] || [ "$r" = "$R_NATIVE" ] || die "not a README line with the offline changes: $c"; done
 [ "$(hcp .harness/x 19031 "" "$F_LOGGERS")" = 'cd .harness/x && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19031 --spring.main.sources=probe.logging.Road --management.endpoints.web.exposure.include=health,prometheus,loggers' ] || die "the exploded run with the harness"
 [ "$(hcp .harness/x 19032 "$J_DEBUGFILE")" = 'cd .harness/x && java -Djava.util.logging.config.file=tiffinbox-web/logging-debug.properties -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19032 --spring.main.sources=probe.logging.Road' ] || die "the exploded run with the debug file"
-[ "$(xc 19032)" = 'cd .harness/after && env TIFFINBOX_PORT=19032 mvn -o -q -B -Dmaven.repo.local="$M2" -pl tiffinbox-web exec:exec' ] || die "the exec line"
+[ "$(xc .harness/after 19032)" = 'cd .harness/after && env TIFFINBOX_PORT=19032 mvn -o -q -B -Dmaven.repo.local="$M2" -pl tiffinbox-web exec:exec' ] || die "the exec line"
+[ "$R_ROOT" = "curl -s -w ' %{http_code}\n' -X POST -H 'Content-Type: application/json' -d '{\"configuredLevel\":\"DEBUG\"}' http://127.0.0.1:18431/actuator/loggers/ROOT" ] || die "the root's POST"
 [ "$(member com.tiffinbox)" = "curl -s -w ' %{http_code}\n' http://127.0.0.1:18431/actuator/loggers/com.tiffinbox" ] || die "the member line"
 [ "$(at .harness/x 19037 "$R_AOTRUN") $F_KITCHEN" = "cd .harness/x && java -Dspring.aot.enabled=true -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19037 --logging.level.kitchen=debug" ] || die "the AOT line with the kitchen flag"
 echo "  the commands: after/README.md gives all 38 lines this script runs or derives from"
@@ -254,8 +269,8 @@ echo "  .m2-demo holds Boot's parent, Logback 1.5.38 and jul-to-slf4j 2.0.18, th
 # The harness: Road.java compiled against the jar the first build made (extracted: its classes and the jars it ships), into
 # .harness/hc - outside every tree, outside com.tiffinbox
 (cd .harness/after && eval "$R_EXTRACT") > .harness/extract-after.log 2>&1 || { cat .harness/extract-after.log >&3; die "the README's extract command failed in .harness/after"; }
-javac -d .harness/hc -cp ".harness/after/tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:.harness/after/tiffinbox-web/target/extracted/lib/*" harness/probe/logging/Road.java > .harness/javac.log 2>&1 || { cat .harness/javac.log >&3; die "the harness did not compile"; }
-echo "  the harness: harness/probe/logging/Road.java compiled into .harness/hc ($(find .harness/hc -name '*.class' | wc -l | tr -d ' ') classes)"
+javac -d .harness/hc -cp ".harness/after/tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:.harness/after/tiffinbox-web/target/extracted/lib/*" harness/probe/logging/*.java > .harness/javac.log 2>&1 || { cat .harness/javac.log >&3; die "the harness did not compile"; }
+echo "  the harness: harness/probe/logging/ compiled into .harness/hc ($(find .harness/hc -name '*.class' | wc -l | tr -d ' ') classes)"
 
 # ---- helpers ------------------------------------------------------------------------------------------------------------
 # raw TOKEN FILE...: how many times TOKEN appears, raw, in the files (occurrences, not lines; binary files read as text)
@@ -420,8 +435,11 @@ change() { local f
   echo "  tiffinbox-core against the previous tree's (diff -rq -x target): $(diff -rq -x target .harness/before/tiffinbox-core .harness/after/tiffinbox-core | wc -l | tr -d ' ') files differ"
   for f in TiffinBoxApp ActuatorRoutes KitchenHealthIndicator KitchenMetrics; do f=tiffinbox-web/src/main/java/com/tiffinbox/web/$f.java
     echo "  $(basename "$f") against the previous tree's, byte for byte: $(cmp -s ".harness/before/$f" ".harness/after/$f" && echo the same || echo different)"; done
-  for f in "$POM" "$JULF" "$JULD"; do
-    echo "  $f against the previous tree's, byte for byte: $(cmp -s ".harness/before/$f" ".harness/after/$f" && echo the same || echo different)"; done; }
+  diff ".harness/before/$POM" ".harness/after/$POM" > .harness/file.diff || true
+  echo "  $POM - diff adds $(grep -c '^> ' .harness/file.diff || true) lines, removes $(grep -c '^< ' .harness/file.diff || true):"
+  grep -E '^[<>] ' .harness/file.diff | sed 's/^\([<>]\) */    \1 /'
+  for f in "$JULF" "$JULD"; do
+    echo "  $f - in the previous tree: $([ -f ".harness/before/$f" ] && echo yes || echo no) · in after/: $([ -e ".harness/after/$f" ] && echo yes || echo no)"; done; }
 
 # ---- path: one line's road - java.util.logging, the bridge, Logback - and a level carried back ---------------------------------
 path() {
@@ -445,25 +463,67 @@ path() {
   road 7
   status /kitchen 19031; answered 19031 'GET /kitchen' 200 2
   echo "  its answer lines so far: $(awk -v kind=answers "$LOGAWK" .harness/run.out | wc -l | tr -d ' ')"
+  echo "C (labelled) - after null, the root: the README's POST to DEBUG, sent to the root logger (ROOT), then one request:"
+  ask "$R_ROOT" 19031
+  road 8
+  ask "$(member tiffinbox)" 19031
+  status /kitchen 19031; answered 19031 'GET /kitchen' 200 3
+  echo "  its answer lines so far: $(awk -v kind=answers "$LOGAWK" .harness/run.out | wc -l | tr -d ' ')"
+  seven 19031 .harness/serve
+  echo "C (labelled) - the same root POST on a fresh process, the group never set: the same run line, port 19031:"
+  start "$(hcp .harness/serve 19031 "" "$F_LOGGERS")"; up; ready 19031
+  ask "$R_ROOT" 19031
+  road 6
+  ask "$(member tiffinbox)" 19031
+  status /kitchen 19031; answered 19031 'GET /kitchen' 200 1
+  echo "  its answer lines: $(awk -v kind=answers "$LOGAWK" .harness/run.out | wc -l | tr -d ' ')"
   seven 19031 .harness/serve; }
 
-# ---- files: the Java logging files of Course 3 and the exec plugin's argument, under Boot --------------------------------------
-files() { local f
-  echo "the two Java logging files the anchor still ships - their lines that are neither comment nor blank:"
-  for f in "$JULF" "$JULD"; do echo "  $f:"; grep -vE '^[[:space:]]*(#|$)' "after/$f" | sed 's/^/    /'; done
-  echo "  $POM - the exec plugin's argument (grep -n):"; grep -nF 'java.util.logging.config.file' "after/$POM" | sed 's/^\([0-9]*\):[ \t]*/    \1: /'
-  echo "A - the README's line with the debug file, from after/'s extracted class path (.harness/serve), Road joined - port 19032:"
-  start "$(hcp .harness/serve 19032 "$J_DEBUGFILE")"; up; ready 19032
+# ---- files: the Java logging files of Course 3 and the exec plugin's argument - measured on the previous tree, retired here ---
+# julout: the run's two streams read for what java.util.logging's own console handler would print. Its format, the files'
+# %5$s%n, is the message alone: TiffinBox's route and orders-cooked messages at the start of a line, and it writes to standard
+# error. Logback writes the same messages to standard output, after a time, a level and a logger's name.
+julout() { echo "  standard error: $(wc -l < .harness/run.err | tr -d ' ') lines · in the file's bare format, on either stream: route lines $(cat .harness/run.out .harness/run.err | grep -c '^route ' || true), orders-cooked lines $(cat .harness/run.out .harness/run.err | grep -c '^orders cooked:' || true)"; }
+# named PORT: whether the JVM listening on PORT was started with the exec plugin's argument - its command line read (ps), never
+# printed: only the answer
+named() { local l; l=$(lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2> /dev/null | head -1)
+  echo "  the forked JVM's command line names logging.properties: $(ps -o command= -p "$l" 2> /dev/null | grep -q -- '-Djava.util.logging.config.file=logging.properties' && echo yes || echo no)"; }
+files() { local f c
+  echo "the two Java logging files and the exec plugin's argument, on the previous tree, which still ships them - their lines"
+  echo "that are neither comment nor blank, and the argument (grep -n):"
+  for f in "$JULF" "$JULD"; do echo "  $f:"; grep -vE '^[[:space:]]*(#|$)' "$PREV/$f" | sed 's/^/    /'; done
+  echo "  $POM:"; grep -nF 'java.util.logging.config.file' "$PREV/$POM" | sed 's/^\([0-9]*\):[ \t]*/    \1: /'
+  echo "the previous tree, copied to .harness/jul with a config tree, built the README's plain way, then extracted:"
+  copy "$PREV" .harness/jul
+  pbuild .harness/jul "the previous tree"
+  echo "\$ cd .harness/jul && $R_EXTRACT"
+  (cd .harness/jul && eval "$R_EXTRACT") > .harness/jul.extract.log 2>&1 || { cat .harness/jul.extract.log >&3; die "the extract failed in .harness/jul"; }
+  echo "  extracted: exit 0 · its lib/ holds $(ls .harness/jul/tiffinbox-web/target/extracted/lib | wc -l | tr -d ' ') jars"
+  echo "A - the README's line with the debug file, from that tree's extracted class path, Road joined - port 19032:"
+  start "$(hcp .harness/jul 19032 "$J_DEBUGFILE")"; up; ready 19032
   road 1
-  seven 19032 .harness/serve
-  debugs .harness/run.out
-  echo "B - the exec plugin's argument: the README's exec line, from the tree the first build installed (.harness/after), its port"
-  echo "from TIFFINBOX_PORT and its config tree in tiffinbox-web/ (the folder the plugin's JVM starts in) - port 19032:"
-  tree .harness/after/tiffinbox-web
-  start "$(xc 19032)"; upchild 19032; ready 19032
+  seven 19032 .harness/jul
+  debugs .harness/run.out; julout
+  echo "B - the README's exec line, from that tree: the exec plugin passes its argument (logging.properties). Its port from"
+  echo "TIFFINBOX_PORT, its config tree in tiffinbox-web/ (the folder the plugin's JVM starts in) - port 19032:"
+  tree .harness/jul/tiffinbox-web
+  start "$(xc .harness/jul 19032)"; upchild 19032; named 19032; ready 19032
   echo "  its log's line for the orders cooked:"; grep -m1 ' : orders cooked:' .harness/run.out | lmask | sed 's/^/    /'
-  seven 19032 .harness/after/tiffinbox-web
-  debugs .harness/run.out; }
+  seven 19032 .harness/jul/tiffinbox-web
+  debugs .harness/run.out; julout
+  echo "C (labelled) - the same files with no Boot to replace them: the harness's Jul, a plain main that logs one route line at"
+  echo "DEBUG and the orders cooked at INFO through System.Logger(\"tiffinbox\"), from that tree, with each file:"
+  for f in "$JULD" "$JULF"; do
+    c="cd .harness/jul && java -Djava.util.logging.config.file=$f -cp ../hc probe.logging.Jul"; echo "\$ $c"
+    (eval "$c") > .harness/run.out 2> .harness/run.err < /dev/null || die "the harness's Jul failed with $f"
+    julout; done
+  echo "retired here - after/, this unit's tree:"
+  for f in "$JULF" "$JULD"; do echo "  $f: $([ -e "after/$f" ] && echo there || echo deleted)"; done
+  echo "  $POM - lines that name java.util.logging.config.file: $(grep -cF 'java.util.logging.config.file' "after/$POM" || true)"
+  echo "the README's exec line on after/ (.harness/after, the tree the first build installed), the argument gone - port 19032:"
+  tree .harness/after/tiffinbox-web
+  start "$(xc .harness/after 19032)"; upchild 19032; named 19032; ready 19032
+  seven 19032 .harness/after/tiffinbox-web; }
 
 # ---- groups: every logger, through a filter; the group; Boot's own groups on TiffinBox ----------------------------------------
 # loggers FILE: the loggers answer (JSON) through a filter - its size against a floor, its keys, the levels, every group with its
@@ -677,7 +737,7 @@ cnt() { printf '%s\n' "$1" | grep -cxF -- "$2" || true; }
 # for reading, nor the binary this run built
 for f in .harness/raw-*; do [ "$(cat "$f")" = 0 ] || die "a capture's raw output held the demo token ($f)"; done
 NBIN=0
-for f in .r-*.out README.md exercise/README.md exercise/solution/SOLUTION.md receipts.md5 harness/shutdown.sh harness/probe/logging/Road.java after/README.md "after/$YAML" "after/$SRV" .harness/nat/$BIN; do
+for f in .r-*.out README.md exercise/README.md exercise/solution/SOLUTION.md receipts.md5 harness/shutdown.sh harness/probe/logging/Road.java harness/probe/logging/Jul.java after/README.md "after/$YAML" "after/$SRV" .harness/nat/$BIN; do
   [ -f "$f" ] || continue; case $f in .harness/nat*) NBIN=$((NBIN + 1)) ;; esac
   [ "$(raw "$TOKEN" "$f")" = 0 ] || die "$f holds the demo token, raw"; done
 [ "$NBIN" = 1 ] || die "one binary was built, $NBIN were checked"
@@ -702,12 +762,13 @@ has "$BE" "  its DEBUG lines: 5 · tiffinbox: 5 route lines, 0 answer lines · n
 x before ' · offline: yes · exit 0$'
 echo "  before: DEBUG from the start - 5 route lines, 0 for the seven answers · loggers 404 · 115c36ba..."
 
-# "The change, two files ... one debug line per answer: the route and the status, the same two values the timer tags ... written
-# before the timer stops ... a log group ... TiffinBox's own logger, plus the loggers under com dot tiffinbox."
-[ "$(n change '^  Files ')" = 3 ] && [ "$(n change '^  Only in ')" = 0 ] || die "change: three files differ, none added"
+# "The change: two files of code, and the README ... one debug line per answer: the route and the status, the same two values the
+# timer tags ... written before the timer stops ... a log group ... TiffinBox's own logger, plus the loggers under com dot tiffinbox."
+[ "$(n change '^  Files ')" = 4 ] && [ "$(n change '^  Only in ')" = 2 ] || die "change: four files differ, two removed, none added"
 x change '^  Files \.harness/before/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer\.java and '
 x change '^  Files \.harness/before/tiffinbox-web/src/main/resources/application\.yaml and '
-x change '^  Files \.harness/before/README\.md and '
+x change '^  Files \.harness/before/README\.md and '; x change '^  Files \.harness/before/tiffinbox-web/pom\.xml and '
+x change '^  Only in \.harness/before/tiffinbox-web: logging\.properties$'; x change '^  Only in \.harness/before/tiffinbox-web: logging-debug\.properties$'
 [ "$(blk change '  tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java - diff adds' '  its key lines now' | paste -sd'|' -)" = '    < .tag("route", handler != null ? key : "UNKNOWN")|    < .tag("status", Integer.toString(exchange.getResponseCode()))' ] || die "change: the two tag lines it removes"
 CK=$(blk change '  its key lines now' '  tiffinbox-web/src/main/resources/application.yaml')
 L1=$(printf '%s\n' "$CK" | sed -n 's/^    \([0-9]*\): LOG\.log(DEBUG, "{0} -> {1}", route, status);.*/\1/p'); L2=$(printf '%s\n' "$CK" | sed -n 's/^    \([0-9]*\): sample\.stop(Timer\.builder("tiffinbox\.requests").*/\1/p')
@@ -717,14 +778,18 @@ has "$CK" '    65: private static final System.Logger LOG = System.getLogger("ti
 for t in '.tag("route", route)' '.tag("status", status)' 'String route = handler != null ? key : "UNKNOWN";'; do printf '%s\n' "$CK" | grep -qE "^    [0-9]+: $(printf '%s' "$t" | sed 's/[][\.*^$(){}?+|/]/\\&/g')\$" || die "change: $t"; done
 [ "$(blk change '  tiffinbox-web/src/main/resources/application.yaml - the lines it gains' '  README.md' | sed 's/^ *//' | paste -sd'|' -)" = "logging:|group:|kitchen: tiffinbox, com.tiffinbox|(diff adds 8 lines, removes 0)" ] || die "change: application.yaml gains the group"
 x change '^  tiffinbox-core against the previous tree.s \(diff -rq -x target\): 0 files differ$'
-for t in TiffinBoxApp.java ActuatorRoutes.java KitchenHealthIndicator.java KitchenMetrics.java tiffinbox-web/pom.xml tiffinbox-web/logging.properties tiffinbox-web/logging-debug.properties; do x change "^  $t against the previous tree.s, byte for byte: the same\$"; done
-[ "$(diff -rq -x target -x secrets "$PREV" after | wc -l | tr -d ' ')" = 3 ] || die "change: after/ differs from the previous tree in more than the README, the server and the YAML"
-echo "  change: 3 files · the DEBUG line in the finally, before the timer stops, route and status · the group kitchen: tiffinbox, com.tiffinbox · core, the bridge, the indicator, the meters, the POM and the two Java logging files: the same"
+for t in TiffinBoxApp.java ActuatorRoutes.java KitchenHealthIndicator.java KitchenMetrics.java; do x change "^  $t against the previous tree.s, byte for byte: the same\$"; done
+[ "$(blk change '  tiffinbox-web/pom.xml - diff adds' '  tiffinbox-web/logging.properties - ' | paste -sd'|' -)" = '    < <argument>-Djava.util.logging.config.file=logging.properties</argument>' ] || die "change: the POM loses the exec argument, nothing else"
+x change '^  tiffinbox-web/pom\.xml - diff adds 0 lines, removes 1:$'
+for t in logging.properties logging-debug.properties; do x change "^  tiffinbox-web/$t - in the previous tree: yes · in after/: no\$"; done
+[ "$(diff -rq -x target -x secrets "$PREV" after | wc -l | tr -d ' ')" = 6 ] || die "change: after/ differs from the previous tree in more than the README, the server, the YAML, the POM and the two files"
+echo "  change: 4 files differ, 2 deleted · the DEBUG line in the finally, before the timer stops, route and status · the group kitchen: tiffinbox, com.tiffinbox · the POM: the exec argument gone · core, the bridge, the indicator and the meters: the same"
 
 # "TiffinBox writes through the JDK's System Logger ... Java's own logging ... one handler, the SLF4J bridge ... Logback's root
 # logger writes through one appender, CONSOLE." "the level change propagator, copies the level back ... debug becomes FINE ...
 # System Logger's debug check says yes. One request, one line. Back to null, and it's quiet again."
-PA=$(blk path 'the road, as Road read it' 'the README.s POST - the group kitchen to DEBUG'); PB=$(blk path 'the README'"'"'s POST - the group kitchen to DEBUG' 'the README'"'"'s POST - the group back to null'); PC=$(blk path 'the README'"'"'s POST - the group back to null' '')
+PA=$(blk path 'the road, as Road read it' 'the README.s POST - the group kitchen to DEBUG'); PB=$(blk path 'the README'"'"'s POST - the group kitchen to DEBUG' 'the README'"'"'s POST - the group back to null'); PC=$(blk path 'the README'"'"'s POST - the group back to null' 'C (labelled) - after null')
+PD=$(blk path 'C (labelled) - after null' 'C (labelled) - the same root POST'); PE=$(blk path 'C (labelled) - the same root POST' '')
 x path '^  extracted: exit 0 · its lib/ holds 46 jars$'
 has "$PA" "  harness: java.util.logging's root logger - its handlers: [org.slf4j.bridge.SLF4JBridgeHandler] · its level: INFO" "path: the bridge on JUL's root"
 has "$PA" "  harness: Logback's root logger - its appenders: [CONSOLE ch.qos.logback.core.ConsoleAppender] · its level: INFO" "path: one appender, CONSOLE"
@@ -734,23 +799,43 @@ has "$PB" "   204" "path: the POST"
 has "$PB" "  harness: Logback's tiffinbox changed - TiffinBox's logger: Logback's tiffinbox DEBUG · java.util.logging's tiffinbox FINE · System.Logger DEBUG loggable: true" "path: DEBUG is FINE"
 has "$PB" "  ${ANS}GET /kitchen -> 200" "path: one request, one line"
 has "$PC" "  harness: Logback's tiffinbox changed - TiffinBox's logger: Logback's tiffinbox INFO · java.util.logging's tiffinbox INFO · System.Logger DEBUG loggable: false" "path: back"
-has "$PC" "  its answer lines so far: 1" "path: quiet again"; has "$PC" "$SEVEN" "path: the seven"
-echo "  path: JUL's root -> SLF4JBridgeHandler -> Logback's CONSOLE · LevelChangePropagator: DEBUG -> FINE, loggable; one line; null -> INFO, quiet"
+has "$PC" "  its answer lines so far: 1" "path: quiet again"
+# "Back to null, and it's quiet. But Java's logging keeps INFO pinned on TiffinBox's logger: a later root change shows debug in
+# Actuator, and prints nothing."
+has "$PD" "   204" "path C: the root's POST"
+has "$PD" "  harness: Logback's ROOT changed - TiffinBox's logger: Logback's tiffinbox DEBUG · java.util.logging's tiffinbox INFO · System.Logger DEBUG loggable: false" "path C: java.util.logging pinned at INFO"
+has "$PD" '  {"configuredLevel":null,"effectiveLevel":"DEBUG"} 200' "path C: Actuator reports DEBUG"
+has "$PD" "  its answer lines so far: 1" "path C: no line"; has "$PD" "$SEVEN" "path: the seven"
+has "$PE" "   204" "path C, fresh: the root's POST"
+has "$PE" "  harness: Logback's ROOT changed - TiffinBox's logger: Logback's tiffinbox DEBUG · java.util.logging's tiffinbox null · System.Logger DEBUG loggable: true" "path C, fresh: java.util.logging follows the root"
+has "$PE" '  {"configuredLevel":null,"effectiveLevel":"DEBUG"} 200' "path C, fresh: Actuator reports DEBUG"
+has "$PE" "  its answer lines: 1" "path C, fresh: the line"; has "$PE" "$SEVEN" "path C, fresh: the seven"
+[ "$(printf '%s\n' "$PE" | grep -c '^  harness: ')" = 1 ] || die "path C, fresh: Road's one line after its start"
+echo "  path: JUL's root -> SLF4JBridgeHandler -> Logback's CONSOLE · LevelChangePropagator: DEBUG -> FINE, loggable; one line; null -> INFO, quiet · C: after null, the root at DEBUG - Actuator DEBUG, JUL pinned INFO, 0 lines; fresh, the same POST - 1 line"
 
-# "the logging file that quietly stopped working ... Java's logging did read it: its properties still say FINE. Then Boot swapped
-# the root's handler for its bridge and set the level from Logback, INFO. Zero debug lines. The exec plugin's file is just as dead:
-# the lines come out in Logback's format."
-FA=$(blk files 'A - ' 'B - '); FB=$(blk files 'B - ' '')
+# "the logging file that quietly stopped working ... Java's logging did read it: its properties still say FINE. Then Boot put its
+# bridge on the root and took the level from Logback: INFO, zero debug lines. The exec plugin's file is just as dead, so this
+# lesson deletes both."
+FA=$(blk files 'A - ' 'B - '); FB=$(blk files 'B - ' 'C (labelled)'); FC=$(blk files 'C (labelled)' 'retired here'); FR=$(blk files 'retired here' '')
+JUL0="  standard error: 0 lines · in the file's bare format, on either stream: route lines 0, orders-cooked lines 0"
 has "$(blk files '  tiffinbox-web/logging-debug.properties:' '  tiffinbox-web/pom.xml')" "    .level   = FINE" "files: the debug file asks for FINE"
 x files '^    [0-9]+: <argument>-Djava\.util\.logging\.config\.file=logging\.properties</argument>$'
+x files '^  built the previous tree · offline: yes · exit 0$'
 has "$FA" "  harness: what java.util.logging's configuration file asked for (LogManager's properties) - handlers: java.util.logging.ConsoleHandler · .level: FINE" "files: JUL read the file"
 has "$FA" "  harness: java.util.logging's root logger - its handlers: [org.slf4j.bridge.SLF4JBridgeHandler] · its level: INFO" "files: Boot's bridge, INFO"
 has "$FA" "  its DEBUG lines: 0 · tiffinbox: 0 route lines, 0 answer lines · no other logger" "files: zero DEBUG lines"
+has "$FA" "$JUL0" "files A: nothing in the file's own output"
 has "$FB" "  listens on: 127.0.0.1:19032 · the process listening: a child of the one started above (the JVM the exec plugin forks): yes" "files: exec forks"
+has "$FB" "  the forked JVM's command line names logging.properties: yes" "files B: the argument was passed"
 has "$FB" "    <time>  INFO <pid> --- [           main] tiffinbox                                : orders cooked:  120" "files: Logback's format, not the file's"
 has "$FB" "  its DEBUG lines: 0 · tiffinbox: 0 route lines, 0 answer lines · no other logger" "files: exec, zero DEBUG lines"
-[ "$(n files "^$SEVEN\$")" = 2 ] || die "files: the seven, twice"
-echo "  files: the debug file read (.level FINE), root still the bridge at INFO, 0 DEBUG lines · exec:exec: Logback's format, 0 DEBUG lines"
+has "$FB" "$JUL0" "files B: nothing in the file's own output"
+[ "$(printf '%s\n' "$FC" | grep -E '^  standard error: ' | paste -sd'|' -)" = "  standard error: 2 lines · in the file's bare format, on either stream: route lines 1, orders-cooked lines 1|  standard error: 1 lines · in the file's bare format, on either stream: route lines 0, orders-cooked lines 1" ] || die "files C: with no Boot, the debug file prints both lines bare on standard error, the other one"
+for t in logging.properties logging-debug.properties; do has "$FR" "  tiffinbox-web/$t: deleted" "files: $t retired"; done
+has "$FR" "  tiffinbox-web/pom.xml - lines that name java.util.logging.config.file: 0" "files: the argument retired"
+has "$FR" "  the forked JVM's command line names logging.properties: no" "files: after/'s exec run, no argument"; has "$FR" "$SEVEN" "files: after/'s exec run serves"
+[ "$(n files "^$SEVEN\$")" = 3 ] || die "files: the seven, three times"
+echo "  files: on the previous tree - the debug file read (.level FINE), root still the bridge at INFO, 0 DEBUG lines, nothing in its own format or on standard error · exec:exec with the argument: Logback's format, 0 · C, no Boot: 2 and 1 bare lines on standard error · retired here: after/'s exec line serves"
 
 # "Expose loggers for one run, and Boot lists every logger and three groups. Kitchen is ours. Web and SQL are Boot's own: five and
 # three of Spring's web and JDBC loggers. Set either to debug on TiffinBox and you get zero debug lines."
@@ -851,6 +936,6 @@ echo "  exercise: the README as written, then the solution's line -> tiffinbox D
 # the anchor's README states the same numbers
 for t in '`GET /customers -> 200`' '`UNKNOWN -> 405`' '**`logging.group.kitchen: tiffinbox, com.tiffinbox`**' '`org.slf4j.bridge.SLF4JBridgeHandler`' 'appender, `CONSOLE`' 'three requests at INFO, 0 lines; the POST, `204`; three more, 3 lines; `null`, `204`; three more,' 'The POST answers `405`, and the level stays' 'answers `204` here' '`web` (5 members) and `sql` (3)' 'its `.level = FINE`' '`loggers` by flag answers 404' 'the log holds the token 0 times and the header'"'"'s name 0 times' 'print their six lines' 'Spring'"'"'s one line about TiffinBox and 0 lines per answer' 'the seven requests add six'; do
   grep -qF -- "$t" after/README.md || die "after/README.md no longer states: $t"; done
-cmp -s after/README.md ../c5-tiffinbox/README.md || echo "  (after/README.md and ../c5-tiffinbox/README.md differ - the anchor is not this unit's after/ yet)" >&3
+cmp -s after/README.md ../c5-tiffinbox/README.md || echo "  (after/README.md and ../c5-tiffinbox/README.md differ - the anchor has moved on: it is unit 26's after/ now)" >&3
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
 echo "c5-unit24: every capture 3/3 and = published; every spoken number asserted; 0 raw demo tokens in every capture, every saved answer and every run's log"

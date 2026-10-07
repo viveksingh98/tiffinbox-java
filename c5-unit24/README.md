@@ -4,8 +4,8 @@ Course 5 · Spring Boot · Section 4, its fourth unit · Verified on **JDK 25.0.
 1.5.38, GraalVM CE 25.3.4.1** (native-image 25.0.4.1), 2026-10-07. TiffinBox logged nothing per request — not even at DEBUG — and
 nothing changed a level while it ran: a level meant a restart. This unit shows that silence on the previous tree, gives TiffinBox
 one DEBUG line per answer and a log group, draws the road a line takes (`System.Logger` → `java.util.logging` → Boot's SLF4J bridge
-→ Logback's appender) from inside the running process, explains the first lesson's logging file that "quietly stopped working",
-lists the loggers and Boot's own groups, switches the level while TiffinBox runs and locks the switch, breaks the name the level is
+→ Logback's appender) from inside the running process, explains the first lesson's logging file that "quietly stopped working"
+and retires it (RED decided ⚑6b), lists the loggers and Boot's own groups, switches the level while TiffinBox runs and locks the switch, breaks the name the level is
 set on (A/B/A′), counts the token at TRACE, and re-checks the AOT jar and the native binary — where the level changes only at start.
 
 **The anchor changes (brief ⚑6):**
@@ -18,13 +18,16 @@ set on (A/B/A′), counts the token at TRACE, and re-checks the AOT jar and the 
   class's Javadoc gains a paragraph.
 - `application.yaml`: **`logging.group.kitchen: tiffinbox, com.tiffinbox`**, with a comment — TiffinBox's own logger, and the
   loggers under `com.tiffinbox` (Boot logs TiffinBox's startup under its main class's name, `com.tiffinbox.web.TiffinBoxServer`).
+- **Retired (⚑6b, RED decided — C5-S4 #43):** `tiffinbox-web/logging.properties`, `tiffinbox-web/logging-debug.properties` and the
+  exec plugin's `<argument>-Djava.util.logging.config.file=logging.properties</argument>` — deleted, after `files` measured them on
+  the previous tree, which still ships them: under Boot they changed nothing. The exec plugin stays, and still starts TiffinBox.
 - **Not edited:** `tiffinbox-core` (`change`: 0 files differ), `TiffinBoxApp.java` (⚑11), `ActuatorRoutes.java`,
-  `KitchenHealthIndicator.java`, `KitchenMetrics.java`, the POM, and the two Java logging files of Course 3 with the exec plugin's
-  argument (⚑6b is RED's call: measured in `files`, below). The exposure list stays `health,prometheus` (⚑3): `loggers` is a flag,
-  for one run.
+  `KitchenHealthIndicator.java`, `KitchenMetrics.java`. The exposure list stays `health,prometheus` (⚑3): `loggers` is a flag, for
+  one run.
 
-`c5-tiffinbox` and this unit's `after/` hold the change and the anchor README's new section, and nothing else (`diff -rq -x target
-../c5-tiffinbox after` is empty). **Unit 26 starts from `after/`, and unit 25 is re-pointed to it** (see the last section).
+This unit's `after/` holds the change, the retirement and the anchor README's new section, and nothing else. **Unit 26 starts from
+`after/`, and unit 25 is re-pointed to it** (see the last section); the anchor has moved on since: `../c5-tiffinbox` is unit 26's
+`after/` now (`diff -rq -x target ../c5-tiffinbox ../c5-unit26/after` is empty).
 
 ```
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
@@ -33,15 +36,16 @@ export GRAALVM_HOME=/path/to/a/graalvm-jdk-25      # GraalVM CE 25.3.4.1 for the
 ./receipts.sh     # 10 captures, 3 runs each; every spoken number asserted; 0 raw tokens; a published-md5 mismatch stops it
 ```
 
-(`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) It runs for about 11 minutes on the author's Mac, most of it the three native builds (137-143 s each). The runs of record of the
-final script, 2026-10-07: **663 s under `bash receipts.sh`** (Homebrew bash 5.3.9, this folder, exit 0) and **652 s under
-`./receipts.sh`** (/bin/bash 3.2.57, from a sealed clone, exit 0 — "From a clone", below), every capture = published, while other
-agents' work held the load average between about 4 and 24; every native build inside the capture's bound, under 20 minutes. Before
-the clone test changed one condition in `mbuild()` (its offline-then-Central rule, a branch a filled `.m2-demo` never takes), the
-same captures had matched under both shells here: 659 s (3.2) and 655 s (5.3), exit 0 each. (The nine captures before `native` were
-first published by a 3.2 run before `native` showed its scrape; `native` by a 3.2 run of the next script, 668 s.)
+(`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) It runs for about 15 to 35 minutes on the author's Mac, most of it the three native builds (282-439 s each in the runs below, beside
+other units' native builds). The runs of record of this revision (RED C5-S4 part B's fixes), 2026-10-08: **2105 s under
+`./receipts.sh`** (/bin/bash 3.2.57, this folder, exit 0) and **1794 s under `bash receipts.sh`** (Homebrew bash 5.3.9, this folder,
+exit 0), every capture 3/3 and = published, while three units' receipts and their native builds held the one-minute load average
+between about 40 and 190; every native build inside the capture's bound, under 20 minutes. The four hashes that moved (`change`,
+`path`, `files`; `lock` moved and came back with the bridge change it measured deferred) were published from a 3.2 run of the same
+captures, 3/3, every check passed (879 s). The first revision's runs of record, 2026-10-07: 663 s (5.3) and 652 s (3.2, from a sealed
+clone).
 It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first, so you can see which one moved).
-Published hashes: before `f54f1d0d9ce7dcd505da38a4204082a3` · change `33c086b0aa2d9af009bd98db51dc5a60` · path `3669fb788b56af43327b036edf29b5f4` · files `8fe925f1cc90f3960e1e9791084b7d9e` · groups `9fa009d838477a2bff5ec74f287074e7` · runtime `ac87b9c21245e07e69ab5f4aea79c762` · lock `06fe5c6fa2b4fe662e33f820ae5d2681` · names `0363b233f9c9cc17b76fbd6c2422def9` · native `38eaddc5731595eb78a81ffdc87059cd` · exercise `8dab017186f32397e9e2b0645516f4ca`.
+Published hashes: before `f54f1d0d9ce7dcd505da38a4204082a3` · change `6db2f73f1dd91b9d399d332e62ff5661` · path `aaa999e1098123fb1fba017041040f3c` · files `d1af636441477c70f89b55ec97250a9d` · groups `9fa009d838477a2bff5ec74f287074e7` · runtime `ac87b9c21245e07e69ab5f4aea79c762` · lock `06fe5c6fa2b4fe662e33f820ae5d2681` · names `0363b233f9c9cc17b76fbd6c2422def9` · native `38eaddc5731595eb78a81ffdc87059cd` · exercise `8dab017186f32397e9e2b0645516f4ca`.
 
 ## The GraalVM
 
@@ -74,6 +78,8 @@ and the zip are in `$M2`; (4) every build's log is searched for the plugin's own
 `offline: no` and the run stops. (native-image prints one GitHub address in every build: its documentation link, never a download.)
 At run time nothing leaves 127.0.0.1, and Logback writes to the terminal only: no file appender, no network appender.
 
+**This revision (2026-10-08, RED C5-S4 part B's fixes) was not cloned here:** its sealed fresh-clone run was unit 26's, whose receipts build this unit's `after/` as their previous tree (`../c5-unit26/README.md`, "From a clone"). The paragraph below is this unit's own clone test, of its first revision.
+
 **From a clone, sealed (2026-10-07, brief S4.2).** The repository was cloned at this unit's commit (less this paragraph and the
 run-times note: `README.md` is the only file changed since) into an empty folder — no `.m2-demo` in this unit or in unit 23's, no
 seed folder — and `receipts.sh` run under `env -i`, with a `HOME` whose `.mavenrc` points Maven's `user.home` there (Java reads
@@ -99,7 +105,7 @@ TiffinBox does not start without its shutdown token. Every run starts in a folde
 `receipts.sh` writes it when it runs. The token never reaches a command line: the seven requests read it from the file. Every capture
 is masked — the token becomes `[masked: the 26-character token]` — and `receipts.sh` counts the raw token in each run's own output
 **before** masking (`.harness/raw-*`: 0 in all 30 capture runs); in **the log of every TiffinBox run** — standard output and error,
-counted for the token and for the shutdown header's name, `X-Shutdown-Token`, in any case: 0 and 0 each (63 logs in the run of
+counted for the token and for the shutdown header's name, `X-Shutdown-Token`, in any case: 0 and 0 each (69 logs in the run of
 record, the root-TRACE run's included); in the **loggers answers and scrapes saved on the way — each counted, then deleted in the same step**
 (`gone()`: 9 of them, 0 each); then in every capture, this README, the exercise, the harness, `receipts.md5`, the anchor
 README, `application.yaml`, `TiffinBoxServer.java`, and in the **bytes of the binary** each run builds: 0 each. The builder counts it
@@ -111,24 +117,28 @@ the header's name 0 times in the log (`names`, C). The exercise makes a random t
 
 - `.harness/before/` — the previous tree, `../c5-unit23/after`, copied (for `change`); `.harness/after/` — `after/` copied and built
   with the README's native install (the run's first build: it fills `.m2-demo` on a fresh clone); its jar extracted to compile the
-  harness, and its installed modules are what `files`' exec run starts from (with a config tree of its own in `tiffinbox-web/`).
-- `before`: `.harness/prev/` (the previous tree, built the README's plain way). `path`, `files` A, `groups`, `runtime`, `lock` and
-  `names`: `.harness/serve/` (after/, built the README's plain way and extracted). `native`: `.harness/nat/` (after/, the README's
+  harness, and its installed modules are what the exec runs of `files` resolve `tiffinbox-core` from; `files`' last run, the README's
+  exec line on after/, starts there (with a config tree of its own in `tiffinbox-web/`).
+- `before`: `.harness/prev/` (the previous tree, built the README's plain way). `files` A and B: `.harness/jul/` (the previous tree
+  again, built the plain way and extracted — it still ships the two files). `path`, `groups`, `runtime`, `lock` and `names`:
+  `.harness/serve/` (after/, built the README's plain way and extracted). `native`: `.harness/nat/` (after/, the README's
   two native lines) and `.harness/natl/` (after/ with `loggers` in `application.yaml`'s list — the AOT jar only). The exercise:
   `.harness/mine/`.
-- **The harness:** `harness/probe/logging/Road.java` — the course's, never TiffinBox's; outside `com.tiffinbox`; compiled into
-  `.harness/hc` against the first build's extracted jar and joined by `--spring.main.sources=probe.logging.Road`, on the extracted
+- **The harness:** `harness/probe/logging/` — the course's, never TiffinBox's; outside `com.tiffinbox`; compiled into `.harness/hc`
+  against the first build's extracted jar. `Road.java` is joined by `--spring.main.sources=probe.logging.Road`, on the extracted
   class path (the README's `java -cp …` line, `../hc` added). When TiffinBox is ready it prints `java.util.logging`'s root logger
   (handlers, level), what `java.util.logging`'s configuration file asked for (`LogManager`'s `handlers` and `.level` properties),
   Logback's root logger (appenders, level) and Logback's listeners, then TiffinBox's own logger three ways — Logback's effective level,
-  `java.util.logging`'s level, `System.Logger`'s DEBUG check; from then on, each time Logback's level for `tiffinbox` changes, that
-  view again. And `harness/shutdown.sh` (POST /shutdown with the token from a file, the exercise's stop; the metrics lesson's).
+  `java.util.logging`'s level, `System.Logger`'s DEBUG check; from then on, each time Logback's level for `tiffinbox` or for the root
+  is set, that view again. `Jul.java` is a plain main, run alone in `files` C: no Boot, no Spring — it logs a route line at DEBUG
+  and the orders cooked at INFO through `System.Logger("tiffinbox")`, so a `java.util.logging` file given to it does what Course 3
+  wrote it for: the control for the counts that read 0 under Boot. And `harness/shutdown.sh` (POST /shutdown with the token from a file, the exercise's stop; the metrics lesson's).
 - On screen: `$CURLSET` = `../c5-unit11/curlset.sh`, the comparison set since the secrets lesson; `$M2` = this unit's `.m2-demo`;
   `$GRAALVM_HOME` = the GraalVM. Every other command is printed whole.
 - **The class-path layouts** (S4.18): the executable jar (`java -jar`, Boot's launcher) everywhere but `path` and `files` A, which run
   the extracted jar with `-cp` (its `lib/` holds the same 46 jars — the extract layout leaves the Compose module out, as the jar
-  does) so the harness can join; `files` B runs the exec plugin's own class path — Maven's, the module's dependencies — with
-  `spring.docker.compose.enabled` false in `application.yaml`.
+  does) so the harness can join; `files` B and its last run use the exec plugin's own class path — Maven's, the module's
+  dependencies — with `spring.docker.compose.enabled` false in `application.yaml`; `files` C runs `Jul` on `.harness/hc` alone.
 - Ports (brief ⚑10, 19030-19039, checked free with `lsof` before anything is wiped; 18425 and 8080 too): `before` 19030 · `path`
   19031 · `files` 19032 · `groups` 19033 · `runtime` 19034 · `lock` 19035 · `names` 19036 · `native` 19037 · the exercise 19039;
   19038 unused. The exec run takes its port from `TIFFINBOX_PORT` (the plugin's arguments are fixed in the POM); nothing passes a
@@ -170,7 +180,9 @@ the header's name 0 times in the log (`names`, C). The exercise makes a random t
    took up to 8 minutes under load); its seconds go to the terminal.
 7. **Hygiene:** `receipts.sh` unsets every `TIFFINBOX_*`, `SPRING_*`, `MANAGEMENT_*`, `SERVER_*` and `LOGGING_*` variable (a
    `LOGGING_LEVEL_ROOT` of yours would change every log a capture counts), `DEBUG`, `JAVA_TOOL_OPTIONS`, `JDK_JAVA_OPTIONS`,
-   `_JAVA_OPTIONS`, `MAVEN_OPTS`, `MAVEN_ARGS` and `NATIVE_IMAGE_OPTIONS` before it runs anything; it puts `127.0.0.1` and `localhost`
+   `_JAVA_OPTIONS`, `MAVEN_OPTS`, `MAVEN_ARGS` and `NATIVE_IMAGE_OPTIONS` before it runs anything — the list is an extended regular
+   expression (`sed -E`: `/usr/bin/sed`'s basic one has no alternation, and the `\|` this script once used removed nothing — RED
+   C5-S4 #63), and the script plants a canary under every one of those names first and stops if one survives; it puts `127.0.0.1` and `localhost`
    first in `no_proxy` and `NO_PROXY`; it refuses to run twice at once in this folder (`.r-lock`), with a `secrets/` in this folder,
    or with a `secrets/`, a `tiffinbox-local.yaml` or a `target/` in `after/`. No capture reads the process's environment, so macOS's
    `__CF_USER_TEXT_ENCODING` (CoreFoundation writes it into a process's environment) changes nothing here. **S4.16:** a last check
@@ -182,7 +194,7 @@ JVM (its jar, or `com.tiffinbox.web.TiffinBoxServer` on a class path), the JVM t
 (`exec:exec`), a binary, native-image's driver or its builder JVM (`java @…/vminvocation.args`) — TERM, then KILL after 5 s; then it
 deletes any loggers answer or scrape a run left, and, after an interrupt only, the capture runs left unfinished (`.r-NAME.1-3`; after a failed
 check they stay, for the diff the message names); then it drops the lock. Maven and native-image's builds run in the foreground:
-Ctrl-C reaches them directly. Every command in the trap is guarded, so `set -e` cannot end it early. **Tested 2026-10-07 on the final script, twice**, with `receipts.sh` as a job of its own process group (job control on, as a
+Ctrl-C reaches them directly. Every command in the trap is guarded, so `set -e` cannot end it early. **Tested again 2026-10-08, on this revision**, the same way — `receipts.sh` as a job of its own process group, `SIGINT` to the whole group 175 s in, the moment TiffinBox listened on 19031 from the extracted class path with the harness joined (in the group: 3 processes — the script, that JVM, its readiness `sleep`): **exit 130**; 5 s later 0 processes in the group (and afterwards 0 anywhere naming this unit's folder); 18425, 8080 and 19030-19039 free; `.r-lock` gone; 0 unfinished capture files; 0 loggers answers or scrapes left; the published captures unchanged. **Tested 2026-10-07 on the final script, twice**, with `receipts.sh` as a job of its own process group (job control on, as a
 terminal's foreground job is) and `SIGINT` sent to the whole group: **(1) during `path`**, 36 s in, the moment TiffinBox listened on
 19031 from the extracted class path with the harness joined (in the group: 4 processes — the script, that TiffinBox JVM, a subshell
 and its readiness `curl`) — **exit 130**; 5 s later 0 processes in the group, and anywhere 0 processes whose command names this
@@ -229,18 +241,22 @@ its log, read after the stop:
 
 ## 2 · change — the previous tree against after/
 
-`diff -rq` of the two trees (copied under `.harness/`): three files. TiffinBoxServer's diff counted, the two tag lines it replaces,
-and its key lines now (`grep -n`: the DEBUG line between `} finally {` and the timer's stop); application.yaml's gained lines that
-are neither comment nor blank; the anchor README's new section, counted; tiffinbox-core compared (`diff -rq -x target`: 0 files);
-`TiffinBoxApp.java`, `ActuatorRoutes.java`, `KitchenHealthIndicator.java`, `KitchenMetrics.java`, the web POM and the two Java
-logging files byte for byte.
+`diff -rq` of the two trees (copied under `.harness/`): four files differ — the README, the web POM, `TiffinBoxServer.java`,
+`application.yaml` — and two are only in the previous tree, Course 3's logging files (⚑6b). TiffinBoxServer's diff counted, the two
+tag lines it replaces, and its key lines now (`grep -n`: the DEBUG line between `} finally {` and the timer's stop); application.yaml's
+gained lines that are neither comment nor blank; the anchor README's new section, counted; tiffinbox-core compared (`diff -rq -x
+target`: 0 files); `TiffinBoxApp.java`, `ActuatorRoutes.java`, `KitchenHealthIndicator.java` and `KitchenMetrics.java` byte for
+byte; the POM's one removed line, the exec argument; the two files: in the previous tree yes, in after/ no.
 
-`.r-change.out` · md5 `33c086b0aa2d9af009bd98db51dc5a60` · 3 of 3
+`.r-change.out` · md5 `6db2f73f1dd91b9d399d332e62ff5661` · 3 of 3
 
 ```
 the previous tree against after/, both copied under .harness/ - the files that differ:
 $ diff -rq -x target -x secrets .harness/before .harness/after
   Files .harness/before/README.md and .harness/after/README.md differ
+  Only in .harness/before/tiffinbox-web: logging-debug.properties
+  Only in .harness/before/tiffinbox-web: logging.properties
+  Files .harness/before/tiffinbox-web/pom.xml and .harness/after/tiffinbox-web/pom.xml differ
   Files .harness/before/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java and .harness/after/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java differ
   Files .harness/before/tiffinbox-web/src/main/resources/application.yaml and .harness/after/tiffinbox-web/src/main/resources/application.yaml differ
   tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java - diff adds 10 lines, removes 2; the code lines it removes:
@@ -260,15 +276,16 @@ $ diff -rq -x target -x secrets .harness/before .harness/after
       group:
         kitchen: tiffinbox, com.tiffinbox
     (diff adds 8 lines, removes 0)
-  README.md - the anchor's README: lines added 106, removed 0 - its new section (not shown)
+  README.md - the anchor's README: lines added 114, removed 1 - its new section (not shown)
   tiffinbox-core against the previous tree's (diff -rq -x target): 0 files differ
   TiffinBoxApp.java against the previous tree's, byte for byte: the same
   ActuatorRoutes.java against the previous tree's, byte for byte: the same
   KitchenHealthIndicator.java against the previous tree's, byte for byte: the same
   KitchenMetrics.java against the previous tree's, byte for byte: the same
-  tiffinbox-web/pom.xml against the previous tree's, byte for byte: the same
-  tiffinbox-web/logging.properties against the previous tree's, byte for byte: the same
-  tiffinbox-web/logging-debug.properties against the previous tree's, byte for byte: the same
+  tiffinbox-web/pom.xml - diff adds 0 lines, removes 1:
+    < <argument>-Djava.util.logging.config.file=logging.properties</argument>
+  tiffinbox-web/logging.properties - in the previous tree: yes · in after/: no
+  tiffinbox-web/logging-debug.properties - in the previous tree: yes · in after/: no
 ```
 
 
@@ -276,9 +293,13 @@ $ diff -rq -x target -x secrets .harness/before .harness/after
 
 after/ built the README's plain way and extracted (the README's extract line); run from the extracted class path with Road joined
 and the README's loggers flag. Road's lines at ready: the road. Then the README's POST — the group to DEBUG — and Road's view after
-it; one request, and its line; the README's POST back to `null`, Road's view; one request, no line. The seven.
+it; one request, and its line; the README's POST back to `null`, Road's view; one request, no line. Then **C (labelled)**, RED
+C5-S4 #45: the README's POST to DEBUG sent to the root (`…/loggers/ROOT`), Road's view, `tiffinbox`'s levels, one request — the
+propagator copied INFO into `java.util.logging`'s `tiffinbox` at the `null`, so it stays there: Actuator says DEBUG, 0 new lines;
+the seven. Then the same root POST on a fresh process, where the group was never set: `java.util.logging`'s `tiffinbox` is `null`,
+it follows the root, and the request prints its line; the seven.
 
-`.r-path.out` · md5 `3669fb788b56af43327b036edf29b5f4` · 3 of 3
+`.r-path.out` · md5 `aaa999e1098123fb1fba017041040f3c` · 3 of 3
 
 ```
 after/, copied to .harness/serve with a config tree, built the README's plain way, then extracted (the README's extract line):
@@ -313,6 +334,33 @@ $ curl -s -w ' %{http_code}\n' -X POST -H 'Content-Type: application/json' -d '{
 $ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:19031/kitchen
   200
   its answer lines so far: 1
+C (labelled) - after null, the root: the README's POST to DEBUG, sent to the root logger (ROOT), then one request:
+$ curl -s -w ' %{http_code}\n' -X POST -H 'Content-Type: application/json' -d '{"configuredLevel":"DEBUG"}' http://127.0.0.1:19031/actuator/loggers/ROOT
+   204
+  harness: Logback's ROOT changed - TiffinBox's logger: Logback's tiffinbox DEBUG · java.util.logging's tiffinbox INFO · System.Logger DEBUG loggable: false
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19031/actuator/loggers/tiffinbox
+  {"configuredLevel":null,"effectiveLevel":"DEBUG"} 200
+$ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:19031/kitchen
+  200
+  its answer lines so far: 1
+$ $CURLSET 19031 .harness/serve/secrets/tiffinbox/shutdown-token
+  POST  /shutdown   -> 200 application/json  {"stopping":true}
+  exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
+  its log: the demo token 0 times · X-Shutdown-Token 0 times
+C (labelled) - the same root POST on a fresh process, the group never set: the same run line, port 19031:
+$ cd .harness/serve && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19031 --spring.main.sources=probe.logging.Road --management.endpoints.web.exposure.include=health,prometheus,loggers
+  listens on: 127.0.0.1:19031
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19031/actuator/health/readiness
+  {"status":"UP"} 200
+$ curl -s -w ' %{http_code}\n' -X POST -H 'Content-Type: application/json' -d '{"configuredLevel":"DEBUG"}' http://127.0.0.1:19031/actuator/loggers/ROOT
+   204
+  harness: Logback's ROOT changed - TiffinBox's logger: Logback's tiffinbox DEBUG · java.util.logging's tiffinbox null · System.Logger DEBUG loggable: true
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19031/actuator/loggers/tiffinbox
+  {"configuredLevel":null,"effectiveLevel":"DEBUG"} 200
+$ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:19031/kitchen
+  200
+  its answer lines: 1
 $ $CURLSET 19031 .harness/serve/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
@@ -320,18 +368,25 @@ $ $CURLSET 19031 .harness/serve/secrets/tiffinbox/shutdown-token
 ```
 
 
-## 4 · files — the Java logging files of Course 3, under Boot (brief ⚑6b)
+## 4 · files — the Java logging files of Course 3: measured on the previous tree, retired here (brief ⚑6b)
 
-The two files' lines that are neither comment nor blank, and the web POM's exec argument. **A** — the README's line with the debug
-file, from after/'s extracted class path, Road joined: what `java.util.logging` read (`.level: FINE`) against what Boot left (its
-bridge, INFO); the seven; the log's DEBUG lines: 0. **B** — the README's `exec:exec` line (the exec plugin passes
-`-Djava.util.logging.config.file=logging.properties`), from the tree the first build installed, its port from `TIFFINBOX_PORT`:
-the JVM it forks, one INFO line in Logback's format (the file asks for `%5$s%n`, the message alone), the seven, 0 DEBUG lines.
+On the previous tree, which still ships them: the two files' lines that are neither comment nor blank, and the web POM's exec
+argument; the tree copied to `.harness/jul`, built and extracted. **A** — the README's line with the debug file, from that tree's
+extracted class path, Road joined: what `java.util.logging` read (`.level: FINE`) against what Boot left (its bridge, INFO); the
+seven; the log's DEBUG lines: 0; and the file's own output, counted — standard error's lines, and the lines in the file's bare
+`%5$s%n` format (a route or orders-cooked message at the start of a line) on either stream: 0, 0. **B** — the README's `exec:exec`
+line, from that tree (the exec plugin passes `-Djava.util.logging.config.file=logging.properties`), its port from
+`TIFFINBOX_PORT`: the JVM it forks, whether that JVM's command line names the file (read with `ps`, never printed: yes), one INFO
+line in Logback's format, the seven, 0 DEBUG lines, 0 and 0. **C (labelled)** — the control, RED C5-S4 #47: the harness's `Jul`,
+no Boot, with each file — the debug file prints its 2 lines bare on standard error, `logging.properties` its 1: the counts A and B
+read as 0 can fail. **Retired here:** after/ holds neither file, its POM names no logging file, and the README's exec line on after/
+still serves the seven, its JVM's command line naming no file.
 
-`.r-files.out` · md5 `8fe925f1cc90f3960e1e9791084b7d9e` · 3 of 3
+`.r-files.out` · md5 `d1af636441477c70f89b55ec97250a9d` · 3 of 3
 
 ```
-the two Java logging files the anchor still ships - their lines that are neither comment nor blank:
+the two Java logging files and the exec plugin's argument, on the previous tree, which still ships them - their lines
+that are neither comment nor blank, and the argument (grep -n):
   tiffinbox-web/logging.properties:
     handlers = java.util.logging.ConsoleHandler
     .level   = INFO
@@ -342,10 +397,15 @@ the two Java logging files the anchor still ships - their lines that are neither
     .level   = FINE
     java.util.logging.ConsoleHandler.level = FINE
     java.util.logging.SimpleFormatter.format = %5$s%n
-  tiffinbox-web/pom.xml - the exec plugin's argument (grep -n):
+  tiffinbox-web/pom.xml:
     133: <argument>-Djava.util.logging.config.file=logging.properties</argument>
-A - the README's line with the debug file, from after/'s extracted class path (.harness/serve), Road joined - port 19032:
-$ cd .harness/serve && java -Djava.util.logging.config.file=tiffinbox-web/logging-debug.properties -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19032 --spring.main.sources=probe.logging.Road
+the previous tree, copied to .harness/jul with a config tree, built the README's plain way, then extracted:
+$ cd .harness/jul && mvn -o -B -Dmaven.repo.local="$M2" -DskipTests clean package
+  built the previous tree · offline: yes · exit 0
+$ cd .harness/jul && java -Djarmode=tools -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar extract --destination tiffinbox-web/target/extracted
+  extracted: exit 0 · its lib/ holds 46 jars
+A - the README's line with the debug file, from that tree's extracted class path, Road joined - port 19032:
+$ cd .harness/jul && java -Djava.util.logging.config.file=tiffinbox-web/logging-debug.properties -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19032 --spring.main.sources=probe.logging.Road
   listens on: 127.0.0.1:19032
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19032/actuator/health/readiness
@@ -355,25 +415,49 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19032/actuator/health/readiness
   harness: Logback's root logger - its appenders: [CONSOLE ch.qos.logback.core.ConsoleAppender] · its level: INFO
   harness: Logback's listeners: [ch.qos.logback.classic.jul.LevelChangePropagator, io.micrometer.core.instrument.binder.logging.LogbackMetrics$1]
   harness: at start - TiffinBox's logger: Logback's tiffinbox INFO · java.util.logging's tiffinbox null · System.Logger DEBUG loggable: false
-$ $CURLSET 19032 .harness/serve/secrets/tiffinbox/shutdown-token
+$ $CURLSET 19032 .harness/jul/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
   its log: the demo token 0 times · X-Shutdown-Token 0 times
   its DEBUG lines: 0 · tiffinbox: 0 route lines, 0 answer lines · no other logger
-B - the exec plugin's argument: the README's exec line, from the tree the first build installed (.harness/after), its port
-from TIFFINBOX_PORT and its config tree in tiffinbox-web/ (the folder the plugin's JVM starts in) - port 19032:
-$ cd .harness/after && env TIFFINBOX_PORT=19032 mvn -o -q -B -Dmaven.repo.local="$M2" -pl tiffinbox-web exec:exec
+  standard error: 0 lines · in the file's bare format, on either stream: route lines 0, orders-cooked lines 0
+B - the README's exec line, from that tree: the exec plugin passes its argument (logging.properties). Its port from
+TIFFINBOX_PORT, its config tree in tiffinbox-web/ (the folder the plugin's JVM starts in) - port 19032:
+$ cd .harness/jul && env TIFFINBOX_PORT=19032 mvn -o -q -B -Dmaven.repo.local="$M2" -pl tiffinbox-web exec:exec
   listens on: 127.0.0.1:19032 · the process listening: a child of the one started above (the JVM the exec plugin forks): yes
   Boot's first line: Starting TiffinBoxServer using Java 25.0.4.1
+  the forked JVM's command line names logging.properties: yes
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19032/actuator/health/readiness
   {"status":"UP"} 200
   its log's line for the orders cooked:
     <time>  INFO <pid> --- [           main] tiffinbox                                : orders cooked:  120
-$ $CURLSET 19032 .harness/after/tiffinbox-web/secrets/tiffinbox/shutdown-token
+$ $CURLSET 19032 .harness/jul/tiffinbox-web/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
   its log: the demo token 0 times · X-Shutdown-Token 0 times
   its DEBUG lines: 0 · tiffinbox: 0 route lines, 0 answer lines · no other logger
+  standard error: 0 lines · in the file's bare format, on either stream: route lines 0, orders-cooked lines 0
+C (labelled) - the same files with no Boot to replace them: the harness's Jul, a plain main that logs one route line at
+DEBUG and the orders cooked at INFO through System.Logger("tiffinbox"), from that tree, with each file:
+$ cd .harness/jul && java -Djava.util.logging.config.file=tiffinbox-web/logging-debug.properties -cp ../hc probe.logging.Jul
+  standard error: 2 lines · in the file's bare format, on either stream: route lines 1, orders-cooked lines 1
+$ cd .harness/jul && java -Djava.util.logging.config.file=tiffinbox-web/logging.properties -cp ../hc probe.logging.Jul
+  standard error: 1 lines · in the file's bare format, on either stream: route lines 0, orders-cooked lines 1
+retired here - after/, this unit's tree:
+  tiffinbox-web/logging.properties: deleted
+  tiffinbox-web/logging-debug.properties: deleted
+  tiffinbox-web/pom.xml - lines that name java.util.logging.config.file: 0
+the README's exec line on after/ (.harness/after, the tree the first build installed), the argument gone - port 19032:
+$ cd .harness/after && env TIFFINBOX_PORT=19032 mvn -o -q -B -Dmaven.repo.local="$M2" -pl tiffinbox-web exec:exec
+  listens on: 127.0.0.1:19032 · the process listening: a child of the one started above (the JVM the exec plugin forks): yes
+  Boot's first line: Starting TiffinBoxServer using Java 25.0.4.1
+  the forked JVM's command line names logging.properties: no
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19032/actuator/health/readiness
+  {"status":"UP"} 200
+$ $CURLSET 19032 .harness/after/tiffinbox-web/secrets/tiffinbox/shutdown-token
+  POST  /shutdown   -> 200 application/json  {"stopping":true}
+  exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
+  its log: the demo token 0 times · X-Shutdown-Token 0 times
 ```
 
 
@@ -850,15 +934,15 @@ the measured answer, run exactly as written in a clean `env -i` shell, is `exerc
 | A POST without `Content-Type` → 415 | 10-07 on Tomcat (Spring MVC) | **204 on TiffinBox's bridge** — it reads any body as JSON — and a POST with no body sets the group back to `null` (`lock` C) |
 | Read-only → 405, level unchanged | 10-07 on Tomcat | **405** (`{"error":"method not allowed"}`), the group still `null` (`lock`) |
 | `web` and `sql` silent on TiffinBox | 10-07: 0 DEBUG lines each (base tree, no Actuator) | **0 each on the anchor with Actuator and the bridge**; `web` 5 members, `sql` 3 (`groups`) |
-| What a level in Boot does to JUL | 10-06 in-process: `setLogLevel` → FINE | **the same through the endpoint**: DEBUG → `java.util.logging`'s `tiffinbox` `FINE`, `System.Logger` DEBUG loggable; `null` → INFO, not loggable (`path`) |
-| The JUL file with Boot | 10-06: root handler the bridge, INFO, 0 route lines | **the same, and why:** `LogManager` still holds the file's `.level = FINE` (`files` A) |
+| What a level in Boot does to JUL | 10-06 in-process: `setLogLevel` → FINE | **the same through the endpoint**: DEBUG → `java.util.logging`'s `tiffinbox` `FINE`, `System.Logger` DEBUG loggable; `null` → INFO, not loggable (`path`) — and the INFO stays: a later root DEBUG leaves it, Actuator says DEBUG, 0 lines; on a fresh process the root DEBUG prints the line (`path` C) |
+| The JUL file with Boot | 10-06: root handler the bridge, INFO, 0 route lines | **the same, and why:** `LogManager` still holds the file's `.level = FINE` (`files` A, on the previous tree); 0 lines on standard error and 0 in the file's own format, against 2 and 1 with no Boot (`files` C); the files retired here |
 | Structured logging | 10-06: the metadata lists `ecs`, `gelf`, `logstash` | **the same** (`groups`); not switched on here |
 
-## ⚑6b — the Java logging files, measured (for RED)
+## ⚑6b — the Java logging files: measured, then retired (RED decided, C5-S4 #43)
 
-The brief leaves to RED whether to delete `tiffinbox-web/logging.properties`, `logging-debug.properties` and the exec plugin's
-`-Djava.util.logging.config.file=logging.properties`. This unit keeps all three, byte for byte (`change`), and measures them
-(`files`):
+The brief left to RED whether to delete `tiffinbox-web/logging.properties`, `logging-debug.properties` and the exec plugin's
+`-Djava.util.logging.config.file=logging.properties`. RED measured them doing nothing — not even before Boot's reset — and decided:
+delete. This unit deletes all three (`change`) and measures them on the previous tree, which still ships them (`files`):
 - **`logging-debug.properties`** on the command line: `java.util.logging` reads it (`LogManager`: `handlers =
   java.util.logging.ConsoleHandler`, `.level = FINE`), then Boot's logging system removes the root's console handler, installs
   `SLF4JBridgeHandler`, and Logback's `LevelChangePropagator` sets the root's level from Logback's: INFO. 0 DEBUG lines.
@@ -866,10 +950,10 @@ The brief leaves to RED whether to delete `tiffinbox-web/logging.properties`, `l
   still runs TiffinBox under Boot (the seven, `115c36ba…`, exit 0), on Maven's class path; the file's `%5$s%n` format is not used —
   the lines come out in Logback's format. Its `.level = INFO` is the JDK's own default too (the `path` run, with no file, shows
   `.level: INFO`).
-- **Cost of deleting:** the anchor README's Course 3 sections name both files and the `-D` flag (marked as history since the first
-  lesson); the exec plugin would keep its `-classpath … TiffinBoxServer` arguments. **Cost of keeping:** two files that look like
-  switches and switch nothing. This unit's `files` capture reads them from `after/`: if RED deletes them, `files` is rebuilt
-  without them (its B still measures the exec run).
+- **The control** (`files` C): with no Boot to replace them, the same files do what Course 3 wrote them for — 2 bare lines on standard
+  error with the debug file, 1 with the other — so the 0s above are counts that could have failed.
+- **Retired:** the anchor README's Course 3 sections still name both files and the `-D` flag, marked as history (and, since this
+  lesson, as deleted); the exec plugin keeps its `-classpath … TiffinBoxServer` arguments and still serves the seven (`files`, last).
 
 ## Found on the way
 
@@ -878,8 +962,12 @@ The brief leaves to RED whether to delete `tiffinbox-web/logging.properties`, `l
   stops, and every count waits for the scrape (mask 3) — no sleeps, no polling the log for a number it expects.
 - **The bridge accepts a write it should refuse.** `ActuatorRoutes.handle()` reads any request body as JSON, whatever its
   `Content-Type`, and an absent body leaves `configuredLevel` absent — `null`, the reset. Spring MVC's adapter answers 415 to the
-  first (the probe, on Tomcat). Not this unit's change: it is ⚑1's argument handling, beside the query string the metrics lesson found
-  dropped. **For RED.**
+  first (the probe, on Tomcat). RED C5-S4 #46 (with part A's #2 and #4): **deferred to BLUE part A**, who fixes the bridge's request
+  handling once, in the Actuator lesson's anchor, and cascades it here; `lock` and its voice move with that fix.
+- **`null` is not a clean reset** (RED C5-S4 #45, `path` C). Logback's propagator copies the level a logger falls back to into
+  `java.util.logging` — INFO, at the `null` — and nothing clears it, so a later change to the root reaches Logback's `tiffinbox`
+  (Actuator: DEBUG) but not `java.util.logging`'s, and TiffinBox prints nothing; on a process where the group was never set, the
+  same root change prints the line.
 - **A group's own answer can be stale.** After the group's POST and a member's POST, `/actuator/loggers/kitchen` still says DEBUG
   while `tiffinbox` is INFO: the group answer reports what was last set on the group, not its members.
 - **Boot's own line under TiffinBox's name.** `com.tiffinbox` at DEBUG prints one line, `Running with Spring Boot v4.1.1, Spring
@@ -888,8 +976,8 @@ The brief leaves to RED whether to delete `tiffinbox-web/logging.properties`, `l
 
 ## For unit 26 — and unit 25's re-point, and RED
 
-**Unit 26 starts from `../c5-unit24/after`** (= `../c5-tiffinbox` now; `diff -rq -x target` empty). What you can rely on — measured
-here unless a line says otherwise:
+**Unit 26 starts from `../c5-unit24/after`** (the anchor has moved on since: `../c5-tiffinbox` is unit 26's `after/` now). What you
+can rely on — measured here unless a line says otherwise:
 - **`handle()`'s `finally` now has four statements:** `String route = …`, `String status = …`, the DEBUG line, then the timer's stop
   with `.tag("route", route)` and `.tag("status", status)`. Your wider catch is still the inner `catch (Exception e)` around
   `handler.invoke(this)`: it sits inside the `try`, so a 500 it writes passes through the same `finally` — logged and timed like any
@@ -905,14 +993,16 @@ here unless a line says otherwise:
 - **The seed:** `.m2-demo` = `../c5-unit23/.m2-demo` less `com/tiffinbox/` (5,418 files; exec-maven-plugin 3.6.4 is in it).
 - **Ports:** 24 used 19030-19039; nothing of this unit listens after it ends (Interrupted). Unit 26 owns 19050-19059.
 
-**Unit 25 (DevTools), re-pointed to this tree before RED:** its copy under `.harness/dev/` changes by this unit's two files only
-(`TiffinBoxServer.java`, `application.yaml`); the POM, the exposure list and the bridge are as unit 23 left them. If a unit 25 capture
+**Unit 25 (DevTools), re-pointed to this tree before RED:** its copy under `.harness/dev/` changes by this unit's two files
+(`TiffinBoxServer.java`, `application.yaml`) and the retirement (the two logging files gone, one line less in the POM's exec plugin);
+the exposure list and the bridge are as unit 23 left them. If a unit 25 capture
 counts log lines, the DEBUG line is silent unless it sets a level; whether a level set through `loggers` survives DevTools' restart
 is **not measured here**. Its `anchor/` link and `before = after` move from `../c5-unit21/after` to `../c5-unit24/after`; its receipts re-run 3/3 under
 both bashes (S4.1).
 
-**For RED:** ⚑6b (above, measured); the bridge's body handling (no `Content-Type` → 204, no body → reset) and its dropped query
-string, both ⚑1's argument list; whether the voice should say anything about group-then-member (it does not; a chip does). And a
+**For RED:** ⚑6b (above: RED decided, deleted here); the bridge's body handling (no `Content-Type` → 204, no body → reset) and its
+dropped query string, both ⚑1's argument list — deferred to BLUE part A's bridge fix; whether the voice should say anything about
+group-then-member (it does not; a chip does). And a
 method note for every unit's S4.2 test: a `HOME` with a `settings.xml` does not seal Maven — Java reads `user.home` from the account,
 so Maven reads the account's settings (here, none: straight to Maven Central). A sealed run needs `HOME/.mavenrc` setting
 `-Duser.home` (the mvn script sources it after `receipts.sh` has cleared `MAVEN_OPTS`); a clone test that set `HOME` alone measured
