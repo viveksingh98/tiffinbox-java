@@ -12,15 +12,18 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #           GET /nowhere - each with its answer, the lines it added at DEBUG and the timer series it moved; then the rest of the
 #           server's jobs (a trailing slash, a longer path, a wrong verb, Accept: application/xml, /actuator, /actuator/mappings
 #           unexposed), the timer's series, the seven with the lines they added, the threads; then D (labelled): the README's run
-#           line with mappings exposed by flag for one run (19161) - Boot's routing table, read
+#           line with mappings exposed by flag for one run (19161) - Boot's routing table, read; then E (labelled): the JDK's
+#           own rule, without TiffinBox - the harness's Prefix (three contexts, /c, /customers, /customersX, on 19162): which
+#           context a path reaches
 #   pieces  the web module's files, each with its lines and the three things a grep can tell about it (it imports the JDK's HTTP
 #           server; it is the annotation the router reads; it explains the failed bind of the server's start); the core's files
-#   readme  the repository's own README: the roadmap line as the last commit before this unit had it, and as it is now
+#   readme  the repository's own README: the roadmap line as the last commit before this unit had it, and as it is now; the
+#           courses its opening lines name, and the sections it has
 # The course's counts (30 lessons, 5 sections, 19 courses, the next one) and the next course's lesson titles are NOT captured here:
 # their sources (TRACK-ROADMAP.md, java5_series.py) are not in this repository. The deck's builder reads them on the day (Course 4's
 # finale's method) and README.md says so.
 # $CURLSET = ../c5-unit11/curlset.sh (the seven requests, POST /shutdown with the token's header read from the file). $M2 = this
-# unit's own repository, .m2-demo. The harness is harness/shutdown.sh alone; no harness passes a bare word to the guarded tree
+# unit's own repository, .m2-demo. The harness is harness/shutdown.sh and harness/Prefix.java (no TiffinBox class); no harness passes a bare word to the guarded tree
 # (brief ⚑18): every run here passes options only.
 # The network: every build runs offline (-o) against .m2-demo and says so ("offline: yes"); a build that cannot resolve an artifact
 # offline goes to Maven Central once, and says that ("offline: no - ..."). At run time nothing leaves 127.0.0.1.
@@ -28,7 +31,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # folder's absolute path "…", the folder above it "…/..", the home folder "~"; your user name "<user>" - in every line of every
 # capture. A log line is printed from its message on (its time, process id and thread cut); a thread is said to be virtual or not.
 # JSON from Actuator is printed with its keys sorted. No duration is captured.
-# Ports (brief ⚑1, 19160-19169): seam's A-C 19160 · seam's D 19161. 18425 (TiffinBox's default) and 8080 (Tomcat's) are checked
+# Ports (brief ⚑1, 19160-19169): seam's A-C 19160 · seam's D 19161 · seam's E (the harness's Prefix) 19162. 18425 (TiffinBox's default) and 8080 (Tomcat's) are checked
 # free too, and never bound.
 set -e
 # bash 5.2 and later turn an & in the replacement of ${x/pattern/replacement} into the matched text (patsub_replacement, on by
@@ -74,7 +77,7 @@ TOKEN=not-a-real-token-demo-only                     # FAKE, and meant to look i
 CURLSET=../c5-unit11/curlset.sh
 [ -f "$CURLSET" ] || die "$CURLSET is missing"
 [ -f anchor/pom.xml ] && [ -f anchor/README.md ] || die "anchor/ (../c5-unit27/after) is missing"
-[ -f harness/shutdown.sh ] && [ -f ../README.md ] || die "missing: harness/shutdown.sh or ../README.md"
+[ -f harness/shutdown.sh ] && [ -f harness/Prefix.java ] && [ -f ../README.md ] || die "missing: harness/shutdown.sh, harness/Prefix.java or ../README.md"
 git -C .. rev-parse --verify -q 53379bd^{commit} > /dev/null || die "the repository's history must hold 53379bd (the last commit before this unit): a full clone, not a shallow one"
 
 listeners() { lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2> /dev/null | wc -l | tr -d ' '; }
@@ -239,13 +242,18 @@ seam() { local d7 P=19160
   echo "  their lines at DEBUG: $(( $(dcount) - d7 ))"; dlines "$d7"
   echo "  answered by a route TiffinBox declares: $(dlines "$d7" | grep -vc '^    UNKNOWN ' || true) · by TiffinBox's server with no route (UNKNOWN): $(dlines "$d7" | grep -c '^    UNKNOWN ' || true) · never reached TiffinBox (no line): $(( $(wc -l < .harness/responses.txt) - $(dcount) + d7 ))"
   echo "  the answer that never reached TiffinBox: $(grep -vE '^(GET|POST) +/(customers|revenue|dashboard|kitchen|shutdown) ' .harness/responses.txt | sed 's/ \{2,\}/ /g')"
-  echo "this run's answer lines at DEBUG: $(dcount) · on a virtual thread: $(grep -E "$ANS" .harness/run.out | grep -cE '\[ *virtual-[0-9]+\]' || true) · its WARN lines: $(grep -cE '^[0-9-]+T[^ ]+ +WARN ' .harness/run.out || true) · ERROR lines: $(grep -cE '^[0-9-]+T[^ ]+ +ERROR ' .harness/run.out || true)"
+  echo "this run's answer lines at DEBUG: $(dcount) · on a virtual thread: $(grep -E "$ANS" .harness/run.out | grep -cE '\[ *virtual-[0-9]+\]' || true) · distinct virtual threads among them (the number, counted before it is cut): $(grep -E "$ANS" .harness/run.out | grep -oE '\[ *virtual-[0-9]+\]' | tr -d ' ' | sort -u | wc -l | tr -d ' ') · its WARN lines: $(grep -cE '^[0-9-]+T[^ ]+ +WARN ' .harness/run.out || true) · ERROR lines: $(grep -cE '^[0-9-]+T[^ ]+ +ERROR ' .harness/run.out || true)"
   P=19161
   echo "D (labelled) - Boot's routing table: the README's exposure line with mappings, exposed by flag for one run, on the JVM, port $P:"
   start "$(at .harness/serve $P "$R_MAP")"; up; ready $P
   sorted "$(url "${R_GET%/customers}/actuator/mappings" $P)"
   echo "  its contexts: $(python3 -c 'import json,sys; d=json.load(open(sys.argv[1]))["contexts"]; print(len(d), "-", ", ".join(sorted(d)), "· the kinds of mapping listed in them:", sum(len(c.get("mappings") or {}) for c in d.values()))' .harness/j.json)"
-  seven $P .harness/serve; }
+  seven $P .harness/serve
+  echo "E (labelled) - the JDK's own rule, without TiffinBox: the harness's Prefix, three contexts on 127.0.0.1:19162:"
+  echo "\$ java harness/Prefix.java 19162"
+  java harness/Prefix.java 19162 > .harness/prefix.out 2>&1 < /dev/null || { cat .harness/prefix.out >&3; die "the harness's Prefix failed"; }
+  sed -n 's/^harness: /  harness: /p' .harness/prefix.out
+  echo "  listening on 19162 now: $(listeners 19162)"; }
 
 # ---- pieces: the files ------------------------------------------------------------------------------------------------------
 WEB=tiffinbox-web/src/main/java/com/tiffinbox/web; CORE=tiffinbox-core/src/main/java/com/tiffinbox
@@ -272,7 +280,12 @@ readmecap() {
   echo "and as it is now:"
   echo "\$ grep -n '^Videos publish' ../README.md"
   grep -n '^Videos publish' ../README.md | sed 's/^/  /'
-  echo "  its entries, in order (… counted as one): $(grep 'Roadmap' ../README.md | sed 's/^.*: //; s/\.$//' | awk -F ' → ' '{ print NF }') names · after Spring Boot: $(grep 'Roadmap' ../README.md | sed 's/^.*Spring Boot → //; s/ → .*$//') · Build & Test named: $(grep 'Roadmap' ../README.md | grep -c 'Build & Test')"; }
+  echo "  its entries, in order (… counted as one): $(grep 'Roadmap' ../README.md | sed 's/^.*: //; s/\.$//' | awk -F ' → ' '{ print NF }') names · after Spring Boot: $(grep 'Roadmap' ../README.md | sed 's/^.*Spring Boot → //; s/ → .*$//') · Build & Test named: $(grep 'Roadmap' ../README.md | grep -c 'Build & Test')"
+  echo "the README's opening - the courses its title names, the folders it maps, and its course sections:"
+  echo "\$ sed -n 1p ../README.md"
+  sed -n 1p ../README.md | sed 's/^/  /'
+  echo "  the folders its opening maps (lines 1-5): $(sed -n 1,5p ../README.md | grep -oE '`(c[0-9]-)?unitNN/`' | tr -d '`' | paste -sd' ' -)"
+  echo "  its course sections: $(grep -E '^## Course [0-9]+ — ' ../README.md | sed 's/^## Course \([0-9]*\) — .*/\1/' | paste -sd' ' -) (Course 1's units: the Units table)"; }
 
 cap seam seam
 cap pieces pieces
@@ -333,17 +346,24 @@ x seam "^  answered by a route TiffinBox declares: 5 · by TiffinBox's server wi
 x seam '^  the answer that never reached TiffinBox: GET /nowhere -> 404 text/html <h1>404 Not Found</h1>No context found for request$'
 x seam '^    UNKNOWN -> 405    \(on a virtual thread\)$'
 [ "$(grep -cxF "$SEVEN" .r-seam.out)" = 2 ] || die "seam: the seven, twice"
-# "Every answer ran on a virtual thread of its own."
-L=$(grep '^this run.s answer lines at DEBUG: ' .r-seam.out); N=$(printf '%s\n' "$L" | sed -E 's/^.*DEBUG: ([0-9]+) · on a virtual thread: ([0-9]+) · .*$/\1 \2/')
-[ "${N% *}" = "${N#* }" ] && [ "${N% *}" = 13 ] || die "seam: every answer line on a virtual thread ($N)"
-x seam '^this run.s answer lines at DEBUG: 13 · on a virtual thread: 13 · its WARN lines: 0 · ERROR lines: 0$'
+# "Every answer ran on a virtual thread of its own." - of its own: the threads' numbers, counted distinct before they are cut (a
+# pool of one virtual thread would print 13 · 13 · 1: RED C5-S5 #50)
+L=$(grep '^this run.s answer lines at DEBUG: ' .r-seam.out); N=$(printf '%s\n' "$L" | sed -E 's/^.*DEBUG: ([0-9]+) · on a virtual thread: ([0-9]+) · distinct virtual threads among them \(the number, counted before it is cut\): ([0-9]+) · .*$/\1 \2 \3/')
+set -- $N; [ "$1" = 13 ] && [ "$2" = 13 ] && [ "$3" = 13 ] || die "seam: every answer line on a virtual thread of its own ($N)"
+x seam '^this run.s answer lines at DEBUG: 13 · on a virtual thread: 13 · distinct virtual threads among them \(the number, counted before it is cut\): 13 · its WARN lines: 0 · ERROR lines: 0$'
 # "Boot's own routing table, exposed for one run: one context, and nothing in it."
-SD=$(blk seam 'D (labelled)' '')
+SD=$(blk seam 'D (labelled)' 'E (labelled)'); SE=$(blk seam 'E (labelled)' '')
 has "$SD" "\$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19161/actuator/mappings    # keys sorted" "seam D: the mappings line"
 has "$SD" '  {"contexts":{"application":{"mappings":{},"parentId":null}}} 200' "seam D: the empty table"
 has "$SD" "  its contexts: 1 - application · the kinds of mapping listed in them: 0" "seam D: 1 context, 0 kinds"
 has "$SD" "$SEVEN" "seam D: the seven"
-echo "  seam, the seven: 6 lines (5 routes, 1 UNKNOWN), /nowhere none; 13/13 answers on virtual threads; D mappings: 1 context, 0 kinds; the seven 115c36ba... twice"
+# "That's a prefix match: the JDK hands a path to the context with the longest prefix it starts with." - the JDK's rule, measured
+# without TiffinBox: /customersXYZ reaches /customersX (created last), not /c (created first)
+has "$SE" "  harness: contexts created, in this order: /c, /customers, /customersX" "seam E: the contexts' order"
+has "$SE" "  harness: /customersXYZ -> 200 context /customersX" "seam E: the longest prefix, not the first"
+has "$SE" "  harness: /customers/ -> 200 context /customers" "seam E: /customers/"; has "$SE" "  harness: /cat -> 200 context /c" "seam E: /cat"
+has "$SE" "  harness: /nowhere -> 404 (no context)" "seam E: no context"; has "$SE" "  listening on 19162 now: 0" "seam E: stopped"
+echo "  seam, the seven: 6 lines (5 routes, 1 UNKNOWN), /nowhere none; 13/13 answers on 13 distinct virtual threads; D mappings: 1 context, 0 kinds; the seven 115c36ba... twice; E the JDK picks the longest prefix (/customersXYZ -> /customersX)"
 
 # "Four files do the web's jobs: the server, two hundred and seventy-seven lines; the bridge, a hundred and ninety-six; the
 # annotation, twenty-four; the port's failure analyzer, fifty-one. Five hundred and forty-eight lines. The rest don't touch HTTP."
@@ -354,17 +374,21 @@ has "$PI" "  Route.java 24 · 0 · 1 · 0" "pieces: the annotation"
 has "$PI" "  PortTakenFailureAnalyzer.java 51 · 0 · 0 · 1" "pieces: the analyzer"
 has "$PI" "  the router reads the annotation: 1 line in TiffinBoxServer.java" "pieces: the router reads it"
 has "$PI" "  the files that do one of the three: 4 - ActuatorRoutes.java PortTakenFailureAnalyzer.java Route.java TiffinBoxServer.java · 548 lines" "pieces: 4 files, 548"
-has "$PI" "  the files that do none: 5 - BareArgumentAnalyzer.java BareArgumentGuard.java KitchenHealthIndicator.java KitchenMetrics.java TiffinBoxApp.java · 218 lines" "pieces: 5 files, 218"
+has "$PI" "  the files that do none: 5 - BareArgumentAnalyzer.java BareArgumentGuard.java KitchenHealthIndicator.java KitchenMetrics.java TiffinBoxApp.java · 223 lines" "pieces: 5 files, 223"
 has "$PI" "  lines 316 · files 7 · that import the JDK's HTTP server 0" "pieces: the core"
 has "$PI" "the tree against the anchor, without target/ and secrets/ (diff -rq): 0 differences" "pieces: the anchor's own files"
-echo "  pieces: 277 + 196 + 24 + 51 = 548 in 4 files; 5 files 218 and the core's 7 files 316 do none"
+echo "  pieces: 277 + 196 + 24 + 51 = 548 in 4 files; 5 files 223 and the core's 7 files 316 do none"
 
 # The README's line (ledger P11): before - Spring Boot, then JPA; now - Spring Web MVC after Spring Boot, Build & Test named.
 RD=$(cat .r-readme.out)
 has "$RD" "  447:Videos publish a few per day on the channel. Roadmap: Core Java → Spring Framework → Spring Boot → JPA → REST → Security → … → Spring AI." "readme: the line before"
-x readme '^  447:Videos publish a few per day on the channel\. Roadmap \(19 courses\): .* → Spring Boot → Spring Web MVC → .* → Spring AI\.$'
+x readme '^  [0-9]+:Videos publish a few per day on the channel\. Roadmap \(19 courses\): .* → Spring Boot → Spring Web MVC → .* → Spring AI\.$'
+[ "$(grep -c '^  [0-9]*:Videos publish' .r-readme.out)" = 2 ] || die "readme: the line, before and now"
+x readme '^  # TiffinBox — code for .*\*Spring Framework Core\* and \*Spring Boot\* \(Learn Programming with Vivek\)$'
+x readme '^  the folders its opening maps \(lines 1-5\): unitNN/ c2-unitNN/ c3-unitNN/ c4-unitNN/ c5-unitNN/$'
+x readme '^  its course sections: 2 3 4 5 \(Course 1.s units: the Units table\)$'
 x readme '^  its entries, in order \(… counted as one\): [0-9]+ names · after Spring Boot: Spring Web MVC · Build & Test named: 1$'
-echo "  readme: line 447, before JPA after Spring Boot; now Spring Web MVC after Spring Boot, Build & Test named"
+echo "  readme: before JPA after Spring Boot; now Spring Web MVC after Spring Boot, Build & Test named; its title names Courses 1-5, its opening maps c4-/c5-, sections 2-5"
 
 cmp -s anchor/README.md ../c5-tiffinbox/README.md || echo "  (anchor/README.md and ../c5-tiffinbox/README.md differ - the anchor has moved past this unit's tree)" >&3
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"

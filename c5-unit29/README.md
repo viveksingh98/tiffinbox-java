@@ -23,7 +23,7 @@ answer** (`docker info`), with `eclipse-temurin:25-jre` and `postgres:18-alpine`
 **Runs of record (2026-10-08):** **705 s under `./receipts.sh`** (/bin/bash 3.2.57, this folder, exit 0, all 8 captures = published, every check passed); under `bash receipts.sh` (Homebrew bash 5.3.9) 714 s with all 8 = published before two checks of `dev` were corrected (a trailing space in an expected line; the published hashes unchanged); and the sealed clone below (bash 5.3.9). Load averages about 3-5.
 It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first). One native build per capture run
 (three per receipt), judged against a bound (1 minute or more, under 20 minutes); its seconds go to the terminal only.
-Published hashes: image `31d8517b037a1d25e208d9102d65d3a2` · fails `560730e0f028ab06ca6c9360ccc663de` · ops `b93ca576258b3f2779332b302ad39bcc` · dev `c1b6c35800787425f160794f3d30f514` · promises `a56e8e8973fecab3122c709e8991107b` · exercise `324ae3a7f055b97d3c4d0ad4dfc55627` · native `fbe1571e6f5d96d081d790453a08387e` · forms `fdadcbc199f2349e3902cb97a878f396`
+Published hashes: image `31d8517b037a1d25e208d9102d65d3a2` · fails `d9a95cb41787309d171b7ce65aca65c6` · ops `b93ca576258b3f2779332b302ad39bcc` · dev `eae6ca9394d7bdb5b8f83645896969db` · promises `a56e8e8973fecab3122c709e8991107b` · exercise `324ae3a7f055b97d3c4d0ad4dfc55627` · native `fbe1571e6f5d96d081d790453a08387e` · forms `fdadcbc199f2349e3902cb97a878f396`
 
 ## The GraalVM
 
@@ -118,7 +118,11 @@ cache entry holds it.
    timer's `_sum` and `_max` lines (seconds) are counted; the rest — the JVM's, the process's and the system's meters, whose number
    moves (measured: 173 and 180 in two runs) — is bounded, "over 100", never counted (S5.6).
 6. **`docker build --progress=plain`** through a filter: its `load metadata` line, its `FROM` line (the base image's digest) and its
-   naming line, step numbers and timings cut, and the lines that say `pull`, counted. **Its other lines are not counted**: how many
+   naming line, step numbers and timings cut — BuildKit ends a step with ` done` or, when the step took measurable time, with
+   ` 0.0s done`; both forms are cut (`s/( [0-9]+\.[0-9]+s)? done$//`). The first published filter cut ` done` alone, so a fresh
+   clone printed `naming to … 0.0s` beside `naming to …` and `image` drifted (RED C5-S5 #41, two sealed runs of two); the fixed
+   filter is checked on a planted log (three naming lines, one out) before any capture — and the old filter, given that log, gives
+   three. And the lines that say `pull`, counted. **Its other lines are not counted**: how many
    there are depends on Docker's build cache (a cached step prints fewer), which this script does not prune — a count would move the
    hash with the cache. Open for RED.
 7. **`--debug`'s condition evaluation report** (`promises`) is read, never printed: an entry of the jar's imports files is "applied"
@@ -185,11 +189,11 @@ $ docker wait tiffinbox-capstone
   its log: orders cooked:  120 · TiffinBox listening on http://0.0.0.0:18425 · the demo token 0 times · X-Shutdown-Token 0 times
 ```
 
-## 2 · fails — the break (A/B/A′), one argument; a port taken; D (labelled), the image
+## 2 · fails — the break (A/B/A′), one argument; a port taken; D and E (labelled), the image
 
-A the jar on 19150, the seven; B the same line and a bare `19151`: exit 2, the two sentences, 0 frames, 0 banner, neither port bound; A′ = A; then a second start on the taken port: exit 1, the failure lesson's two sentences; D the image with `19151` after its name: `docker wait` 2, `argument 1 of 1`.
+A the jar on 19150, the seven; B the same line and a bare `19151`: exit 2, the two sentences, 0 frames, 0 banner, neither port bound; A′ = A; then a second start on the taken port: exit 1, the failure lesson's two sentences; D the image with `19151` after its name: `docker wait` 2, `argument 1 of 1`. **E** (labelled) — D's action followed: `--tiffinbox.port=19157` after the image name, published as before on `127.0.0.1:19155:18425`: TiffinBox listens on `0.0.0.0:19157` **inside** the container, `docker port` still says `18425/tcp -> 127.0.0.1:19155`, readiness on 19155 answers `000`, and nothing listens on the host's 19157; `docker stop` → `docker wait` 143. In a container, publish your port with `docker run -p`, and leave TiffinBox's own (RED C5-S5 #43; the voice says so, and the anchor README).
 
-`.r-fails.out` · md5 `560730e0f028ab06ca6c9360ccc663de` · 3 of 3
+`.r-fails.out` · md5 `d9a95cb41787309d171b7ce65aca65c6` · 3 of 3
 
 ```
 the tree, copied to .harness/serve with a config tree, built with the README's class-path line (offline):
@@ -262,6 +266,17 @@ $ docker wait tiffinbox-capstone
   its log: the banner's :: Spring Boot :: line 0 · TiffinBox listening 0
   its log (docker logs): the demo token 0 times
   listening now: 19155 0 · 19151 0
+E (labelled) - the image, D's action followed: --tiffinbox.port=19157 after the image name, published as before (127.0.0.1:19155):
+$ cd .harness/serve && docker run -d --name tiffinbox-capstone --user "$(id -u):$(id -g)" -m 512m -v "$PWD/secrets:/app/secrets:ro" -p 127.0.0.1:19155:18425 tiffinbox-capstone:1.0.0 --tiffinbox.port=19157
+  its log: TiffinBox listening on http://0.0.0.0:19157
+  docker port: 18425/tcp -> 127.0.0.1:19155
+$ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:19155/actuator/health/readiness
+  000
+  listening on this machine: 19155 Docker · 19157 0
+$ docker stop tiffinbox-capstone
+$ docker wait tiffinbox-capstone
+  143
+  its log (docker logs): the demo token 0 times
 ```
 
 ## 3 · ops — operating it, on the JVM
@@ -316,12 +331,12 @@ $ harness/shutdown.sh 19152 .harness/serve/secrets/tiffinbox/shutdown-token
 
 ## 4 · dev — Compose for development, on the anchor's own compose.yaml
 
-The file the same bytes as the tree's; its project name read back (`tiffinbox-dev`), and with a leftover `COMPOSE_PROJECT_NAME` (`planted-canary`); the project empty and 18881 free; the README's dev line on 19156: Postgres on `127.0.0.1:18881`, the seven, Compose's lines, 0 Pulling/WARN/ERROR, Jackson 3 on the class path 2 / in the jar 0; `exited (exit 0)`; `down -v` → none.
+The file TiffinBox starts beside, against the anchor's own (`../c5-tiffinbox/compose.yaml`, not the folder it was copied from — a comparison with its own source could not fail: RED C5-S5 #52): the same bytes; its project name read back (`tiffinbox-dev`), and with a leftover `COMPOSE_PROJECT_NAME` (`planted-canary`); the project empty and 18881 free; the README's dev line on 19156: Postgres on `127.0.0.1:18881`, the seven, Compose's lines, 0 Pulling/WARN/ERROR, Jackson 3 on the class path 2 / in the jar 0 (the jar's side counted with `jackson-[a-z-]+-3\.`, which also counts a hyphenated artifact such as `jackson-dataformat-yaml-3.…` — the first pattern, `[a-z]*`, missed it: RED C5-S5 #51, a planted listing gives 1 old, 2 new); `exited (exit 0)`; `down -v` → none.
 
-`.r-dev.out` · md5 `c1b6c35800787425f160794f3d30f514` · 3 of 3
+`.r-dev.out` · md5 `eae6ca9394d7bdb5b8f83645896969db` · 3 of 3
 
 ```
-the tree's compose.yaml, in .harness/serve (the folder TiffinBox starts in), against the tree's: the same
+the compose.yaml in .harness/serve (the folder TiffinBox starts in), against the anchor's own, ../c5-tiffinbox/compose.yaml: the same
 $ cd .harness/serve && docker compose config --format json    # its project name, read back
   name: tiffinbox-dev
 $ cd .harness/serve && COMPOSE_PROJECT_NAME=planted-canary docker compose config --format json    # a leftover variable
@@ -597,7 +612,8 @@ commands (copy the anchor with a random token of its own, build the jar offline,
 - **In a container, the refusal's action names the wrong port to change.** `docker run … tiffinbox-capstone:1.0.0 19151` gives
   `To set the port, give it as an option: --tiffinbox.port=19151.` — but inside the container TiffinBox's port is the image's 18425,
   published by `-p 127.0.0.1:19155:18425`; following the action moves the port inside the container, and the published one then
-  reaches nothing. The guard cannot know it runs in a container. Not fixed here (no anchor change); for RED.
+  reaches nothing. The guard cannot know it runs in a container. Measured since (BLUE, `fails` E) and said in the voice and the
+  anchor README; the guard's wording is unchanged.
 - **A scrape cannot follow the seven**: their seventh request, POST /shutdown, ends the JVM. `ops` scrapes after six of them
   (`harness/six.sh`), and the seven's md5 is in every other capture.
 - **Exposing `conditions` changes what applies**: with `conditions` in the exposure list, `ConditionsReportEndpointAutoConfiguration`

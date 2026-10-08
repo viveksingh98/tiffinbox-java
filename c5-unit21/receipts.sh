@@ -1036,6 +1036,6 @@ grep -qF '31 → 39' after/README.md && grep -qF '59 bean definitions' after/REA
 grep -qF '`{"status":"UP","groups":["liveness","readiness"]}`' after/README.md || die "after/README.md: health's answer"
 grep -qF 'NoClassDefFoundError: tools/jackson/databind/json/JsonMapper' after/README.md && grep -qF 'JavaTimeModule' after/README.md || die "after/README.md: the two failures"
 grep -qF 'over 20 MB' after/README.md && grep -qF '3 copies of the shutdown token' after/README.md || die "after/README.md: the heap dump"
-cmp -s after/README.md ../c5-tiffinbox/README.md || echo "  (after/README.md and ../c5-tiffinbox/README.md differ - the anchor is not this unit's after/ yet)" >&3
+cmp -s after/README.md ../c5-tiffinbox/README.md || echo "  (after/README.md and ../c5-tiffinbox/README.md differ - the anchor has moved past this unit's after/: it is unit 27's after/ now)" >&3
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
 echo "c5-unit21: every capture 3/3 and = published; every spoken number asserted; 0 raw demo tokens in every capture"

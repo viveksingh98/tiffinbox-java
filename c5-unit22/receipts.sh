@@ -731,6 +731,6 @@ echo "  exercise: the README as written, then the solution's line -> liveness DO
 grep -qF '`{"customers":4,"ordersCooked":120}`' after/README.md || die "after/README.md: the kitchen's details"
 grep -qF '`/kitchen` answered 200 at least once while liveness and readiness both answered 503' after/README.md || die "after/README.md: the race"
 grep -qF "Health contributor 'readinessState'" after/README.md && grep -qF '`{"status":"OUT_OF_SERVICE"}` 503' after/README.md || die "after/README.md: the switch, the trap"
-cmp -s after/README.md ../c5-tiffinbox/README.md || echo "  (after/README.md and ../c5-tiffinbox/README.md differ - the anchor is not this unit's after/ yet)" >&3
+cmp -s after/README.md ../c5-tiffinbox/README.md || echo "  (after/README.md and ../c5-tiffinbox/README.md differ - the anchor has moved past this unit's after/: it is unit 27's after/ now)" >&3
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
 echo "c5-unit22: every capture 3/3 and = published; every spoken number asserted; 0 raw demo tokens in every capture"

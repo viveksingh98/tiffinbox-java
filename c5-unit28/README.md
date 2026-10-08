@@ -27,7 +27,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 
 (`receipts.sh` carries the two `export` lines at its top; a bare `java` on this Mac is 23.0.1.) **Runs of record (2026-10-08):**
 **153 s under `./receipts.sh`** (/bin/bash 3.2.57, this folder, exit 0, all 10 captures = published, every check passed; load about 6); **156 s under `bash receipts.sh`** (Homebrew bash 5.3.9, this folder, exit 0, all 10 = published); and a sealed clone (below). It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first).
-Published hashes: modules `2fc65db0d234aee37c03fe908a56cd29` · moved `4de1bfb4c26a91c4dbd96cef6bb0718f` · jackson `dade77edf851fd8a5fbeed0ca966a3bc` · swap `1862eb9134fa78584d0222a3195cf4c7` · nulls `4c4d9c2d490707d6353739c33e052787` · notnew `c208512633baf3c9f5b24618ccda1941` · counts `97e759ccf3a9907e1322acfb8014c44e` · versions `58511836bf4f691a9665a851d8e228a8` · migrator `43ed27927270d137ac4d15e207010b37` · exercise `908197b08b45dd96777071ff40938f0d`
+Published hashes: modules `1f03ef09484e30684640c3ecbbd900e3` · moved `4de1bfb4c26a91c4dbd96cef6bb0718f` · jackson `dade77edf851fd8a5fbeed0ca966a3bc` · swap `217cf70cd2abb53203adb1afde158f96` · nulls `4c4d9c2d490707d6353739c33e052787` · notnew `c208512633baf3c9f5b24618ccda1941` · counts `65d0a55277fb500c010f29833c7c80f3` · versions `58511836bf4f691a9665a851d8e228a8` · migrator `43ed27927270d137ac4d15e207010b37` · exercise `908197b08b45dd96777071ff40938f0d`
 
 ## The repository, and what was downloaded
 
@@ -109,9 +109,9 @@ capture files.
 
 ## 1 · modules — one jar became many
 
-The auto-configuration list (`$IMP`) in Boot's autoconfigure jar: **156** entries in 3.5.16's, **12** in 4.1.1's; Jackson's configuration listed in the old jar, then in `spring-boot-jackson`. TiffinBox's jar (`$LIB`, 46 jars): **6** jars hold a list, **74** entries. The BOMs' `dependencyManagement` entries with groupId `org.springframework.boot`: 73 → 311, starters 55 → 170, **the rest (modules) 18 → 141**.
+The auto-configuration list (`$IMP`) in Boot's autoconfigure jar: **156** entries in 3.5.16's, **12** in 4.1.1's; Jackson's configuration listed in the old jar, then in `spring-boot-jackson`. TiffinBox's jar (`$LIB`, 46 jars): **6** jars hold a list, **74** entries. The BOMs' `dependencyManagement` entries with groupId `org.springframework.boot`: 73 → 311, starters 55 → 170, **the rest (not starters) 18 → 141** — Boot artifacts of every kind (modules, loaders, build tools, test jars), so the video shows them dim and no longer says "modules" (RED C5-S5 #4: at least 9 of 3.5.16's 18 hold no auto-configuration list, which is the voice's definition of a module).
 
-`.r-modules.out` · md5 `2fc65db0d234aee37c03fe908a56cd29` · 3 of 3
+`.r-modules.out` · md5 `1f03ef09484e30684640c3ecbbd900e3` · 3 of 3
 
 ```
 the auto-configuration list ($IMP) in Boot's autoconfigure jar - the last Boot 3's, then this course's - its entries:
@@ -133,10 +133,10 @@ $ for j in "$LIB"/*.jar; do n=$(unzip -p "$j" "$IMP" 2> /dev/null | grep -cvE '^
   spring-boot-micrometer-observation-4.1.1.jar 2
   spring-boot-validation-4.1.1.jar 1
   the jars that hold the list: 6 · its entries in all of them: 74 · the jars in $LIB: 46
-the modules each BOM manages - its dependencyManagement entries with groupId org.springframework.boot, the starters apart:
+the Boot artifacts each BOM manages - its dependencyManagement entries with groupId org.springframework.boot, the starters apart:
 $ python3 harness/jars.py bom "$OLD/spring-boot-dependencies-3.5.16.pom" "$NEW/spring-boot-dependencies-4.1.1.pom"
-  spring-boot-dependencies-3.5.16.pom: entries 411 · org.springframework.boot 73 · starters 55 · the rest, modules 18
-  spring-boot-dependencies-4.1.1.pom: entries 652 · org.springframework.boot 311 · starters 170 · the rest, modules 141
+  spring-boot-dependencies-3.5.16.pom: entries 411 · org.springframework.boot 73 · starters 55 · the rest, not starters 18
+  spring-boot-dependencies-4.1.1.pom: entries 652 · org.springframework.boot 311 · starters 170 · the rest, not starters 141
 ```
 
 ## 2 · moved — what TiffinBox felt
@@ -225,9 +225,9 @@ $ grep -rn 'new ObjectMapper()' .harness/serve/tiffinbox-core/src .harness/serve
 
 ## 4 · swap — the break (A/B/A′, then C): Jackson 3
 
-**A** — after/, the README's class-path build, the README's folder run without its `dev` profile (no Docker), 19140: the seven `115c36ba…`. **B** — the two lines that use the mapper swapped to Jackson 3 (`harness/jackson3-code.patch`), the POM untouched: **exit 1, `package tools.jackson.databind.json does not exist`**, no class written — although Jackson 3's databind is on the run's class path all along (the Compose module, at run time only). **A′** — A's command: the seven. **C** (labelled) — the code swapped **and** `tools.jackson.core:jackson-databind` declared (`harness/jackson3-pom.patch`): built; the executable jar holds no Jackson 3 (the plugin's excludes), so C runs from the folders as A did; the class path lists the same 53 jars in another order; **the seven, 0 lines different from A's**.
+**A** — after/, the README's class-path build, the README's folder run without its `dev` profile (no Docker), 19140: the seven `115c36ba…`. **B** — the two lines that use the mapper swapped to Jackson 3 (`harness/jackson3-code.patch`), the POM untouched: **exit 1, `package tools.jackson.databind.json does not exist`**, no class written — although Jackson 3's databind is on the run's class path all along (the Compose module, at run time only). **A′** — A's command: the seven. **C** (labelled) — the code swapped **and** `tools.jackson.core:jackson-databind` declared (`harness/jackson3-pom.patch`): built; the executable jar holds no Jackson 3 (the plugin's excludes), so C runs from the folders as A did; the class path lists the same 53 jars in another order; **the seven, 0 lines different from A's**. **C′** (labelled) — C's executable jar, the README's run line, 19141: **exit 1** before Boot starts, `Exception in thread "main" java.lang.NoClassDefFoundError: tools/jackson/databind/json/JsonMapper` (Caused by `ClassNotFoundException`), nothing listening — the Actuator lesson's excludes drop exactly the dependency C declares, so "the seven come out the same" holds **from the folders only** (RED C5-S5 #1). The patch swaps the server's mapper (`TiffinBoxServer.java`); the bridge (`ActuatorRoutes.java`) keeps its Jackson 2 mapper.
 
-`.r-swap.out` · md5 `1862eb9134fa78584d0222a3195cf4c7` · 3 of 3
+`.r-swap.out` · md5 `217cf70cd2abb53203adb1afde158f96` · 3 of 3
 
 ```
 A - after/, copied to .harness/a with a config tree, built with the README's class-path line; the README's folder run, port 19140:
@@ -307,6 +307,15 @@ $ $CURLSET 19141 .harness/c/secrets/tiffinbox/shutdown-token
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 $ diff .harness/seven-a.txt .harness/seven-c.txt | grep -c '^[<>]'
   0
+C' (labelled) - C's executable jar, the README's run line, port 19141:
+$ cd .harness/c && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19141
+  exit 1
+  its log, read after it exited: APPLICATION FAILED TO START 0 · stack frames 0 · Caused by: 0 · frames folded as common 0
+  its log: TiffinBox listening 0 · its standard error: 19 lines · the demo token in its log: 0
+  its standard error - the exception's lines (its stack frames: 16, not shown):
+    Exception in thread "main" java.lang.NoClassDefFoundError: tools/jackson/databind/json/JsonMapper
+    Caused by: java.lang.ClassNotFoundException: tools.jackson.databind.json.JsonMapper
+  listening now: 19141 0
 ```
 
 ## 5 · nulls — Framework 7's null-safety
@@ -422,14 +431,14 @@ $ harness/shutdown.sh 19142 .harness/serve/secrets/tiffinbox/shutdown-token
   its log: WARN lines 0 · ERROR lines 0 · lines naming management.endpoints.enabled-by-default: 0
 ```
 
-## 7 · counts — a count belongs to a version (P21/P22)
+## 7 · counts — a count needs its split (P21/P22)
 
 Course 4's `boot-in-ninety-seconds` copied (0 files differ), its parent 4.1.1, built offline and run as written: **`… asked for: 50`**. The harness's BoxCount (`SpringApplication.run` on BoxApp, the same start): **`com.tiffinbox 1 · org.springframework (not boot) 11 · org.springframework.boot 38`**. TiffinBox with the harness's Count joined: 144 definitions, the harness's own 1 → **143**, `com.tiffinbox` **11**, Boot 104, Spring 12, Micrometer/Prometheus 16, nothing outside those groups (so no Jackson bean).
 
-`.r-counts.out` · md5 `97e759ccf3a9907e1322acfb8014c44e` · 3 of 3
+`.r-counts.out` · md5 `65d0a55277fb500c010f29833c7c80f3` · 3 of 3
 
 ```
-Course 4's nine-line Boot app (boot-in-ninety-seconds/, from Course 4's first lesson), copied to .harness/box - the copy, its parent, its count:
+Course 4's Boot app (boot-in-ninety-seconds/, from Course 4's first lesson), copied to .harness/box - the copy, its parent, its count:
   the copy against Course 4's own folder (diff -rq, without target/ and .m2-demo/): 0 files differ
   its parent: <version>4.1.1</version>
   BoxApp.java: ConfigurableApplicationContext ctx = SpringApplication.run(BoxApp.class, args);
@@ -580,7 +589,7 @@ solution's line prints nothing and exits 1 (measured once by hand, 2026-10-08: `
 
 | # | Item | This unit (receipts, 2026-10-08) | Where |
 |---|---|---|---|
-| 1 | the module reshuffle | autoconfigure 156 → 12; TiffinBox 6 lists, 74 entries; BOM modules **18 → 141** (the brief's 19 → 142 counted the plugin entry) | spoken (`modules`) |
+| 1 | the module reshuffle | autoconfigure 156 → 12; TiffinBox 6 lists, 74 entries; BOM Boot artifacts, starters apart, **18 → 141** (the brief's 19 → 142 counted the plugin entry) | on screen, dim, not spoken (`modules`; RED C5-S5 #4) |
 | 2 | Jackson 3 (P5/P6/P7) | Boot's bean `ObjectMapper` → `JsonMapper`; Compose module 2 → 3; annotations shared; the seven identical | spoken (`jackson`, `swap`); the mapper API beyond the default mapper not spoken, not captured (RE-MEASURE 8) |
 | 3 | JSpecify null-safety | 58/58 `@NonNullApi` → 55/59 `@NullMarked`; Spring's `Nullable` deprecated since 7.0; TiffinBox 0 annotations | spoken (`nulls`) |
 | 4 | API versioning | `version()` on `@RequestMapping`/`@GetMapping` in spring-web 7.0.9; not on TiffinBox's class path; 6.2 not counted | spoken once, Course 6 by title (`versions`) |

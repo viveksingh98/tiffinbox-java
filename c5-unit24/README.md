@@ -26,8 +26,8 @@ set on (A/B/A′), counts the token at TRACE, and re-checks the AOT jar and the 
   one run.
 
 This unit's `after/` holds the change, the retirement and the anchor README's new section, and nothing else. **Unit 26 starts from
-`after/`, and unit 25 is re-pointed to it** (see the last section); the anchor has moved on since: `../c5-tiffinbox` is unit 26's
-`after/` now (`diff -rq -x target ../c5-tiffinbox ../c5-unit26/after` is empty).
+`after/`, and unit 25 is re-pointed to it** (see the last section); the anchor has moved on since: `../c5-tiffinbox` is unit 27's
+`after/` (`diff -rq -x target ../c5-tiffinbox ../c5-unit27/after` is empty).
 
 ```
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25

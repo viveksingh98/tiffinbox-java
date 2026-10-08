@@ -20,8 +20,9 @@ import java.util.Set;
  * BareArgumentAnalyzer turns it into Boot's two sentences.
  *
  * <p>The sentences never quote an argument they cannot classify: a value typed after a space ("--tiffinbox.shutdown-token
- * VALUE") is a bare argument too, and it may be a secret. Only a bare number of one to five digits - a port, typed the old
- * way - is printed; a -D option, and anything else, is named by its position.
+ * VALUE") is a bare argument too, and it may be a secret - a short number too, a PIN say. Only a bare number of one to five
+ * digits that does not follow an option's bare name - a port, typed the old way - is printed; a number after "--name", a -D
+ * option, and anything else are named by their position.
  *
  * <p>Boot reads it from META-INF/spring.factories: a listener for this event must be known before the container exists.
  */
@@ -46,13 +47,17 @@ class BareArgumentGuard implements ApplicationListener<ApplicationEnvironmentPre
             List<String> found = new ArrayList<>();
             Set<String> actions = new LinkedHashSet<>();
             boolean options = true;                          // Spring's parser: a lone "--" ends the options
+            boolean named = false;                           // the argument before was "--name" alone: this one may be its value
             for (int i = 0; i < args.length; i++) {
                 String a = args[i], at = "argument " + (i + 1) + " of " + args.length;
+                boolean value = named;
+                named = false;
                 if (options && a.startsWith("--")) {
                     options = !a.equals("--");
+                    named = options && !a.contains("=");
                     continue;                                // an option: Boot made it a property
                 }
-                if (a.matches("[0-9]{1,5}")) {
+                if (!value && a.matches("[0-9]{1,5}")) {
                     found.add(at + " is " + a);
                     actions.add("To set the port, give it as an option: --tiffinbox.port=" + a + ".");
                 } else if (a.startsWith("-D")) {

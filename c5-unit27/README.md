@@ -2,20 +2,21 @@
 
 Course 5 · Spring Boot · Section 5, its first unit · Verified on **JDK 25.0.4.1, Apache Maven 3.9.16, Spring Boot 4.1.1, GraalVM CE
 25.3.4.1** (native-image 25.0.4.1), 2026-10-08. The port typed the way Courses 2 to 4 typed it — `java -jar … 18431`, a bare
-number after the jar — started TiffinBox somewhere else without a word: Boot makes a property only of `--name=value`, and hands
-every other argument to the application's runners, where nothing in TiffinBox reads it. This unit measures what Boot hands a
+number after the jar — started TiffinBox somewhere else without a word: Boot makes a property only of an argument that starts
+with `--` (`--name=value`, or `--name` alone, bound as empty), and hands every other argument to the application's runners, where nothing in TiffinBox reads it. This unit measures what Boot hands a
 runner, prints the order of Boot's hooks from one run, gives TiffinBox a refusal at the first of them (A/B/A′), shows why a runner
 is too late for it (C), catches the property-sources lesson's silent `-D` (D), proves the refusal never prints a value typed after
-a space (E, a planted canary), measures five exit codes, prints a banner from the jar's manifest, and re-checks the AOT jar and the
+a space (E, a planted canary; E′, a number after an option's bare name), measures five exit codes, prints a banner from the jar's manifest, and re-checks the AOT jar and the
 native binary.
 
 **The anchor changes (brief ⚑2, ⚑3, ⚑4):**
-- `BareArgumentGuard.java` (new, `tiffinbox-web`, package `com.tiffinbox.web`, 57 lines that are code): **`class BareArgumentGuard
+- `BareArgumentGuard.java` (new, `tiffinbox-web`, package `com.tiffinbox.web`, 61 lines that are code — 57 when the unit was first published): **`class BareArgumentGuard
   implements ApplicationListener<ApplicationEnvironmentPreparedEvent>`**. It reads the bare arguments with Boot's own
   `new DefaultApplicationArguments(event.getArgs()).getNonOptionArgs()`; on a start that has one it throws `BareArguments`, a
   `RuntimeException` that implements `ExitCodeGenerator` (**2**). The description places every bare argument by position
-  (`argument N of M`) and prints it **only when it is 1-5 digits** (a port typed the old way; the action then names
-  `--tiffinbox.port=<that number>`); an argument that starts with `-D` is `starts with -D (not shown)` (action: `Java's -D options go
+  (`argument N of M`) and prints it **only when it is 1-5 digits and does not follow an option's bare name** (a port typed the
+  old way; the action then names `--tiffinbox.port=<that number>`; a number after `--tiffinbox.shutdown-token` may be a PIN, so it
+  is `(not shown)` — the first published guard printed it twice, as the argument and in the action: RED C5-S5 #10, fixed by BLUE); an argument that starts with `-D` is `starts with -D (not shown)` (action: `Java's -D options go
   before -jar; after it, give a setting as --name=value.`); anything else is `(not shown)` (action: `Give a setting as --name=value,
   in one argument.`). The loop mirrors Spring's parser: a lone `--` ends the options (measured with `DefaultApplicationArguments` on
   `--`, `--a=1`, `x`: non-option `[--a=1, x]`).
@@ -49,7 +50,7 @@ export GRAALVM_HOME=/path/to/a/graalvm-jdk-25      # GraalVM CE 25.3.4.1 for the
 clone** (below), all 12 = published. Load averages about 3-4. It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first, so you can
 see which one moved). One native build per capture run (three per receipt), each judged against a bound (1 minute or more, under 20
 minutes); its seconds go to the terminal only.
-Published hashes: bare `eda2ef010df751fc37cd5889acd7dd9e` · refuse `0feab6e83260e48233c2ae90179f6af1` · args `85892cb96459c2150ff416e6621572e0` · order `8c8dcf359ccb8dcc921f5734f95d5744` · change `522f3b8a54859492d5c6499802d7fc89` · late `e9d4ddba52457decc01063116539c2f3` · dashd `ed91e0f98817dbc1383b7ec82af47ad7` · canary `cd5a401201d58963087feb061c9c0a93` · codes `5a4a7b3f5bf58fc84a74b25ec91a7821` · banner `0f360a15e032bba6b6a277fbcf3da720` · native `6d5dd86e51a516f4e87f5024319f2b88` · exercise `024bbc20aad6a2237c0553e25c3523cb`
+Published hashes: bare `eda2ef010df751fc37cd5889acd7dd9e` · refuse `0feab6e83260e48233c2ae90179f6af1` · args `5397379dd5b3ac5a75052460bf60c45c` · order `8c8dcf359ccb8dcc921f5734f95d5744` · change `e95eee9009fd315f9e0ec6368ae4248a` · late `e9d4ddba52457decc01063116539c2f3` · dashd `ed91e0f98817dbc1383b7ec82af47ad7` · canary `2e8bf188c907fc4c28f340a11e61095f` · codes `5a4a7b3f5bf58fc84a74b25ec91a7821` · banner `0f360a15e032bba6b6a277fbcf3da720` · native `6d5dd86e51a516f4e87f5024319f2b88` · exercise `024bbc20aad6a2237c0553e25c3523cb`
 
 ## The GraalVM
 
@@ -258,9 +259,9 @@ $ $CURLSET 19060 .harness/serve/secrets/tiffinbox/shutdown-token
 
 ## 3 · args — what Boot hands a runner
 
-The harness's `Report` joined to the previous tree (its extracted jar, `../hc`), with `--tiffinbox.days=10` and a bare `19062`: `/kitchen` answers 40 orders (the option became a property); after POST /shutdown its line — option names `[spring.main.sources, tiffinbox.days, tiffinbox.port]`, non-option `[19062]`, `tiffinbox.days [10]`, 4 source arguments. Then after/, options only, `--probe.exit=3`: exit 3, `SpringApplication.exit returned 3` — after `TiffinBox listening` (1).
+The harness's `Report` joined to the previous tree (its extracted jar, `../hc`), with `--tiffinbox.days=10` and a bare `19062`: `/kitchen` answers 40 orders (the option became a property), and 19062 has no listener **while TiffinBox runs** (counted before the stop: a count after it could not fail — RED C5-S5 #11); after POST /shutdown its line — option names `[spring.main.sources, tiffinbox.days, tiffinbox.port]`, non-option `[19062]`, `tiffinbox.days [10]`, 4 source arguments. Then after/, options only, `--probe.exit=3`: exit 3, `SpringApplication.exit returned 3` — after `TiffinBox listening` (1).
 
-`.r-args.out` · md5 `85892cb96459c2150ff416e6621572e0` · 3 of 3
+`.r-args.out` · md5 `5397379dd5b3ac5a75052460bf60c45c` · 3 of 3
 
 ```
 the harness's Report (a runner) joined to the previous tree - the README's exploded run, ../hc on the class path - with
@@ -272,12 +273,12 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19063/actuator/health/readiness
   {"status":"UP"} 200
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19063/kitchen
   {"ordersCooked":40,"ordersValue":8100} 200
+  listening on 19062, while TiffinBox runs: 0
 $ harness/shutdown.sh 19063 .harness/prev/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 · curl exit 0
   exit 0 · listening on 19063 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
   harness: option names [spring.main.sources, tiffinbox.days, tiffinbox.port] · non-option arguments [19062] · tiffinbox.days [10] · source arguments 4
-  listening on 19062: 0
 after/ - the same runner, options only, and --probe.exit=3 (Report ends the start through SpringApplication.exit):
 $ cd .harness/serve && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19063 --spring.main.sources=probe.cli.Report --tiffinbox.days=10 --probe.exit=3
   exit 3
@@ -325,9 +326,9 @@ the start, read from its output after it stopped - each hook's line, in order:
 
 ## 5 · change — the previous tree against after/
 
-Five paths differ: the README, the two new classes, `TiffinBoxApp.java`, `spring.factories`. The guard's 57 code lines and the analyzer's 9, whole; `spring.factories` before and after (one key → two; comments 3 → 6); `TiffinBoxApp.java`'s `diff -U0` hunk (two lines out, two in) and its code the same; the README's lines added and removed (counted, not shown); `tiffinbox-core` 0 files differ, and nine other files byte for byte the same. Then the sentence measured: the harness's `Sources`, without and with default properties — 9 of 9, 9 of 10, `defaultProperties` 10th (the config tree's path masked).
+Five paths differ: the README, the two new classes, `TiffinBoxApp.java`, `spring.factories`. The guard's 61 code lines and the analyzer's 9, whole; `spring.factories` before and after (one key → two; comments 3 → 6); `TiffinBoxApp.java`'s `diff -U0` hunk (two lines out, two in) and its code the same; the README's lines added and removed (counted, not shown); `tiffinbox-core` 0 files differ, and nine other files byte for byte the same. Then the sentence measured: the harness's `Sources`, without and with default properties — 9 of 9, 9 of 10, `defaultProperties` 10th (the config tree's path masked).
 
-`.r-change.out` · md5 `522f3b8a54859492d5c6499802d7fc89` · 3 of 3
+`.r-change.out` · md5 `e95eee9009fd315f9e0ec6368ae4248a` · 3 of 3
 
 ```
 the previous tree against after/, both copied under .harness/ - the files that differ:
@@ -337,7 +338,7 @@ $ diff -rq -x target -x secrets .harness/before .harness/after
   Only in .harness/after/tiffinbox-web/src/main/java/com/tiffinbox/web: BareArgumentGuard.java
   Files .harness/before/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxApp.java and .harness/after/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxApp.java differ
   Files .harness/before/tiffinbox-web/src/main/resources/META-INF/spring.factories and .harness/after/tiffinbox-web/src/main/resources/META-INF/spring.factories differ
-  tiffinbox-web/src/main/java/com/tiffinbox/web/BareArgumentGuard.java - new; its lines that are neither comment nor blank: 57
+  tiffinbox-web/src/main/java/com/tiffinbox/web/BareArgumentGuard.java - new; its lines that are neither comment nor blank: 61
     package com.tiffinbox.web;
     import org.springframework.boot.DefaultApplicationArguments;
     import org.springframework.boot.ExitCodeGenerator;
@@ -363,13 +364,17 @@ $ diff -rq -x target -x secrets .harness/before .harness/after
                 List<String> found = new ArrayList<>();
                 Set<String> actions = new LinkedHashSet<>();
                 boolean options = true;                          // Spring's parser: a lone "--" ends the options
+                boolean named = false;                           // the argument before was "--name" alone: this one may be its value
                 for (int i = 0; i < args.length; i++) {
                     String a = args[i], at = "argument " + (i + 1) + " of " + args.length;
+                    boolean value = named;
+                    named = false;
                     if (options && a.startsWith("--")) {
                         options = !a.equals("--");
+                        named = options && !a.contains("=");
                         continue;                                // an option: Boot made it a property
                     }
-                    if (a.matches("[0-9]{1,5}")) {
+                    if (!value && a.matches("[0-9]{1,5}")) {
                         found.add(at + " is " + a);
                         actions.add("To set the port, give it as an option: --tiffinbox.port=" + a + ".");
                     } else if (a.startsWith("-D")) {
@@ -417,7 +422,7 @@ $ diff -rq -x target -x secrets .harness/before .harness/after
     + * later, during refresh: it ranks below every source Boot adds but one - default properties, set in code, which Boot
     + * keeps last - and it arrives after Boot has read keys such as logging.level.tiffinbox and spring.main.banner-mode.
   tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxApp.java - its lines that are neither comment nor blank, against the previous tree's: the same
-  README.md - the anchor's README: lines added 74, removed 4 - its new section and five history notes (not shown)
+  README.md - the anchor's README: lines added 78, removed 4 - its new section and five history notes (not shown)
   tiffinbox-core against the previous tree's (diff -rq -x target): 0 files differ
   TiffinBoxServer.java against the previous tree's, byte for byte: the same
   PortTakenFailureAnalyzer.java against the previous tree's, byte for byte: the same
@@ -519,9 +524,9 @@ $ harness/shutdown.sh 19066 .harness/serve/secrets/tiffinbox/shutdown-token
 
 ## 8 · canary — E (labelled): a value typed after a space
 
-`--tiffinbox.shutdown-token planted-canary-value` after the README's run line, port 19067. The previous tree: exit 1 — Boot binds an empty token (`Value: ""`, `must not be blank`) and never prints the canary. after/: exit 2, `argument 3 of 3 (not shown).`, `Give a setting as --name=value, in one argument.` The canary: 1 in each command, 0 in each log.
+`--tiffinbox.shutdown-token planted-canary-value` after the README's run line, port 19067. The previous tree: exit 1 — Boot binds an empty token (`Value: ""`, `must not be blank`) and never prints the canary. after/: exit 2, `argument 3 of 3 (not shown).`, `Give a setting as --name=value, in one argument.` The canary: 1 in each command, 0 in each log. E′ (labelled): the same line with `48213` — a number, as a PIN would be — after `--tiffinbox.shutdown-token`: exit 2, `argument 3 of 3 (not shown).`, the action names no port, and the number is in the command once and in the analysis 0 times. (The guard before BLUE printed it twice: `argument 3 of 3 is 48213.` and `--tiffinbox.port=48213.` — measured on HEAD `1c6de0d`'s after/, 2 copies in the analysis; the check above counts 0, so it can tell.)
 
-`.r-canary.out` · md5 `cd5a401201d58963087feb061c9c0a93` · 3 of 3
+`.r-canary.out` · md5 `2e8bf188c907fc4c28f340a11e61095f` · 3 of 3
 
 ```
 E (labelled) - a value typed after a space: the README's run line, port 19067, then --tiffinbox.shutdown-token and a
@@ -556,6 +561,19 @@ $ cd .harness/serve && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --
   its log: the banner's :: Spring Boot :: line 0 · TiffinBox listening 0
   its standard error: 0 lines · the demo token in its log: 0
   the canary: in the command above 1 · in its log (standard output and error) 0
+  listening now: 19067 0
+E' (labelled) - a number typed after a space, as a PIN would be (48213): after/, the same line:
+$ cd .harness/serve && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19067 --tiffinbox.shutdown-token 48213
+  exit 2
+  its log, read after it exited: APPLICATION FAILED TO START 1 · stack frames 0 · Caused by: 0 · frames folded as common 0
+  ERROR o.s.b.d.LoggingFailureAnalysisReporter:
+  Description:
+  TiffinBox reads no bare arguments: argument 3 of 3 (not shown).
+  Action:
+  Give a setting as --name=value, in one argument.
+  its log: the banner's :: Spring Boot :: line 0 · TiffinBox listening 0
+  its standard error: 0 lines · the demo token in its log: 0
+  the number: in the command above 1 · in the analysis (Description: to its end) 0
   listening now: 19067 0
 ```
 

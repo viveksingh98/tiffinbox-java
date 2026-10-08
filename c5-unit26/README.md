@@ -36,8 +36,8 @@ nobody, and at INFO left nothing in the log; now it answers 500, and its error i
   DEFERRED)**, `KitchenHealthIndicator.java`, `KitchenMetrics.java`, `Route.java`, `application.yaml`, both POMs. (The previous tree
   already lost Course 3's two logging files and the exec plugin's `-D` argument: the logging lesson retired them.) The exposure list stays `health,prometheus` (⚑3): `beans` is a flag, for one run (`analysis` C).
 
-`c5-tiffinbox` and this unit's `after/` hold the change and the anchor README's new section, and nothing else (`diff -rq -x target
-../c5-tiffinbox after` is empty). **Unit 27 (Section 5) starts from `after/`** (see the last section).
+When this unit was made, `c5-tiffinbox` and this unit's `after/` held the change and the anchor README's new section, and nothing
+else (`diff -rq -x target ../c5-tiffinbox after` was empty); the anchor has moved on since: `../c5-tiffinbox` is unit 27's `after/` (`diff -rq -x target ../c5-tiffinbox ../c5-unit27/after` is empty). **Unit 27 (Section 5) starts from `after/`** (see the last section).
 
 ```
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
@@ -975,7 +975,7 @@ pass; the measured answer, run exactly as written in a clean `env -i` shell, is 
 
 ## For unit 27 — Section 5, and RED
 
-**Unit 27 starts from `../c5-unit26/after`** (= `../c5-tiffinbox` now; `diff -rq -x target` empty). What you can rely on — measured
+**Unit 27 starts from `../c5-unit26/after`** (= `../c5-tiffinbox` when this unit was made; the anchor has moved on since: `../c5-tiffinbox` is unit 27's `after/` (`diff -rq -x target ../c5-tiffinbox ../c5-unit27/after` is empty)). What you can rely on — measured
 here unless a line says otherwise:
 - **A start that fails on TiffinBox's own taken port prints two sentences, not a trace** — on the jar, the AOT jar and the binary. A
   capture that counts frames on a port failure counts 0 now; `--debug` brings 39 back. Any other `BindException` keeps its trace.

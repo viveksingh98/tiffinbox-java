@@ -4,8 +4,8 @@
 enabled-by-default, and read the report.
 
 The video ran the migrator on TiffinBox's own keys, and it reported nothing. It exists for the day you move an application from
-Boot 3: on the class path, it reads the environment once the start begins and reports at ERROR every key Boot 4 no longer
-supports. `management.endpoints.enabled-by-default` is the old switch for every Actuator endpoint, deprecated since Boot 3.4.0
+Boot 3: on the class path, it reads the environment once the start begins and reports the keys Boot's metadata marks deprecated
+or removed - this one at ERROR, though on this Boot it still works (the lesson's `notnew` capture). `management.endpoints.enabled-by-default` is the old switch for every Actuator endpoint, deprecated since Boot 3.4.0
 (the lesson's `notnew` capture) — give it `=true`, so health keeps answering.
 
 Run everything from `c5-unit28/`. The commands below copy TiffinBox — `after/`, the anchor as the command-line lesson left it,

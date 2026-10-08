@@ -1011,11 +1011,13 @@ Two files added, two changed. The seven responses are the same before and after 
 `Route.java`, `application.yaml` and the POMs are not touched:
 - `BareArgumentGuard.java` (new) — a **listener** for Boot's `ApplicationEnvironmentPreparedEvent`: the first moment of a start
   when the command line is parsed and the environment ready, before the banner, the container and the port. It reads the
-  **bare arguments** — every argument that is not `--name=value`, which Boot never makes a property — with Boot's own
-  `DefaultApplicationArguments`, and on a start that has one it throws an exception whose exit code is **2**
-  (`ExitCodeGenerator`). The refusal never quotes an argument it cannot classify: a bare number of one to five digits (a port,
-  typed the old way) is printed; an argument that starts with `-D`, and anything else, is named by its position only — a value
-  typed after a space (`--tiffinbox.shutdown-token VALUE`) is a bare argument too, and it may be a secret.
+  **bare arguments** — every argument that does not start with `--`, which Boot never makes a property (an option is
+  `--name=value`, or `--name` alone, which Boot binds as empty) — with Boot's own `DefaultApplicationArguments`, and on a
+  start that has one it throws an exception whose exit code is **2** (`ExitCodeGenerator`). The refusal never quotes an
+  argument it cannot classify: a bare number of one to five digits (a port, typed the old way) is printed, unless it follows
+  an option's bare name (`--tiffinbox.shutdown-token 48213`: a PIN typed after a space is a number too); an argument that
+  starts with `-D`, and anything else, is named by its position only — a value typed after a space
+  (`--tiffinbox.shutdown-token VALUE`) is a bare argument too, and it may be a secret.
 - `BareArgumentAnalyzer.java` (new) — the failure analyzer for that exception: Boot prints its description and action instead
   of the stack trace. Boot runs the analysis with no container yet.
 - `tiffinbox-web/src/main/resources/META-INF/spring.factories` — the listener's key added
@@ -1034,7 +1036,9 @@ TIFFINBOX_PORT=18432 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar 1843
 ```
 
 Now it exits **2** before the banner — nothing listens, on either port — with two sentences: `TiffinBox reads no bare
-arguments: argument 1 of 1 is 18431.` and `To set the port, give it as an option: --tiffinbox.port=18431.` A `-D` option typed
+arguments: argument 1 of 1 is 18431.` and `To set the port, give it as an option: --tiffinbox.port=18431.` (In a container,
+that option moves the container's own port, and the port you published answers nothing: there, publish yours with
+`docker run -p` instead — measured in `../c5-unit29/`, `fails` E.) A `-D` option typed
 after the jar was dropped the same way (the kitchen cooked 120 orders, not 40); now it is refused, and the action says where it
 goes:
 

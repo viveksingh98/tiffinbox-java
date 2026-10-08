@@ -9,18 +9,19 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # token is masked (gsub), and the checks count 0 raw copies of it in every capture, in the log of every run, and in every file this
 # unit ships.
 #   modules   the auto-configuration list, counted: the last Boot 3's one autoconfigure jar against this course's; TiffinBox's jar,
-#             each of its jars that holds the list; the modules each BOM manages
+#             each of its jars that holds the list; the Boot artifacts each BOM manages, the starters apart
 #   moved     Actuator's list split; the health package emptied; TiffinBox's own Boot imports looked up in the last Boot 3's jars;
 #             the bridge's discoverer's constructors, both versions
 #   jackson   Boot's own JSON bean, both versions (javap); the BOMs' Jackson; the Compose module's Jackson; Jackson 3's annotations;
 #             what TiffinBox ships and writes with
 #   swap      the break, Jackson 3: A after/ from its folders, the seven · B the code swapped to Jackson 3, the POM untouched: the
 #             build fails · A' = A · C (labelled) the code swapped and Jackson 3 declared: the seven, compared line by line with A's
+#             · C' (labelled) C's executable jar, the README's run line: it cannot start - the plugin's excludes keep Jackson 3 out
 #   nulls     Framework 7's null-safety: Spring's own package annotation against JSpecify's, both versions; Spring's old Nullable,
 #             deprecated; what TiffinBox annotates and checks; javac's deprecation warnings on TiffinBox, and on a planted use
 #   notnew    what 3.5.16 already had: heapdump's default access, the deprecated key's metadata; the deprecated key on this course's
 #             Boot - A / B (=false) / A'
-#   counts    Course 4's nine-line Boot app, run as written, and its definitions split by package (the harness's BoxCount);
+#   counts    Course 4's Boot app, run as written, and its definitions split by package (the harness's BoxCount);
 #             TiffinBox's, split the same way (the harness's Count)
 #   versions  the parent's versions, BOM against BOM (one declared filter, the cut counted); Undertow; Framework 7's version
 #             attribute on a request mapping, and whether TiffinBox has spring-web at all
@@ -294,7 +295,7 @@ modules() {
   run "unzip -p \"\$NEW/spring-boot-jackson-4.1.1.jar\" \"\$IMP\" | grep -F .JacksonAutoConfiguration"
   echo "TiffinBox's jar - every jar it ships (\$LIB) that holds the list, and its entries:"
   lists
-  echo "the modules each BOM manages - its dependencyManagement entries with groupId org.springframework.boot, the starters apart:"
+  echo "the Boot artifacts each BOM manages - its dependencyManagement entries with groupId org.springframework.boot, the starters apart:"
   run 'python3 harness/jars.py bom "$OLD/spring-boot-dependencies-3.5.16.pom" "$NEW/spring-boot-dependencies-4.1.1.pom"'; }
 
 # ---- moved: what TiffinBox felt -------------------------------------------------------------------------------------------------
@@ -359,7 +360,12 @@ swap() {
   start "$(at .harness/c 19141 "$R_DIR")"; up; ready 19141
   seven 19141 .harness/c all .harness/seven-c.txt
   echo "\$ diff .harness/seven-a.txt .harness/seven-c.txt | grep -c '^[<>]'"
-  echo "  $(diff .harness/seven-a.txt .harness/seven-c.txt | grep -c '^[<>]' || true)"; }
+  echo "  $(diff .harness/seven-a.txt .harness/seven-c.txt | grep -c '^[<>]' || true)"
+  echo "C' (labelled) - C's executable jar, the README's run line, port 19141:"
+  fails "$(at .harness/c 19141 "$R_RUN")"
+  echo "  its standard error - the exception's lines (its stack frames: $(grep -c "^$(printf '\t')at " .harness/fail.err || true), not shown):"
+  grep -E '^(Exception in thread |Caused by: )' .harness/fail.err | sed 's/^/    /'
+  now 19141; }
 
 # ---- nulls: Framework 7's null-safety -----------------------------------------------------------------------------------------
 nulls() {
@@ -406,7 +412,7 @@ notnew() {
 
 # ---- counts: a count belongs to a version -------------------------------------------------------------------------------------------
 counts() {
-  echo "Course 4's nine-line Boot app (boot-in-ninety-seconds/, from Course 4's first lesson), copied to .harness/box - the copy, its parent, its count:"
+  echo "Course 4's Boot app (boot-in-ninety-seconds/, from Course 4's first lesson), copied to .harness/box - the copy, its parent, its count:"
   rm -rf .harness/box; rsync -a --exclude target --exclude .m2-demo ../c4-unit01/boot-in-ninety-seconds/ .harness/box/
   echo "  the copy against Course 4's own folder (diff -rq, without target/ and .m2-demo/): $(diff -rq -x target -x .m2-demo ../c4-unit01/boot-in-ninety-seconds .harness/box | wc -l | tr -d ' ') files differ"
   echo "  its parent: $(grep -A2 '<artifactId>spring-boot-starter-parent</artifactId>' .harness/box/pom.xml | grep -m1 -o '<version>[^<]*</version>')"
@@ -508,18 +514,18 @@ NL=$(cat .r-*.out | grep -cxF "  its log: the demo token 0 times · X-Shutdown-T
 echo "  token: 0 raw copies in $(ls .harness/raw-* | wc -l | tr -d ' ') raw capture runs, in $(ls .r-*.out | wc -l | tr -d ' ') captures, in the logs of every run that served ($LOGS counted here, the published captures' $NL each with 0) and every start that failed ($FLOGS), the READMEs, the harness, the exercise and receipts.md5; no absolute path, no unit number, no process line, no log time, no stack frame, no build that went online in any capture"
 
 # "The last Boot three kept a hundred and fifty-six auto-configurations in one list, in one jar. On Boot four point one, that jar
-# lists twelve. TiffinBox's own jar holds six lists, seventy-four entries. The modules the parent manages: eighteen, then a hundred
-# and forty-one."
+# lists twelve. TiffinBox's own jar holds six lists, seventy-four entries." (The Boot artifacts each BOM manages, starters apart:
+# eighteen, then a hundred and forty-one - on screen only, never called modules: RED C5-S5 #4.)
 M=$(cat .r-modules.out)
 [ "$(after1 "$M" "\$ unzip -p \"\$OLD/spring-boot-autoconfigure-3.5.16.jar\" \"\$IMP\" | grep -cvE '^[[:space:]]*(#|\$)'")" = "  156" ] || die "modules: 156"
 [ "$(after1 "$M" "\$ unzip -p \"\$LIB/spring-boot-autoconfigure-4.1.1.jar\" \"\$IMP\" | grep -cvE '^[[:space:]]*(#|\$)'")" = "  12" ] || die "modules: 12"
 has "$M" "  the jars that hold the list: 6 · its entries in all of them: 74 · the jars in \$LIB: 46" "modules: 6 lists, 74 entries"
 has "$M" "  org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration" "modules: Jackson's in the old jar"
 has "$M" "  org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration" "modules: Jackson's in its own module"
-has "$M" "  spring-boot-dependencies-3.5.16.pom: entries 411 · org.springframework.boot 73 · starters 55 · the rest, modules 18" "modules: 18"
-has "$M" "  spring-boot-dependencies-4.1.1.pom: entries 652 · org.springframework.boot 311 · starters 170 · the rest, modules 141" "modules: 141"
+has "$M" "  spring-boot-dependencies-3.5.16.pom: entries 411 · org.springframework.boot 73 · starters 55 · the rest, not starters 18" "modules: 18 not starters"
+has "$M" "  spring-boot-dependencies-4.1.1.pom: entries 652 · org.springframework.boot 311 · starters 170 · the rest, not starters 141" "modules: 141 not starters"
 [ "$(printf '%s\n' "$M" | grep -cE '^  spring-boot-[a-z-]+-4\.1\.1\.jar [0-9]+$')" = 6 ] || die "modules: six jars listed"
-echo "  modules: 156 -> 12 · TiffinBox 6 lists, 74 entries, 46 jars · BOM modules 18 -> 141 (starters 55 -> 170)"
+echo "  modules: 156 -> 12 · TiffinBox 6 lists, 74 entries, 46 jars · BOM Boot artifacts, not starters, 18 -> 141 (starters 55 -> 170)"
 
 # "Actuator's list went from a hundred and twenty-three to twenty-four. The health package: fifty class files, then none. Seven of
 # TiffinBox's imports name the new packages. The bridge's eight-argument constructor: the same signature in both."
@@ -556,8 +562,9 @@ has "$J" "  jackson-databind-2.22.2.jar" "jackson: TiffinBox ships Jackson 2"
 echo "  jackson: ObjectMapper (3.5.16) -> JsonMapper (4.1.1) · jackson-bom 2.21.4 -> 3.1.5 · Compose 2 -> 3 · annotations shared · TiffinBox: Jackson 2, 0 Jackson 3 classes, 2 own mappers"
 
 # "A: the anchor, the seven. B: swap the code to Jackson three and the build fails - package tools jackson does not exist. A again.
-# C: declare Jackson three, and the seven come out the same, zero lines different."
-SA=$(blk swap 'A - after/' 'B - after/'); SB=$(blk swap 'B - after/' "A' - A again"); SA2=$(blk swap "A' - A again" 'C (labelled)'); SC=$(blk swap 'C (labelled)' '')
+# C: declare it too, and from the folders the seven come out the same, zero lines different. C': the jar won't even start - the
+# Actuator lesson's excludes drop Jackson three."
+SA=$(blk swap 'A - after/' 'B - after/'); SB=$(blk swap 'B - after/' "A' - A again"); SA2=$(blk swap "A' - A again" 'C (labelled)'); SC=$(blk swap 'C (labelled)' "C' (labelled)")
 has "$SA" "$SEVEN" "swap A: the seven"; has "$SA2" "$SEVEN" "swap A': the seven"; has "$SC" "$SEVEN" "swap C: the seven"
 [ "$(printf '%s\n' "$SA" | grep '^\$ cd .harness/a && java')" = "$(printf '%s\n' "$SA2" | grep '^\$ cd .harness/a && java')" ] || die "swap: A' is not A's command"
 printf '%s\n' "$SA" | grep -q 'profiles.active' && die "swap A: the dev profile (Docker) must not run"
@@ -568,7 +575,12 @@ has "$SB" "  the class path Maven lists for the run (A's, .harness/a/tiffinbox-w
 printf '%s\n' "$SC" | grep -q "^  the class path Maven lists, against A's - its jars' names, sorted: the same jars (" || die "swap C: the same jars"
 [ "$(after1 "$SC" "\$ diff .harness/seven-a.txt .harness/seven-c.txt | grep -c '^[<>]'")" = "  0" ] || die "swap C: 0 lines differ"
 [ "$(printf '%s\n' "$SC" | grep -c '^  +.*tools\.jackson\.core')" = 1 ] || die "swap C: the POM's new dependency"
-echo "  swap: A 115c36ba... · B exit 1, package tools.jackson.databind.json does not exist · A' 115c36ba... · C 115c36ba..., 0 lines differ, the same class path"
+SC2=$(blk swap "C' (labelled)" '')
+has "$SC2" "  exit 1" "swap C': the jar exits 1"; printf '%s\n' "$SC2" | grep -q '^  its log: TiffinBox listening 0 · ' || die "swap C': it never listened"
+has "$SC2" '    Exception in thread "main" java.lang.NoClassDefFoundError: tools/jackson/databind/json/JsonMapper' "swap C': Jackson 3's mapper is missing from the jar"
+has "$SC2" '    Caused by: java.lang.ClassNotFoundException: tools.jackson.databind.json.JsonMapper' "swap C': not in the jar"
+has "$SC2" "  listening now: 19141 0" "swap C': nothing listens"
+echo "  swap: A 115c36ba... · B exit 1, package tools.jackson.databind.json does not exist · A' 115c36ba... · C 115c36ba..., 0 lines differ, the same class path · C' the jar: exit 1, NoClassDefFoundError JsonMapper"
 
 # "Framework six point two marked fifty-eight of fifty-eight packages with Spring's own annotation; seven marks fifty-five of
 # fifty-nine with JSpecify's. Spring's old Nullable: deprecated since seven. TiffinBox ships the jar and annotates nothing - zero

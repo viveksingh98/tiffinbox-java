@@ -938,6 +938,6 @@ echo "  exercise: the README as written, then the solution's line -> tiffinbox D
 # the anchor's README states the same numbers
 for t in '`GET /customers -> 200`' '`UNKNOWN -> 405`' '**`logging.group.kitchen: tiffinbox, com.tiffinbox`**' '`org.slf4j.bridge.SLF4JBridgeHandler`' 'appender, `CONSOLE`' 'three requests at INFO, 0 lines; the POST, `204`; three more, 3 lines; `null`, `204`; three more,' 'The POST answers `405`, and the level stays' 'answers `415` here' '`web` (5 members) and `sql` (3)' 'its `.level = FINE`' '`loggers` by flag answers 404' 'the log holds the token 0 times and the header'"'"'s name 0 times' 'print their six lines' 'Spring'"'"'s one line about TiffinBox and 0 lines per answer' 'the seven requests add six'; do
   grep -qF -- "$t" after/README.md || die "after/README.md no longer states: $t"; done
-cmp -s after/README.md ../c5-tiffinbox/README.md || echo "  (after/README.md and ../c5-tiffinbox/README.md differ - the anchor has moved on: it is unit 26's after/ now)" >&3
+cmp -s after/README.md ../c5-tiffinbox/README.md || echo "  (after/README.md and ../c5-tiffinbox/README.md differ - the anchor has moved past this unit's after/: it is unit 27's after/ now)" >&3
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
 echo "c5-unit24: every capture 3/3 and = published; every spoken number asserted; 0 raw demo tokens in every capture, every saved answer and every run's log"

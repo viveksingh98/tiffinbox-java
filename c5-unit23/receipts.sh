@@ -781,6 +781,6 @@ echo "  exercise: the README as written, then the solution's line -> three verbs
 # the anchor's README states the same numbers
 for t in '`tiffinbox_orders_cooked_total 120.0`' '`# EOF`' '`route="GET /customers"`, `4`' '`{"error":"MissingReflectionRegistrationError"}`' '`{"ordersCooked":120,"ordersValue":24300}`' 'with `--tiffinbox.days=10`, 40 and' 'from 39 jars to 46'; do
   grep -qF -- "$t" after/README.md || die "after/README.md no longer states: $t"; done
-cmp -s after/README.md ../c5-tiffinbox/README.md || echo "  (after/README.md and ../c5-tiffinbox/README.md differ - the anchor is not this unit's after/ yet)" >&3
+cmp -s after/README.md ../c5-tiffinbox/README.md || echo "  (after/README.md and ../c5-tiffinbox/README.md differ - the anchor has moved past this unit's after/: it is unit 27's after/ now)" >&3
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
 echo "c5-unit23: every capture 3/3 and = published; every spoken number asserted; 0 raw demo tokens in every capture and every saved answer"

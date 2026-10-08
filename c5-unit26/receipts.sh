@@ -970,6 +970,6 @@ echo "  exercise: the README as written, then the solution's line -> Cook and Ra
 # the anchor's README states the same numbers
 for t in 'it printed 40 stack frames and no analysis' '21 in the jars TiffinBox ships (`spring-boot` 18, `spring-boot-autoconfigure` 2,' '`spring-boot-micrometer-metrics` 1)' '`PortInUseFailureAnalyzer`, lives in' 'defaults to `false`' '`{"error":"ClassNotFoundException"} 500`' '`GET /customers -> -1`' '`{"error":"MissingReflectionRegistrationError"} 500`' '**`catch (Exception | LinkageError e)`**' 'The analysis for the taken port comes from the AOT jar' '`Can'"'"'t assign requested address`' '`GET /customers failed`'; do
   grep -qF -- "$t" after/README.md || die "after/README.md no longer states: $t"; done
-cmp -s after/README.md ../c5-tiffinbox/README.md || echo "  (after/README.md and ../c5-tiffinbox/README.md differ - the anchor is not this unit's after/ yet)" >&3
+cmp -s after/README.md ../c5-tiffinbox/README.md || echo "  (after/README.md and ../c5-tiffinbox/README.md differ - the anchor has moved past this unit's after/: it is unit 27's after/ now)" >&3
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
 echo "c5-unit26: every capture 3/3 and = published; every spoken number asserted; 0 raw demo tokens in every capture, every saved answer, every failed start's report and every run's log"

@@ -910,7 +910,7 @@ measured answer, run exactly as written in a clean `env -i` shell, is `exercise/
 
 ## For units 22 and 25 — and for RED
 
-**Start from `../c5-unit21/after`** (the anchor has moved on since: `../c5-tiffinbox` is unit 26's `after/`). What you can rely on — measured here unless
+**Start from `../c5-unit21/after`** (the anchor has moved on since: `../c5-tiffinbox` is unit 27's `after/`). What you can rely on — measured here unless
 a line says otherwise:
 - `/actuator` is TiffinBox's own server's context, served by `ActuatorRoutes.actuatorHandler`: exposure from
   `management.endpoints.web.exposure.*` (the anchor: `health`), access from `management.endpoint.<id>.access`. **Health groups,

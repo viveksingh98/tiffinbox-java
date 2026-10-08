@@ -16,7 +16,9 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #             docker run line with your user added: the build's network lines, the base image's digest, the image's user and
 #             entrypoint; readiness, the seven, docker wait 0, the container's log (the token 0 times)
 #   fails     the break, one argument: A the jar, the README's run line · B the same line and a bare 19151 · A' = A; then a port
-#             taken (the failure lesson's two sentences, on the jar) · D (labelled): a bare 19151 after the image name
+#             taken (the failure lesson's two sentences, on the jar) · D (labelled): a bare 19151 after the image name · E
+#             (labelled): the action's own option after the image name - the container's port moves, the published one answers
+#             nothing
 #   ops       operating it, on the JVM: health and its groups, the kitchen in readiness; a level changed while it runs (loggers,
 #             exposed by a flag); six of the seven requests; the scrape - the kitchen's two counters and one timer series per
 #             route; one DEBUG line per answer, from the POST on
@@ -409,11 +411,19 @@ pbuild() { local c; c=$(off "$1" "${3:-$R_PLAIN}" package); echo "\$ $c"; mbuild
 
 # ---- image: the README's two lines, then its run line ------------------------------------------------------------------------
 # blines LOG: docker build's output through its filter - the metadata line, the FROM line, the naming line (each without its step
-# number and timing), how many lines say pull, and how many lines are not shown
+# number and timing), how many lines say pull, and how many lines are not shown. BuildKit writes a step's end as " done", or as
+# " 0.0s done" when the step took measurable time: both are cut (a filter that cut " done" alone kept "naming to … 0.0s" beside
+# "naming to …", and a fresh clone's image capture drifted - RED C5-S5 #41).
 blines() { local s
-  s=$(grep -E '^#[0-9]+ \[internal\] load metadata for |^#[0-9]+ \[[a-z0-9-]+ 1/[0-9]+\] FROM |^#[0-9]+ naming to ' "$1" | sed -E 's/^#[0-9]+ //; s/ done$//' | awk '!seen[$0]++')
+  s=$(grep -E '^#[0-9]+ \[internal\] load metadata for |^#[0-9]+ \[[a-z0-9-]+ 1/[0-9]+\] FROM |^#[0-9]+ naming to ' "$1" | sed -E 's/^#[0-9]+ //; s/( [0-9]+\.[0-9]+s)? done$//' | awk '!seen[$0]++')
   printf '%s\n' "$s" | sed 's/^/    /'
   echo "  its lines that say pull: $(grep -ci 'pull' "$1" || true) · its other lines: not shown"; }
+# The filter, checked on a planted log before any capture: three naming lines - without a timing, with 0.0s, with 0.1s - must come
+# out as one line, the image's name alone. (The old filter gives three: measured.)
+printf '%s\n' '#14 naming to docker.io/library/planted:1 done' '#14 naming to docker.io/library/planted:1 0.0s done' '#15 naming to docker.io/library/planted:1 0.1s done' > .harness/planted-dbuild.log
+PL=$(blines .harness/planted-dbuild.log)
+[ "$(printf '%s\n' "$PL" | grep -c 'naming to')" = 1 ] && printf '%s\n' "$PL" | grep -qxF '    naming to docker.io/library/planted:1' || die "blines: a timing survives the filter (the planted log .harness/planted-dbuild.log)"
+rm -f .harness/planted-dbuild.log
 image() {
   echo "the tree, copied to .harness/serve with a config tree beside the README - the README's two lines, Maven then Docker:"
   copy "$TREE" .harness/serve
@@ -453,7 +463,23 @@ fails_() {
   seven 19150 .harness/serve
   echo "D (labelled) - the image, a bare 19151 after the image name:"
   dfails "$(drun .harness/serve 19155 19151)" "$BOX"
-  now 19155 19151; }
+  now 19155 19151
+  echo "E (labelled) - the image, D's action followed: --tiffinbox.port=19157 after the image name, published as before (127.0.0.1:19155):"
+  dstart "$(drun .harness/serve 19155 --tiffinbox.port=19157)"
+  dheard "$BOX"
+  echo "  its log: $(docker logs "$BOX" 2>&1 | grep -m1 ' : TiffinBox listening on ' | sed 's/^.* : //')"
+  echo "  docker port: $(docker port "$BOX" | paste -sd' ' -)"
+  echo "\$ curl -s -o /dev/null -w '%{http_code}\\n' http://127.0.0.1:19155/actuator/health/readiness"
+  echo "  $(curl -s -o /dev/null -w '%{http_code}' --max-time 10 http://127.0.0.1:19155/actuator/health/readiness 2> /dev/null || true)"
+  echo "  listening on this machine: 19155 $(listeners 19155 | sed 's/^[1-9][0-9]*$/Docker/') · 19157 $(listeners 19157)"
+  echo "\$ docker stop tiffinbox-capstone"; docker stop "$BOX" > /dev/null
+  dgone "$BOX"; dlog "$BOX"; echo "  its log (docker logs): the demo token 0 times"; docker rm "$BOX" > /dev/null; }
+# dheard NAME: the container's log polled until TiffinBox says it listens (60 s); a container that exits first stops the run
+dheard() { local i=0
+  while ! docker logs "$1" 2>&1 | grep -q ' : TiffinBox listening on ' && [ $i -lt 240 ]; do
+    [ "$(docker inspect -f '{{.State.Running}}' "$1" 2> /dev/null)" = true ] || { docker logs "$1" 2>&1 | tail -20 >&3; die "the container $1 exited before TiffinBox listened"; }
+    sleep 0.25; i=$((i + 1)); done
+  docker logs "$1" 2>&1 | grep -q ' : TiffinBox listening on ' || die "TiffinBox never listened in the container $1"; }
 
 # ---- ops: operating it, on the JVM ---------------------------------------------------------------------------------------------
 # tlines FILE: a scrape's lines for TiffinBox's own meters - the two counters, and the timer's count per series (its sums and
@@ -483,7 +509,7 @@ cstate() { local c
   c=$(docker volume ls -q --filter "label=com.docker.compose.project=$PROJ" | sort | paste -sd' ' -); echo "  volumes: ${c:-(none)}"
   c=$(docker network ls --filter "label=com.docker.compose.project=$PROJ" --format '{{.Name}}' | sort | paste -sd' ' -); echo "  networks: ${c:-(none)}"; }
 devcap() {
-  echo "the tree's compose.yaml, in .harness/serve (the folder TiffinBox starts in), against the tree's: $(cmp -s "$TREE/compose.yaml" .harness/serve/compose.yaml && echo the same || echo different)"
+  echo "the compose.yaml in .harness/serve (the folder TiffinBox starts in), against the anchor's own, ../c5-tiffinbox/compose.yaml: $(cmp -s ../c5-tiffinbox/compose.yaml .harness/serve/compose.yaml && echo the same || echo different)"
   echo "\$ cd .harness/serve && docker compose config --format json    # its project name, read back"
   echo "  name: $(cd .harness/serve && docker compose config --format json | python3 -c 'import json, sys; print(json.load(sys.stdin)["name"])')"
   echo "\$ cd .harness/serve && COMPOSE_PROJECT_NAME=planted-canary docker compose config --format json    # a leftover variable"
@@ -497,7 +523,7 @@ devcap() {
   echo "  Compose's lines in its log that say Created, Started or Healthy, sorted:"
   grep -E 'DockerCli +: ' .harness/run.out | sed 's/^.* : *//; s/ *$//' | grep -E ' (Created|Started|Healthy)$' | sort | sed 's/^/    /'
   echo "  lines that say Pulling: $(grep -c 'Pulling' .harness/run.out || true) · WARN lines: $(grep -cE '^[0-9-]+T[^ ]+ +WARN ' .harness/run.out || true) · ERROR lines: $(grep -cE '^[0-9-]+T[^ ]+ +ERROR ' .harness/run.out || true)"
-  echo "  Jackson 3 (tools.jackson) on this class path: $(tr ':' '\n' < .harness/serve/$CPF | grep -c '/tools/jackson/' || true) jars · in the executable jar's lib/: $(unzip -Z1 .harness/serve/$JARP | grep -c '^BOOT-INF/lib/jackson-[a-z]*-3\.' || true)"
+  echo "  Jackson 3 (tools.jackson) on this class path: $(tr ':' '\n' < .harness/serve/$CPF | grep -c '/tools/jackson/' || true) jars · in the executable jar's lib/: $(unzip -Z1 .harness/serve/$JARP | grep -cE '^BOOT-INF/lib/jackson-[a-z-]+-3\.' || true)"
   echo "the project after TiffinBox exited (Boot's stop):"; cstate
   echo "\$ docker compose -p $PROJ down -v"
   docker compose -p "$PROJ" down -v > .harness/down.log 2>&1 || die "docker compose down failed"
@@ -679,14 +705,18 @@ echo "  image: the README's build, 0 pull lines, user ubuntu, exec form; run as 
 
 # "A: the jar, the seven. B: one bare number - exit two, nothing listening. A again: the seven. A taken port: two sentences. After
 # the image name: exit two too."
-F0=$(blk fails 'A - the jar' 'B - the same'); FB=$(blk fails 'B - the same' "A' - A again"); FA2=$(blk fails "A' - A again" "the failure lesson"); FT=$(blk fails "the failure lesson" "D (labelled)"); FD=$(blk fails "D (labelled)" '')
+F0=$(blk fails 'A - the jar' 'B - the same'); FB=$(blk fails 'B - the same' "A' - A again"); FA2=$(blk fails "A' - A again" "the failure lesson"); FT=$(blk fails "the failure lesson" "D (labelled)"); FD=$(blk fails "D (labelled)" "E (labelled)"); FE=$(blk fails "E (labelled)" '')
 has "$F0" "$SEVEN" "fails A"; has "$FA2" "$SEVEN" "fails A'"
 [ "$(printf '%s\n' "$F0" | grep '^\$ cd')" = "$(printf '%s\n' "$FA2" | grep '^\$ cd')" ] || die "fails: A' is not A's command"
 has "$FB" "  exit 2" "fails B: exit 2"; refused "$FB" "fails B" "2 of 2"; has "$FB" "  listening now: 19150 0 · 19151 0" "fails B: never bound"
 taken "$FT" "fails, a port taken" 19150; has "$FT" "$SEVEN" "fails, the first one still serves"
 refused "$FD" "fails D" "1 of 1"; has "$FD" "\$ docker wait tiffinbox-capstone" "fails D: docker wait"; [ "$(printf '%s\n' "$FD" | grep -cx '  2')" = 1 ] || die "fails D: docker wait 2"
 has "$FD" "  listening now: 19155 0 · 19151 0" "fails D: never bound"
-echo "  fails: A 115c36ba... · B exit 2, 0 frames, never bound · A' 115c36ba... · a port taken: exit 1, two sentences · D the image: docker wait 2, the same sentences"
+# "In a container, that option moves the container's own port: the published one answers nothing."
+has "$FE" "  its log: TiffinBox listening on http://0.0.0.0:19157" "fails E: TiffinBox moved inside the container"
+has "$FE" "  docker port: 18425/tcp -> 127.0.0.1:19155" "fails E: still published to 18425"
+has "$FE" "  000" "fails E: the published port answers nothing"; has "$FE" "  listening on this machine: 19155 Docker · 19157 0" "fails E: 19157 is the container's"
+echo "  fails: A 115c36ba... · B exit 2, 0 frames, never bound · A' 115c36ba... · a port taken: exit 1, two sentences · D the image: docker wait 2, the same sentences · E the action followed in a container: listens on 19157 inside, 19155 answers 000"
 
 # "Health: up, with its two groups; readiness holds the kitchen. At INFO, no line per answer; one POST to loggers and every answer
 # gets one. The scrape: a hundred and twenty orders, one timer series per route."
@@ -701,7 +731,7 @@ echo "  ops: health UP + 2 groups; readiness = kitchen + readinessState; DEBUG 0
 
 # "Compose for development: Boot started Postgres from the anchor's own file, on loopback; the seven; exit zero; Boot's stop left
 # the container exited, zero. A leftover variable renames the project."
-x dev "^the tree's compose\.yaml, in \.harness/serve \(the folder TiffinBox starts in\), against the tree's: the same\$"
+x dev "^the compose\.yaml in \.harness/serve \(the folder TiffinBox starts in\), against the anchor.s own, \.\./c5-tiffinbox/compose\.yaml: the same\$"
 x dev '^  name: tiffinbox-dev$'; x dev '^  name: planted-canary$'
 x dev '^  the project while TiffinBox runs: tiffinbox-dev-postgres-1 running 127\.0\.0\.1:18881->5432/tcp$'; x dev "^$SEVEN\$"
 x dev '^  lines that say Pulling: 0 · WARN lines: 0 · ERROR lines: 0$'

@@ -19,8 +19,8 @@ re-checks the AOT jar and the native binary.
 - **`ActuatorRoutes.java`, `TiffinBoxServer.java` and `TiffinBoxApp.java` are not edited** (`change`: byte for byte the same) — the
   bridge reads Boot's registry of health contributors, so a new indicator needs no new route; RED S2 #8 stays deferred (⚑11).
 
-`c5-tiffinbox` and this unit's `after/` hold the change and the anchor README's new section, and nothing else (`diff -rq -x target
-../c5-tiffinbox after` is empty). **Unit 23 starts from `after/`** (see the last section).
+When this unit was made, `c5-tiffinbox` and this unit's `after/` held the change and the anchor README's new section, and nothing
+else (`diff -rq -x target ../c5-tiffinbox after` was empty); the anchor has moved on since: `../c5-tiffinbox` is unit 27's `after/` (`diff -rq -x target ../c5-tiffinbox ../c5-unit27/after` is empty). **Unit 23 starts from `after/`** (see the last section).
 
 ```
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
@@ -695,7 +695,7 @@ and publishes no availability state (`trap`); a liveness-driven restart is not m
 
 ## For unit 23 — and for RED
 
-**Start from `../c5-unit22/after`** (= `../c5-tiffinbox` now; `diff -rq -x target` empty). What you can rely on — measured here
+**Start from `../c5-unit22/after`** (= `../c5-tiffinbox` when this unit was made; the anchor has moved on since: `../c5-tiffinbox` is unit 27's `after/` (`diff -rq -x target ../c5-tiffinbox ../c5-unit27/after` is empty)). What you can rely on — measured here
 unless a line says otherwise:
 - **Health:** `/actuator/health` → status UP, groups `liveness` and `readiness`; six components (`diskSpace`, `kitchen`,
   `livenessState`, `ping`, `readinessState`, `ssl`); readiness = `readinessState` + `kitchen` (application.yaml); liveness = Boot's

@@ -10,7 +10,8 @@ from the track roadmap by the deck's builder) and teaches none of them.
 **No code change (brief ⚑14).** The tree is `../c5-unit27/after`, reached through the link `anchor` (so no capture prints a unit
 folder). It is read and copied under `.harness/`, never built in place; `pieces` checks the copy against it (`diff -rq`: 0). When this
 unit was measured, `diff -rq -x target ../c5-tiffinbox anchor/` was empty: this tree is the anchor, and it goes on to the next course
-(ledger P3). **One file outside this folder changes:** the repository's `README.md`, line 447 — the roadmap line (ledger P11; `readme`).
+(ledger P3). **One file outside this folder changes:** the repository's `README.md`: the roadmap line (line 447 then, 456 now — ledger P11; `readme`), and, by BLUE, its title, its folder
+map and two course sections, which named Courses 1-3 only (RED C5-S5 #44; `readme` shows them).
 
 ```
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
@@ -24,7 +25,7 @@ Docker. It **dies** when a capture's md5 differs from `receipts.md5` (it prints 
 **Runs of record (2026-10-08):** **37 s under `./receipts.sh`** (/bin/bash 3.2.57, this folder, exit 0, all 3 captures = published,
 every check passed); **36 s under `bash receipts.sh`** (Homebrew bash 5.3.9, the same); and the sealed clone below (bash 5.3.9, 38 s).
 Load averages about 4.
-Published hashes: seam `17f19fc59cbae08b7f8deb9987225d13` · pieces `c80148f080eeb937a8731b9b4ba1256c` · readme `72e6188c38581d5058cf05418760730b`
+Published hashes: seam `d1d10087124fad2a0a480783d3e2f91c` · pieces `902a804dcf07a625c70681d80656024b` · readme `bb4db1efcfed9a697474207c7dbec305`
 
 ## The repository, and what was downloaded
 
@@ -59,9 +60,10 @@ harness, the repository's README and `receipts.md5`: 0 each. The builder counts 
 
 - `anchor` → `../c5-unit27/after` (a link, committed). `.harness/serve/` — the tree with a config tree, built once with the README's
   plain line; both runs of `seam` start there.
-- **The harness** is `harness/shutdown.sh` (unit 29's, unchanged; not used by a capture here). `$CURLSET` = `../c5-unit11/curlset.sh`,
+- **The harness** is `harness/shutdown.sh` (unit 29's, unchanged; not used by a capture here) and `harness/Prefix.java` (`seam` E:
+  three JDK contexts, no TiffinBox class, its own requests through the JDK's `HttpClient`, stopped before it exits). `$CURLSET` = `../c5-unit11/curlset.sh`,
   the seven requests.
-- **Ports (brief ⚑1, 19160-19169):** `seam`'s A-C 19160 · its D 19161. 18425 (TiffinBox's default) and 8080 (Tomcat's) are checked
+- **Ports (brief ⚑1, 19160-19169):** `seam`'s A-C 19160 · its D 19161 · its E 19162. 18425 (TiffinBox's default) and 8080 (Tomcat's) are checked
   free and never bound. Nothing listened on 19160-19169 before or after any run here.
 - **The commands** are the anchor README's, read and asserted (`readme()`): `mvn -B package`; the run line; the DEBUG line
   (`--logging.level.kitchen=debug`); the exposure line with `health,env` → `health,mappings` (D); the readiness line; the `/customers`
@@ -108,14 +110,18 @@ files, 548`. Each check died on its fault, and every check passed on the publish
 ## 1 · seam — what TiffinBox's own server does
 
 A/B/A′ and C on the README's DEBUG line (port 19160): A `GET /customers`; B `GET /customersXYZ` — the same answer byte for byte,
-logged and timed as `GET /customers` (the JDK's contexts match by prefix: `/customers` takes every path that starts with it); A′ = A;
+logged and timed as `GET /customers` (the JDK's contexts match by prefix: `/customers` takes every path that starts with it, and of
+several contexts the longest prefix wins — E, below); A′ = A;
 C (labelled) `GET /nowhere` — the JDK's HTML 404, no line, no series. Then a trailing slash and a longer path (prefix again), a wrong
 verb (TiffinBox's JSON 405, `UNKNOWN`), `Accept: application/xml` (JSON regardless), `/actuator` and `/actuator/mappings` (the bridge's
 404, untimed); the timer's series (none names a typed path); the seven and the lines they added (5 routes, 1 `UNKNOWN`, `/nowhere`
-none); every answer on a virtual thread. D (labelled): the README's exposure line with `mappings`, one run, the JVM (brief S5.22): Boot's
-routing table, one context, nothing in it.
+none); every answer on a virtual thread, 13 distinct (the thread's number counted before it is cut: a pool of one thread would print
+1 — RED C5-S5 #50). D (labelled): the README's exposure line with `mappings`, one run, the JVM (brief S5.22): Boot's routing table,
+one context, nothing in it. E (labelled): the JDK's own rule, without TiffinBox — `harness/Prefix.java` (a single source file) makes
+three contexts in this order, `/c`, `/customers`, `/customersX`, on 127.0.0.1:19162: `/customersXYZ` reaches `/customersX` (made last),
+not `/c` (made first), so the JDK picks the **longest** matching prefix, not the first (RED C5-S5 #42); `/cat` → `/c`, `/nowhere` → 404.
 
-`.r-seam.out` · md5 `17f19fc59cbae08b7f8deb9987225d13` · 3 of 3
+`.r-seam.out` · md5 `d1d10087124fad2a0a480783d3e2f91c` · 3 of 3
 
 ```
 A, B, A' and C - the README's DEBUG line (the log group kitchen at DEBUG), from .harness/serve, port 19160:
@@ -212,7 +218,7 @@ $ $CURLSET 19160 .harness/serve/secrets/tiffinbox/shutdown-token
     POST /shutdown -> 200    (on a virtual thread)
   answered by a route TiffinBox declares: 5 · by TiffinBox's server with no route (UNKNOWN): 1 · never reached TiffinBox (no line): 1
   the answer that never reached TiffinBox: GET /nowhere -> 404 text/html <h1>404 Not Found</h1>No context found for request
-this run's answer lines at DEBUG: 13 · on a virtual thread: 13 · its WARN lines: 0 · ERROR lines: 0
+this run's answer lines at DEBUG: 13 · on a virtual thread: 13 · distinct virtual threads among them (the number, counted before it is cut): 13 · its WARN lines: 0 · ERROR lines: 0
 D (labelled) - Boot's routing table: the README's exposure line with mappings, exposed by flag for one run, on the JVM, port 19161:
 $ cd .harness/serve && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19161 --management.endpoints.web.exposure.include=health,mappings
   listens on: 127.0.0.1:19161
@@ -231,6 +237,15 @@ $ $CURLSET 19161 .harness/serve/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
   its log: the demo token 0 times · X-Shutdown-Token 0 times
+E (labelled) - the JDK's own rule, without TiffinBox: the harness's Prefix, three contexts on 127.0.0.1:19162:
+$ java harness/Prefix.java 19162
+  harness: contexts created, in this order: /c, /customers, /customersX
+  harness: /customersXYZ -> 200 context /customersX
+  harness: /customers/ -> 200 context /customers
+  harness: /customers -> 200 context /customers
+  harness: /cat -> 200 context /c
+  harness: /nowhere -> 404 (no context)
+  listening on 19162 now: 0
 ```
 
 ## 2 · pieces — the files that do the web's jobs
@@ -240,14 +255,14 @@ The web module's nine files, each with its lines and three greps: imports `com.s
 failed bind of the server's start). Four files do one of the three — 548 lines; five do none; the core's seven import nothing of the
 server. Counted by grep, not by judgement; which lessons take these jobs is the roadmap's plan, not a measurement.
 
-`.r-pieces.out` · md5 `c80148f080eeb937a8731b9b4ba1256c` · 3 of 3
+`.r-pieces.out` · md5 `902a804dcf07a625c70681d80656024b` · 3 of 3
 
 ```
 the web module's files - lines, and three greps: imports the JDK's HTTP server · is the annotation the router reads · explains the failed bind of the server's start:
 $ cd .harness/serve && for f in tiffinbox-web/src/main/java/com/tiffinbox/web/*.java; do echo "$(basename "$f") $(wc -l < "$f" | tr -d " ") · $(grep -c "^import com\.sun\.net\.httpserver\." "$f") · $(grep -c "^public @interface Route " "$f") · $(grep -c "thrownIn(TiffinBoxServer\.class, \"start\"" "$f")"; done
   ActuatorRoutes.java 196 · 2 · 0 · 0
   BareArgumentAnalyzer.java 17 · 0 · 0 · 0
-  BareArgumentGuard.java 83 · 0 · 0 · 0
+  BareArgumentGuard.java 88 · 0 · 0 · 0
   KitchenHealthIndicator.java 41 · 0 · 0 · 0
   KitchenMetrics.java 43 · 0 · 0 · 0
   PortTakenFailureAnalyzer.java 51 · 0 · 0 · 1
@@ -256,7 +271,7 @@ $ cd .harness/serve && for f in tiffinbox-web/src/main/java/com/tiffinbox/web/*.
   TiffinBoxServer.java 277 · 3 · 0 · 0
   the router reads the annotation: 1 line in TiffinBoxServer.java
   the files that do one of the three: 4 - ActuatorRoutes.java PortTakenFailureAnalyzer.java Route.java TiffinBoxServer.java · 548 lines
-  the files that do none: 5 - BareArgumentAnalyzer.java BareArgumentGuard.java KitchenHealthIndicator.java KitchenMetrics.java TiffinBoxApp.java · 218 lines
+  the files that do none: 5 - BareArgumentAnalyzer.java BareArgumentGuard.java KitchenHealthIndicator.java KitchenMetrics.java TiffinBoxApp.java · 223 lines
 the core module's files:
 $ cd .harness/serve && cat tiffinbox-core/src/main/java/com/tiffinbox/*.java | wc -l | tr -d ' '; ls tiffinbox-core/src/main/java/com/tiffinbox/*.java | wc -l | tr -d ' '; grep -l 'com.sun.net.httpserver' tiffinbox-core/src/main/java/com/tiffinbox/*.java | wc -l | tr -d ' '
   lines 316 · files 7 · that import the JDK's HTTP server 0
@@ -267,9 +282,11 @@ the tree against the anchor, without target/ and secrets/ (diff -rq): 0 differen
 
 Before (`git show 53379bd:README.md`): `Spring Boot → JPA`, skipping Spring Web MVC, and Build & Test Like a Pro with it. Now: the
 track's 19 courses, named as the roadmap's one-table summary names them, in its order, shortened with `…`; Spring Web MVC after
-Spring Boot. The deck's builder checks the names against `TRACK-ROADMAP.md` on the day.
+Spring Boot. The deck's builder checks the names against `TRACK-ROADMAP.md` on the day. Then the README's opening (BLUE, RED
+C5-S5 #44): its title names the five courses, lines 1-5 map `c4-unitNN/` and `c5-unitNN/` beside the first three, and it has a
+section for Courses 2 to 5.
 
-`.r-readme.out` · md5 `72e6188c38581d5058cf05418760730b` · 3 of 3
+`.r-readme.out` · md5 `bb4db1efcfed9a697474207c7dbec305` · 3 of 3
 
 ```
 the roadmap line in the repository's README - as the last commit before this unit had it:
@@ -277,8 +294,13 @@ $ git -C .. show 53379bd:README.md | grep -n '^Videos publish'
   447:Videos publish a few per day on the channel. Roadmap: Core Java → Spring Framework → Spring Boot → JPA → REST → Security → … → Spring AI.
 and as it is now:
 $ grep -n '^Videos publish' ../README.md
-  447:Videos publish a few per day on the channel. Roadmap (19 courses): Java Fundamentals → Core Java II → Build & Test Like a Pro → Spring Framework Core → Spring Boot → Spring Web MVC → Data with JPA & Hibernate → … → Spring AI.
+  456:Videos publish a few per day on the channel. Roadmap (19 courses): Java Fundamentals → Core Java II → Build & Test Like a Pro → Spring Framework Core → Spring Boot → Spring Web MVC → Data with JPA & Hibernate → … → Spring AI.
   its entries, in order (… counted as one): 9 names · after Spring Boot: Spring Web MVC · Build & Test named: 1
+the README's opening - the courses its title names, the folders it maps, and its course sections:
+$ sed -n 1p ../README.md
+  # TiffinBox — code for *Java Fundamentals*, *Core Java II*, *Build & Test Like a Pro*, *Spring Framework Core* and *Spring Boot* (Learn Programming with Vivek)
+  the folders its opening maps (lines 1-5): unitNN/ c2-unitNN/ c3-unitNN/ c4-unitNN/ c5-unitNN/
+  its course sections: 2 3 4 5 (Course 1's units: the Units table)
 ```
 
 ## Not captured here — the builder's, by Course 4's finale's method
@@ -288,10 +310,11 @@ $ grep -n '^Videos publish' ../README.md
   (contract §6c). Neither file is in this repository, so a receipt cannot read them on a clone; the builder prints the roadmap's md5
   in the Director's Note.
 - **The next course's lesson titles** (eight jobs → seven lessons) are found in the roadmap's Course 6 list by a key each, each found
-  exactly once, never typed. The roadmap's Course 6 also names Undertow (its unit 02), which Boot 4.1.1's BOM no longer manages (the
+  exactly once, never typed. They are a plan, said as one ("is planned to hand … a lesson in the plan"), and carried as PROMISE-LEDGER
+  rows C6-1 to C6-8 for Course 6's brief to honour or correct (RED C5-S5 #45). The roadmap's Course 6 also names Undertow (its unit 02), which Boot 4.1.1's BOM no longer manages (the
   Boot 4 lesson: 11 → 0 mentions): not named here; Course 6's brief owns that line.
 - **Jackson 3 alone does not move the seven** — cited from the Boot 4 lesson's `swap` C (`../c5-unit28/.r-swap.out`, its published
-  md5 `1862eb9134fa78584d0222a3195cf4c7`, checked by the builder): Jackson 3 declared, the seven `115c36ba…`, 0 lines different.
+  md5 `217cf70cd2abb53203adb1afde158f96`, checked by the builder): Jackson 3 declared, the seven `115c36ba…`, 0 lines different.
 
 ## Exercise
 
@@ -303,7 +326,9 @@ None: the finale is exempt (contract 7; `check_unit5.py` skips the last unit).
   (`1 -> 2`): a client can raise a route's count with a path that route never declared. Nothing in TiffinBox can tell `/customersXYZ`
   from `/customers`.
 - **`HEAD /kitchen`** (probed once, not captured): TiffinBox's 405, and the JDK logs a WARN, `sendResponseHeaders: being invoked with
-  a content length for a HEAD request` — `respond()` gives a HEAD answer a body length. Not in the seven; for RED.
+  a content length for a HEAD request` — `respond()` gives a HEAD answer a body length. Not in the seven; carried to Course 6 as
+  ledger row C6-10 (RED C5-S5 #49), with the prefix match's write route (`POST /shutdownXYZ` timed as `POST /shutdown`) as C6-9
+  (#48).
 - **The bridge is neither logged nor timed**: `/actuator` and `/actuator/mappings` (404) add 0 lines and move 0 series — the timer is
   TiffinBox's routes' alone, so a scrape cannot count scrapes.
 - **The JDK's 404 never reaches TiffinBox**, so no TiffinBox code can change it: the page, its `text/html` and its wording are the JDK's.

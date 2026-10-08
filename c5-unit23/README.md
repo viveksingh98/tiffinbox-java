@@ -26,8 +26,8 @@ re-checks the AOT jar and the native binary — where the scrape needs one hint,
 - `application.yaml`: **`management.endpoints.web.exposure.include: health,prometheus`** (⚑3), its comment updated.
 - **Not edited:** `tiffinbox-core` (`change`: 0 files differ), `TiffinBoxApp.java` (⚑11) and `KitchenHealthIndicator.java`.
 
-`c5-tiffinbox` and this unit's `after/` hold the change and the anchor README's new section, and nothing else (`diff -rq -x target
-../c5-tiffinbox after` is empty). **Unit 24 starts from `after/`** (see the last section).
+When this unit was made, `c5-tiffinbox` and this unit's `after/` held the change and the anchor README's new section, and nothing
+else (`diff -rq -x target ../c5-tiffinbox after` was empty); the anchor has moved on since: `../c5-tiffinbox` is unit 27's `after/` (`diff -rq -x target ../c5-tiffinbox ../c5-unit27/after` is empty). **Unit 24 starts from `after/`** (see the last section).
 
 ```
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
@@ -843,7 +843,7 @@ measured answer, run exactly as written in a clean `env -i` shell, is `exercise/
 
 ## For unit 24 — and for RED
 
-**Start from `../c5-unit23/after`** (= `../c5-tiffinbox` now; `diff -rq -x target` empty). What you can rely on — measured here
+**Start from `../c5-unit23/after`** (= `../c5-tiffinbox` when this unit was made; the anchor has moved on since: `../c5-tiffinbox` is unit 27's `after/` (`diff -rq -x target ../c5-tiffinbox ../c5-unit27/after` is empty)). What you can rely on — measured here
 unless a line says otherwise:
 - **`handle()` is now a `try`/`finally`.** The routed body (405, 403, 200/500) sits in a `try`; the `finally` records
   `tiffinbox.requests` with `route` and `status` (`exchange.getResponseCode()` — the status already sent). Your DEBUG line

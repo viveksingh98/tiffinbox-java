@@ -1,8 +1,7 @@
-# TiffinBox — code for *Java Fundamentals*, *Core Java II* and *Build & Test Like a Pro* (Learn Programming with Vivek)
+# TiffinBox — code for *Java Fundamentals*, *Core Java II*, *Build & Test Like a Pro*, *Spring Framework Core* and *Spring Boot* (Learn Programming with Vivek)
 
-Every unit of all three courses builds **TiffinBox**, a small tiffin-delivery service app, one concept at a time.
-Course 1 lives in `unitNN/` + `capstone/`; Course 2 in `c2-unitNN/` + `c2-capstone/`; Course 3 in
-`c3-unitNN/` + `c3-tiffinbox/`.
+Every unit of all five courses builds **TiffinBox**, a small tiffin-delivery service app, one concept at a time.
+Course 1 lives in `unitNN/` + `capstone/`; Course 2 in `c2-unitNN/` + `c2-capstone/`; Course 3 in `c3-unitNN/` + `c3-tiffinbox/`; Course 4 in `c4-unitNN/` + `c4-tiffinbox/`; Course 5 in `c5-unitNN/` + `c5-tiffinbox/`.
 Channel: https://www.youtube.com/@LearnProgrammingWithVivek
 
 ## How to run
@@ -443,6 +442,16 @@ in pairs**: several units print an *offline receipt* ("this resolves nothing new
 script proves each one by running the ordinary online `verify` into the scratch repository first and
 then the same command with `-o` in that same repository. It never runs `-o` against a repository it did
 not fill itself — that is the false green verify_course2.sh printed.
+
+## Course 4 — Spring Framework Core
+**The Spring container, from the inside**, in `c4-unitNN/` (32 units), with the long-lived project in `c4-tiffinbox/`:
+TiffinBox moved onto Spring one concept at a time. Every unit folder has its own README and a `receipts.sh` that makes, and
+hashes, the captures its video shows.
+
+## Course 5 — Spring Boot
+**TiffinBox on Spring Boot 4.1**, in `c5-unitNN/` (30 units), with the long-lived project in `c5-tiffinbox/`: starters,
+auto-configuration, configuration, Actuator, the native binary, the image and the command line, each measured. The same layout
+as Course 4: a README and a `receipts.sh` per unit.
 
 Videos publish a few per day on the channel. Roadmap (19 courses): Java Fundamentals → Core Java II → Build & Test Like a Pro → Spring Framework Core → Spring Boot → Spring Web MVC → Data with JPA & Hibernate → … → Spring AI.
 

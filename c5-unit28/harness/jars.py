@@ -2,8 +2,9 @@
 """The harness's reader of jars and POMs - the course's, never TiffinBox's. Every number it prints is counted from the files
 named on its command line, on the day; nothing is typed. receipts.sh runs it; README.md declares each filter.
 
-  jars.py bom POM...             the modules a BOM manages: its <dependencyManagement> entries, those with groupId
+  jars.py bom POM...             the Boot artifacts a BOM manages: its <dependencyManagement> entries, those with groupId
                                  org.springframework.boot, and of those the starters (artifactId holds "starter") and the rest
+                                 (not starters: modules, loaders, build tools, test jars - no definition of "module" is applied)
   jars.py props KEY,KEY POM...   the values of those <properties> in each POM ("-" where the POM has none), one row per key,
                                  then how many properties each POM has, and how many of them the table does not show
   jars.py mentions WORD POM...   how many lines of each POM mention WORD, in any case
@@ -36,7 +37,7 @@ def bom(files):
         deps = r.findall("m:dependencyManagement/m:dependencies/m:dependency", NS)
         boot = [d.findtext("m:artifactId", namespaces=NS) for d in deps if d.findtext("m:groupId", namespaces=NS) == "org.springframework.boot"]
         st = [a for a in boot if "starter" in a]
-        print(f"{os.path.basename(f)}: entries {len(deps)} · org.springframework.boot {len(boot)} · starters {len(st)} · the rest, modules {len(boot) - len(st)}")
+        print(f"{os.path.basename(f)}: entries {len(deps)} · org.springframework.boot {len(boot)} · starters {len(st)} · the rest, not starters {len(boot) - len(st)}")
 
 
 def props(keys, files):

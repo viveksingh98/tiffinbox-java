@@ -4,10 +4,11 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # GRAALVM_HOME names a GraalVM JDK 25 (README.md, "The GraalVM"): the native build reads it. Without it, this script makes every
 # capture that needs no GraalVM - the JVM's, and the exercise's - filling .m2-demo on the way, then stops before the native build.
 # Course 5 · CLI, Banners and Application Arguments - this unit's receipts. The port typed the way Courses 2 to 4 typed it - a bare
-# number after the jar - started TiffinBox somewhere else without a word: Boot makes a property only of --name=value, and hands
-# every other argument to the runners, where nothing in TiffinBox reads it. The anchor change (brief ⚑2, ⚑3, ⚑4):
+# number after the jar - started TiffinBox somewhere else without a word: Boot makes a property only of an argument that starts
+# with -- (--name=value, or --name alone, bound as empty), and hands every other argument to the runners, where nothing in
+# TiffinBox reads it. The anchor change (brief ⚑2, ⚑3, ⚑4):
 # BareArgumentGuard.java (new: a listener for Boot's ApplicationEnvironmentPreparedEvent that refuses a bare argument, exit code 2,
-# printing only a bare number of one to five digits), BareArgumentAnalyzer.java (new: its failure analysis), META-INF/spring.factories
+# printing only a bare number of one to five digits that does not follow an option's bare name), BareArgumentAnalyzer.java (new: its failure analysis), META-INF/spring.factories
 # (the listener's key added, the analyzer added to the FailureAnalyzer key, the comment rewritten) and TiffinBoxApp.java (one
 # Javadoc sentence, RED C5-S2 #8). Twelve captures, each run three times and hashed; cap() DIES when a hash differs from
 # receipts.md5; every number the video says is asserted at the bottom by a check that can fail; the demo token is masked (gsub),
@@ -29,7 +30,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #   dashd     D (labelled): a -D option after the jar - the previous tree drops it (120 orders); after/ refuses it; the README's
 #             line with -D before -jar: 40
 #   canary    E (labelled): a planted canary passed after a space - the previous tree, then after/: exit 1, then 2, the canary 0
-#             times in each log
+#             times in each log · E' (labelled): a number passed after a space (a PIN, say) - after/: exit 2, the number 0 times
+#             in the analysis
 #   codes     the exit codes, each measured: POST /shutdown 0 · a port taken 1 · a bare argument 2 · SpringApplication.exit 3
 #             (the harness) · SIGTERM 143
 #   banner    the README's banner file: the jar, the folders (the README's class-path line), Boot's own banner, banner-mode off
@@ -141,6 +143,9 @@ TOKEN=not-a-real-token-demo-only
 [ ${#TOKEN} = 26 ] || die "the demo token must be 26 characters"
 # The canary: not a secret - a value no capture may hold except in the one command that carries it (canary, E).
 CAN=planted-canary-value
+# The number: not a secret either - a value shaped like a port, typed after an option's bare name (canary, E'). The guard once
+# printed such a number twice, as the bare argument and in the action's --tiffinbox.port= (measured: RED C5-S5 #10).
+NUM=48213
 CURLSET=../c5-unit11/curlset.sh                      # the comparison set: the seven requests, POST /shutdown with the header
 [ -f "$CURLSET" ] || die "$CURLSET is missing"
 [ -f "$PREV/pom.xml" ] && [ -f after/pom.xml ] && [ -f after/README.md ] || die "the previous tree $PREV or after/ is missing"
@@ -272,7 +277,9 @@ listening() { local a="" i=0
     [ -n "$a" ] && break; kill -0 "$pid" 2> /dev/null || break; sleep 0.25; i=$((i + 1)); done
   echo "${a:-nothing}"; }
 # up: the line after a start - where it listens, Boot's first line; dies if it never listened
-up() { local l; l=$(listening); [ "$l" != nothing ] || { tail -20 .harness/run.out >&3; die "it never listened"; }
+up() { local l e=0; l=$(listening); [ "$l" != nothing ] || { tail -20 .harness/run.out >&3; tail -20 .harness/run.err >&3
+    if kill -0 "$pid" 2> /dev/null; then die "it never listened in 60 s, and its JVM is still alive (pid $pid) - suspect a busy machine"; fi
+    wait "$pid" || e=$?; pid=""; die "it never listened: its JVM exited $e (its output above - an empty one suggests a busy machine)"; }
   echo "  listens on: $l"; echo "  Boot's first line: $(first .harness/run.out)"; }
 # ask 'README curl LINE' PORT: the README's curl line, its port made PORT, printed and run; what it printed, indented
 ask() { local c; c=$(url "$1" "$2"); echo "\$ $c"; (eval "$c") 2>&1 < /dev/null | sed 's/^/  /'; }
@@ -447,9 +454,9 @@ args() {
   echo "two options and a bare number, port 19063:"
   start "$(hcp .harness/prev 19063 probe.cli.Report '--tiffinbox.days=10 19062')"; up; ready 19063
   ask "$R_KITCHEN" 19063
+  echo "  listening on 19062, while TiffinBox runs: $(listeners 19062)"
   stop 19063 .harness/prev
   sed -n 's/^harness: /  harness: /p' .harness/run.out
-  echo "  listening on 19062: $(listeners 19062)"
   echo "after/ - the same runner, options only, and --probe.exit=3 (Report ends the start through SpringApplication.exit):"
   quits "$(hcp .harness/serve 19063 probe.cli.Report '--tiffinbox.days=10 --probe.exit=3')"
   now 19063; }
@@ -534,6 +541,10 @@ canary() { local c
   echo "after/:"
   c="$(at .harness/serve 19067 "$R_RUN") --tiffinbox.shutdown-token $CAN"; fails "$c"
   echo "  the canary: in the command above $(printf '%s\n' "$c" | LC_ALL=C grep -oF -- "$CAN" | wc -l | tr -d ' ') · in its log (standard output and error) $(raw "$CAN" .harness/fail.out .harness/fail.err)"
+  now 19067
+  echo "E' (labelled) - a number typed after a space, as a PIN would be ($NUM): after/, the same line:"
+  c="$(at .harness/serve 19067 "$R_RUN") --tiffinbox.shutdown-token $NUM"; fails "$c"
+  echo "  the number: in the command above $(printf '%s\n' "$c" | LC_ALL=C grep -oF -- "$NUM" | wc -l | tr -d ' ') · in the analysis (Description: to its end) $(awk '/^Description:$/ { f = 1 } f' .harness/fail.out | LC_ALL=C grep -oF -- "$NUM" | wc -l | tr -d ' ')"
   now 19067; }
 
 # ---- codes: the exit codes, each measured ----------------------------------------------------------------------------------------
@@ -704,7 +715,7 @@ echo "  bare: the previous tree, TIFFINBOX_PORT=19061 and a bare 19062 - listens
 # non-option arguments, which nothing in TiffinBox reads. Ten days became forty orders; nineteen-oh-six-two went nowhere."
 G1=$(blk args 'the harness' 'after/ - the same runner'); G2=$(blk args 'after/ - the same runner' '')
 has "$G1" "  harness: option names [spring.main.sources, tiffinbox.days, tiffinbox.port] · non-option arguments [19062] · tiffinbox.days [10] · source arguments 4" "args: what the runner got"
-has "$G1" '  {"ordersCooked":40,"ordersValue":8100} 200' "args: the option became a property"; has "$G1" "  listening on 19062: 0" "args: the bare number, nowhere"
+has "$G1" '  {"ordersCooked":40,"ordersValue":8100} 200' "args: the option became a property"; has "$G1" "  listening on 19062, while TiffinBox runs: 0" "args: the bare number, nowhere"
 has "$G2" "  exit 3" "args: exit 3"; has "$G2" "  harness: SpringApplication.exit returned 3" "args: the generator's code"; has "$G2" "  its log: the banner's :: Spring Boot :: line 1 · TiffinBox listening 1" "args: a runner runs after the port opened"
 printf '%s\n' "$G2" | grep -qF 'non-option arguments [] ·' || die "args: after/, options only"
 echo "  args: option names, non-option [19062], tiffinbox.days [10], 4 arguments; /kitchen 40 orders; after/: exit 3 via SpringApplication.exit"
@@ -716,15 +727,16 @@ O=$(blk order 'the start, read from its output' '')
 x order "^$SEVEN\$"
 echo "  order: starting, environment prepared, the banner, context initialized, prepared, TiffinBox listening, refreshed, started, live, the runner, ready, accepting traffic, closed"
 
-# "the guard: one listener, about forty lines with its exception; its analyzer: one method; one key added to spring factories;
+# "the guard: one listener, sixty-one code lines with its exception (receipt and DN only); its analyzer: one method; one key added to spring factories;
 # and one sentence in TiffinBoxApp's Javadoc, measured: the file ranks nine of nine, nine of ten with default properties"
 [ "$(n change '^  (Files|Only in) ')" = 5 ] || die "change: five paths"
-x change '^  tiffinbox-web/src/main/java/com/tiffinbox/web/BareArgumentGuard\.java - new; its lines that are neither comment nor blank: 57$'
+x change '^  tiffinbox-web/src/main/java/com/tiffinbox/web/BareArgumentGuard\.java - new; its lines that are neither comment nor blank: 61$'
 x change '^  tiffinbox-web/src/main/java/com/tiffinbox/web/BareArgumentAnalyzer\.java - new; its lines that are neither comment nor blank: 9$'
 for t in '    class BareArgumentGuard implements ApplicationListener<ApplicationEnvironmentPreparedEvent> {' \
   '            List<String> bare = new DefaultApplicationArguments(event.getArgs()).getNonOptionArgs();' \
   '        static final class BareArguments extends RuntimeException implements ExitCodeGenerator {' \
-  '                    if (a.matches("[0-9]{1,5}")) {' '                    } else if (a.startsWith("-D")) {' \
+  '                    if (!value && a.matches("[0-9]{1,5}")) {' '                    } else if (a.startsWith("-D")) {' \
+  '                        named = options && !a.contains("=");' \
   '                        found.add(at + " (not shown)");' '                return 2;' \
   '    class BareArgumentAnalyzer extends AbstractFailureAnalyzer<BareArgumentGuard.BareArguments> {'; do grep -qxF -- "$t" .r-change.out || die "change: $t"; done
 [ "$(grep -c 'found.add(at + " is " + a)' .r-change.out)" = 1 ] || die "change: a bare argument printed in one branch only, the number's"
@@ -740,7 +752,7 @@ x change '^  harness: default properties set · sources 10: .* · 9 class path r
 x change '^  tiffinbox-core against the previous tree.s \(diff -rq -x target\): 0 files differ$'
 for t in TiffinBoxServer.java PortTakenFailureAnalyzer.java ActuatorRoutes.java KitchenHealthIndicator.java KitchenMetrics.java Route.java tiffinbox-web/src/main/resources/application.yaml tiffinbox-web/pom.xml pom.xml; do x change "^  $t against the previous tree.s, byte for byte: the same\$"; done
 [ "$(diff -rq -x target -x secrets "$PREV" after | wc -l | tr -d ' ')" = 5 ] || die "change: after/ differs from the previous tree in more than the README, TiffinBoxApp, the factories file and the two classes"
-echo "  change: 5 paths · the guard 57 code lines, the analyzer 9 · spring.factories 1 key -> 2 · TiffinBoxApp: one Javadoc sentence, code the same · the file 9 of 9, 9 of 10 with default properties · the rest the same"
+echo "  change: 5 paths · the guard 61 code lines, the analyzer 9 · spring.factories 1 key -> 2 · TiffinBoxApp: one Javadoc sentence, code the same · the file 9 of 9, 9 of 10 with default properties · the rest the same"
 
 # "A: the port as an option, the seven. B: the old command, refused - exit two, no banner, nothing listening, no stack trace, two
 # sentences. A again: the seven."
@@ -771,12 +783,15 @@ has "$D3" '  {"ordersCooked":40,"ordersValue":8100} 200' "dashd: 40 with -D befo
 echo "  dashd: the previous tree 120 silently · after/ exit 2, argument 2 of 2 starts with -D, not shown · -D before -jar: 40"
 
 # (receipt only, a chip) "a value typed after a space is a bare argument - never printed: the canary 0 times in either log"
-E1=$(blk canary 'E (labelled)' 'after/:'); E2=$(blk canary 'after/:' '')
+E1=$(blk canary 'E (labelled)' 'after/:'); E2=$(blk canary 'after/:' "E' (labelled)"); E3=$(blk canary "E' (labelled)" '')
 has "$E1" "  exit 1" "canary before: exit 1"; has "$E1" '      Value: ""' "canary before: Boot binds an empty token"
 has "$E1" "  the canary: in the command above 1 · in its log (standard output and error) 0" "canary before: counted, 0"
 refused "$E2" "canary after/"; has "$E2" "${DESC}argument 3 of 3 (not shown)." "canary after/: placed, not shown"; has "$E2" "  Give a setting as --name=value, in one argument." "canary after/: the action"
 has "$E2" "  the canary: in the command above 1 · in its log (standard output and error) 0" "canary after/: counted, 0"
-echo "  canary: the previous tree exit 1 (an empty token), after/ exit 2 (argument 3 of 3, not shown); the canary 1 in each command, 0 in each log"
+refused "$E3" "the number after/"; has "$E3" "${DESC}argument 3 of 3 (not shown)." "the number: placed, not shown"; has "$E3" "  Give a setting as --name=value, in one argument." "the number: the action names no port"
+has "$E3" "  the number: in the command above 1 · in the analysis (Description: to its end) 0" "the number: counted in the command, 0 in the analysis"
+[ "$(printf '%s\n' "$E3" | grep -c 'tiffinbox.port=48213')" = 0 ] || die "the number: offered as a port"
+echo "  canary: the previous tree exit 1 (an empty token), after/ exit 2 (argument 3 of 3, not shown); the canary 1 in each command, 0 in each log · E' the number after a space: exit 2, not shown, 0 in the analysis"
 
 # "zero after POST shutdown, one for a failed start, two for a bare argument, three from a runner's exit, a hundred and
 # forty-three for SIGTERM"
@@ -822,6 +837,6 @@ echo "  exercise: the README as written, then the solution's line -> the jar ver
 # the anchor's README states the same numbers
 for t in 'TiffinBox reads no bare' 'To set the port, give it as an option: --tiffinbox.port=18431.' '`{"ordersCooked":40,"ordersValue":8100} 200`' '`argument 2 of 2 starts with -D (not shown)`' 'cooked 120 orders, not 40' '`143` SIGTERM' 'The jar: `title=[TiffinBox Web] version=[1.0.0] boot=[4.1.1]`; the folders: `title=[] version=[] boot=[4.1.1]`; the native' 'binary: `title=[] version=[] boot=[4.1.1]`' '9 of 9' '9 of 10'; do
   grep -qF -- "$t" after/README.md || die "after/README.md no longer states: $t"; done
-cmp -s after/README.md ../c5-tiffinbox/README.md || echo "  (after/README.md and ../c5-tiffinbox/README.md differ - the anchor has moved past this unit's after/, or is not it yet)" >&3
+cmp -s after/README.md ../c5-tiffinbox/README.md || echo "  (after/README.md and ../c5-tiffinbox/README.md differ - the anchor has moved past this unit's after/)" >&3
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
 echo "c5-unit27: every capture 3/3 and = published; every spoken number asserted; 0 raw demo tokens and 0 canaries in every capture's logs, every failed start's report and every run's log"
