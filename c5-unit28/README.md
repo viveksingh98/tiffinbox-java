@@ -38,7 +38,16 @@ of each kind the captures use — after/ with the README's class-path line (it a
 finding), the harness's POM (`validate`: the copies into `$OLD` and `$NEW`), and Course 4's app — so on a fresh clone those builds
 fill `.m2-demo` and every capture's build says `offline: yes`. At run time nothing leaves 127.0.0.1.
 
-**From a clone, sealed:** pending (this paragraph is replaced after the run).
+**From a clone, sealed (2026-10-08, brief S5.2).** The repository was cloned (`git clone` of the local repository at this unit's
+first commit) into an empty folder — nothing git ignores: no `.m2-demo`, no `.harness/`, no `.r-*`; `README.md` is the only file
+changed since, by this paragraph. `bash receipts.sh` (Homebrew bash 5.3.9) ran under `env -i`, with a `HOME` whose `.mavenrc` points
+Maven's `user.home` there (Java reads `user.home` from the account, not from `$HOME`) and every Java proxy property at a port that
+refuses (127.0.0.1:9), and whose Maven settings send every repository to a `file://` copy of Central's files made from `.m2-demo`
+(4,164 files: TiffinBox's own installs, `_remote.repositories`, `*.lastUpdated`, `resolver-status.properties` and `.DS_Store` left out,
+`maven-metadata-central.xml` served as `maven-metadata.xml`); `http_proxy`, `https_proxy`, their capitals and `ALL_PROXY` at the same
+refusing port; no `GRAALVM_HOME`. **Exit 0 after 157 s** — all 10 captures = published, every spoken number asserted, 0 raw demo
+tokens. The three pre-capture builds said `offline: no` (an empty `.m2-demo`) and between them took **706 files, every one from the
+`file://` copy**, 0 from anywhere else; every capture's build said `offline: yes`; `.m2-demo` ended with 1,919 files.
 
 ## The demo token — fake, and never printed
 
