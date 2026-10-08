@@ -654,7 +654,8 @@ hang() { local c e=0 o
   start "$(at .harness/ha 19055 "$R_H5")"; up; ready 19055
   c=$(url "$R_H4" 19055); echo "\$ $c"; o=$( (eval "$c") 2>&1 < /dev/null) || e=$?; printf '%s\n' "$o" | sed 's/^/  /'; echo "  curl exit $e"
   scraped 19055 'GET /customers'
-  echo "the bridge's catch - the README's sbom line, then its line with a body the bridge cannot read as JSON:"
+  echo "the bridge's catch - the README's sbom line; then its line that sends a body to health, a read: the bridge reads a body only"
+  echo "for a write that takes one (the Actuator lesson's fix), so this one never reaches the catch:"
   ask "$R_H7" 19055
   ask "$R_H6" 19055
   echo "\$ harness/shutdown.sh 19055 .harness/ha/$TF"; harness/shutdown.sh 19055 ".harness/ha/$TF" | sed 's/^/  /'
@@ -923,16 +924,16 @@ has "$HA" '  {"error":"ClassNotFoundException"} 500' "hang: five hundred"; has "
 has "$HA" '  the scrape'"'"'s line for GET /customers: tiffinbox_requests_seconds_count{route="GET /customers",status="500"} 1' "hang: timed"
 has "$HA" "  ${ANS}GET /customers -> 500" "hang: logged"; has "$HA" "  its standard error: uncaught exceptions 0 · stack frames 0 · Caused by: 0" "hang: nothing uncaught"
 # "The new catch takes both: five hundred, the error logged, and timed." - at INFO, Boot's default
-has "$HI" '  {"error":"ClassNotFoundException"} 500' "hang INFO: five hundred"; has "$HI" '  {"error":"NoClassDefFoundError"} 500' "hang INFO: sbom, five hundred"; has "$HI" '  {"error":"JsonParseException"} 500' "hang INFO: the body, five hundred"
+has "$HI" '  {"error":"ClassNotFoundException"} 500' "hang INFO: five hundred"; has "$HI" '  {"error":"NoClassDefFoundError"} 500' "hang INFO: sbom, five hundred"; has "$HI" '  {"status":"UP","groups":["liveness","readiness"]} 200' "hang INFO: a body on a read, never read"
 has "$HI" '  the scrape'"'"'s line for GET /customers: tiffinbox_requests_seconds_count{route="GET /customers",status="500"} 1' "hang INFO: timed"
 has "$HI" "  ERROR tiffinbox: GET /customers failed" "hang INFO: the route's error, logged"
 has "$HI" "  ERROR tiffinbox: an actuator request failed" "hang INFO: the bridge's LinkageError, logged"
-has "$HI" "  ERROR tiffinbox: an actuator request failed: com.fasterxml.jackson.core.JsonParseException" "hang INFO: the bridge's exception, by its class"
+[ "$(printf '%s\n' "$HI" | grep -c 'an actuator request failed: ')" = 0 ] || die "hang INFO: the body on a read reached the bridge's catch"
 [ "$(printf '%s\n' "$HI" | grep -cxF '  java.lang.NoClassDefFoundError: com/fasterxml/jackson/databind/jdk14/JDK14Util')" -ge 1 ] || die "hang INFO: the error's own line"
 printf '%s\n' "$HI" | grep -qE '^  its log, read after it exited: APPLICATION FAILED TO START 0 · stack frames [1-9][0-9]* ' || die "hang INFO: the traces, counted"
 has "$HI" "  the body's words in its log: oops 0 · not json 0" "hang INFO: never what the client sent"
 has "$HI" "  its standard error: uncaught exceptions 0 · stack frames 0 · Caused by: 0" "hang INFO: nothing uncaught"; has "$HI" "$LOGOK" "hang INFO: no token"
-echo "  hang: catch (Exception e) - 000, curl exit 28, the line and the timer say -1, NoClassDefFoundError uncaught · catch (Exception | LinkageError e) - 500, logged and timed, 0 uncaught · at INFO: the route's error and the bridge's at ERROR, the body's words 0"
+echo "  hang: catch (Exception e) - 000, curl exit 28, the line and the timer say -1, NoClassDefFoundError uncaught · catch (Exception | LinkageError e) - 500, logged and timed, 0 uncaught · at INFO: the route's error and the bridge's LinkageError at ERROR; a body on a read never read (200), the body's words 0"
 
 # "Built natively, the AOT jar and the binary, each started twice on one port, print the same two sentences: the AOT step registered
 # the file and the analyzer's constructors." "And in the native binary, the hints lesson's break, rebuilt: five hundred, missing

@@ -35,11 +35,12 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #   tour      one run with C's flags: what beans, conditions, env, mappings, metrics and threaddump hand over (counted, never a
 #             value or a name of this Mac's); env's masking, switched by show-values for one run each; the heap dump, switched
 #             on for one run - its floor and the token copies in it, counted two ways
-#   start     the start, timed from outside (harness/ttfr.py): the previous tree's jar, the copy with the starter, after/'s jar -
-#             six rounds, round 1 a warm-up: the reference against a floor, the other two as ratios of it; never the seconds
 #   native    after/ built natively (the README's two Maven lines) and its binary run: readiness, health, the seven; the
 #             README's flag on the binary
 #   exercise  exercise/README.md's commands and exercise/solution/SOLUTION.md's, read from the files and run as written
+#   start     last: the start to a first answer, timed from outside (harness/ttfr.py): the previous tree's jar, the copy with
+#             the starter, after/'s jar - six rounds, round 1 a warm-up: the reference against a floor; the other two's ratios
+#             to it, and the seconds, on the terminal only - the band the voice states judged behind a load gate
 # "before" is ../c5-unit20/after (the anchor as the hints lesson left it), COPIED under .harness/; this script never writes into
 # another unit's folder. after/ is this unit's frozen copy of ../c5-tiffinbox after the change; it is copied, never built in
 # place. Every run of TiffinBox starts in a folder under .harness/ that holds a config tree with the demo token (secrets/), as the
@@ -47,7 +48,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # lesson (../c5-unit11/curlset.sh: the seven requests, POST /shutdown with the token's header read from the file). "$M2" is this
 # unit's own repository, .m2-demo. "$pid" is the process the script started.
 # The network: every build runs offline (-o) against .m2-demo and says so ("offline: yes"); a build that cannot resolve an
-# artifact offline goes to Maven Central once, and says that ("offline: no - ..."). GraalVM's native plugin, under the profile
+# artifact offline goes to the remote repository once - Maven Central, or the mirror your settings name - and says that ("offline: no - ..."). GraalVM's native plugin, under the profile
 # native, reads its metadata repository (a zip) from .m2-demo - and when the zip is not there it downloads it from GitHub, even
 # under -o (README.md, The repository): so a native-profile build without the zip goes to Maven Central for it at once, never
 # offline first, and every build's log is searched for the plugin's own download line - found, the run stops. At run time nothing
@@ -98,7 +99,12 @@ command -v curl > /dev/null || die "curl is needed: every request here is curl's
 # A variable of yours must not become a property source, a JVM flag, a build setting or a native-image option: every
 # TIFFINBOX_*, SPRING_*, MANAGEMENT_*, SERVER_* and LOGGING_* variable, DEBUG (Boot reads it as --debug), the variables that inject
 # JVM flags, MAVEN_OPTS, MAVEN_ARGS and NATIVE_IMAGE_OPTIONS are removed first. GRAALVM_HOME stays: it says which GraalVM to use.
-for v in $(env | sed -n 's/^\(TIFFINBOX_[A-Za-z0-9_]*\|SPRING_[A-Za-z0-9_]*\|MANAGEMENT_[A-Za-z0-9_]*\|SERVER_[A-Za-z0-9_]*\|LOGGING_[A-Za-z0-9_]*\|DEBUG\|JAVA_TOOL_OPTIONS\|JDK_JAVA_OPTIONS\|_JAVA_OPTIONS\|MAVEN_OPTS\|MAVEN_ARGS\|NATIVE_IMAGE_OPTIONS\)=.*/\1/p'); do unset "$v"; done
+# The list is an extended regular expression (sed -E): /usr/bin/sed's basic ones have no alternation, so the \| this loop once
+# used matched nothing and removed no variable at all (measured: RED C5-S4 #63). A canary is planted under every name first, and
+# the run stops if one survives the loop.
+for v in TIFFINBOX_CANARY SPRING_CANARY MANAGEMENT_CANARY SERVER_CANARY LOGGING_CANARY DEBUG JAVA_TOOL_OPTIONS JDK_JAVA_OPTIONS _JAVA_OPTIONS MAVEN_OPTS MAVEN_ARGS NATIVE_IMAGE_OPTIONS; do export "$v=planted-canary"; done
+for v in $(env | sed -n -E 's/^(TIFFINBOX_[A-Za-z0-9_]*|SPRING_[A-Za-z0-9_]*|MANAGEMENT_[A-Za-z0-9_]*|SERVER_[A-Za-z0-9_]*|LOGGING_[A-Za-z0-9_]*|DEBUG|JAVA_TOOL_OPTIONS|JDK_JAVA_OPTIONS|_JAVA_OPTIONS|MAVEN_OPTS|MAVEN_ARGS|NATIVE_IMAGE_OPTIONS)=.*/\1/p'); do unset "$v"; done
+[ -z "$(env | grep -- '=planted-canary$')" ] || die "a variable survived the clean-up above: $(env | grep -- '=planted-canary$' | sed 's/=.*//' | paste -sd' ' -)"
 # Every request this script makes goes to 127.0.0.1. An HTTP proxy named in your environment (http_proxy and the rest) would
 # carry curl's requests to that proxy instead of to TiffinBox: 127.0.0.1 and localhost go first in no_proxy and NO_PROXY.
 export no_proxy="127.0.0.1,localhost${no_proxy:+,$no_proxy}" NO_PROXY="127.0.0.1,localhost${NO_PROXY:+,$NO_PROXY}"
@@ -197,15 +203,15 @@ ghub() { grep -qE 'Downloaded GraalVM reachability metadata repository from http
 # never silent (inside a capture, "no" changes the capture's hash: cap() then dies). A native-profile build while the metadata
 # repository is not in $M2 goes to Maven Central at once (offline, the plugin would fetch it from GitHub instead).
 mbuild() { local how=yes ec=0 c=$1
-  case $c in *' -Pnative '*) [ -f "$ZIP" ] || { c=${c/mvn -o -B /mvn -B }; how="no - GraalVM's metadata repository was not in .m2-demo, so Maven Central was asked for it"; } ;; esac
+  case $c in *' -Pnative '*) [ -f "$ZIP" ] || { c=${c/mvn -o -B /mvn -B }; how="no - GraalVM's metadata repository was not in .m2-demo, so the remote repository (Central or your mirror) was asked for it"; } ;; esac
   (eval "$c") > "$2" 2>&1 < /dev/null || ec=$?
   if [ $ec != 0 ] && [ "$how" = yes ] && grep -qE 'offline mode|Could not resolve|could not be resolved|Cannot access' "$2"; then
-    how="no - the offline build could not resolve an artifact, so Maven Central was asked"; ec=0
+    how="no - the offline build could not resolve an artifact, so the remote repository (Central or your mirror) was asked"; ec=0
     (eval "${c/mvn -o -B /mvn -B }") > "$2" 2>&1 < /dev/null || ec=$?; fi
   if ghub "$2"; then echo "  built $3 · offline: no - GraalVM's native plugin went to GitHub for its metadata repository · exit $ec"
     die "$3: GraalVM's native plugin went over the network for its metadata repository - $(grep -m1 -E 'Downloaded GraalVM reachability metadata repository from http|Failed to download from http' "$2" | sed 's/^\[[A-Z]*\] //') - README.md, The repository"; fi
   [ $ec = 0 ] || { tail -30 "$2" >&3
-    ! grep -qE 'Could not resolve|could not be resolved|Could not transfer|Cannot access' "$2" || die "build failed: $3 - Maven could resolve Boot's parent and plugins neither from .m2-demo nor from Maven Central: a fresh clone's first run needs the network once, to fill .m2-demo"
+    ! grep -qE 'Could not resolve|could not be resolved|Could not transfer|Cannot access' "$2" || die "build failed: $3 - Maven could resolve Boot's parent and plugins neither from .m2-demo nor from the remote repository (Central or your mirror): a fresh clone's first run needs the network once, to fill .m2-demo"
     die "build failed: $3"; }
   echo "  built $3 · offline: $how · exit $ec"; }
 # tree FOLDER: a config tree in FOLDER/secrets holding one file, the token and a newline, readable by its owner alone
@@ -255,6 +261,20 @@ up() { local l; l=$(listening); [ "$l" != nothing ] || { tail -20 .harness/run.o
   echo "  listens on: $l"; echo "  Boot's first line: $(first .harness/run.out)"; }
 # ask 'README curl LINE' PORT: the README's curl line, its port made PORT, printed and run; what it printed, indented
 ask() { local c; c=$(url "$1" "$2"); echo "\$ $c"; (eval "$c") 2>&1 < /dev/null | sed 's/^/  /'; }
+# adapter PORT: how an adapter reads a request - asked of Boot's own adapter (ways: Spring MVC's, on Tomcat) and of the bridge (tour),
+# the same eight requests: a type asked for, a query that filters, a write in text, a level Boot can't map, a level set, a write with
+# an empty body and the level after it (keys sorted: the two answer with different Jacksons), and /actuator itself. Each command is
+# printed as run, its answer indented. RED C5-S4 #2, #4, #46.
+adapter() { local u="http://127.0.0.1:$1/actuator" l="/loggers/com.tiffinbox" c
+  for c in "curl -s -o /dev/null -w '%{http_code} %{content_type}\n' -H 'Accept: application/json' $u/health" \
+      "curl -s -o /dev/null -w '%{http_code}\n' '$u/metrics/jvm.threads.states?tag=state:nowhere'" \
+      "curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'Content-Type: text/plain' -d '{\"configuredLevel\":\"DEBUG\"}' $u$l" \
+      "curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'Content-Type: application/json' -d '{\"configuredLevel\":\"LOUD\"}' $u$l" \
+      "curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'Content-Type: application/json' -d '{\"configuredLevel\":\"DEBUG\"}' $u$l" \
+      "curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'Content-Type: application/json' -d '' $u$l" \
+      "curl -s $u$l | python3 -c 'import json, sys; print(json.dumps(json.load(sys.stdin), sort_keys=True))'" \
+      "curl -s -o /dev/null -w '%{http_code}\n' $u"; do
+    echo "\$ $c"; (eval "$c") 2>&1 < /dev/null | sed 's/^/  /'; done; }
 # ready PORT: readiness asked until it answers 200 - every 0.25 s, up to 60 s, not printed (the race is the next lesson's) -
 # then the README's readiness line, printed and run once. No health, env or other assertion before it (brief S4.15).
 ready() { local i=0 c=""
@@ -440,9 +460,9 @@ ways() {
   libs .harness/ways-mvc > .harness/ways-mvc.lib
   echo "  jars under BOOT-INF/lib: $(wc -l < .harness/ways-mvc.lib | tr -d ' ') - against the starter alone's $(wc -l < .harness/cost-a1.lib | tr -d ' '): $(LC_ALL=C comm -13 .harness/cost-a1.lib .harness/ways-mvc.lib | wc -l | tr -d ' ') more -"
   LC_ALL=C comm -13 .harness/cost-a1.lib .harness/ways-mvc.lib | paste -sd' ' - | sed 's/^/    /'
-  echo "its jar, run as the README runs it - TiffinBox on 19003 - with Tomcat told its port, 19004, and its address, 127.0.0.1; health and"
-  echo "mappings exposed on it:"
-  start "$(at .harness/ways-mvc 19003 "$R_RUN") --server.port=19004 --server.address=127.0.0.1 --management.endpoints.web.exposure.include=health,mappings"
+  echo "its jar, run as the README runs it - TiffinBox on 19003 - with Tomcat told its port, 19004, and its address, 127.0.0.1; health,"
+  echo "mappings, loggers and metrics exposed on it:"
+  start "$(at .harness/ways-mvc 19003 "$R_RUN") --server.port=19004 --server.address=127.0.0.1 --management.endpoints.web.exposure.include=health,mappings,loggers,metrics"
   echo "  every address this process listens on (lsof): $(listening 2)"
   echo "  Tomcat's own line: $(grep -m1 -oE 'Tomcat started on port [0-9]+ \(http\) with context path .*$' .harness/run.out || echo '(none)')"
   ready 19004
@@ -456,6 +476,8 @@ m = d["contexts"]["application"]["mappings"]
 print("  its answer: the kinds of mapping it lists - %s · mentions of TiffinBox's five paths (/customers /revenue /dashboard /kitchen /shutdown): %d"
       % (" ".join(sorted(m)), sum(s.count('"' + p) + s.count("'" + p) for p in ("/customers", "/revenue", "/dashboard", "/kitchen", "/shutdown"))))
 PY
+  echo "Boot's own adapter, asked how it reads a request - the tour below asks the bridge the same eight:"
+  adapter 19004
   survivor 19003 19004 .harness/ways-mvc; }
 
 # ---- change: the previous tree against after/ ---------------------------------------------------------------------------
@@ -471,7 +493,7 @@ change() { local f n
   diff -rq -x target -x secrets .harness/before .harness/after | sed 's/^/  /' || true
   f=.harness/after/$ROUTES; n=$(wc -l < "$f" | tr -d ' ')
   echo "  $ROUTES - new: $n lines · imports $(grep -c '^import ' "$f" || true) · comment lines $(awk '{ t = $0; sub(/^[ \t]+/, "", t) } t ~ /^(\/\*\*|\*|\/\/)/ { n++ } END { print n + 0 }' "$f") · blank $(grep -c '^[[:space:]]*$' "$f" || true) · beans (@Bean) $(grep -c '^    @Bean$' "$f" || true) - its key lines (grep -n):"
-  for t in 'WebEndpointDiscoverer webEndpointDiscoverer(' 'var exposure = new IncludeExcludeEndpointFilter<>(' 'List.of(exposure), List.of(OperationFilter.byAccess(access))' '@ConditionalOnAvailableEndpoint(endpoint = HealthEndpoint.class)' 'HealthEndpointWebExtension healthEndpointWebExtension(' 'HttpHandler actuatorHandler(WebEndpointsSupplier endpoints) {' 'for (ExposableWebEndpoint endpoint : endpoints.getEndpoints()) {' 'Map<String, Object> arguments = match(predicate.getPath(), path);' 'Object result = operation.invoke(new InvocationContext(' 'respond(exchange, status, type, result);' '} catch (Exception | LinkageError e) {'; do
+  for t in 'WebEndpointDiscoverer webEndpointDiscoverer(' 'var exposure = new IncludeExcludeEndpointFilter<>(' 'List.of(exposure), List.of(OperationFilter.byAccess(access))' '@ConditionalOnAvailableEndpoint(endpoint = HealthEndpoint.class)' 'HealthEndpointWebExtension healthEndpointWebExtension(' 'HttpHandler actuatorHandler(WebEndpointsSupplier endpoints) {' 'for (ExposableWebEndpoint endpoint : endpoints.getEndpoints()) {' 'Map<String, Object> arguments = match(predicate.getPath(), path);' 'if (!predicate.getConsumes().isEmpty()) {' 'respond(exchange, 415, "application/json", Map.of("error", "unsupported media type"));' 'arguments.putAll(fields(exchange.getRequestBody().readAllBytes()));' 'query(exchange.getRequestURI().getRawQuery()).forEach((name, values) ->' 'Object result = operation.invoke(new InvocationContext(' 'String type = predicate.getProduces().stream().filter(accept::contains).findFirst()' 'respond(exchange, status, type, result);' '} catch (InvalidEndpointRequestException e) {' '} catch (Exception | LinkageError e) {'; do
     grep -nF -- "$t" "$f" | sed 's/^\([0-9]*\):[ \t]*/    \1: /; s/ *\/\/ .*$//'; done
   gained "$SRV"
   gained tiffinbox-web/src/main/resources/application.yaml
@@ -514,7 +536,7 @@ PY
 pdel() { local c b a
   c="perl -0pi -e 's|(<artifactId>spring-boot-maven-plugin</artifactId>\\n).*?(      </plugin>)|\$1\$2|s' $1"
   b=$(wc -l < "$1"); echo "\$ $c"; eval "$c"; a=$(wc -l < "$1"); echo "  lines deleted: $((b - a)) · excludes left in the file: $(grep -c '<exclude>' "$1" || true)"; }
-aot() {
+aot() { local l
   echo "B - after/ without Boot's plugin's three excludes (a copy, the plugin's configuration deleted), built with the README's AOT line:"
   echo "the profile native, from Boot's parent - Spring's AOT step, on the plain JDK - offline:"
   copy after .harness/aot-b
@@ -540,6 +562,12 @@ aot() {
   seven 19006 .harness/aot-a
   start "$(at .harness/aot-a 19006 "${R_ENVRUN/java -jar /java -Dspring.aot.enabled=true -jar }")"; up; ready 19006
   ask "$R_ENV" 19006
+  seven 19006 .harness/aot-a
+  echo "C (labelled) - the same AOT jar, the list given at run time without health (env alone): the endpoints were fixed at build"
+  echo "time, and the run-time list still filters them - health, liveness and readiness go (no readiness to wait for: Boot's started"
+  echo "line instead):"
+  l=$(at .harness/aot-a 19006 "${R_ENVRUN/java -jar /java -Dspring.aot.enabled=true -jar }"); start "${l/include=health,env/include=env}"; up; booted
+  ask "$R_HEALTH" 19006; ask "$R_READY" 19006; ask "$R_ENV" 19006
   seven 19006 .harness/aot-a; }
 
 # ---- exposure: the break --------------------------------------------------------------------------------------------------------
@@ -620,6 +648,8 @@ os.write(3, ("  (terminal only) the answers' sizes here, bytes: %s\n" % " · ".j
 PY
   echo "  heapdump · what curl wrote into heap.hprof: $(cat .harness/serve/heap.hprof) - the answer's own body, not a heap"
   rm -f .harness/serve/*.json .harness/serve/heap.hprof .harness/tour-env0
+  echo "the bridge, asked how it reads a request - the eight Boot's own adapter answered in capture ways:"
+  adapter 19007
   seven 19007 .harness/serve
   echo "env's masking, switched for one run each - the README's flag line (health and env exposed), one flag more, the token's entry asked:"
   for v in when-authorized always; do
@@ -643,11 +673,22 @@ PY
   seven 19007 .harness/serve; }
 
 # ---- start: the start, timed from outside ---------------------------------------------------------------------------------------
-timing() { local r w s line d
+# The clock stops at the first /kitchen 200, which TiffinBox serves from its server's @PostConstruct, before Boot calls the
+# application ready (the next lesson's race): so what is timed is the start to a first answer. The capture holds only what a
+# busy machine cannot move - 18 of 18, 5 of 6 counted, the reference over its floor. The ratios move with the load (RED C5-S4
+# #1: 0.94 to 3.40 at load 17-140), so they go to the terminal only, and the band the voice states - each Actuator jar's median
+# over the previous tree's, under a quarter more - is judged behind a load gate: the 1-minute load average under this Mac's core
+# count before the rounds (waited for, up to 2 minutes) and after them. Judged, a miss stops the run; refused, the run says so
+# on the terminal and goes on (README.md, 9 · start). Each judgement is kept in .harness/start-band.txt for the summary.
+loadavg() { sysctl -n vm.loadavg | awk '{ print $2 }'; }
+under() { awk -v a="$1" -v b="$2" 'BEGIN { exit !(a + 0 < b + 0) }'; }
+timing() { local r w s line d cores l0 l1 i band
   echo "the start, timed from outside: harness/ttfr.py forks the command, asks /kitchen until the first 200, then sends POST /shutdown"
   echo "with the token. Three jars, each run as the README runs it from beside its config tree, port 19008; 6 rounds, each round the"
   echo "three in turn; round 1 a warm-up:"
-  echo "  (terminal only) this Mac: $(sysctl -n machdep.cpu.brand_string) · $(sysctl -n hw.ncpu) cores · $(( $(sysctl -n hw.memsize) / 1073741824 )) GB · $(java -version 2>&1 | head -1) · load $(uptime | sed 's/.*load averages*: //')" >&3
+  cores=$(sysctl -n hw.ncpu); i=0; l0=$(loadavg)
+  while ! under "$l0" "$cores" && [ $i -lt 24 ]; do sleep 5; l0=$(loadavg); i=$((i + 1)); done
+  echo "  (terminal only) this Mac: $(sysctl -n machdep.cpu.brand_string) · $cores cores · $(( $(sysctl -n hw.memsize) / 1073741824 )) GB · $(java -version 2>&1 | head -1) · load $(uptime | sed 's/.*load averages*: //')" >&3
   L1=$(at .harness/cost-prev 19008 "$R_RUN"); L2=$(at .harness/cost-a1 19008 "$R_RUN"); L3=$(at .harness/serve 19008 "$R_RUN")
   echo "  1 the previous tree's jar (capture cost) - \$ $L1"
   echo "  2 that tree plus Actuator's starter (capture cost) - \$ $L2"
@@ -657,10 +698,11 @@ timing() { local r w s line d
       s=$(cd "$d" && python3 "$U/harness/ttfr.py" 19008 "$TF" "$U/.harness/ttfr.out" "$U/.harness/ttfr.err" -- ${line#cd * && })
       printf '%s %s %s\n' "$r" "$w" "$s" >> .harness/times.txt
       [ "$(listeners 19008)" = 0 ] || die "a timed run left 19008 bound"; w=$((w + 1)); done; r=$((r + 1)); done
+  l1=$(loadavg)
   echo "  every run: a 200, then exit 0 after POST /shutdown: $(grep -c ' first 200 after [0-9.]* s · exit 0$' .harness/times.txt || true) of $(wc -l < .harness/times.txt | tr -d ' ')"
-  echo "each jar's median, the middle of its counted runs; the reference against a floor, the other two against it (the seconds go to"
-  echo "the terminal, never to this capture):"
-  awk '
+  echo "each jar's median, the middle of its counted runs; the reference against a floor (the seconds, and the other two jars' ratios"
+  echo "to it, go to the terminal: a busy machine moves them):"
+  band=$(awk '
     { all[$2]++; if ($1 == 1) next; t[$2, $1] = $6 + 0; k[$2]++ }
     END { q = "\047"
       lk = k[1]; hk = k[1]; for (w = 2; w <= 3; w++) { if (k[w] < lk) lk = k[w]; if (k[w] > hk) hk = k[w] }
@@ -669,11 +711,20 @@ timing() { local r w s line d
         for (r = 2; r <= 6; r++) { x = t[w, r]; i = n; while (i > 0 && v[i] > x) { v[i + 1] = v[i]; i-- }; v[i + 1] = x; n++ }
         med[w] = v[3]; lo[w] = v[1]; hi[w] = v[5] }
       printf "  1 the previous tree%ss jar: its median over 1 s: %s\n", q, (med[1] > 1) ? "yes" : "no"
-      printf "  2 against 1: its median over the previous tree%ss: %s · under a quarter more: %s\n", q, (med[2] > med[1]) ? "yes" : "no", (med[2] < med[1] * 1.25) ? "yes" : "no"
-      printf "  3 against 1: its median over the previous tree%ss: %s · under a quarter more: %s\n", q, (med[3] > med[1]) ? "yes" : "no", (med[3] < med[1] * 1.25) ? "yes" : "no"
       printf "  (terminal only) 1 the previous tree: %.3f-%.3f s, median %.3f s\n", lo[1], hi[1], med[1] > "/dev/stderr"
       printf "  (terminal only) 2 with the starter: %.3f-%.3f s, median %.3f s - %.3f of 1%ss\n", lo[2], hi[2], med[2], med[2] / med[1], q > "/dev/stderr"
-      printf "  (terminal only) 3 after/: %.3f-%.3f s, median %.3f s - %.3f of 1%ss, %.3f of 2%ss\n", lo[3], hi[3], med[3], med[3] / med[1], q, med[3] / med[2], q > "/dev/stderr" }' .harness/times.txt 2>&3; }
+      printf "  (terminal only) 3 after/: %.3f-%.3f s, median %.3f s - %.3f of 1%ss, %.3f of 2%ss\n", lo[3], hi[3], med[3], med[3] / med[1], q, med[3] / med[2], q > "/dev/stderr"
+      ok = (med[2] > med[1] && med[2] < med[1] * 1.25 && med[3] > med[1] && med[3] < med[1] * 1.25)
+      printf "BAND %s %.3f %.3f\n", ok ? "inside" : "outside", med[2] / med[1], med[3] / med[1] }' .harness/times.txt 2>&3)
+  printf '%s\n' "$band" | grep -v '^BAND '
+  band=$(printf '%s\n' "$band" | sed -n 's/^BAND //p')
+  if under "$l0" "$cores" && under "$l1" "$cores"; then
+    printf 'judged %s · load %s, then %s\n' "$band" "$l0" "$l1" >> .harness/start-band.txt
+    echo "  (terminal only) the band, judged - load $l0 before the rounds and $l1 after, under $cores: each Actuator jar's median over the previous tree's and under a quarter more: $(printf '%s\n' "$band" | awk '{ print $1 " (" $2 ", " $3 ")" }')" >&3
+    case $band in inside*) ;; *) die "start: on a quiet machine (load $l0, then $l1, under $cores cores) the medians' ratios are $(printf '%s\n' "$band" | awk '{ print $2 " and " $3 }') - not over 1 and under 1.25, the band the voice states (README.md, 9 · start)";; esac
+  else
+    printf 'refused · load %s, then %s\n' "$l0" "$l1" >> .harness/start-band.txt
+    echo "  (terminal only) the band is NOT judged: the load was $l0 before the rounds and $l1 after, not both under $cores - a busy machine moves the ratios; run again on a quiet one (README.md, 9 · start)" >&3; fi; }
 
 # ---- native: after/, built natively, and its binary ----------------------------------------------------------------------------
 # nbuild DIR: the README's native install, then its native:compile-no-fork - both offline, from DIR; the native build's log kept in
@@ -696,8 +747,9 @@ nlines() {
   grep -E '^\[[1-8]/8\] ' "$1" | sed 's/\.\.\..*$/.../' | sed 's/^/    /'
   grep -E '^The build process encountered |^\[INFO\] BUILD ' "$1" | sed 's/^\[INFO\] //' | sed 's/^/    /'; }
 # nresult LOG: the native build's result - its exit, Maven's result, the stages against the count it announces, its duration
-# against the bound (1 minute or more, under 10 minutes), and the network (offline: nbuild stopped the run if the plugin went out)
-nresult() { echo "  exit $NB_E · $(grep -m1 -oE 'BUILD (SUCCESS|FAILURE)' "$1" || echo 'no BUILD line') · stages it printed: $(grep -cE '^\[[1-8]/8\] ' "$1" || true) of the $(grep -m1 -oE '^\[1/[0-9]+\]' "$1" | sed 's/.*\///; s/]//') it announces · its duration, against the bound: $( [ $NB_S -ge 60 ] && echo '1 minute or more' || echo 'under 1 minute' ), $( [ $NB_S -lt 600 ] && echo 'under 10 minutes' || echo '10 minutes or more' ) · offline: yes"; }
+# against the bound (1 minute or more, under 20 minutes: this Mac's native builds took up to 15 under load - RED C5-S4 #8, the brief's
+# ERRATA), and the network (offline: nbuild stopped the run if the plugin went out)
+nresult() { echo "  exit $NB_E · $(grep -m1 -oE 'BUILD (SUCCESS|FAILURE)' "$1" || echo 'no BUILD line') · stages it printed: $(grep -cE '^\[[1-8]/8\] ' "$1" || true) of the $(grep -m1 -oE '^\[1/[0-9]+\]' "$1" | sed 's/.*\///; s/]//') it announces · its duration, against the bound: $( [ $NB_S -ge 60 ] && echo '1 minute or more' || echo 'under 1 minute' ), $( [ $NB_S -lt 1200 ] && echo 'under 20 minutes' || echo '20 minutes or more' ) · offline: yes"; }
 native() {
   echo "after/, copied to .harness/nat with a config tree; the README's two Maven lines, offline; \$GRAALVM_HOME names the GraalVM:"
   copy after .harness/nat
@@ -739,13 +791,14 @@ cap serve serve
 cap aot aot
 cap exposure exposure
 cap tour tour
-cap start timing
-# Without a GraalVM the run stops here, the exercise's capture made first (it needs none): .m2-demo is filled, and every capture
-# so far matched receipts.md5 - or cap() would have stopped the run.
-if [ $GOK = no ]; then cap exercise exercise
-  die "GRAALVM_HOME is not set: .m2-demo is filled, and the captures that need no GraalVM matched receipts.md5, the exercise's included; the native build needs a GraalVM JDK 25 - README.md, The GraalVM"; fi
+# Without a GraalVM the run stops here, the exercise's and the start's captures made first (they need none): .m2-demo is filled,
+# and every capture so far matched receipts.md5 - or cap() would have stopped the run. The start is timed last (RED C5-S4 #1):
+# a native build is the heaviest thing a run does, and the clock waits for its load to fall.
+if [ $GOK = no ]; then cap exercise exercise; cap start timing
+  die "GRAALVM_HOME is not set: .m2-demo is filled, and the captures that need no GraalVM matched receipts.md5, the exercise's and the start's included; the native build needs a GraalVM JDK 25 - README.md, The GraalVM"; fi
 cap native native
 cap exercise exercise
+cap start timing
 
 echo
 # ---- every number the video says, asserted. Each check reads a line a program computed - never a label this script prints
@@ -849,6 +902,11 @@ x change '^    [0-9]+: HealthEndpointWebExtension healthEndpointWebExtension\('
 x change '^    [0-9]+: for \(ExposableWebEndpoint endpoint : endpoints\.getEndpoints\(\)\) \{$'
 x change '^    [0-9]+: Object result = operation\.invoke\(new InvocationContext\('
 x change '^    [0-9]+: \} catch \(Exception \| LinkageError e\) \{$'
+# "...reads each request as Spring MVC's adapter does: its query, and a write only as JSON" (RED C5-S4 #2, #4, #46)
+x change '^    [0-9]+: if \(!predicate\.getConsumes\(\)\.isEmpty\(\)\) \{$'
+x change '^    [0-9]+: respond\(exchange, 415, "application/json", Map\.of\("error", "unsupported media type"\)\);$'
+x change '^    [0-9]+: query\(exchange\.getRequestURI\(\)\.getRawQuery\(\)\)\.forEach\(\(name, values\) ->$'
+x change '^    [0-9]+: \} catch \(InvalidEndpointRequestException e\) \{$'
 grep -q 'private static final ObjectMapper JSON = new ObjectMapper();' "after/$ROUTES" && grep -q 'com.fasterxml.jackson.databind.ObjectMapper' "after/$ROUTES" || die "ActuatorRoutes writes with TiffinBox's own Jackson 2"
 x change '^                        HttpHandler actuator\) \{$'
 x change '^            server\.createContext\("/actuator", actuator\);$'
@@ -857,7 +915,7 @@ x change '^  TiffinBoxApp\.java against the previous tree.s, byte for byte: the 
 [ "$(n change '^                <exclude>$')" = 3 ] || die "change: the three excludes"
 x change '^          <artifactId>spring-boot-starter-actuator</artifactId>$'
 cmp -s "after/$APP" "$PREV/$APP" || die "TiffinBoxApp.java changed: it must not (brief ⚑11)"
-echo "  change: ActuatorRoutes - 3 beans, exposure and access, invoke, the catch; TiffinBoxServer - the argument, the context; application.yaml - include: health; the POM - the starter, 3 excludes; TiffinBoxApp unedited"
+echo "  change: ActuatorRoutes - 3 beans, exposure and access, a write as JSON (415), the query merged, invoke, 400 and the catch; TiffinBoxServer - the argument, the context; application.yaml - include: health; the POM - the starter, 3 excludes; TiffinBoxApp unedited"
 
 # "Run the jar. Slash actuator slash health: UP, with two groups, liveness and readiness, and no details. Slash env: four hundred
 # four, not exposed. A POST to health: four hundred five. One server, one address, the same seven responses."
@@ -870,19 +928,22 @@ x serve "^  exit 0 · the seven responses: 7 lines · md5 $S115\$"
 [ "$(n serve ' -> ')" = 7 ] || die "serve: the seven response lines"
 echo "  serve: readiness 200 · health UP, liveness and readiness, no details · env 404 · POST 405 · one address · 115c36ba..."
 
-# "And the start, timed from outside. On this Mac, Actuator's jar took longer than the anchor's, but under a quarter longer: the middle
-# of five runs."
+# "To its first answer, which TiffinBox gives before Boot calls it ready, Actuator's jar took longer than the previous one's: on this
+# Mac, quiet, under a quarter longer, the middle of five runs." The band is judged inside timing(), behind its load gate: a run that
+# judged it and found it outside has already stopped. Here: what the capture holds, and how many of the three runs judged it.
 x start '^  every run: a 200, then exit 0 after POST /shutdown: 18 of 18$'
 x start "^  each jar's runs counted: 5 of 6 - round 1 left out\$"
 x start "^  1 the previous tree's jar: its median over 1 s: yes\$"
-x start "^  2 against 1: its median over the previous tree's: yes · under a quarter more: yes\$"
-x start "^  3 against 1: its median over the previous tree's: yes · under a quarter more: yes\$"
-echo "  start: 18 of 18 · 5 of 6 counted · the reference over 1 s · the starter's and after/'s medians over it, under a quarter more"
+[ "$(n start 'against 1|under a quarter|ratio of 1')" = 0 ] || die "start: a ratio reached the hashed capture"
+SBJ=$(grep -c '^judged inside ' .harness/start-band.txt || true); SBR=$(grep -c '^refused ' .harness/start-band.txt || true)
+[ $((SBJ + SBR)) = 3 ] || die "start: three judgements expected in .harness/start-band.txt"
+if [ "$SBJ" -gt 0 ]; then SBM="judged in $SBJ of 3 runs, inside each time$( if [ "$SBR" -gt 0 ]; then echo "; refused by the load gate in $SBR"; fi )"; else SBM="not judged: the load gate refused it in 3 of 3 runs - a busy machine (README.md, 9 · start)"; fi
+echo "  start: 18 of 18 · 5 of 6 counted · the reference over 1 s · the band (each Actuator jar over it, under a quarter more) $SBM"
 
 # "Without one more change, Spring's AOT jar stopped at start: NoClassDefFoundError, Jackson 3's JsonMapper, a class the jar doesn't
 # hold ... So it generated Actuator's Jackson 3 configuration." - "The change: three excludes in Boot's plugin ... That configuration is
 # gone, and the AOT jar serves. A flag can't widen its list: slash env stays four hundred four."
-AB=$(blk aot 'B - after/ without' 'A - after/ itself'); AA=$(blk aot 'A - after/ itself' 'the exposure list under AOT'); AX=$(blk aot 'the exposure list under AOT' '')
+AB=$(blk aot 'B - after/ without' 'A - after/ itself'); AA=$(blk aot 'A - after/ itself' 'the exposure list under AOT'); AX=$(blk aot 'the exposure list under AOT' 'C (labelled) - the same AOT jar'); AC=$(blk aot 'C (labelled) - the same AOT jar' '')
 has "$AB" "  lines deleted: 20 · excludes left in the file: 0" "aot B"
 has "$AB" "  Spring's generated code (target/spring-aot/main/sources): bean-definition classes 64 · for Actuator's Jackson configuration: JacksonEndpointAutoConfiguration__BeanDefinitions.java" "aot B"
 has "$AB" "  its reachability-metadata.json: reflection entries 399 · naming a Docker Compose package (...docker.compose...): 3 · naming Jackson 3 (tools.jackson): 0" "aot B"
@@ -897,12 +958,17 @@ has "$AA" "  its reachability-metadata.json: reflection entries 394 · naming a 
 has "$AA" "  Boot's first line: Starting AOT-processed TiffinBoxServer v1.0.0 using Java 25.0.4.1" "aot A"
 has "$AA" "$H" "aot A"; has "$AA" "  exit 0 · the seven responses: 7 lines · md5 $S115" "aot A"
 [ "$(printf '%s\n' "$AX" | grep -E '^  (200|404)$' | tr -d ' ' | paste -sd' ' -)" = "200 404" ] || die "aot: the flag - plain env 200, then AOT env 404"
+# "The endpoints were decided at build time: a flag can narrow the list, never widen it." (C: health taken away by a run-time list)
+[ "$(printf '%s\n' "$AC" | grep -cxF '  {"error":"not found"} 404')" = 2 ] || die "aot C: health and readiness must answer 404"
+[ "$(printf '%s\n' "$AC" | grep -cxF '  404')" = 1 ] || die "aot C: env must answer 404"
+has "$AC" "  Boot's first line: Starting AOT-processed TiffinBoxServer v1.0.0 using Java 25.0.4.1" "aot C"
+has "$AC" "  exit 0 · the seven responses: 7 lines · md5 $S115" "aot C"
 [ "$(n aot ' · offline: yes · exit 0$')" = 2 ] || die "aot: two offline builds"
-echo "  aot: B - Jackson's bean definitions generated, 3 Compose entries, the plain jar 115c36ba..., the AOT jar listening then exit 1 (endpointJsonMapper, JsonMapper) · A - none, 0, AOT 115c36ba... and health · the flag: env 200 plain, 404 AOT"
+echo "  aot: B - Jackson's bean definitions generated, 3 Compose entries, the plain jar 115c36ba..., the AOT jar listening then exit 1 (endpointJsonMapper, JsonMapper) · A - none, 0, AOT 115c36ba... and health · the flag: env 200 plain, 404 AOT · C: a run-time list without health - health and readiness 404 under AOT"
 
 # "Built native, the binary serves the same seven and health with its groups, and the flag changes nothing there either."
 x native '^  built \.harness/nat \(both modules, into \$M2\) · offline: yes · exit 0$'
-x native '^  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: 1 minute or more, under 10 minutes · offline: yes$'
+x native '^  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: 1 minute or more, under 20 minutes · offline: yes$'
 x native '^  file: Mach-O 64-bit executable · the demo token in its bytes: 0$'
 x native '^  Boot.s first line: Starting AOT-processed TiffinBoxServer using Java 25\.0\.4\.1$'
 x native '^  \{"status":"UP","groups":\["liveness","readiness"\]\} 200$'
@@ -943,6 +1009,15 @@ x tour "^  the file deleted: yes · files left in the JVM's temporary folder: 0\
 [ "$(n tour '^  the answer deleted: yes$')" = 2 ] || die "tour: both env answers deleted"
 [ "$(n tour "^  exit 0 · the seven responses: 7 lines · md5 $S115\$")" = 4 ] || die "tour: four runs, each stopped by the seven"
 echo "  tour: beans 153 (6 name the jar's path) · env every value masked, the run's own names · mappings empty · heapdump 404 · when-authorized masked, always 2 raw copies · the heap dump over 20,000,000 bytes, 3 copies on 3 lines, deleted"
+# "A handler reads each request as Spring MVC's adapter does: the query reaches the operation, and a write must be JSON." The same
+# eight requests: Boot's own adapter (ways, Tomcat) and the bridge (tour) - the same answers but two: an empty write body, which
+# the bridge refuses (400) where Boot's adapter resets the level (204, then no configuredLevel: its Jackson 3 leaves a null out), and
+# /actuator, which only Boot's adapter answers.
+WA=$(blk ways "Boot's own adapter, asked how it reads a request" '$ $CURLSET 19003'); TA=$(blk tour "the bridge, asked how it reads a request" '$ $CURLSET 19007')
+[ "$(printf '%s\n' "$WA" | grep '^  ' | paste -sd'|' -)" = '  200 application/json|  404|  415|  400|  204|  204|  {"effectiveLevel": "INFO"}|  200' ] || die "ways: Boot's adapter's eight answers"
+[ "$(printf '%s\n' "$TA" | grep '^  ' | paste -sd'|' -)" = '  200 application/json|  404|  415|  400|  204|  400|  {"configuredLevel": "DEBUG", "effectiveLevel": "DEBUG"}|  404' ] || die "tour: the bridge's eight answers"
+[ "$(printf '%s\n' "$WA" | grep -c '^\$ curl ')" = 8 ] && [ "$(printf '%s\n' "$TA" | grep -c '^\$ curl ')" = 8 ] || die "ways and tour: eight requests each"
+echo "  adapter: Boot's (ways) and the bridge (tour) - application/json asked and given · a query that filters, 404 · text 415 · LOUD 400 · DEBUG 204 · an empty JSON body: Boot's 204 and the level reset, the bridge's 400 and DEBUG kept · /actuator: 200 and 404"
 
 # the exercise's end state: the line exercise/README.md calls "Done" is a line of this capture, after the solution's line - and of
 # SOLUTION.md's measured run

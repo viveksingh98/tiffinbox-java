@@ -23,10 +23,11 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #             same in OpenMetrics (the family's name, its last line); then the README's flag line: the registry bean, the names
 #   counter   after/'s jar: /kitchen beside the scrape's two counters; again with the README's --tiffinbox.days=10
 #   timer     after/'s jar with the README's flag line: no timer before the first answer; the requests, one by one; the timer's
-#             series (sums and maxes masked); then C (labelled): a tag filter on the metrics endpoint, which the bridge drops
+#             series (sums and maxes masked); then C (labelled): a tag filter on the metrics endpoint, which the bridge passes
 #   cardinality  the break, the route tag: A after/ (the route) · B a copy whose tag is the raw path · A' = A - four URLs each
 #   native    after/ built natively (the README's two Maven lines): the AOT jar and the binary - the scrape and the seven;
-#             Micrometer's own native-image metadata; then C (labelled): the hint taken out, and the other interface's name in
+#             Micrometer's own native-image metadata; then B, the hint taken out (C, labelled: B with the CPU-time meter off), A',
+#             A's binary again, and D (labelled): the other interface's name in
 #             its place - each built natively, each binary's scrape
 #   exercise  exercise/README.md's commands and exercise/solution/SOLUTION.md's, read from the files and run as written
 # "before" is ../c5-unit22/after (the anchor as the health lesson left it), COPIED under .harness/; this script never writes into
@@ -36,7 +37,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # lesson (../c5-unit11/curlset.sh: the seven requests, POST /shutdown with the token's header read from the file). "$M2" is this
 # unit's own repository, .m2-demo.
 # The network: every build runs offline (-o) against .m2-demo and says so ("offline: yes"); a build that cannot resolve an
-# artifact offline goes to Maven Central once, and says that ("offline: no - ..."). GraalVM's native plugin, under the profile
+# artifact offline goes to the remote repository once - Maven Central, or the mirror your settings name - and says that ("offline: no - ..."). GraalVM's native plugin, under the profile
 # native, reads its metadata repository (a zip) from .m2-demo - and when the zip is not there it downloads it from GitHub, even
 # under -o (README.md, The repository): so a native-profile build without the zip goes to Maven Central for it at once, never
 # offline first, and every build's log is searched for the plugin's own download line - found, the run stops. At run time nothing
@@ -86,7 +87,12 @@ command -v curl > /dev/null || die "curl is needed: every request here is curl's
 # A variable of yours must not become a property source, a JVM flag, a build setting or a native-image option: every
 # TIFFINBOX_*, SPRING_*, MANAGEMENT_*, SERVER_* and LOGGING_* variable, DEBUG (Boot reads it as --debug), the variables that inject
 # JVM flags, MAVEN_OPTS, MAVEN_ARGS and NATIVE_IMAGE_OPTIONS are removed first. GRAALVM_HOME stays: it says which GraalVM to use.
-for v in $(env | sed -n 's/^\(TIFFINBOX_[A-Za-z0-9_]*\|SPRING_[A-Za-z0-9_]*\|MANAGEMENT_[A-Za-z0-9_]*\|SERVER_[A-Za-z0-9_]*\|LOGGING_[A-Za-z0-9_]*\|DEBUG\|JAVA_TOOL_OPTIONS\|JDK_JAVA_OPTIONS\|_JAVA_OPTIONS\|MAVEN_OPTS\|MAVEN_ARGS\|NATIVE_IMAGE_OPTIONS\)=.*/\1/p'); do unset "$v"; done
+# The list is an extended regular expression (sed -E): /usr/bin/sed's basic ones have no alternation, so the \| this loop once
+# used matched nothing and removed no variable at all (measured: RED C5-S4 #63). A canary is planted under every name first, and
+# the run stops if one survives the loop.
+for v in TIFFINBOX_CANARY SPRING_CANARY MANAGEMENT_CANARY SERVER_CANARY LOGGING_CANARY DEBUG JAVA_TOOL_OPTIONS JDK_JAVA_OPTIONS _JAVA_OPTIONS MAVEN_OPTS MAVEN_ARGS NATIVE_IMAGE_OPTIONS; do export "$v=planted-canary"; done
+for v in $(env | sed -n -E 's/^(TIFFINBOX_[A-Za-z0-9_]*|SPRING_[A-Za-z0-9_]*|MANAGEMENT_[A-Za-z0-9_]*|SERVER_[A-Za-z0-9_]*|LOGGING_[A-Za-z0-9_]*|DEBUG|JAVA_TOOL_OPTIONS|JDK_JAVA_OPTIONS|_JAVA_OPTIONS|MAVEN_OPTS|MAVEN_ARGS|NATIVE_IMAGE_OPTIONS)=.*/\1/p'); do unset "$v"; done
+[ -z "$(env | grep -- '=planted-canary$')" ] || die "a variable survived the clean-up above: $(env | grep -- '=planted-canary$' | sed 's/=.*//' | paste -sd' ' -)"
 # Every request this script makes goes to 127.0.0.1. An HTTP proxy named in your environment (http_proxy and the rest) would
 # carry curl's requests to that proxy instead of to TiffinBox: 127.0.0.1 and localhost go first in no_proxy and NO_PROXY.
 export no_proxy="127.0.0.1,localhost${no_proxy:+,$no_proxy}" NO_PROXY="127.0.0.1,localhost${NO_PROXY:+,$NO_PROXY}"
@@ -145,6 +151,7 @@ R_READY=$(readme "curl -s -w ' %{http_code}\n' http://127.0.0.1:18431/actuator/h
 R_CUSTOMERS=$(readme "curl -s -w ' %{http_code}\n' http://127.0.0.1:18431/customers")
 R_SCRAPE=$(readme "curl -s -o scrape.txt -w '%{http_code} %{content_type}\n' http://127.0.0.1:18431/actuator/prometheus")
 R_OPENM=$(readme "curl -s -o scrape.txt -w '%{http_code} %{content_type}\n' -H 'Accept: application/openmetrics-text; version=1.0.0' http://127.0.0.1:18431/actuator/prometheus")
+R_PROM3=$(readme "curl -s -o scrape.txt -w '%{http_code} %{content_type}\n' -H 'Accept: application/openmetrics-text;version=1.0.0;q=0.5,application/openmetrics-text;version=0.0.1;q=0.4,text/plain;version=1.0.0;q=0.3,text/plain;version=0.0.4;q=0.2,*/*;q=0.1' http://127.0.0.1:18431/actuator/prometheus")   # the Accept header a Prometheus 3 server sends (RED C5-S4 #18)
 R_DAYS=$(readme 'java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --tiffinbox.days=10')
 R_STATUS=$(readme "curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:18431/customers/7")
 R_FORBID=$(readme "curl -s -w ' %{http_code}\n' -X POST http://127.0.0.1:18431/shutdown")
@@ -176,7 +183,7 @@ for c in "$C_AFTER" "$(off .harness/x "$R_PLAIN" package)" "$(off .harness/x "$R
 [ "$(at .harness/x 19025 "$R_BIN")" = "cd .harness/x && tiffinbox-web/target/tiffinbox-web --tiffinbox.port=19025" ] || die "the binary's run line"
 [ "$(url "$R_SCRAPE" 19021)" = "curl -s -o scrape.txt -w '%{http_code} %{content_type}\n' http://127.0.0.1:19021/actuator/prometheus" ] || die "the scrape line, its port"
 [ "$(path "$(url "$R_STATUS" 19024)" /customersXYZ)" = "curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:19024/customersXYZ" ] || die "the status line, its path"
-echo "  the commands: after/README.md gives all 20 lines this script runs or derives from"
+echo "  the commands: after/README.md gives all 21 lines this script runs or derives from"
 
 # ---- build: one tree before the captures - after/, the README's native install; then what .m2-demo holds ------------------
 rm -rf .harness; mkdir -p .harness
@@ -192,15 +199,15 @@ ghub() { grep -qE 'Downloaded GraalVM reachability metadata repository from http
 # never silent (inside a capture, "no" changes the capture's hash: cap() then dies). A native-profile build while the metadata
 # repository is not in $M2 goes to Maven Central at once (offline, the plugin would fetch it from GitHub instead).
 mbuild() { local how=yes ec=0 c=$1
-  case $c in *' -Pnative '*) [ -f "$ZIP" ] || { c=${c/mvn -o -B /mvn -B }; how="no - GraalVM's metadata repository was not in .m2-demo, so Maven Central was asked for it"; } ;; esac
+  case $c in *' -Pnative '*) [ -f "$ZIP" ] || { c=${c/mvn -o -B /mvn -B }; how="no - GraalVM's metadata repository was not in .m2-demo, so the remote repository (Central or your mirror) was asked for it"; } ;; esac
   (eval "$c") > "$2" 2>&1 < /dev/null || ec=$?
   if [ $ec != 0 ] && [ "$how" = yes ] && grep -qE 'offline mode|Could not resolve|could not be resolved|Cannot access' "$2"; then
-    how="no - the offline build could not resolve an artifact, so Maven Central was asked"; ec=0
+    how="no - the offline build could not resolve an artifact, so the remote repository (Central or your mirror) was asked"; ec=0
     (eval "${c/mvn -o -B /mvn -B }") > "$2" 2>&1 < /dev/null || ec=$?; fi
   if ghub "$2"; then echo "  built $3 · offline: no - GraalVM's native plugin went to GitHub for its metadata repository · exit $ec"
     die "$3: GraalVM's native plugin went over the network for its metadata repository - $(grep -m1 -E 'Downloaded GraalVM reachability metadata repository from http|Failed to download from http' "$2" | sed 's/^\[[A-Z]*\] //') - README.md, The repository"; fi
   [ $ec = 0 ] || { tail -30 "$2" >&3
-    ! grep -qE 'Could not resolve|could not be resolved|Could not transfer|Cannot access' "$2" || die "build failed: $3 - Maven could resolve Boot's parent and plugins neither from .m2-demo nor from Maven Central: a fresh clone's first run needs the network once, to fill .m2-demo"
+    ! grep -qE 'Could not resolve|could not be resolved|Could not transfer|Cannot access' "$2" || die "build failed: $3 - Maven could resolve Boot's parent and plugins neither from .m2-demo nor from the remote repository (Central or your mirror): a fresh clone's first run needs the network once, to fill .m2-demo"
     die "build failed: $3"; }
   echo "  built $3 · offline: $how · exit $ec"; }
 # tree FOLDER: a config tree in FOLDER/secrets holding one file, the token and a newline, readable by its owner alone
@@ -268,14 +275,16 @@ tbx() { awk '/^# (HELP|TYPE|UNIT) tiffinbox_|^tiffinbox_/' "$1" | sed -E 's/^(ti
 words() { awk '/^# TYPE / { split($3, w, "_"); print w[1] }' "$1" | sort -u | paste -sd' ' -; }
 # scraped FILE: what a scrape is made of, through the filter - its families' first words, its tiffinbox_ lines whole (sums and
 # maxes masked), and three lines of one JVM family, its value masked; the rest is not printed (this computer's numbers: memory,
-# threads, processors, the disk and the folder TiffinBox runs in) and not counted (a collection adds jvm_gc_pause: the number moves)
-scraped() {
+# threads, processors, the disk and the folder TiffinBox runs in), and counted as a bound - over 150, 162 to 169 here (RED C5-S4
+# #21): its exact number moves (a collection adds jvm_gc_pause)
+scraped() { local o
   echo "  its families' first words (# TYPE): $(words "$1")"
   echo "  its tiffinbox_ lines - $(tbx "$1" | wc -l | tr -d ' '), whole (a timer's sums and maxes masked):"
   tbx "$1" | sed 's/^/  /'
   echo "  three lines of one JVM family (its value masked: this computer's own):"
   grep -E '^# (HELP|TYPE) jvm_threads_live_threads |^jvm_threads_live_threads ' "$1" | sed -E 's/^(jvm_threads_live_threads) .*$/\1 <masked: this computer'"'"'s>/; s/^/    /'
-  echo "  every other line: not printed (memory, threads, processors, a disk and its folder) and not counted (a collection adds a family)"; }
+  o=$(( $(wc -l < "$1") - $(tbx "$1" | wc -l) - 3 ))
+  echo "  every other line: not printed (memory, threads, processors, a disk and its folder) - $( [ $o -gt 150 ] && echo 'over 150' || echo "$o, not over 150" ), a bound: a collection adds a family"; }
 # names FILE: Actuator's metrics answer (its names) through a filter - their first words, each once; how many start http. and
 # tiffinbox.; the tiffinbox. ones. Never the total (a collection adds jvm.gc.pause).
 names() { python3 - "$1" <<'PY'
@@ -399,6 +408,8 @@ scrape() { local n
   get .harness/serve 19021 "$R_OPENM"
   echo "  its tiffinbox_ lines - $(tbx .harness/serve/scrape.txt | wc -l | tr -d ' '), whole:"; tbx .harness/serve/scrape.txt | sed 's/^/  /'
   echo "  its last line: $(tail -n 1 .harness/serve/scrape.txt)"; gone .harness/serve/scrape.txt
+  echo "  and with the Accept header a Prometheus 3 server sends with every scrape (its default scrape protocols) - the README's line:"
+  get .harness/serve 19021 "$R_PROM3"; gone .harness/serve/scrape.txt
   seven 19021 .harness/serve
   echo "the README's flag line - Actuator's metrics endpoints exposed for this run:"
   start "$(at .harness/serve 19021 "$R_WIDE")"; up; ready 19021
@@ -557,14 +568,17 @@ pm = z.read("io/micrometer/core/instrument/binder/system/ProcessorMetrics.class"
 print("  getProcessCpuTime - named in Micrometer's ProcessorMetrics class: %s · listed in its metadata: %s"
       % ("yes" if b"getProcessCpuTime" in pm else "no", "yes" if "getProcessCpuTime" in names else "no"))
 PY
-  echo "C (labelled) - the hint taken out: a copy of after/ (.harness/nat-none), its @RegisterReflection line deleted:"
+  echo "B - the hint taken out: a copy of after/ (.harness/nat-none), its @RegisterReflection line deleted:"
   variant .harness/nat-none '/^@RegisterReflection(/d'
-  echo "  the same binary, the README's line that switches the CPU-time meter off (process.cpu.time):"
+  echo "C (labelled) - B's binary, the README's line that switches the CPU-time meter off (process.cpu.time):"
   start "$(at .harness/nat-none 19025 "$R_CPUOFF")"; up; ready 19025; status /customers 19025
   get .harness/nat-none 19025 "$R_SCRAPE"; echo "  its process_ families: $(procs .harness/nat-none/scrape.txt)"
   echo "  its tiffinbox_ samples (sums and maxes masked):"; tbx .harness/nat-none/scrape.txt | grep -v '^  #' | sed 's/^/  /'; gone .harness/nat-none/scrape.txt
   seven 19025 .harness/nat-none
-  echo "C (labelled) - the other interface's name in its place: a copy of after/ (.harness/nat-unix):"
+  echo "A' - A's binary again (.harness/nat, built above) - the README's line:"
+  start "$(at .harness/nat 19025 "$R_BIN")"; up; served .harness/nat 19025
+  seven 19025 .harness/nat
+  echo "D (labelled) - the other interface's name in its place: a copy of after/ (.harness/nat-unix):"
   variant .harness/nat-unix 's|classNames = "com.sun.management.OperatingSystemMXBean"|classNames = "com.sun.management.UnixOperatingSystemMXBean"|'; }
 
 # ---- exercise: the README's commands, exactly as written, then the solution's ---------------------------------------------
@@ -699,9 +713,11 @@ has "$TI" "    # TYPE tiffinbox_requests_seconds summary" "timer: a summary"; ha
 for r in 'GET /customers",status="200' 'GET /dashboard",status="200' 'GET /kitchen",status="200' 'GET /revenue",status="200' 'POST /shutdown",status="403' 'UNKNOWN",status="405'; do has "$TI" "    tiffinbox_requests_seconds_count{route=\"$r\"} 1" "timer: one count per route and status"; done
 has "$TI" "  series (one per _count line): 6 · a series for /nowhere: 0" "timer: six series, none for /nowhere"
 [ "$(printf '%s\n' "$TI" | grep -c '_sum{.*} <masked: a duration>$')" = 6 ] && [ "$(printf '%s\n' "$TI" | grep -c '_max{.*} <masked: a duration>$')" = 6 ] || die "timer: six sums and six maxes, masked"
-[ "$(n timer '^  tiffinbox\.requests · COUNT 6\.0 · the tags it offers: route status$')" = 2 ] || die "timer: the tag filter must be dropped (the same answer twice)"
+# C: Boot's ?tag= reaches the operation through the bridge (the Actuator lesson's merge of the query string - RED C5-S4 #2)
+[ "$(n timer '^  tiffinbox\.requests · COUNT 6\.0 · the tags it offers: route status$')" = 1 ] || die "timer: the timer alone - COUNT 6.0, two tags"
+[ "$(n timer '^  tiffinbox\.requests · COUNT 1\.0 · the tags it offers: route$')" = 1 ] || die "timer: ?tag=status:405 must filter - COUNT 1.0, the route tag left"
 x timer "^  exit 0 · the seven responses: 7 lines · md5 $S115\$"
-echo "  timer: no line before the first answer · 6 series (4 routes, UNKNOWN 405, POST 403), summary + max gauge, /nowhere none · ?tag= dropped: COUNT 6.0 both ways"
+echo "  timer: no line before the first answer · 6 series (4 routes, UNKNOWN 405, POST 403), summary + max gauge, /nowhere none · ?tag=status:405 filters: COUNT 6.0, then 1.0"
 
 # "A: the tag holds the route ... one series, four. B: a copy that tags the raw path ... Four URLs, four series. A again: one."
 KA=$(blk cardinality 'A - after/' 'B - a copy'); KB=$(blk cardinality 'B - a copy' "A' - A again:"); KA2=$(blk cardinality "A' - A again:" '')
@@ -730,7 +746,7 @@ for b in "$NAOT" "$NBIN"; do
   has "$b" "  exit 0 · the seven responses: 7 lines · md5 $S115" "native: the seven"; done
 x native '^  com\.sun\.management\.OperatingSystemMXBean: getCpuLoad getProcessCpuLoad getSystemCpuLoad$'
 x native "^  getProcessCpuTime - named in Micrometer's ProcessorMetrics class: yes · listed in its metadata: no\$"
-NNONE=$(blk native 'C (labelled) - the hint taken out' 'C (labelled) - the other interface'); NUNIX=$(blk native 'C (labelled) - the other interface' '')
+NNONE=$(blk native 'B - the hint taken out' "A' - A's binary again"); NAA=$(blk native "A' - A's binary again" 'D (labelled) - the other interface'); NUNIX=$(blk native 'D (labelled) - the other interface' '')
 has "$NNONE" '  < @RegisterReflection(classNames = "com.sun.management.OperatingSystemMXBean", memberCategories = MemberCategory.INVOKE_PUBLIC_METHODS)' "native: the hint's line deleted"
 has "$NNONE" "  500 application/json" "native: hint out, 500"
 has "$NNONE" '  what it wrote: {"error":"MissingReflectionRegistrationError"}' "native: hint out, the error's name"
@@ -740,8 +756,14 @@ has "$NNONE" "  its process_ families: process_cpu_usage process_files_max_files
 has "$NUNIX" '  > @RegisterReflection(classNames = "com.sun.management.UnixOperatingSystemMXBean", memberCategories = MemberCategory.INVOKE_PUBLIC_METHODS)' "native: the Unix name"
 has "$NUNIX" "  200 text/plain;version=0.0.4;charset=utf-8" "native: the Unix name, 200"
 has "$NUNIX" "  a scrape - its process_ families: process_cpu_time_ns_total process_cpu_usage process_files_max_files process_files_open_files process_start_time_seconds process_uptime_seconds" "native: the Unix name, every process family"
-[ "$(n native "^  exit 0 · the seven responses: 7 lines · md5 $S115\$")" = 5 ] || die "native: the seven, five times (the AOT jar, the binary, the hint out twice, the Unix name)"
-echo "  native: 3 builds, 8 of 8, offline · the AOT jar and the binary: 200, process_cpu_time, 120 / 24300 / the timer, 115c36ba... · metadata: 3 methods, not getProcessCpuTime · hint out: 500 MissingReflectionRegistrationError; CPU time off: 200 · Unix name: 200"
+# A' = A: the same binary, the same answers (RED C5-S4 #19: a flipped attribute is shown A, B, A')
+has "$NAA" "\$ cd .harness/nat && tiffinbox-web/target/tiffinbox-web --tiffinbox.port=19025" "native A': A's binary, the README's line"
+has "$NAA" "  200 text/plain;version=0.0.4;charset=utf-8" "native A': 200"
+has "$NAA" "  its process_ families: process_cpu_time_ns_total process_cpu_usage process_files_max_files process_files_open_files process_start_time_seconds process_uptime_seconds" "native A': every process family"
+for l in "    tiffinbox_orders_cooked_total 120.0" "    tiffinbox_orders_value_total 24300.0" '    tiffinbox_requests_seconds_count{route="GET /customers",status="200"} 1'; do has "$NAA" "$l" "native A': the kitchen's counters and the timer"; done
+has "$NAA" "  exit 0 · the seven responses: 7 lines · md5 $S115" "native A': the seven"
+[ "$(n native "^  exit 0 · the seven responses: 7 lines · md5 $S115\$")" = 6 ] || die "native: the seven, six times (the AOT jar, the binary, B, C, A', D)"
+echo "  native: 3 builds, 8 of 8, offline · the AOT jar and the binary: 200, process_cpu_time, 120 / 24300 / the timer, 115c36ba... · metadata: 3 methods, not getProcessCpuTime · B, hint out: 500 MissingReflectionRegistrationError; C, B with CPU time off: 200 · A' = A: 200, every process family · D, the Unix name: 200"
 
 # the exercise's end state: the line exercise/README.md calls "Done" is a line of this capture, after the solution's line - and of
 # SOLUTION.md's measured run

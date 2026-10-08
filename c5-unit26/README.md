@@ -46,16 +46,20 @@ export GRAALVM_HOME=/path/to/a/graalvm-jdk-25      # GraalVM CE 25.3.4.1 for the
 ./receipts.sh     # 9 captures, 3 runs each; every spoken number asserted; 0 raw tokens; a published-md5 mismatch stops it
 ```
 
-(`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) It runs for about 17 to 50 minutes on the author's Mac, most of it the six native builds — two in each of `native`'s three runs,
-123-688 s each, beside other units' native builds (load averages from about 6 to about 190). The runs of record of this revision
-(RED C5-S4 part B's fixes), 2026-10-08: **1010 s under `./receipts.sh`** (/bin/bash 3.2.57, this folder, exit 0, every capture =
+(`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) It runs for about 17 to 80 minutes on the author's Mac, most of it the six native builds — two in each of `native`'s three runs,
+123-688 s each, beside other units' native builds (load averages from about 6 to about 190). **After RED C5-S4 part A's bridge
+fix (2026-10-08, the Actuator lesson's anchor carried here): 4,118 s under `./receipts.sh`** (/bin/bash 3.2.57, this folder, exit 0,
+every capture = published), beside three other units' receipts (load averages about 170-410; native builds 359-998 s, inside the
+20-minute bound); the two hashes that moved (`change`: the anchor README's lines added 93 → 94; `hang`: a body sent with a read,
+now 200 and never read) were published from a 3.2 run of the same captures, 3/3, every check passed (4,775 s). The runs of record
+of part B's revision (RED C5-S4 part B's fixes), 2026-10-08: **1010 s under `./receipts.sh`** (/bin/bash 3.2.57, this folder, exit 0, every capture =
 published; the load had fallen to about 6) and **1010 s under `bash receipts.sh`** (Homebrew bash 5.3.9, from a sealed clone, exit 0) — "From a clone",
 below. The five hashes that moved (`change`, `analysis`, `hang`, `native`, `exercise`) were published from two 3.2 runs, every capture
 3/3 and every check passed (the first stopped at `native`, which drifted: the route lines' order differs between native builds, and
 its new log reading printed them — now filtered out and counted). Every native build stayed inside the capture's bound, under 20
 minutes. The first revision's runs of record, 2026-10-07: 1435 s (3.2) and 2328 s (5.3).
 It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first, so you can see which one moved).
-Published hashes: taken `5b3f472737fb372bc9b69c47e5408cb5` · analyzers `f902c8a19e5df4d82bc1ca01d5ab2569` · cycle `e282ed5a7d1e5b0e645b5ea5a573a44d` · change `8815921f4f8c105979b8df8d0bb9657c` · analysis `20f94cf251d5b3eaf9d32180845b50a5` · debug `7bae9b43043ade3fcdf73b534de09f59` · hang `064df3f2dc575d84a1213e40744876dc` · native `113cfa86985dae96661dfb4f5e6d04a6` · exercise `dd4e408e3f9bb389887f8d553cd2d7d1`.
+Published hashes: taken `5b3f472737fb372bc9b69c47e5408cb5` · analyzers `f902c8a19e5df4d82bc1ca01d5ab2569` · cycle `e282ed5a7d1e5b0e645b5ea5a573a44d` · change `b67fa4c2542a480583ac3847ddfe1c16` · analysis `20f94cf251d5b3eaf9d32180845b50a5` · debug `7bae9b43043ade3fcdf73b534de09f59` · hang `96f2460d0293ce5241201cb5d19356d6` · native `113cfa86985dae96661dfb4f5e6d04a6` · exercise `dd4e408e3f9bb389887f8d553cd2d7d1`
 
 ## The GraalVM
 
@@ -407,7 +411,7 @@ clause in `handle()`, before and after; the anchor README's new section, counted
 files); the bridge's diff counted, its code lines (the two ERROR lines and their `if`); `TiffinBoxApp.java`,
 `KitchenHealthIndicator.java`, `KitchenMetrics.java`, `Route.java`, `application.yaml` and both POMs byte for byte.
 
-`.r-change.out` · md5 `8815921f4f8c105979b8df8d0bb9657c` · 3 of 3
+`.r-change.out` · md5 `b67fa4c2542a480583ac3847ddfe1c16` · 3 of 3
 
 ```
 the previous tree against after/, both copied under .harness/ - the files that differ:
@@ -455,7 +459,7 @@ $ diff -rq -x target -x secrets .harness/before .harness/after
   every catch clause in handle(), before and after (grep -n):
     before 177: } catch (Exception e) {
     after  183: } catch (Exception | LinkageError e) {   // a class the route needs, missing: 500, never a silent client
-  README.md - the anchor's README: lines added 93, removed 0 - its new section (not shown)
+  README.md - the anchor's README: lines added 94, removed 0 - its new section (not shown)
   tiffinbox-core against the previous tree's (diff -rq -x target): 0 files differ
   tiffinbox-web/src/main/java/com/tiffinbox/web/ActuatorRoutes.java - diff adds 6 lines, removes 0; the lines that are code, not comment:
     >             System.Logger log = System.getLogger("tiffinbox");     // TiffinBox's own logger: every 500 here is logged, at ERROR
@@ -669,14 +673,16 @@ java.lang.NoClassDefFoundError: com/fasterxml/jackson/databind/jdk14/JDK14Util`,
 `catch (Exception | LinkageError e)`: **`{"error":"ClassNotFoundException"} 500`**, curl exit 0, the scrape `status="500"`, the line
 `GET /customers -> 500`, 0 uncaught exceptions. **after/'s copy again, at INFO** — Boot's default, the README's run line for the copy
 without the kitchen flag, `sbom` exposed for this one run (Actuator's endpoint for a software bill of materials: it writes a record,
-so it needs the same class): `/customers` 500; `/actuator/sbom` → `{"error":"NoClassDefFoundError"} 500`; a body the bridge cannot
-read as JSON (`-X GET -d 'oops, not json'` to health) → `{"error":"JsonParseException"} 500`. After POST /shutdown, the log read as
-its shape: **`ERROR tiffinbox: GET /customers failed`**, **`ERROR tiffinbox: an actuator request failed`** — each followed by
-`java.lang.NoClassDefFoundError: com/fasterxml/jackson/databind/jdk14/JDK14Util` and its trace, frames counted — and
-**`ERROR tiffinbox: an actuator request failed: com.fasterxml.jackson.core.JsonParseException`**, the class alone; the body's words
-in the log: 0; standard error: 0 uncaught (RED C5-S4 #59).
+so it needs the same class): `/customers` 500; `/actuator/sbom` → `{"error":"NoClassDefFoundError"} 500`; a body sent with a read
+(`-X GET -d 'oops, not json'` to health) → `{"status":"UP","groups":["liveness","readiness"]} 200` — since RED C5-S4 #46's fix in the
+Actuator lesson's anchor the bridge reads a body only for a write that takes one, so this request no longer reaches the catch (it
+answered 500 `JsonParseException` before, logged by its class). After POST /shutdown, the log read as its shape: **`ERROR tiffinbox:
+GET /customers failed`**, **`ERROR tiffinbox: an actuator request failed`** — each followed by
+`java.lang.NoClassDefFoundError: com/fasterxml/jackson/databind/jdk14/JDK14Util` and its trace, frames counted — and no other bridge
+line; the body's words in the log: 0; standard error: 0 uncaught (RED C5-S4 #59). The catch's second branch (any other exception,
+logged by its class alone) stays as written: a client's mistakes are 400s before it now.
 
-`.r-hang.out` · md5 `064df3f2dc575d84a1213e40744876dc` · 3 of 3
+`.r-hang.out` · md5 `96f2460d0293ce5241201cb5d19356d6` · 3 of 3
 
 ```
 C (labelled) - the failure after the start: one class jackson-databind needs for a record, deleted from a copy of the
@@ -754,11 +760,12 @@ $ curl -s -m 5 -w ' %{http_code}\n' http://127.0.0.1:19055/customers
   {"error":"ClassNotFoundException"} 500
   curl exit 0
   the scrape's line for GET /customers: tiffinbox_requests_seconds_count{route="GET /customers",status="500"} 1
-the bridge's catch - the README's sbom line, then its line with a body the bridge cannot read as JSON:
+the bridge's catch - the README's sbom line; then its line that sends a body to health, a read: the bridge reads a body only
+for a write that takes one (the Actuator lesson's fix), so this one never reaches the catch:
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19055/actuator/sbom
   {"error":"NoClassDefFoundError"} 500
 $ curl -s -X GET -d 'oops, not json' -w ' %{http_code}\n' http://127.0.0.1:19055/actuator/health
-  {"error":"JsonParseException"} 500
+  {"status":"UP","groups":["liveness","readiness"]} 200
 $ harness/shutdown.sh 19055 .harness/ha/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 · curl exit 0
   exit 0 · listening on 19055 now: 0
@@ -766,7 +773,6 @@ $ harness/shutdown.sh 19055 .harness/ha/secrets/tiffinbox/shutdown-token
   its log, read after it exited: APPLICATION FAILED TO START 0 · stack frames 57 = 30 + 2 + 25 + 0 · Caused by: 2 · frames folded as common 55
   ERROR tiffinbox: GET /customers failed
   ERROR tiffinbox: an actuator request failed
-  ERROR tiffinbox: an actuator request failed: com.fasterxml.jackson.core.JsonParseException
   java.lang.NoClassDefFoundError: com/fasterxml/jackson/databind/jdk14/JDK14Util
   Caused by: java.lang.ClassNotFoundException: com.fasterxml.jackson.databind.jdk14.JDK14Util
   java.lang.NoClassDefFoundError: com/fasterxml/jackson/databind/jdk14/JDK14Util

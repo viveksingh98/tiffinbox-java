@@ -4,16 +4,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.actuate.autoconfigure.endpoint.condition.ConditionalOnAvailableEndpoint;
 import org.springframework.boot.actuate.autoconfigure.endpoint.expose.IncludeExcludeEndpointFilter;
 import org.springframework.boot.actuate.endpoint.EndpointAccessResolver;
+import org.springframework.boot.actuate.endpoint.InvalidEndpointRequestException;
 import org.springframework.boot.actuate.endpoint.InvocationContext;
 import org.springframework.boot.actuate.endpoint.OperationArgumentResolver;
 import org.springframework.boot.actuate.endpoint.OperationFilter;
@@ -81,7 +85,11 @@ public class ActuatorRoutes {
         return exchange -> handle(exchange, endpoints);
     }
 
-    /** One request: the operation whose path and verb match it, invoked, and what it returns, written. */
+    /**
+     * One request: the operation whose path and verb match it, invoked, and what it returns, written. Its arguments are
+     * gathered as Spring MVC's adapter gathers them: the path's variables, a write's JSON body, then the query string. A
+     * write that takes arguments needs a JSON Content-Type (else 415) and one JSON object as its body (else 400).
+     */
     private static void handle(HttpExchange exchange, WebEndpointsSupplier endpoints) throws IOException {
         String path = exchange.getRequestURI().getPath().replaceFirst("^/actuator/?", "");
         boolean pathFound = false;
@@ -93,13 +101,23 @@ public class ActuatorRoutes {
                     if (arguments == null) continue;
                     pathFound = true;
                     if (!predicate.getHttpMethod().name().equals(exchange.getRequestMethod())) continue;
-                    byte[] body = exchange.getRequestBody().readAllBytes();
-                    if (body.length > 0) arguments.putAll(JSON.readValue(body, Map.class));
+                    if (!predicate.getConsumes().isEmpty()) {            // a write that takes arguments, as JSON only
+                        String sent = String.valueOf(exchange.getRequestHeaders().getFirst("Content-Type")).split(";")[0].trim();
+                        if (predicate.getConsumes().stream().noneMatch(sent::equalsIgnoreCase)) {
+                            respond(exchange, 415, "application/json", Map.of("error", "unsupported media type"));
+                            return;
+                        }
+                        arguments.putAll(fields(exchange.getRequestBody().readAllBytes()));
+                    }
+                    query(exchange.getRequestURI().getRawQuery()).forEach((name, values) ->      // Spring MVC's merge: one
+                            arguments.put(name, values.size() == 1 ? values.get(0) : values));  // value a String, several a list
                     Object result = operation.invoke(new InvocationContext(SecurityContext.NONE, arguments,
                             OperationArgumentResolver.of(WebServerNamespace.class, () -> WebServerNamespace.SERVER),
                             new ProducibleOperationArgumentResolver(() -> exchange.getRequestHeaders().get("Accept"))));
                     int status = result != null ? 200 : exchange.getRequestMethod().equals("GET") ? 404 : 204;
-                    String type = predicate.getProduces().stream().findFirst().orElse("application/json");
+                    String accept = String.valueOf(exchange.getRequestHeaders().getFirst("Accept"));
+                    String type = predicate.getProduces().stream().filter(accept::contains).findFirst()   // the type asked for,
+                            .orElse(predicate.getProduces().stream().findFirst().orElse("application/json"));  // or the first
                     if (result instanceof WebEndpointResponse<?> response) {
                         status = response.getStatus();
                         type = response.getContentType() != null ? response.getContentType().toString() : type;
@@ -111,9 +129,32 @@ public class ActuatorRoutes {
             }
             respond(exchange, pathFound ? 405 : 404, "application/json",
                     Map.of("error", pathFound ? "method not allowed" : "not found"));
+        } catch (InvalidEndpointRequestException e) {   // a missing or unmappable argument, or a write's body: the client's
+            respond(exchange, 400, "application/json", Map.of("error", "bad request"));
         } catch (Exception | LinkageError e) {      // a LinkageError: a class, or a native binary's hint, is missing
             respond(exchange, 500, "application/json", Map.of("error", e.getClass().getSimpleName()));
         }
+    }
+
+    /** A write's body: one JSON object. Empty, or anything else, is the client's error: it never resets a level unasked. */
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> fields(byte[] body) {
+        Object value = null;
+        try { value = JSON.readValue(body, Object.class); } catch (IOException e) { /* empty, or no JSON at all */ }
+        if (value instanceof Map<?, ?> object) return (Map<String, Object>) object;
+        throw new InvalidEndpointRequestException("a write's body must be one JSON object", "Invalid request body");
+    }
+
+    /** The query string's parameters, decoded, each with its values in order: ?tag=a&tag=b is tag, [a, b]. */
+    private static Map<String, List<String>> query(String raw) {
+        Map<String, List<String>> parameters = new LinkedHashMap<>();
+        for (String pair : raw == null ? new String[0] : raw.split("&")) {
+            if (pair.isEmpty()) continue;
+            String[] nv = pair.split("=", 2);
+            parameters.computeIfAbsent(URLDecoder.decode(nv[0], StandardCharsets.UTF_8), name -> new ArrayList<>())
+                    .add(nv.length > 1 ? URLDecoder.decode(nv[1], StandardCharsets.UTF_8) : "");
+        }
+        return parameters;
     }
 
     /** "health/{*path}" or "loggers/{name}" against the request's path: the path's variables, or null when it differs. */

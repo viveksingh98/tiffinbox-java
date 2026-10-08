@@ -36,7 +36,7 @@ spring:
       enabled: false
 # Boot's Actuator: the endpoints TiffinBox's server answers under /actuator. Health alone - Boot's own default, written
 # out, so that widening it is a line someone reviews. Under Spring's AOT step, and so in the native binary, this list
-# is read when the jar is built: a --management.endpoints.web.exposure.include given at run time changes nothing there.
+# is fixed when the jar is built: a run-time exposure flag adds nothing there, though it can still remove one - health too.
 management:
   endpoints:
     web:

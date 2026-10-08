@@ -749,7 +749,7 @@ S115='115c36bac276128e245ca57df11c2891'
 # brackets:
 E_LIBS=46      # jars under the anchor's BOOT-INF/lib (a DevTools copy's: the same) [39]
 E_CP=54        # entries of a DevTools copy's target/classpath.txt (all jars) [47]
-E_RCL=14       # classes RestartClassLoader defined by the time readiness answered 200 (loaders) [10]
+E_RCL=16       # classes RestartClassLoader defined by the time readiness answered 200 (loaders) [10; 14 before the bridge fix of RED C5-S4 part A]
 E_WEB="TiffinBoxServer TiffinBoxApp Route ActuatorRoutes KitchenHealthIndicator KitchenMetrics"   # the web module's own classes
                # among them, by name - the rest are 1 proxy and lambdas [the first four]
 E_CORE=10      # tiffinbox-core classes the application loader defined by then [10]

@@ -36,13 +36,18 @@ export GRAALVM_HOME=/path/to/a/graalvm-jdk-25      # GraalVM CE 25.3.4.1 for the
 ./receipts.sh     # 8 captures, 3 runs each; every spoken number asserted; 0 raw tokens; a published-md5 mismatch stops it
 ```
 
-(`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) It runs for 25 to 45 minutes on the author's Mac, and its nine native builds decide which: 2,550 s under `./receipts.sh`
+(`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) It runs for 25 to 100 minutes on the author's Mac, and its nine native builds decide which. **This revision's runs of record
+(2026-10-08, RED C5-S4 part A's fixes):** 6,011 s under `./receipts.sh` (/bin/bash 3.2.57, in place, exit 0, every capture = published)
+and 3,775 s under `bash receipts.sh` (Homebrew bash 5.3.9, from a sealed clone, exit 0 — "From a clone", below), beside two to four
+other units' receipts (load averages about 120-410; native builds 288-846 s, every one inside the 20-minute bound); the four hashes
+that moved (`change`, `scrape`, `timer`, `native`) were published from a 3.2 run, 3/3, every check passed (4,547 s). The first
+revision's: 2,550 s under `./receipts.sh`
 (/bin/bash 3.2.57) and 1,599 s under `bash receipts.sh` (Homebrew bash 5.3.9) for the two runs of record, 2026-10-07 — the first
 while another agent's work held the load average between about 15 and 105 (its native builds 147-463 s), the second on a quieter
 Mac (145-158 s); every native build inside the capture's bound, under 20 minutes. The first run published `receipts.md5` (its last
 line said so, as designed); the second matched every hash and exited 0.
 It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first, so you can see which one moved).
-Published hashes: before `f12a734f7395c936d19679752ed83596` · change `2709f3a66770e4433896d2e25e2c8a88` · scrape `2c53090a33a3b87ecbc34b4e4572aa4c` · counter `e9dbf7d48b9648b1281075c35e5f1ac5` · timer `31457f3245044537d856f7d15a3b4c5b` · cardinality `cc1b320d8fa3f5b08a728f5602b684a5` · native `b54d1a5425e583f2a7ce883cbbf38fcf` · exercise `855f5f36785dc51d0deb8245fb3f49c5`.
+Published hashes: before `f12a734f7395c936d19679752ed83596` · change `a529d6ae3888e8ceea294296518b12f4` · scrape `cc70a200f02044a26014553f10e84a4b` · counter `e9dbf7d48b9648b1281075c35e5f1ac5` · timer `014f7c731608f8234c68357ca7c7aaae` · cardinality `cc1b320d8fa3f5b08a728f5602b684a5` · native `562721510962b6ec02aefdb9c2b82213` · exercise `855f5f36785dc51d0deb8245fb3f49c5`
 
 ## The GraalVM
 
@@ -74,15 +79,22 @@ plugin 1.1.8 and the zip are in `$M2`; (4) every build's log is searched for the
 says `offline: no` and the run stops. (native-image prints one GitHub address in every build: its documentation link, never a
 download.)
 
-**From a clone, sealed (2026-10-07, brief S4.2).** The repository was cloned (at this unit's commit, less this paragraph:
-`README.md` is the only file changed since) into an empty folder — no `.m2-demo` in this unit or in unit 22's, no seed folder — and
-`./receipts.sh` run under `env -i`: a `HOME` whose Maven settings send every repository to a `file://` copy of Central's files made
-from `.m2-demo` (4,074 files: its own installs, `_remote.repositories` and `*.lastUpdated` left out), and `http_proxy`, `https_proxy`,
-their capitals and `ALL_PROXY` pointed at a port that refuses. **With `GRAALVM_HOME` set: exit 0 after 1,681 s** — all 8 captures =
-published, every spoken number asserted, 0 raw demo tokens. **Without it: the 7 captures that need no GraalVM = published, the
-exercise's included, then the stop the script announces (exit 1 after 169 s).** Both times the first build said `offline: no` (the
-metadata zip was not in the empty `.m2-demo`) and filled it from the copy, every later build said `offline: yes`, `.m2-demo` ended
-with 1,381 files, and `github` appears 0 times in either log.
+**From a clone, sealed — this revision (2026-10-08, RED C5-S4 part A's fixes; brief S4.2).** The repository was cloned (`git clone`
+of its HEAD) into an empty folder, and the seven folders this revision changes — `c5-unit21` to `c5-unit26` and `c5-tiffinbox` — put
+in exactly as the commit holds them (212 files, nothing git ignores: no `.m2-demo`, no `.harness/`, no `.r-*` anywhere; `README.md`
+and `exercise/solution/SOLUTION.md` are the only files of this unit's folder changed since — by this paragraph, the run-times
+note and the solution's measured-run date; the other folders' later changes touch nothing this run reads). `bash receipts.sh` (Homebrew bash 5.3.9) ran under
+`env -i`, with a `HOME` whose `.mavenrc` points Maven's `user.home` there (Java reads `user.home` from the account, not from `$HOME`)
+and every Java proxy property at a port that refuses (127.0.0.1:9), and whose Maven settings send every repository to a `file://`
+copy of Central's files made from the units' `.m2-demo` (4,060 files: TiffinBox's own installs, `_remote.repositories`,
+`*.lastUpdated`, `resolver-status.properties` and `.DS_Store` left out, `maven-metadata-central.xml` served as `maven-metadata.xml`);
+`http_proxy`, `https_proxy`, their capitals and `ALL_PROXY` at the same refusing port; `GRAALVM_HOME` set. **Exit 0 after 3,775 s** —
+all 8 captures = published, every spoken number asserted, 0 raw demo tokens. One build said `offline: no` — the first (GraalVM's
+metadata repository was not in the empty `.m2-demo`) — and took 508 files, every one from the `file://` copy, 0 from anywhere else;
+every later build said `offline: yes`; `.m2-demo` ended with 1,381 files; the build logs hold 0 `https://repo` lines and 0 lines of
+the native plugin's metadata download. **The first revision's clone test (2026-10-07) was not sealed:** its `HOME` held Maven
+settings and no `.mavenrc`, so Maven read the account's settings (RED C5-S4 #9 measured it) and went to Maven Central itself; RED's
+own sealed re-run of that revision (`.mavenrc`, the same `file://` method, no GraalVM) passed 7/7 and stopped as announced.
 
 ## The demo token — fake, and never printed
 
@@ -106,7 +118,7 @@ JVM's own name. The exercise makes a random token of its own, which it never pri
   `.harness/serve/` (after/, built the README's plain way); `scrape`'s C: `.harness/oldbridge/` (after/ with the previous tree's
   `ActuatorRoutes.java`); `cardinality` B: `.harness/rawtag/` (after/ with the route tag's one line flipped). `native`:
   `.harness/nat/` (after/, the README's two native lines), `.harness/nat-none/` (the hint's line deleted), `.harness/nat-unix/` (the
-  other interface's name in its place). The exercise: `.harness/mine/`.
+  other interface's name in its place). The exercise: `.harness/mine/`. (`native`'s A′ runs `.harness/nat`'s binary again.)
 - The harness: `harness/shutdown.sh` (POST /shutdown with the token from a file, the exercise's stop; copied from the health lesson's).
   No Java harness: every capture runs TiffinBox as the README runs it, or a copy with one line changed (shown as a `diff`).
 - On screen: `$CURLSET` = `../c5-unit11/curlset.sh`, the comparison set since the secrets lesson; `$M2` = this unit's `.m2-demo`;
@@ -127,9 +139,9 @@ JVM's own name. The exercise makes a random token of its own, which it never pri
    last check fails if one is. The filter prints: its status and content type (curl's `-w`); the first word of each family it declares
    (`# TYPE`), each once; **every `tiffinbox_` line**, whole, in its own order — a timer's `_sum` and `_max` samples **masked by name**
    (`<masked: a duration>`: they vary); three lines of one JVM family, `jvm_threads_live_threads`, its value masked; in `native`, the
-   names of its `process_` families. Every other line is **not printed and not counted**: their number moves (a collection adds
-   `jvm_gc_pause`; the brief's probes counted 43 and 44 families, and 43 against 58 on another tree), so a count would be a moving
-   witness (S4.19). `application_ready_time_seconds` — Boot's log-line duration as a gauge — is never printed (S4.9).
+   names of its `process_` families. Every other line is **not printed, and counted as a bound — over 150** (162 to 169 here): their
+   exact number moves (a collection adds `jvm_gc_pause`; the brief's probes counted 43 and 44 families, and 43 against 58 on another
+   tree), so an exact count would be a moving witness (S4.19), and RED C5-S4 #21 asked for the cut counted. `application_ready_time_seconds` — Boot's log-line duration as a gauge — is never printed (S4.9).
 3. **Actuator's metrics and beans answers** (exposed by the README's flag line for one run) are written the same way and read as JSON:
    metrics — the first word of every meter name, each once; how many names start `http.` and `tiffinbox.`, and the `tiffinbox.` ones;
    never the total (S4.19); one meter's answer — its name, its `COUNT`, and the names of the tags it offers (never its time
@@ -216,7 +228,7 @@ KitchenMetrics counted, and its key lines (`grep -n`); TiffinBoxServer's key lin
 a `try`, re-indented); ActuatorRoutes' one changed code line; application.yaml's gained line; the anchor README's new section,
 counted; tiffinbox-core compared (`diff -rq -x target`: 0 files), `TiffinBoxApp.java` and `KitchenHealthIndicator.java` byte for byte.
 
-`.r-change.out` · md5 `2709f3a66770e4433896d2e25e2c8a88` · 3 of 3
+`.r-change.out` · md5 `a529d6ae3888e8ceea294296518b12f4` · 3 of 3
 
 ```
 the previous tree against after/, both copied under .harness/ - the files that differ:
@@ -253,7 +265,7 @@ $ diff -rq -x target -x secrets .harness/before .harness/after
   tiffinbox-web/src/main/resources/application.yaml - the lines it gains that are neither comment nor blank:
             include: health,prometheus
     (diff adds 5 lines, removes 4)
-  README.md - the anchor's README: lines added 81, removed 0 - its new section (not shown)
+  README.md - the anchor's README: lines added 84, removed 0 - its new section (not shown)
   tiffinbox-core against the previous tree's (diff -rq -x target): 0 files differ
   TiffinBoxApp.java against the previous tree's, byte for byte: the same
   KitchenHealthIndicator.java against the previous tree's, byte for byte: the same
@@ -264,11 +276,14 @@ $ diff -rq -x target -x secrets .harness/before .harness/after
 
 after/'s jar against the previous tree's (`BOOT-INF/lib`: 39 → 46, the 7 added named); run as the README runs it, no flag —
 `application.yaml` exposes health and prometheus: the scrape in Prometheus's text format, then the same scrape asked for in OpenMetrics
-by the README's `Accept` line, each through the filter (mask 2); then the README's flag line: the registry bean and the names. Then
+by the README's `Accept` line, each through the filter (mask 2), and once more with the `Accept` header a Prometheus 3 server sends
+with every scrape (its default scrape protocols; the README's third line): OpenMetrics too — a Prometheus server reads OpenMetrics by
+default, and curl, asking for nothing, gets the older text format (RED C5-S4 #18); then the README's flag line: the registry bean and
+the names. Then
 **C (labelled)**: a copy of after/ whose `ActuatorRoutes.java` is the previous tree's — the one code line `diff` shows — built and
 scraped: Prometheus's content type, and a body that is one JSON string; decoded (base64), its first line is the scrape's.
 
-`.r-scrape.out` · md5 `2c53090a33a3b87ecbc34b4e4572aa4c` · 3 of 3
+`.r-scrape.out` · md5 `cc70a200f02044a26014553f10e84a4b` · 3 of 3
 
 ```
 after/, copied to .harness/serve with a config tree, built the README's plain way:
@@ -296,7 +311,7 @@ $ cd .harness/serve && curl -s -o scrape.txt -w '%{http_code} %{content_type}\n'
     # HELP jvm_threads_live_threads The current number of live threads including both daemon and non-daemon threads
     # TYPE jvm_threads_live_threads gauge
     jvm_threads_live_threads <masked: this computer's>
-  every other line: not printed (memory, threads, processors, a disk and its folder) and not counted (a collection adds a family)
+  every other line: not printed (memory, threads, processors, a disk and its folder) - over 150, a bound: a collection adds a family
   the demo token in it: 0 · deleted: yes
 the same scrape, asked for in OpenMetrics:
 $ cd .harness/serve && curl -s -o scrape.txt -w '%{http_code} %{content_type}\n' -H 'Accept: application/openmetrics-text; version=1.0.0' http://127.0.0.1:19021/actuator/prometheus
@@ -309,6 +324,10 @@ $ cd .harness/serve && curl -s -o scrape.txt -w '%{http_code} %{content_type}\n'
     # HELP tiffinbox_orders_value What the cooked orders are worth
     tiffinbox_orders_value_total 24300.0
   its last line: # EOF
+  the demo token in it: 0 · deleted: yes
+  and with the Accept header a Prometheus 3 server sends with every scrape (its default scrape protocols) - the README's line:
+$ cd .harness/serve && curl -s -o scrape.txt -w '%{http_code} %{content_type}\n' -H 'Accept: application/openmetrics-text;version=1.0.0;q=0.5,application/openmetrics-text;version=0.0.1;q=0.4,text/plain;version=1.0.0;q=0.3,text/plain;version=0.0.4;q=0.2,*/*;q=0.1' http://127.0.0.1:19021/actuator/prometheus
+  200 application/openmetrics-text;version=1.0.0;charset=utf-8
   the demo token in it: 0 · deleted: yes
 $ $CURLSET 19021 .harness/serve/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
@@ -396,14 +415,17 @@ $ $CURLSET 19022 .harness/serve/secrets/tiffinbox/shutdown-token
 ```
 
 
-## 5 · timer — every answer, timed; and C, a tag filter
+## 5 · timer — every route's answer, timed; and C, a tag filter
 
 after/'s jar with the README's flag line (the metrics endpoint exposed for this run): no `tiffinbox_requests` line before the first
 answer; the README's status line for each of the four routes, `/nowhere` and `GET /shutdown`, then the README's POST line without the
 token; the scrape's `tiffinbox_requests` lines whole, sums and maxes masked; the series counted. **C (labelled)**: the metrics endpoint
-asked for the timer, then with the README's `?tag=status:405` — the same answer: the bridge passes no query string.
+asked for the timer — `COUNT 6.0`, tags `route status` — then with the README's `?tag=status:405`: `COUNT 1.0`, the `route` tag left.
+Through the bridge, the query string reaches the operation (RED C5-S4 #2: fixed in the Actuator lesson's anchor, carried here; before
+the fix both answers were `COUNT 6.0`). What is timed is TiffinBox's own routes — not `/nowhere` (the JDK's 404) and not Actuator's
+answers (RED C5-S4 #11); each set of tag values is three series, `_count`, `_sum` and `_max` (#16).
 
-`.r-timer.out` · md5 `31457f3245044537d856f7d15a3b4c5b` · 3 of 3
+`.r-timer.out` · md5 `014f7c731608f8234c68357ca7c7aaae` · 3 of 3
 
 ```
 after/'s jar (.harness/serve) with the README's flag line - the metrics endpoint exposed too - port 19023:
@@ -467,7 +489,7 @@ $ cd .harness/serve && curl -s -o metrics.json -w '%{http_code}\n' 'http://127.0
   the demo token in it: 0 · deleted: yes
 $ cd .harness/serve && curl -s -o metrics.json -w '%{http_code}\n' 'http://127.0.0.1:19023/actuator/metrics/tiffinbox.requests?tag=status:405'
   200
-  tiffinbox.requests · COUNT 6.0 · the tags it offers: route status
+  tiffinbox.requests · COUNT 1.0 · the tags it offers: route
   the demo token in it: 0 · deleted: yes
 $ $CURLSET 19023 .harness/serve/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
@@ -573,12 +595,13 @@ $ $CURLSET 19024 .harness/serve/secrets/tiffinbox/shutdown-token
 after/ built with the README's two native lines: the AOT jar (the README's AOT line) and the binary — readiness, one request, the
 scrape (its `process_` families, its `tiffinbox_` samples), the seven. Then Micrometer's own native-image metadata
 (`META-INF/native-image/io.micrometer/micrometer-core/reflect-config.json`, read from micrometer-core 1.17.1 in `$M2`) for the
-`com.sun.management` interfaces, and whether `ProcessorMetrics` names `getProcessCpuTime`. Then **C (labelled)**, each a copy of after/
-built natively: the hint's line deleted — the scrape answers 500 — and the same binary with the README's line that switches the
+`com.sun.management` interfaces, and whether `ProcessorMetrics` names `getProcessCpuTime`. Then **B**, a copy of after/ built
+natively with the hint's line deleted: the scrape answers 500; **C** (labelled), B's binary with the README's line that switches the
 CPU-time meter off (`--management.metrics.enable.process.cpu.time=false`, Boot's per-meter switch, read at run time): 200, without
-`process_cpu_time_ns_total`; then `com.sun.management.UnixOperatingSystemMXBean` in the hint instead: 200, every meter.
+`process_cpu_time_ns_total`; **A′**, A's binary again (no build): 200, every meter — a flipped attribute shown A, B, A′ (RED C5-S4
+#19); then **D** (labelled), `com.sun.management.UnixOperatingSystemMXBean` in the hint instead: 200, every meter.
 
-`.r-native.out` · md5 `b54d1a5425e583f2a7ce883cbbf38fcf` · 3 of 3
+`.r-native.out` · md5 `562721510962b6ec02aefdb9c2b82213` · 3 of 3
 
 ```
 after/, copied to .harness/nat with a config tree; the README's two Maven lines, offline; $GRAALVM_HOME names the GraalVM:
@@ -656,7 +679,7 @@ Micrometer's own native-image metadata - micrometer-core 1.17.1's reflect-config
   com.sun.management.OperatingSystemMXBean: getCpuLoad getProcessCpuLoad getSystemCpuLoad
   com.sun.management.UnixOperatingSystemMXBean: getMaxFileDescriptorCount getOpenFileDescriptorCount
   getProcessCpuTime - named in Micrometer's ProcessorMetrics class: yes · listed in its metadata: no
-C (labelled) - the hint taken out: a copy of after/ (.harness/nat-none), its @RegisterReflection line deleted:
+B - the hint taken out: a copy of after/ (.harness/nat-none), its @RegisterReflection line deleted:
 $ diff after/tiffinbox-web/src/main/java/com/tiffinbox/web/KitchenMetrics.java .harness/nat-none/tiffinbox-web/src/main/java/com/tiffinbox/web/KitchenMetrics.java
   25d24
   < @RegisterReflection(classNames = "com.sun.management.OperatingSystemMXBean", memberCategories = MemberCategory.INVOKE_PUBLIC_METHODS)
@@ -679,7 +702,7 @@ $ cd .harness/nat-none && curl -s -o scrape.txt -w '%{http_code} %{content_type}
 $ $CURLSET 19025 .harness/nat-none/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
-  the same binary, the README's line that switches the CPU-time meter off (process.cpu.time):
+C (labelled) - B's binary, the README's line that switches the CPU-time meter off (process.cpu.time):
 $ cd .harness/nat-none && tiffinbox-web/target/tiffinbox-web --tiffinbox.port=19025 --management.metrics.enable.process.cpu.time=false
   listens on: 127.0.0.1:19025
   Boot's first line: Starting AOT-processed TiffinBoxServer using Java 25.0.4.1
@@ -700,7 +723,28 @@ $ cd .harness/nat-none && curl -s -o scrape.txt -w '%{http_code} %{content_type}
 $ $CURLSET 19025 .harness/nat-none/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
-C (labelled) - the other interface's name in its place: a copy of after/ (.harness/nat-unix):
+A' - A's binary again (.harness/nat, built above) - the README's line:
+$ cd .harness/nat && tiffinbox-web/target/tiffinbox-web --tiffinbox.port=19025
+  listens on: 127.0.0.1:19025
+  Boot's first line: Starting AOT-processed TiffinBoxServer using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19025/actuator/health/readiness
+  {"status":"UP"} 200
+$ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:19025/customers
+  200
+$ cd .harness/nat && curl -s -o scrape.txt -w '%{http_code} %{content_type}\n' http://127.0.0.1:19025/actuator/prometheus
+  200 text/plain;version=0.0.4;charset=utf-8
+  its process_ families: process_cpu_time_ns_total process_cpu_usage process_files_max_files process_files_open_files process_start_time_seconds process_uptime_seconds
+  its tiffinbox_ samples (sums and maxes masked):
+    tiffinbox_orders_cooked_total 120.0
+    tiffinbox_orders_value_total 24300.0
+    tiffinbox_requests_seconds_count{route="GET /customers",status="200"} 1
+    tiffinbox_requests_seconds_sum{route="GET /customers",status="200"} <masked: a duration>
+    tiffinbox_requests_seconds_max{route="GET /customers",status="200"} <masked: a duration>
+  the demo token in it: 0 · deleted: yes
+$ $CURLSET 19025 .harness/nat/secrets/tiffinbox/shutdown-token
+  POST  /shutdown   -> 200 application/json  {"stopping":true}
+  exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
+D (labelled) - the other interface's name in its place: a copy of after/ (.harness/nat-unix):
 $ diff after/tiffinbox-web/src/main/java/com/tiffinbox/web/KitchenMetrics.java .harness/nat-unix/tiffinbox-web/src/main/java/com/tiffinbox/web/KitchenMetrics.java
   25c25
   < @RegisterReflection(classNames = "com.sun.management.OperatingSystemMXBean", memberCategories = MemberCategory.INVOKE_PUBLIC_METHODS)
@@ -772,7 +816,7 @@ measured answer, run exactly as written in a clean `env -i` shell, is `exercise/
 | `/nowhere` not timed | 10-06: not timed | **no series**; the JDK's own 404 (`timer`) |
 | OpenMetrics | 10-07: no `_total` in the family, `# EOF` | **the same** — `# TYPE tiffinbox_orders_cooked counter`, the sample `…_total 120.0`, last line `# EOF` (`scrape`) |
 | The order counter with fewer days | 10-06 (unit 27's probe): 10 days → 40 | **40 and 8100**, `/kitchen` and the scrape alike (`counter`) |
-| The bridge and `?tag=` (the task's open item from the health lesson) | not measured | **dropped**: `COUNT 6.0` with and without `?tag=status:405` (`timer` C) — see "For unit 24 — and for RED" |
+| The bridge and `?tag=` (the task's open item from the health lesson) | not measured | first revision: **dropped** (`COUNT 6.0` with and without `?tag=status:405`); since RED C5-S4 #2's fix in the Actuator lesson's anchor: **passed** — `COUNT 1.0`, the route tag left (`timer` C) |
 
 ## Found on the way
 
@@ -813,10 +857,10 @@ unless a line says otherwise:
   `_sum`/`_max`.
 - **Wait for readiness 200 first** (the kitchen is in readiness), compare JSON with keys sorted, never count Boot's log lines while
   something polls — all as the health lesson said.
-- **The bridge passes no query string** (measured: `?tag=` dropped, the answer the whole meter's). Not this unit's change: it changes
-  ⚑1's documented argument list (path variables, the JSON body, `Accept`). **RED decides** whether the bridge passes query parameters
-  (a few lines in `ActuatorRoutes.handle()`, merged like Spring MVC's adapter: one value a `String`, several a list); unit 24's
-  `loggers` takes its body in JSON and needs none.
+- **The bridge passes the query string** — RED decided (C5-S4 #2), and the fix went into the Actuator lesson's anchor and every later
+  tree: `ActuatorRoutes.handle()` merges it like Spring MVC's adapter (one value a `String`, several a list), takes a write only as
+  JSON (415 otherwise; 400 for an empty body or an argument Boot can't map). `timer` C measures the merge here; unit 24's `lock`
+  measures the 415s.
 - **The seven** are `115c36ba…` on the jar, the AOT jar and the binary, with or without the hint.
 - **The seed:** `.m2-demo` = `../c5-unit22/.m2-demo` less `com/tiffinbox/` (5,418 files); Micrometer's registry and the Prometheus
   client are in it.

@@ -564,9 +564,15 @@ is one adapter, and exposure is a filter:
 - `healthEndpointWebExtension` — Boot's `HealthEndpointWebExtension`: health over HTTP, its groups, no details unless asked for.
   `@ConditionalOnAvailableEndpoint(endpoint = HealthEndpoint.class)` keeps it out while health is not exposed.
 - `actuatorHandler` — the `HttpHandler` for `/actuator`: it matches the request's path and verb to an operation (`health`,
-  `health/{*path}`, `loggers/{name}`, …), passes the path's variables, a JSON body and the `Accept` header, invokes the operation and
-  writes its answer with TiffinBox's own Jackson (version 2) — 404 for a path no operation has, 405 for a path without that verb, and
-  500 for an `Exception` or a `LinkageError` (a missing class, or a native binary's missing hint).
+  `health/{*path}`, `loggers/{name}`, …) and gathers the operation's arguments as Spring MVC's adapter does — the path's variables,
+  a write's JSON body, then the query string (one value a String, several a list: `?tag=status:405` filters) — and passes the
+  `Accept` header. A write that takes arguments needs a JSON `Content-Type` (else `415`) and one JSON object as its body (else
+  `400`); an argument Boot can't map (`{"configuredLevel":"LOUD"}`) is a `400`. It invokes the operation and writes its answer
+  with TiffinBox's own Jackson (version 2), in the type asked for (`Accept: application/json` gets `application/json`) — 404 for a
+  path no operation has, 405 for a path without that verb, and 500 for an `Exception` or a `LinkageError` (a missing class, or a
+  native binary's missing hint). Measured against Boot's own adapter, eight requests each (`../c5-unit21/`, `ways` and `tour`):
+  the same answers but two — a write with an empty body, which the bridge refuses (`400`) where Boot's adapter resets the level
+  (`204`), and `/actuator` itself, which only Boot's adapter answers (its list of links).
 
 In a Spring MVC application Boot writes this adapter for you; TiffinBox's server is its own, so it writes it here.
 
@@ -582,7 +588,8 @@ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:18431/actuator/env
 Measured: `{"status":"UP","groups":["liveness","readiness"]}` 200 for health, `{"status":"UP"}` 200 for each group, 404 for env (not
 exposed), 405 for a POST to health; TiffinBox listens on its one address, and POST /shutdown ends the JVM, exit 0. Ask readiness
 until it answers 200 before anything else: TiffinBox's own routes answer earlier (the next unit). The starter makes the jar's start
-longer — on an Apple M1, by under a quarter, from the process's start to its first answer, the middle of five runs.
+longer: to its first answer — which TiffinBox gives before Boot calls it ready — on an Apple M1, quiet, by under a quarter, the
+middle of five runs (a busy machine moves the ratio: `../c5-unit21/` judges it behind a load gate).
 
 **Exposure is a list, and each endpoint costs what it hands over.** Widen it for one run, with a flag, on the JVM:
 
@@ -627,9 +634,9 @@ optional Compose module brings Jackson 3. Without the plugin's excludes it gener
 (`JacksonEndpointAutoConfiguration__BeanDefinitions`), and the AOT jar — `java -Dspring.aot.enabled=true -jar …`, unit 19's line —
 stopped at start after TiffinBox's server had opened its port: `NoClassDefFoundError: tools/jackson/databind/json/JsonMapper`, exit 1,
 while the same jar run without AOT served. With the excludes, the AOT jar and the native binary (unit 19's four lines) serve the
-seven and `/actuator/health`. **Under AOT, and in the binary, the exposure list is the one built in:** a
-`--management.endpoints.web.exposure.include` given at run time adds nothing there (env stays 404); change `application.yaml` and
-build again. Evidence in `../c5-unit21/`.
+seven and `/actuator/health`. **Under AOT, and in the binary, the endpoints are the ones built in:** an exposure list given at run
+time adds nothing there (env stays 404), and still filters what was built — a list without `health` takes health, liveness and
+readiness away (404). Change `application.yaml` and build again. Evidence in `../c5-unit21/`.
 
 ## Course 5 · unit 22 — the kitchen joins readiness (2026-10-07)
 
@@ -674,15 +681,17 @@ starts, `/kitchen` answered 200 at least once while liveness and readiness both 
 **When the database dies** (unit 22's harness closes it once TiffinBox is ready): `/actuator/health` 503, `kitchen` DOWN with
 `{"error":"JdbcSQLSyntaxErrorException"}` — H2 opens a new, empty in-memory database under the same URL, so the table is gone —
 liveness 200, **readiness 503**; `/customers` 500; `/kitchen` 200, from memory. A platform stops sending this process traffic and
-does not restart it: a restart cannot bring a database back. Without the kitchen in readiness — the line below — readiness says 200
-and traffic keeps arriving at a TiffinBox that answers 500:
+does not restart it. TiffinBox's own H2 lives in memory, so here a restart would rebuild it; the harness plays a database outside
+the process that stays down — the usual case, and the one this choice is for. Without the kitchen in readiness — the line below —
+readiness says 200 and traffic keeps arriving at a TiffinBox that answers 500:
 
 ```bash
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --management.endpoint.health.group.readiness.include=readinessState
 curl -s -w ' %{http_code}\n' http://127.0.0.1:18431/customers
 ```
 
-The trade: every TiffinBox that shares one database leaves rotation together when it blinks — when that is worth it is Course 18's.
+The trade: TiffinBoxes that share one database outside them leave rotation together when it blinks — when that is worth it is
+Course 18's.
 
 **Readiness by hand** (`AvailabilityChangeEvent.publish(context, ReadinessState.REFUSING_TRAFFIC)`) counts only after Boot's own
 `ACCEPTING_TRAFFIC`: published from a runner it is overwritten (readiness 200); published after it, readiness answers

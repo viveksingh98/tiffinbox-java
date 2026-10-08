@@ -37,7 +37,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # lesson (../c5-unit11/curlset.sh: the seven requests, POST /shutdown with the token's header read from the file). "$M2" is this
 # unit's own repository, .m2-demo. "$pid" is the process the script started.
 # The network: every build runs offline (-o) against .m2-demo and says so ("offline: yes"); a build that cannot resolve an
-# artifact offline goes to Maven Central once, and says that ("offline: no - ..."). GraalVM's native plugin, under the profile
+# artifact offline goes to the remote repository once - Maven Central, or the mirror your settings name - and says that ("offline: no - ..."). GraalVM's native plugin, under the profile
 # native, reads its metadata repository (a zip) from .m2-demo - and when the zip is not there it downloads it from GitHub, even
 # under -o (README.md, The repository): so a native-profile build without the zip goes to Maven Central for it at once, never
 # offline first, and every build's log is searched for the plugin's own download line - found, the run stops. At run time nothing
@@ -87,7 +87,12 @@ command -v curl > /dev/null || die "curl is needed: every request here is curl's
 # A variable of yours must not become a property source, a JVM flag, a build setting or a native-image option: every
 # TIFFINBOX_*, SPRING_*, MANAGEMENT_*, SERVER_* and LOGGING_* variable, DEBUG (Boot reads it as --debug), the variables that inject
 # JVM flags, MAVEN_OPTS, MAVEN_ARGS and NATIVE_IMAGE_OPTIONS are removed first. GRAALVM_HOME stays: it says which GraalVM to use.
-for v in $(env | sed -n 's/^\(TIFFINBOX_[A-Za-z0-9_]*\|SPRING_[A-Za-z0-9_]*\|MANAGEMENT_[A-Za-z0-9_]*\|SERVER_[A-Za-z0-9_]*\|LOGGING_[A-Za-z0-9_]*\|DEBUG\|JAVA_TOOL_OPTIONS\|JDK_JAVA_OPTIONS\|_JAVA_OPTIONS\|MAVEN_OPTS\|MAVEN_ARGS\|NATIVE_IMAGE_OPTIONS\)=.*/\1/p'); do unset "$v"; done
+# The list is an extended regular expression (sed -E): /usr/bin/sed's basic ones have no alternation, so the \| this loop once
+# used matched nothing and removed no variable at all (measured: RED C5-S4 #63). A canary is planted under every name first, and
+# the run stops if one survives the loop.
+for v in TIFFINBOX_CANARY SPRING_CANARY MANAGEMENT_CANARY SERVER_CANARY LOGGING_CANARY DEBUG JAVA_TOOL_OPTIONS JDK_JAVA_OPTIONS _JAVA_OPTIONS MAVEN_OPTS MAVEN_ARGS NATIVE_IMAGE_OPTIONS; do export "$v=planted-canary"; done
+for v in $(env | sed -n -E 's/^(TIFFINBOX_[A-Za-z0-9_]*|SPRING_[A-Za-z0-9_]*|MANAGEMENT_[A-Za-z0-9_]*|SERVER_[A-Za-z0-9_]*|LOGGING_[A-Za-z0-9_]*|DEBUG|JAVA_TOOL_OPTIONS|JDK_JAVA_OPTIONS|_JAVA_OPTIONS|MAVEN_OPTS|MAVEN_ARGS|NATIVE_IMAGE_OPTIONS)=.*/\1/p'); do unset "$v"; done
+[ -z "$(env | grep -- '=planted-canary$')" ] || die "a variable survived the clean-up above: $(env | grep -- '=planted-canary$' | sed 's/=.*//' | paste -sd' ' -)"
 # Every request this script makes goes to 127.0.0.1. An HTTP proxy named in your environment (http_proxy and the rest) would
 # carry curl's requests to that proxy instead of to TiffinBox: 127.0.0.1 and localhost go first in no_proxy and NO_PROXY.
 export no_proxy="127.0.0.1,localhost${no_proxy:+,$no_proxy}" NO_PROXY="127.0.0.1,localhost${NO_PROXY:+,$NO_PROXY}"
@@ -191,15 +196,15 @@ ghub() { grep -qE 'Downloaded GraalVM reachability metadata repository from http
 # never silent (inside a capture, "no" changes the capture's hash: cap() then dies). A native-profile build while the metadata
 # repository is not in $M2 goes to Maven Central at once (offline, the plugin would fetch it from GitHub instead).
 mbuild() { local how=yes ec=0 c=$1
-  case $c in *' -Pnative '*) [ -f "$ZIP" ] || { c=${c/mvn -o -B /mvn -B }; how="no - GraalVM's metadata repository was not in .m2-demo, so Maven Central was asked for it"; } ;; esac
+  case $c in *' -Pnative '*) [ -f "$ZIP" ] || { c=${c/mvn -o -B /mvn -B }; how="no - GraalVM's metadata repository was not in .m2-demo, so the remote repository (Central or your mirror) was asked for it"; } ;; esac
   (eval "$c") > "$2" 2>&1 < /dev/null || ec=$?
   if [ $ec != 0 ] && [ "$how" = yes ] && grep -qE 'offline mode|Could not resolve|could not be resolved|Cannot access' "$2"; then
-    how="no - the offline build could not resolve an artifact, so Maven Central was asked"; ec=0
+    how="no - the offline build could not resolve an artifact, so the remote repository (Central or your mirror) was asked"; ec=0
     (eval "${c/mvn -o -B /mvn -B }") > "$2" 2>&1 < /dev/null || ec=$?; fi
   if ghub "$2"; then echo "  built $3 · offline: no - GraalVM's native plugin went to GitHub for its metadata repository · exit $ec"
     die "$3: GraalVM's native plugin went over the network for its metadata repository - $(grep -m1 -E 'Downloaded GraalVM reachability metadata repository from http|Failed to download from http' "$2" | sed 's/^\[[A-Z]*\] //') - README.md, The repository"; fi
   [ $ec = 0 ] || { tail -30 "$2" >&3
-    ! grep -qE 'Could not resolve|could not be resolved|Could not transfer|Cannot access' "$2" || die "build failed: $3 - Maven could resolve Boot's parent and plugins neither from .m2-demo nor from Maven Central: a fresh clone's first run needs the network once, to fill .m2-demo"
+    ! grep -qE 'Could not resolve|could not be resolved|Could not transfer|Cannot access' "$2" || die "build failed: $3 - Maven could resolve Boot's parent and plugins neither from .m2-demo nor from the remote repository (Central or your mirror): a fresh clone's first run needs the network once, to fill .m2-demo"
     die "build failed: $3"; }
   echo "  built $3 · offline: $how · exit $ec"; }
 # tree FOLDER: a config tree in FOLDER/secrets holding one file, the token and a newline, readable by its owner alone
@@ -333,6 +338,13 @@ PY
   rm -f "$2/health.json"; echo "  the answer deleted: $([ -f "$2/health.json" ] && echo no || echo yes)"; }
 
 # ---- parts: the previous tree - blind to the database; its components and groups; the switch for the groups ----------------
+# order JAR: Boot's status order - the statuses Status.DEFAULT_ORDER lists, in order, read from JAR's class with javap -c (the four
+# fields loaded just before the list is stored); health and each group answer the first of them that a component holds (RED C5-S4 #15)
+order() { javap -c -p -cp "$1" org.springframework.boot.health.contributor.Status | awk '
+  /static \{\};/ { s = 1 }
+  s && /putstatic .*Field DEFAULT_ORDER:/ { print substr(o, 2); exit }
+  s && /putstatic/ { o = "" }
+  s && /getstatic .*Field [A-Z_]+:Lorg\/springframework\/boot\/health\/contributor\/Status;/ { f = $NF; sub(/:.*/, "", f); o = o " " f }'; }
 parts() {
   echo "the previous tree (the anchor as the Actuator lesson left it), copied to .harness/prev with a config tree, built the README's"
   echo "plain way and extracted (the README's extract line):"
@@ -349,6 +361,8 @@ parts() {
   ask "$R_HEALTH" 19010
   ask "$R_LIVE" 19010
   seven 19010 .harness/prev
+  echo "  how health and each group pick their answer - Boot's status order, Status.DEFAULT_ORDER in spring-boot-health 4.1.1 (javap -c,"
+  echo "  the jar's lib): $(order .harness/prev/tiffinbox-web/target/extracted/lib/spring-boot-health-4.1.1.jar) - the first of them a component holds"
   echo "3 - the switch for the groups: the README's line, the components shown too:"
   start "$(at .harness/prev 19010 "$R_PROBES") $F_COMP"; up; booted
   ask "$R_HEALTH" 19010
@@ -384,7 +398,7 @@ race() { local c l n f
   f=$(grep -c ' : Obtaining singleton bean ' .harness/race.out || true)
   echo "the run's log, in order - TiffinBox's line, Boot's started line (its times cut), the witness's lines. Not shown: the other"
   echo "$(( $(wc -l < .harness/race.out | tr -d ' ') - n - f )) lines (Boot's banner and starting lines, TiffinBox's own), and Spring's notes that a request's thread obtained"
-  echo "a bean while the main thread held the singleton lock - not counted: their number moves from run to run:"
+  echo "a bean while the main thread held the singleton lock - $( [ "$f" -lt 10 ] && echo 'fewer than 10' || echo "$f, not fewer than 10" ), a bound: their number moves from run to run:"
   grep -E ' : TiffinBox listening on | : Started TiffinBoxServer in |^harness: ' .harness/race.out | sed 's/^.* : //; s/^\(Started TiffinBoxServer\) in .*$/\1/' | sed 's/^/  /'; }
 
 # ---- change: the previous tree against after/ ---------------------------------------------------------------------------------
@@ -507,8 +521,9 @@ nlines() {
   grep -E '^\[[1-8]/8\] ' "$1" | sed 's/\.\.\..*$/.../' | sed 's/^/    /'
   grep -E '^The build process encountered |^\[INFO\] BUILD ' "$1" | sed 's/^\[INFO\] //' | sed 's/^/    /'; }
 # nresult LOG: the native build's result - its exit, Maven's result, the stages against the count it announces, its duration
-# against the bound (1 minute or more, under 10 minutes), and the network (offline: nbuild stopped the run if the plugin went out)
-nresult() { echo "  exit $NB_E · $(grep -m1 -oE 'BUILD (SUCCESS|FAILURE)' "$1" || echo 'no BUILD line') · stages it printed: $(grep -cE '^\[[1-8]/8\] ' "$1" || true) of the $(grep -m1 -oE '^\[1/[0-9]+\]' "$1" | sed 's/.*\///; s/]//') it announces · its duration, against the bound: $( [ $NB_S -ge 60 ] && echo '1 minute or more' || echo 'under 1 minute' ), $( [ $NB_S -lt 600 ] && echo 'under 10 minutes' || echo '10 minutes or more' ) · offline: yes"; }
+# against the bound (1 minute or more, under 20 minutes: this Mac's native builds took up to 15 under load - RED C5-S4 #8, the brief's
+# ERRATA), and the network (offline: nbuild stopped the run if the plugin went out)
+nresult() { echo "  exit $NB_E · $(grep -m1 -oE 'BUILD (SUCCESS|FAILURE)' "$1" || echo 'no BUILD line') · stages it printed: $(grep -cE '^\[[1-8]/8\] ' "$1" || true) of the $(grep -m1 -oE '^\[1/[0-9]+\]' "$1" | sed 's/.*\///; s/]//') it announces · its duration, against the bound: $( [ $NB_S -ge 60 ] && echo '1 minute or more' || echo 'under 1 minute' ), $( [ $NB_S -lt 1200 ] && echo 'under 20 minutes' || echo '20 minutes or more' ) · offline: yes"; }
 native() {
   echo "after/, copied to .harness/nat with a config tree; the README's two Maven lines, offline; \$GRAALVM_HOME names the GraalVM:"
   copy after .harness/nat
@@ -595,6 +610,8 @@ has "$PA2" '  {"components":{"diskSpace":{"status":"UP"},"livenessState":{"statu
 [ "$(printf '%s\n' "$PA2" | grep -cxF '  {"status":"UP"} 200')" = 2 ] || die "parts 2: Boot's own groups show no components, even with the flag"
 NCOMP0=$(printf '%s\n' "$PA2" | grep -m1 '"components":{"diskSpace"' | grep -oE '"[A-Za-z]+":\{"status":"UP"\}' | wc -l | tr -d ' ')
 [ "$NCOMP0" = 5 ] || die "parts: five components ($NCOMP0)"
+# "...answers UP, DOWN or out of service; health takes the first in Boot's order: DOWN, then out of service, then UP." (RED C5-S4 #15)
+has "$PA2" "  the jar's lib): DOWN OUT_OF_SERVICE UP UNKNOWN - the first of them a component holds" "parts 2: Boot's status order"
 PA3=$(blk parts '3 - the switch' '4 - the older key'); PA4=$(blk parts '4 - the older key' 'the two keys')
 has "$PA3" '  {"components":{"diskSpace":{"status":"UP"},"ping":{"status":"UP"},"ssl":{"status":"UP"}},"status":"UP"} 200' "parts 3: no groups, no states"
 [ "$(printf '%s\n' "$PA3" | grep -cxF '   404')" = 2 ] || die "parts 3: liveness and readiness 404"
@@ -690,7 +707,7 @@ echo "  trap: a runner's REFUSING overwritten (CORRECT, runner, REFUSING, ACCEPT
 
 # "The AOT jar and the native binary: readiness two hundred with the kitchen in it, kitchen UP, and the same seven responses."
 x native '^  built \.harness/nat \(both modules, into \$M2\) · offline: yes · exit 0$'
-x native '^  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: 1 minute or more, under 10 minutes · offline: yes$'
+x native '^  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: 1 minute or more, under 20 minutes · offline: yes$'
 x native '^  file: Mach-O 64-bit executable · the demo token in its bytes: 0$'
 [ "$(n native '^  Boot.s first line: Starting AOT-processed TiffinBoxServer')" = 2 ] || die "native: AOT-processed, twice"
 [ "$(n native '^  \{"components":\{"kitchen":\{"status":"UP"\},"readinessState":\{"status":"UP"\}\},"status":"UP"\} 200$')" = 2 ] || die "native: readiness with the kitchen, twice"

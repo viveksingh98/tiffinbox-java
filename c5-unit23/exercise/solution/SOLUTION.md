@@ -13,7 +13,7 @@ POST /shutdown and its token; and waits for it to exit:
 The `exec` makes the background job TiffinBox's own process, so `wait` returns when it exits. The scrape is never written to a
 file: only its `tiffinbox_requests_seconds_count` lines are printed — the rest holds this computer's own numbers.)
 
-## Measured — `exercise/README.md` run exactly as written, then the line above (2026-10-07)
+## Measured — `exercise/README.md` run exactly as written, then the line above (2026-10-07; again 2026-10-08, after RED C5-S4 part A's fixes: the same, line for line)
 
 In one clean shell — `env -i HOME="$HOME" PATH="/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin" bash --noprofile --norc`: no
 variable of mine, Homebrew's `bin` for `mvn` — from `c5-unit23/`, JDK 25.0.4.1, Maven 3.9.16, offline against `.m2-demo`, no GraalVM.

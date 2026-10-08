@@ -23,7 +23,7 @@ standard input.
 The `exec` makes the background job TiffinBox's own process, so `wait` returns when it exits — and only then is the log
 counted.)
 
-## Measured — `exercise/README.md` run exactly as written, then the line above (2026-10-08)
+## Measured — `exercise/README.md` run exactly as written, then the line above (2026-10-08; again after RED C5-S4 part A's bridge fix, the same day: the same line)
 
 In one clean shell — `env -i HOME="$HOME" PATH="/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin" bash --noprofile --norc`: no
 variable of mine, Homebrew's `bin` for `mvn` — from `c5-unit26/`, JDK 25.0.4.1, Maven 3.9.16, offline against `.m2-demo`, no GraalVM.

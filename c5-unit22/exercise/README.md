@@ -39,7 +39,8 @@ hands it to curl from the file.
 liveness {"status":"DOWN"} [503]
 ```
 
-— a platform that probes liveness would now restart TiffinBox, and a restart cannot bring a database back: here the harness closes
-it again in every run, as a database that stays down would. The same line is in this unit's `exercise` capture
+— a platform that probes liveness would now restart TiffinBox, and a restart cannot bring back a database outside the process
+(TiffinBox's own in-memory H2 it would rebuild): here the harness closes it again in every run, as an outside database that stays
+down would. The same line is in this unit's `exercise` capture
 (`.r-exercise.out`). The measured answer, run exactly as written: `solution/SOLUTION.md`. Which group the kitchen belongs in is the
 `groups` capture: readiness.

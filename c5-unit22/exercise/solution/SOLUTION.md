@@ -14,7 +14,7 @@ exit:
 command line: `harness/shutdown.sh` reads it from the file and hands it to curl on its standard input. The `exec` makes the
 background job TiffinBox's own process, so `wait` returns when it exits.)
 
-## Measured — `exercise/README.md` run exactly as written, then the line above (2026-10-07)
+## Measured — `exercise/README.md` run exactly as written, then the line above (2026-10-07; again 2026-10-08, after RED C5-S4 part A's fixes: the same, line for line)
 
 In one clean shell — `env -i HOME="$HOME" PATH="/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin" bash --noprofile --norc`: no
 variable of mine, Homebrew's `bin` for `mvn` — from `c5-unit22/`, JDK 25.0.4.1, Maven 3.9.16, offline against `.m2-demo`, no GraalVM.
@@ -26,7 +26,8 @@ liveness {"status":"DOWN"} [503]
 POST /shutdown -> 200 · curl exit 0
 ```
 
-Liveness now holds Boot's liveness state and the kitchen, and the worst of them answers: the kitchen is DOWN, so liveness is DOWN,
-503. A platform that probes liveness restarts a process that answers 503 there — and a restart does not bring a database back:
-the harness closes the database in every run it joins, as a database that stays down would (no platform runs here, so the restart
+Liveness now holds Boot's liveness state and the kitchen, and the first of them in Boot's order answers (DOWN before UP): the kitchen is DOWN, so liveness is DOWN,
+503. A platform that probes liveness restarts a process that answers 503 there — and a restart cannot bring back a database outside
+the process (TiffinBox's own in-memory H2 it would rebuild): the harness closes the database in every run it joins, as an outside
+database that stays down would (no platform runs here, so the restart
 itself is not measured). The same line is in this unit's `exercise` capture. Port 19019 was free afterwards.

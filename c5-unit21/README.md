@@ -13,12 +13,15 @@ can reach it, down to the shutdown token inside a heap dump.
 - `tiffinbox-web/pom.xml`: **`spring-boot-starter-actuator`**; and in Boot's plugin, **three `<excludes>`** —
   `org.springframework.boot:spring-boot-docker-compose`, `tools.jackson.core:jackson-databind`, `tools.jackson.core:jackson-core` —
   the jars the native plugin's exclusions keep out of the binary since the hints lesson, now kept out of Spring's AOT step too (⚑2).
-- `tiffinbox-web/src/main/java/com/tiffinbox/web/ActuatorRoutes.java` (**new**, 148 lines with its imports and comments): Boot's own
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/ActuatorRoutes.java` (**new**, 189 lines with its imports and comments): Boot's own
   `WebEndpointDiscoverer` as a bean, through two filters — exposure (`management.endpoints.web.exposure.*`, `health` unless told
   otherwise) and access (`management.endpoint.<id>.access`, `OperationFilter.byAccess`); Boot's `HealthEndpointWebExtension`, guarded
-  by `@ConditionalOnAvailableEndpoint`; and an `HttpHandler` that matches each request's path and verb to an operation, passes the
-  path's variables, a JSON body and the `Accept` header, invokes it, and writes the answer with TiffinBox's own Jackson 2 — 404 for a
-  path no operation has, 405 for a known path with another verb, 500 for an `Exception` or a `LinkageError` (⚑1).
+  by `@ConditionalOnAvailableEndpoint`; and an `HttpHandler` that matches each request's path and verb to an operation, gathers its
+  arguments as Spring MVC's adapter does — the path's variables, a write's JSON body (`415` without a JSON `Content-Type`, `400` when
+  it is empty or no JSON object), then the query string (one value a String, several a list) — passes the `Accept` header, invokes
+  it, and writes the answer with TiffinBox's own Jackson 2, in the type asked for — 400 for an argument Boot can't map, 404 for a path
+  no operation has, 405 for a known path with another verb, 500 for an `Exception` or a `LinkageError` (⚑1; the request handling is
+  RED C5-S4 #2, #4 and #46's fix, made here in 2026-10-08's revision and carried unchanged into every later tree).
 - `TiffinBoxServer.java`: one constructor parameter (`HttpHandler actuator`), its field and assignment, and
   `server.createContext("/actuator", actuator)` — plus a Javadoc paragraph. The seven routes and the stop are unchanged.
 - `application.yaml`: `management.endpoints.web.exposure.include: health`, with a comment — Boot's default, written down; under AOT
@@ -27,8 +30,8 @@ can reach it, down to the shutdown token inside a heap dump.
   brief's list: added because the anchor README now shows how to take one.
 - **`TiffinBoxApp.java` is not edited** (`change`: byte for byte the same), so RED S2 #8 stays deferred (⚑11).
 
-`c5-tiffinbox` and this unit's `after/` hold the change and the anchor README's new section, and nothing else (`diff -rq -x target
-../c5-tiffinbox after` is empty). **Units 22 and 25 start from `after/`** (see the last section).
+When this unit was made, `c5-tiffinbox` and this unit's `after/` held the change and the anchor README's new section, and nothing
+else; the anchor has moved on since — it is unit 26's `after/` now. **Units 22 and 25 start from `after/`** (see the last section).
 
 ```
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
@@ -37,9 +40,9 @@ export GRAALVM_HOME=/path/to/a/graalvm-jdk-25      # GraalVM CE 25.3.4.1 for the
 ./receipts.sh     # 11 captures, 3 runs each; every spoken number asserted; 0 raw tokens; a published-md5 mismatch stops it
 ```
 
-(`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) It runs for 12 to 14 minutes on the author's Mac — 732 s under `bash receipts.sh` (Homebrew bash 5.3.9) and 824 s under `./receipts.sh` (/bin/bash 3.2.57) for the two runs of record, 2026-10-07; the native builds are about half of it.
+(`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) It runs for 12 to 14 minutes on a quiet Mac, longer under load. **This revision's runs of record (2026-10-08, RED C5-S4 part A's fixes), the Mac otherwise quiet:** **807 s under `./receipts.sh`** (/bin/bash 3.2.57, in place, exit 0) and **769 s under `bash receipts.sh`** (Homebrew bash 5.3.9, from a sealed clone, exit 0 — "From a clone", below), every capture 3/3 and = published, the start's band judged in 3 of 3 captures in each (9 · start), the native builds 131-138 s. The six hashes that moved (`ways`, `change`, `aot`, `tour`, `start`, `native`) were published from a 3.2 run under the load of three other units' receipts (3,104 s, load 290-400; the load gate refused the band in 3 of 3, as designed, and `start` still hashed as the quiet runs did), every capture 3/3; an earlier run as heavily loaded printed the same hashes for the five it printed. The first revision's runs of record, 2026-10-07: 732 s (5.3) and 824 s (3.2).
 It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first, so you can see which one moved).
-Published hashes: cost `dd1a71a025aa1571b83c3d47cff049e1` · why `ec2878bb84cc567e3cf203ad88dd3e33` · ways `f885540c04fcd7fe3d8210c77327ad4d` · change `f0809f583bd7a6700b4d3b2fd49f4779` · serve `aa7baf0abced50c67d59d4cf87a7cb8e` · aot `828b98b9a3a3a453c3701ef73d4ddb8b` · exposure `6a49363e956dec88b50495dfe1c43d50` · tour `a6778e3132ce9090d4adae368ace3bfe` · start `cd349eed642f6be2b6966d70add33745` · native `4b49ab9acfddbdbda0a352524727825c` · exercise `c7fe11d598cbde47a071c473a226b896`.
+Published hashes: cost `dd1a71a025aa1571b83c3d47cff049e1` · why `ec2878bb84cc567e3cf203ad88dd3e33` · ways `21bc5a1d5afd3b939526a303e5d01a95` · change `c1943610299f2d4031a86a3d1df890cf` · serve `aa7baf0abced50c67d59d4cf87a7cb8e` · aot `18ee0a7447caa0fcc0a41e68661833ef` · exposure `6a49363e956dec88b50495dfe1c43d50` · tour `eabfff26723fa7ad719a781ec9bffde0` · start `b0894b7d49ae387463ad525543620fe6` · native `35c9f010689cb93adb7bc28e5e075322` · exercise `c7fe11d598cbde47a071c473a226b896`
 
 ## The GraalVM
 
@@ -70,15 +73,24 @@ yes`; (2) a native-profile build while the zip is not in `.m2-demo` goes to Mave
 (3) after the first build the script checks Boot's parent POM, Actuator 4.1.1, the native plugin 1.1.8 and the zip are in `$M2`; (4)
 every build's log is searched for the plugin's own download line — found, the build's line says `offline: no` and the run stops.
 
-**From a clone, sealed (2026-10-07).** The repository was cloned (at this commit, less this paragraph: `README.md` is the only file
-changed since) into an empty folder — no `../c5-unit20/.m2-demo`, no seed folder — and `./receipts.sh` run under `env -i`: a `HOME`
-whose Maven settings send every repository to a `file://` copy of Central's files made from `.m2-demo`, and `http_proxy` and the
-rest pointed at a port that refuses. With `GRAALVM_HOME` set: exit 0 after 770 s — all 11 captures = published, every spoken number
-asserted, 0 raw demo tokens. Without it: the 10 captures that need no GraalVM = published, the exercise's included, then the stop
-the script announces (exit 1 after 384 s). Both times the first build said `offline: no` (the zip was not in the empty `.m2-demo`)
-and filled it from the copy, the fill build said `offline: no` (Spring MVC's and Tomcat's jars), `.m2-demo` ended with 1,398 files,
-and `github` appears 0 times in either log. Two clone runs before these failed; both causes are fixed in this script (Found on the
-way): the proxy took curl's requests for 127.0.0.1, and macOS adds a variable to the JVM's environment.
+**From a clone, sealed — this revision (2026-10-08, RED C5-S4 part A's fixes; brief S4.2).** The repository was cloned (`git clone`
+of its HEAD) into an empty folder, and the seven folders this revision changes — `c5-unit21` to `c5-unit26` and `c5-tiffinbox` — put
+in exactly as the commit holds them (212 files, nothing git ignores: no `.m2-demo`, no `.harness/`, no `.r-*` anywhere; `README.md`
+is the only file of this unit's folder changed since, by this paragraph, the run-times note and 9 · start's band; the
+other folders' later changes touch nothing this run reads). `bash receipts.sh` (Homebrew bash
+5.3.9) ran under `env -i`, with a `HOME` whose `.mavenrc` points Maven's `user.home` there (Java reads `user.home` from the account,
+not from `$HOME`) and every Java proxy property at a port that refuses (127.0.0.1:9), and whose Maven settings send every repository
+to a `file://` copy of Central's files made from the units' `.m2-demo` (4,060 files: TiffinBox's own installs, `_remote.repositories`,
+`*.lastUpdated`, `resolver-status.properties` and `.DS_Store` left out, `maven-metadata-central.xml` served as `maven-metadata.xml`);
+`http_proxy`, `https_proxy`, their capitals and `ALL_PROXY` at the same refusing port; `GRAALVM_HOME` set. **Exit 0 after 769 s** — all
+11 captures = published, every spoken number asserted, 0 raw demo tokens, the start's band judged in 3 of 3. Two builds said
+`offline: no` — the first (GraalVM's metadata repository was not in the empty `.m2-demo`) and the fill build (Spring MVC's and Tomcat's
+jars) — and between them took 516 files, every one from the `file://` copy, 0 from anywhere else; every later build said `offline:
+yes`; `.m2-demo` ended with 1,398 files; the build logs hold 0 `https://repo` lines and 0 lines of the native plugin's metadata
+download. **The first revision's clone test (2026-10-07) was not sealed:** its `HOME` held Maven settings and no `.mavenrc`, so Maven
+read the account's settings (RED C5-S4 #9 measured it: `Reading user settings from` the account's home) and went to Maven Central
+itself. Two clone runs before that one had failed; both causes are fixed in this script (Found on the way): the proxy took curl's
+requests for 127.0.0.1, and macOS adds a variable to the JVM's environment.
 
 ## The demo token — fake, and never printed; the heap dump
 
@@ -140,8 +152,9 @@ again, and the last checks fail if either is left. The exercise makes a random t
 6. **Maven's and native-image's logs** are read, never printed whole: each build's `offline`/`exit` line; native-image's goal, the
    GraalVM it found, the builder's Java, its three warnings (the file URL cut), the eight stage names, the warning count and `BUILD
    SUCCESS`, the rest counted; every log searched for the plugin's metadata-repository download line.
-7. **No duration is captured**: native builds are judged against a bound (1 minute or more, under 10 minutes); `start` prints the
-   reference's median against a floor and the other two medians as ratios of it; the seconds go to the terminal (below).
+7. **No duration is captured**: native builds are judged against a bound (1 minute or more, under 20 minutes — the brief's ERRATA,
+   RED C5-S4 #8); `start` prints the reference's median against a floor; the other two medians' ratios to it, and the seconds, go to
+   the terminal, and the band the voice states is judged there behind a load gate (9 · start).
 8. **Hygiene:** `receipts.sh` unsets every `TIFFINBOX_*`, `SPRING_*`, `MANAGEMENT_*`, `SERVER_*` and `LOGGING_*` variable, `DEBUG`,
    `JAVA_TOOL_OPTIONS`, `JDK_JAVA_OPTIONS`, `_JAVA_OPTIONS`, `MAVEN_OPTS`, `MAVEN_ARGS` and `NATIVE_IMAGE_OPTIONS` before it runs anything
    (a `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE` of yours would otherwise widen the list); it puts `127.0.0.1` and `localhost` first
@@ -258,12 +271,15 @@ excluded — 11 MBeans. The endpoint classes in the jars, read by their annotati
 names): 19 ids, 3 of them `@WebEndpoint` — HTTP only; `heapdump`'s and `shutdown`'s carry `defaultAccess=NONE`. **Spring MVC on Tomcat:** a copy of
 the previous tree with the starter and Spring MVC's starter — 12 more jars; run with TiffinBox on 19003 and Tomcat told
 `--server.port=19004 --server.address=127.0.0.1` (left unset, the address is Tomcat's default — every interface, the probes measured;
-never run here, S4.3), health and
-mappings exposed: two addresses, Tomcat's health (`{"groups":…,"status":"UP"}` — its keys in another order: Tomcat's JSON is Jackson 3's), mappings
-naming none of TiffinBox's five paths. After the seven's POST /shutdown, TiffinBox's server stops — and 2 s later the JVM still runs,
-listening on Tomcat's port; `kill $pid` (SIGTERM) ends it: 143.
+never run here, S4.3), health,
+mappings, loggers and metrics exposed: two addresses, Tomcat's health (`{"groups":…,"status":"UP"}` — its keys in another order: Tomcat's JSON is Jackson 3's), mappings
+naming none of TiffinBox's five paths. **Boot's own adapter, asked eight requests** — the eight `tour` asks the bridge: `Accept:
+application/json` → `200 application/json`; `metrics/jvm.threads.states?tag=state:nowhere` → 404 (the query filters); a write in
+`text/plain` → 415; `{"configuredLevel":"LOUD"}` → 400; DEBUG → 204; **a JSON write with an empty body → 204, and the level reset**
+(`{"effectiveLevel": "INFO"}`, keys sorted); `/actuator` → 200, its links. After the seven's POST /shutdown, TiffinBox's server stops —
+and 2 s later the JVM still runs, listening on Tomcat's port; `kill $pid` (SIGTERM) ends it: 143.
 
-`.r-ways.out` · md5 `f885540c04fcd7fe3d8210c77327ad4d` · 3 of 3
+`.r-ways.out` · md5 `21bc5a1d5afd3b939526a303e5d01a95` · 3 of 3
 
 ```
 way 1, JMX - the copy with the starter (capture cost), run exploded with the harness joined, as cost runs it, port 19002:
@@ -303,9 +319,9 @@ $ cd .harness/ways-mvc && mvn -o -B -Dmaven.repo.local="$M2" -DskipTests clean p
   built the copy with Spring MVC · offline: yes · exit 0
   jars under BOOT-INF/lib: 51 - against the starter alone's 39: 12 more -
     jackson-core-3.1.5.jar jackson-databind-3.1.5.jar spring-boot-http-converter-4.1.1.jar spring-boot-jackson-4.1.1.jar spring-boot-servlet-4.1.1.jar spring-boot-tomcat-4.1.1.jar spring-boot-web-server-4.1.1.jar spring-boot-webmvc-4.1.1.jar spring-web-7.0.9.jar spring-webmvc-7.0.9.jar tomcat-embed-core-11.0.24.jar tomcat-embed-websocket-11.0.24.jar
-its jar, run as the README runs it - TiffinBox on 19003 - with Tomcat told its port, 19004, and its address, 127.0.0.1; health and
-mappings exposed on it:
-$ cd .harness/ways-mvc && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19003 --server.port=19004 --server.address=127.0.0.1 --management.endpoints.web.exposure.include=health,mappings
+its jar, run as the README runs it - TiffinBox on 19003 - with Tomcat told its port, 19004, and its address, 127.0.0.1; health,
+mappings, loggers and metrics exposed on it:
+$ cd .harness/ways-mvc && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19003 --server.port=19004 --server.address=127.0.0.1 --management.endpoints.web.exposure.include=health,mappings,loggers,metrics
   every address this process listens on (lsof): 127.0.0.1:19003 127.0.0.1:19004
   Tomcat's own line: Tomcat started on port 19004 (http) with context path '/'
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19004/actuator/health/readiness
@@ -314,6 +330,23 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19004/actuator/health
   {"groups":["liveness","readiness"],"status":"UP"} 200
 $ curl -s -o .harness/ways-mappings.json http://127.0.0.1:19004/actuator/mappings
   its answer: the kinds of mapping it lists - dispatcherServlets servletFilters servlets · mentions of TiffinBox's five paths (/customers /revenue /dashboard /kitchen /shutdown): 0
+Boot's own adapter, asked how it reads a request - the tour below asks the bridge the same eight:
+$ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' -H 'Accept: application/json' http://127.0.0.1:19004/actuator/health
+  200 application/json
+$ curl -s -o /dev/null -w '%{http_code}\n' 'http://127.0.0.1:19004/actuator/metrics/jvm.threads.states?tag=state:nowhere'
+  404
+$ curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'Content-Type: text/plain' -d '{"configuredLevel":"DEBUG"}' http://127.0.0.1:19004/actuator/loggers/com.tiffinbox
+  415
+$ curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'Content-Type: application/json' -d '{"configuredLevel":"LOUD"}' http://127.0.0.1:19004/actuator/loggers/com.tiffinbox
+  400
+$ curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'Content-Type: application/json' -d '{"configuredLevel":"DEBUG"}' http://127.0.0.1:19004/actuator/loggers/com.tiffinbox
+  204
+$ curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'Content-Type: application/json' -d '' http://127.0.0.1:19004/actuator/loggers/com.tiffinbox
+  204
+$ curl -s http://127.0.0.1:19004/actuator/loggers/com.tiffinbox | python3 -c 'import json, sys; print(json.dumps(json.load(sys.stdin), sort_keys=True))'
+  {"effectiveLevel": "INFO"}
+$ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:19004/actuator
+  200
 $ $CURLSET 19003 .harness/ways-mvc/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
   2 s after POST /shutdown - still running: yes · listening on: 127.0.0.1:19004
@@ -323,12 +356,14 @@ $ kill $pid
 
 ## 4 · change — the previous tree against after/
 
-`diff -rq` of the two trees (copied under `.harness/`), then each file: ActuatorRoutes.java counted, and its key lines (`grep -n`);
+`diff -rq` of the two trees (copied under `.harness/`), then each file: ActuatorRoutes.java counted, and its key lines (`grep -n`:
+the discoverer and its two filters, the health extension, the handler, a write only as JSON and its `415`, the query merged, the
+type asked for, the `400` and the catch);
 the lines TiffinBoxServer.java, application.yaml and the web POM gain that are neither comment nor blank, and what `diff` removes
 (TiffinBoxServer's constructor line, now split); the anchor README's new section, counted; TiffinBoxApp.java compared byte for byte.
 The sixth file, `.gitignore`, gains two lines — a comment and `*.hprof` — listed by `diff -rq`, not printed.
 
-`.r-change.out` · md5 `f0809f583bd7a6700b4d3b2fd49f4779` · 3 of 3
+`.r-change.out` · md5 `c1943610299f2d4031a86a3d1df890cf` · 3 of 3
 
 ```
 the previous tree against after/, both copied under .harness/ - the files that differ:
@@ -339,18 +374,24 @@ $ diff -rq -x target -x secrets .harness/before .harness/after
   Only in .harness/after/tiffinbox-web/src/main/java/com/tiffinbox/web: ActuatorRoutes.java
   Files .harness/before/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java and .harness/after/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java differ
   Files .harness/before/tiffinbox-web/src/main/resources/application.yaml and .harness/after/tiffinbox-web/src/main/resources/application.yaml differ
-  tiffinbox-web/src/main/java/com/tiffinbox/web/ActuatorRoutes.java - new: 148 lines · imports 38 · comment lines 19 · blank 9 · beans (@Bean) 3 - its key lines (grep -n):
-    62: WebEndpointDiscoverer webEndpointDiscoverer(ApplicationContext context, ParameterValueMapper mapper,
-    64: var exposure = new IncludeExcludeEndpointFilter<>(ExposableWebEndpoint.class, env,
-    67: advisors.orderedStream().toList(), List.of(exposure), List.of(OperationFilter.byAccess(access)));
-    72: @ConditionalOnAvailableEndpoint(endpoint = HealthEndpoint.class)
-    73: HealthEndpointWebExtension healthEndpointWebExtension(HealthContributorRegistry registry,
-    80: HttpHandler actuatorHandler(WebEndpointsSupplier endpoints) {
-    89: for (ExposableWebEndpoint endpoint : endpoints.getEndpoints()) {
-    92: Map<String, Object> arguments = match(predicate.getPath(), path);
-    98: Object result = operation.invoke(new InvocationContext(SecurityContext.NONE, arguments,
-    108: respond(exchange, status, type, result);
-    114: } catch (Exception | LinkageError e) {
+  tiffinbox-web/src/main/java/com/tiffinbox/web/ActuatorRoutes.java - new: 189 lines · imports 42 · comment lines 25 · blank 11 · beans (@Bean) 3 - its key lines (grep -n):
+    66: WebEndpointDiscoverer webEndpointDiscoverer(ApplicationContext context, ParameterValueMapper mapper,
+    68: var exposure = new IncludeExcludeEndpointFilter<>(ExposableWebEndpoint.class, env,
+    71: advisors.orderedStream().toList(), List.of(exposure), List.of(OperationFilter.byAccess(access)));
+    76: @ConditionalOnAvailableEndpoint(endpoint = HealthEndpoint.class)
+    77: HealthEndpointWebExtension healthEndpointWebExtension(HealthContributorRegistry registry,
+    84: HttpHandler actuatorHandler(WebEndpointsSupplier endpoints) {
+    97: for (ExposableWebEndpoint endpoint : endpoints.getEndpoints()) {
+    100: Map<String, Object> arguments = match(predicate.getPath(), path);
+    104: if (!predicate.getConsumes().isEmpty()) {
+    107: respond(exchange, 415, "application/json", Map.of("error", "unsupported media type"));
+    110: arguments.putAll(fields(exchange.getRequestBody().readAllBytes()));
+    112: query(exchange.getRequestURI().getRawQuery()).forEach((name, values) ->
+    114: Object result = operation.invoke(new InvocationContext(SecurityContext.NONE, arguments,
+    119: String type = predicate.getProduces().stream().filter(accept::contains).findFirst()
+    126: respond(exchange, status, type, result);
+    132: } catch (InvalidEndpointRequestException e) {
+    134: } catch (Exception | LinkageError e) {
   tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java - the lines it gains that are neither comment nor blank:
     import com.sun.net.httpserver.HttpHandler;
         private final HttpHandler actuator;
@@ -388,7 +429,7 @@ $ diff -rq -x target -x secrets .harness/before .harness/after
               </excludes>
             </configuration>
     (diff adds 27 lines, removes 0)
-  README.md - the anchor's README: lines added 103, removed 0 - its new section (not shown)
+  README.md - the anchor's README: lines added 110, removed 0 - its new section (not shown)
   TiffinBoxApp.java against the previous tree's, byte for byte: the same
 ```
 
@@ -439,9 +480,11 @@ package 3 times. Run the plain way, B's jar serves the seven; run with the gener
 server opens its port, then the start fails on `endpointJsonMapper`: `NoClassDefFoundError: tools/jackson/databind/json/JsonMapper`
 — no failure analysis, exit 1. **A** — after/: no Jackson configuration generated, 0 Compose entries; the AOT jar serves health and the
 seven. **The list under AOT:** A's jar with the README's flag line (health and env): the plain way → env 200; with the generated code →
-env 404 — the exposure list was decided when the jar was built.
+env 404 — the endpoints were decided when the jar was built. **C** (labelled): the same AOT jar with a run-time list of env alone —
+health and readiness `{"error":"not found"}` 404, env 404: a run-time list still filters what was built, so it can narrow the list,
+never widen it (RED C5-S4 #7).
 
-`.r-aot.out` · md5 `828b98b9a3a3a453c3701ef73d4ddb8b` · 3 of 3
+`.r-aot.out` · md5 `18ee0a7447caa0fcc0a41e68661833ef` · 3 of 3
 
 ```
 B - after/ without Boot's plugin's three excludes (a copy, the plugin's configuration deleted), built with the README's AOT line:
@@ -501,6 +544,21 @@ $ cd .harness/aot-a && java -Dspring.aot.enabled=true -jar tiffinbox-web/target/
   Boot's first line: Starting AOT-processed TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19006/actuator/health/readiness
   {"status":"UP"} 200
+$ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:19006/actuator/env
+  404
+$ $CURLSET 19006 .harness/aot-a/secrets/tiffinbox/shutdown-token
+  POST  /shutdown   -> 200 application/json  {"stopping":true}
+  exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
+C (labelled) - the same AOT jar, the list given at run time without health (env alone): the endpoints were fixed at build
+time, and the run-time list still filters them - health, liveness and readiness go (no readiness to wait for: Boot's started
+line instead):
+$ cd .harness/aot-a && java -Dspring.aot.enabled=true -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19006 --management.endpoints.web.exposure.include=env
+  listens on: 127.0.0.1:19006
+  Boot's first line: Starting AOT-processed TiffinBoxServer v1.0.0 using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19006/actuator/health
+  {"error":"not found"} 404
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19006/actuator/health/readiness
+  {"error":"not found"} 404
 $ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:19006/actuator/env
   404
 $ $CURLSET 19006 .harness/aot-a/secrets/tiffinbox/shutdown-token
@@ -587,9 +645,12 @@ threaddump (TiffinBox's `HTTP-Dispatcher` among the threads), heapdump (404: acc
 each: `show-values=when-authorized` → `******` (no Spring Security: nobody is authorized); `=always` → the token in clear, 2 raw copies
 in the entry's answer (the property and its source's entry) — counted, never printed, deleted. Then the heap dump, switched on for one
 run (`access=read-only`), the JVM's temporary folder set to an empty one of its own: `JAVA PROFILE 1.0.2`, over 20,000,000 bytes, the
-token in it 3 times (`grep -a -o`) on 3 lines (`grep -c -a -F`); deleted, and nothing left in the JVM's temporary folder.
+token in it 3 times (`grep -a -o`) on 3 lines (`grep -c -a -F`); deleted, and nothing left in the JVM's temporary folder. **The
+bridge, asked the eight** Boot's own adapter answered in `ways` (this run exposes loggers and metrics): the same answers but two — a
+JSON write with an empty body → **400**, the level kept (`{"configuredLevel": "DEBUG", "effectiveLevel": "DEBUG"}`), where Boot's
+adapter resets it; `/actuator` → **404** (the bridge has no links page).
 
-`.r-tour.out` · md5 `a6778e3132ce9090d4adae368ace3bfe` · 3 of 3
+`.r-tour.out` · md5 `eabfff26723fa7ad719a781ec9bffde0` · 3 of 3
 
 ```
 one run with C's flags - every endpoint but configprops - from .harness/serve (capture serve built it), port 19007; each answer
@@ -621,6 +682,23 @@ $ cd .harness/serve && curl -s -o heap.hprof -w '%{http_code}\n' http://127.0.0.
   metrics · names under tiffinbox.: 0 · the first part of every name: application disk executor jvm logback process system
   threaddump · over 10,000 bytes: yes · TiffinBox's server thread among the threads it lists, with its stack: HTTP-Dispatcher
   heapdump · what curl wrote into heap.hprof: {"error":"not found"} - the answer's own body, not a heap
+the bridge, asked how it reads a request - the eight Boot's own adapter answered in capture ways:
+$ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' -H 'Accept: application/json' http://127.0.0.1:19007/actuator/health
+  200 application/json
+$ curl -s -o /dev/null -w '%{http_code}\n' 'http://127.0.0.1:19007/actuator/metrics/jvm.threads.states?tag=state:nowhere'
+  404
+$ curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'Content-Type: text/plain' -d '{"configuredLevel":"DEBUG"}' http://127.0.0.1:19007/actuator/loggers/com.tiffinbox
+  415
+$ curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'Content-Type: application/json' -d '{"configuredLevel":"LOUD"}' http://127.0.0.1:19007/actuator/loggers/com.tiffinbox
+  400
+$ curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'Content-Type: application/json' -d '{"configuredLevel":"DEBUG"}' http://127.0.0.1:19007/actuator/loggers/com.tiffinbox
+  204
+$ curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'Content-Type: application/json' -d '' http://127.0.0.1:19007/actuator/loggers/com.tiffinbox
+  400
+$ curl -s http://127.0.0.1:19007/actuator/loggers/com.tiffinbox | python3 -c 'import json, sys; print(json.dumps(json.load(sys.stdin), sort_keys=True))'
+  {"configuredLevel": "DEBUG", "effectiveLevel": "DEBUG"}
+$ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:19007/actuator
+  404
 $ $CURLSET 19007 .harness/serve/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
@@ -665,16 +743,21 @@ $ $CURLSET 19007 .harness/serve/secrets/tiffinbox/shutdown-token
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
 ```
 
-## 9 · start — the start, timed from outside
+## 9 · start — the start, timed from outside; the band behind a load gate
 
 `harness/ttfr.py` (the hints lesson's clock) forks the command, asks `/kitchen` until the first 200, then POST /shutdown with the token,
 and prints the time from the fork to that first 200. Three jars — the previous tree's (the reference), the copy with the starter,
-after/'s (starter and bridge) — six rounds, the three in turn, round 1 a warm-up; each jar's median of its five counted runs. The
-reference is judged against a floor (over 1 s), the other two as ratios of it (over it, under a quarter more); the seconds go to the
-terminal only. `/kitchen` answers before Boot calls TiffinBox ready (the next unit's race), so the ratio is a floor of Actuator's start
-cost. The terminal's seconds over the six timed captures of the two runs of record: the reference's medians 1.329-1.369 s; the starter's ratio 1.125-1.182, after/'s 1.134-1.192 (load averages 5.04-8.02).
+after/'s (starter and bridge) — six rounds, the three in turn, round 1 a warm-up; each jar's median of its five counted runs. **The
+capture holds only what a busy machine cannot move** (RED C5-S4 #1: the ratios ran from 0.94 to 3.40 at load 17-140, and `start`
+drifted in 4 of 4 runs): 18 of 18 runs answered and stopped, 5 of 6 counted, the reference's median over 1 s. The other two jars'
+ratios to it, and every second, go to the terminal, and the band the voice states — each Actuator jar's median over the reference's,
+and under a quarter more — is judged there **behind a load gate**: the 1-minute load average under this Mac's core count (8) before
+the rounds (waited for, up to 2 minutes: the native build runs just before) and after them. Judged, a miss stops the run; refused,
+the run says so on the terminal and goes on; the last check says how many of the three captures judged it. `start` runs last,
+after the native build and the exercise. `/kitchen` answers before Boot calls TiffinBox ready (the next unit's race), so the ratio
+is to a first answer, and the voice says so (RED C5-S4 #3). **The band, judged on a quiet Mac:** the starter's medians 1.097-1.156 of the previous jar's, after/'s 1.127-1.182 (the load gate open in 6 of the 6 timed captures of this revision's two runs of record, 2026-10-08 — `./receipts.sh` in place and `bash receipts.sh` from a sealed clone; the reference's medians 1.257-1.288 s; one-minute load averages 5.36-7.91). Under load the same ratios ran from 0.94 to 3.40 (RED C5-S4 #1): never in the capture, and judged only behind the gate.
 
-`.r-start.out` · md5 `cd349eed642f6be2b6966d70add33745` · 3 of 3
+`.r-start.out` · md5 `b0894b7d49ae387463ad525543620fe6` · 3 of 3
 
 ```
 the start, timed from outside: harness/ttfr.py forks the command, asks /kitchen until the first 200, then sends POST /shutdown
@@ -684,12 +767,10 @@ three in turn; round 1 a warm-up:
   2 that tree plus Actuator's starter (capture cost) - $ cd .harness/cost-a1 && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19008
   3 after/'s jar (capture serve) - $ cd .harness/serve && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19008
   every run: a 200, then exit 0 after POST /shutdown: 18 of 18
-each jar's median, the middle of its counted runs; the reference against a floor, the other two against it (the seconds go to
-the terminal, never to this capture):
+each jar's median, the middle of its counted runs; the reference against a floor (the seconds, and the other two jars' ratios
+to it, go to the terminal: a busy machine moves them):
   each jar's runs counted: 5 of 6 - round 1 left out
   1 the previous tree's jar: its median over 1 s: yes
-  2 against 1: its median over the previous tree's: yes · under a quarter more: yes
-  3 against 1: its median over the previous tree's: yes · under a quarter more: yes
 ```
 
 ## 10 · native — after/'s binary
@@ -697,9 +778,9 @@ the terminal, never to this capture):
 After/, copied with a config tree, built with the README's two Maven lines (the native install, then `native:compile-no-fork` on the
 web module), offline: 8 of 8 stages, `BUILD SUCCESS`, and three warnings about deprecated options (`--no-fallback`, from Spring's generated
 `native-image.properties`; `FallbackThreshold`; `DynamicProxyConfigurationResources`); 0 tokens in the binary's bytes. Run from beside its config tree: `Starting AOT-processed`,
-readiness, health with its groups, the seven; with the README's env flag added to the binary's run line, env 404 — the list built in. Each native build took 117-148 s here (bound: 1 minute or more, under 10 minutes).
+readiness, health with its groups, the seven; with the README's env flag added to the binary's run line, env 404 — the list built in. Each native build took 117-148 s in the first revision's runs (bound: 1 minute or more, under 20 minutes — a run under the load of three receipts at once took 211-456 s).
 
-`.r-native.out` · md5 `4b49ab9acfddbdbda0a352524727825c` · 3 of 3
+`.r-native.out` · md5 `35c9f010689cb93adb7bc28e5e075322` · 3 of 3
 
 ```
 after/, copied to .harness/nat with a config tree; the README's two Maven lines, offline; $GRAALVM_HOME names the GraalVM:
@@ -723,7 +804,7 @@ $ cd .harness/nat && mvn -o -B -Dmaven.repo.local="$M2" -Pnative -pl tiffinbox-w
     [8/8] Creating image...
     The build process encountered 3 warnings.
     BUILD SUCCESS
-  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: 1 minute or more, under 10 minutes · offline: yes
+  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: 1 minute or more, under 20 minutes · offline: yes
   file: Mach-O 64-bit executable · the demo token in its bytes: 0
 its binary, run from beside its config tree as the README runs it, port 19006:
 $ cd .harness/nat && tiffinbox-web/target/tiffinbox-web --tiffinbox.port=19006
@@ -788,7 +869,7 @@ measured answer, run exactly as written in a clean `env -i` shell, is `exercise/
 | # | What | 10-06 probe | 10-07 probe | This unit (receipts, 2026-10-07) |
 |---|---|---|---|---|
 | 1 | Heap dump: size, and the token count | 25,820,969 bytes (bridge, `read-only`); 3 raw copies (`grep -a -o`) | 37,083,969 bytes (Tomcat, `unrestricted`); 3 lines (`grep -c -a -F`) | **floor: over 20,000,000 bytes** (this Mac: 26,568,881-27,056,479 bytes over the six heap dumps of the two runs of record); **3 copies (`grep -a -o`) on 3 lines (`grep -c -a -F`)**, the two methods agreeing, 3/3 in every run |
-| 2 | Actuator's start, fork → first 200, against the anchor's | 1.11× (loaded) | 1.20× (1.15× under load 179) | **over 1×, under 1.25× — the starter 1.12-1.18×, the starter and the bridge 1.13-1.19×** (one-minute load averages 5.0-8.0 as each timed capture began, against the probes' 22-179; medians of five, interleaved) |
+| 2 | Actuator's start, fork → first 200, against the previous jar's | 1.11× (loaded) | 1.20× (1.15× under load 179) | **over 1×, under 1.25× — judged behind the load gate (RED C5-S4 #1):** this revision's runs of record, quiet (load 5.4-7.9), the starter 1.10-1.16×, the starter and the bridge 1.13-1.18× (six timed captures, medians of five, interleaved); the first revision's 1.12-1.18× and 1.13-1.19× (load 5.0-8.0); under load 17-140 (RED's runs) 0.94-3.40× — so the ratios never enter the capture |
 | 3 | Answer sizes: beans · conditions · threaddump · metrics (loggers: the logging unit's) | 52,523 · 41,487 · 21,839 · 928 bytes (bridge) | 51,323 · 41,532 · 19,811 · 913 characters (in-process) | **floors only on screen — over 40,000 · over 30,000 · over 10,000** (this Mac, over this bridge: beans 53,404 · conditions 41,690 · threaddump 20,306-21,846 · metrics 913-928 bytes (env 11,122-11,190, which grows with the shell's variables)); a path-dependent size is no witness (beans names the jar's absolute path 6 times) |
 | — | The exercise's masked line | — | `"value":"******"`, source `Config tree '<path>/run/./secrets'` (Tomcat) | **`Config tree '…/secrets' · tiffinbox.shutdown-token = ******`** — the same over the bridge |
 
@@ -810,8 +891,10 @@ measured answer, run exactly as written in a clean `env -i` shell, is `exercise/
   its `property` summary and again under its property source.
 - **A heap dump leaves no file behind**: with `-Djava.io.tmpdir` set to an empty folder of its own, 0 files were there after the
   answer (Boot's `HeapDumpWebEndpoint` writes the dump to a temporary file and deletes it once sent; the file itself is not captured).
-- **The start ratio's floor.** TiffinBox answers `/kitchen` from `@PostConstruct`, mid-refresh: Actuator's beans created after
-  `TiffinBoxServer` are not in the clock's number, so "under a quarter slower" is a floor of the cost, said as such.
+- **The start ratio's scope.** TiffinBox answers `/kitchen` from `@PostConstruct`, mid-refresh: Actuator's beans created after
+  `TiffinBoxServer` are not in the clock's number, so the ratio is to a first answer, before Boot calls TiffinBox ready — RED C5-S4 #3
+  measured the gap from TiffinBox's line to Boot's started line at 0.14-0.68 s before Actuator, 0.91-1.79 s after; the voice says
+  "to its first answer, which comes before ready".
 - **Environment names belong to the shell.** An env answer lists the variables the process was started with — even a script's own
   (`DEVRUNS`, an experiment's variable, appeared in one); so the capture compares the names with `env -0` instead of counting them.
   And `_` belongs to the shell: under bash 5.3 the JVM's environment held `_`, under /bin/bash 3.2 it did not — the first run of
@@ -827,7 +910,7 @@ measured answer, run exactly as written in a clean `env -i` shell, is `exercise/
 
 ## For units 22 and 25 — and for RED
 
-**Start from `../c5-unit21/after`** (= `../c5-tiffinbox` now; `diff -rq -x target` empty). What you can rely on — measured here unless
+**Start from `../c5-unit21/after`** (the anchor has moved on since: `../c5-tiffinbox` is unit 26's `after/`). What you can rely on — measured here unless
 a line says otherwise:
 - `/actuator` is TiffinBox's own server's context, served by `ActuatorRoutes.actuatorHandler`: exposure from
   `management.endpoints.web.exposure.*` (the anchor: `health`), access from `management.endpoint.<id>.access`. **Health groups,
@@ -835,14 +918,23 @@ a line says otherwise:
   (the brief's merge check: `/actuator/health/<component>` answers 404 unless components are shown — not re-measured here). A new
   `HealthIndicator` bean should need no change to the bridge — the health operation reads Boot's registry of contributors — and a
   readiness group (`management.endpoint.health.group.readiness.include`) is Boot's own setting; unit 22 measures both.
-- The handler (read from its code; the loggers POST is the logging unit's to measure) passes path variables (`{name}`, `{*path}`),
-  a JSON body (`POST /actuator/loggers/x` with `{"configuredLevel":"DEBUG"}`) and the `Accept` header (Boot's `Producible` argument: prometheus' formats); it takes the status and
-  the content type from a `WebEndpointResponse` (health's 503 for DOWN would arrive that way — unit 22 measures it), streams a
-  `Resource`, writes a String as text and anything else as JSON with TiffinBox's Jackson 2; no match → 404, a known path with another
-  verb → 405, an `Exception` or a `LinkageError` → 500 `{"error":"<class>"}`. No query parameters are passed (none needed so far: add
-  them in the bridge if an operation needs one).
-- **Under AOT and in the binary the exposure list is the built one** — `prometheus` must go into `application.yaml` (⚑3) to reach the
-  binary; a flag is enough on the plain JVM only.
+- The handler gathers an operation's arguments as Spring MVC's adapter does (RED C5-S4 #2, #4, #46 — fixed here, 2026-10-08): path
+  variables (`{name}`, `{*path}`), then — for a write that takes arguments — a JSON body, refused `415` without a JSON `Content-Type`
+  (`application/json`, Boot's two vendor types; any parameters, any case) and `400` when it is empty or no JSON object, then the
+  query string (one value a String, several a list — the query wins over the body, as in Boot's adapter); the `Accept` header (Boot's
+  `Producible` argument: prometheus' formats; and the answer's type: `application/json` asked, `application/json` given). Boot's
+  `InvalidEndpointRequestException` (a missing argument, `ParameterMappingException` for one Boot can't map) → 400. It takes the
+  status and the content type from a `WebEndpointResponse` (health's 503 for DOWN arrives that way), streams a `Resource`, writes a
+  String as text and anything else as JSON with TiffinBox's Jackson 2; no match → 404, a known path with another verb → 405, an
+  `Exception` or a `LinkageError` → 500 `{"error":"<class>"}`. **Measured against Boot's own adapter** (`ways` and `tour`, eight
+  requests each; and in BLUE's one-JVM probe, the bridge and Tomcat side by side, over 30 more — RED C5-S4's part A adjudication): the same answers but two — a JSON write with an
+  empty body (or `null`, or an empty body and a query): the bridge `400`, Boot's adapter `204` and the level reset or set; and
+  `/actuator`: the bridge 404, Boot's adapter its links. A cross-origin page cannot write a level through either: its no-preflight
+  types (`text/plain`, a form) get 415, and a JSON write needs a preflight neither allows (the bridge: 405; Boot's: no
+  `Access-Control-Allow-Origin`).
+- **Under AOT and in the binary the endpoints are the built ones** — `prometheus` must go into `application.yaml` (⚑3) to reach the
+  binary; a flag widens the list on the plain JVM only. A run-time list still filters what was built: without `health` it takes
+  health, liveness and readiness away (`aot` C).
 - Every health assertion waits for readiness: `ready()` in `receipts.sh` (every 0.25 s, up to 60 s, not printed).
 - The seed: `.m2-demo` = `../c5-unit20/.m2-demo` + `../../spring-boot/_research/m2-seed-s4/`, less `com/tiffinbox/` — Micrometer's
   Prometheus registry and DevTools are in it.

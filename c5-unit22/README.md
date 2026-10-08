@@ -9,7 +9,7 @@ makes (the kitchen in readiness, never in liveness) on purpose, changes readines
 re-checks the AOT jar and the native binary.
 
 **The anchor changes (brief ⚑4):**
-- `tiffinbox-web/src/main/java/com/tiffinbox/web/KitchenHealthIndicator.java` (**new**, 39 lines with its imports and comments): a
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/KitchenHealthIndicator.java` (**new**, 41 lines with its imports and comments): a
   `HealthIndicator` bean — one more component of `/actuator/health`, named by Boot after the bean, `HealthIndicator` left off:
   **`kitchen`**. UP with `customers` (the rows `CustomerRepository.findAll()` returns) and `ordersCooked` (the kitchen's own count)
   while the database answers; DOWN with `error`, the exception's simple class name — never its message — when it does not.
@@ -29,12 +29,13 @@ export GRAALVM_HOME=/path/to/a/graalvm-jdk-25      # GraalVM CE 25.3.4.1 for the
 ./receipts.sh     # 9 captures, 3 runs each; every spoken number asserted; 0 raw tokens; a published-md5 mismatch stops it
 ```
 
-(`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) It runs for 8 to 27 minutes on the author's Mac, and its three native builds decide which: 1,339 s under `./receipts.sh` (/bin/bash
-3.2.57) and 1,598 s under `bash receipts.sh` (Homebrew bash 5.3.9) for the two runs of record, 2026-10-07, while another agent's
-native builds held the load average between about 40 and 225 (this unit's native builds: 207-456 s each, every one inside the
-capture's bound, under 10 minutes); an earlier full run on a quieter Mac took 503 s, its native builds 114-118 s.
+(`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) It runs for 8 to 40 minutes on the author's Mac, and its three native builds decide which. This revision's runs of record, 2026-10-08 (RED
+C5-S4 part A's fixes), ran beside two or three other units' receipts, the load average between about 140 and 330: **1,520 s under
+`./receipts.sh`** (/bin/bash 3.2.57, in place, exit 0, every capture = published) and **2,297 s under `bash receipts.sh`** (Homebrew
+bash 5.3.9, from a sealed clone, exit 0 — "From a clone", below); its native builds took 325-559 s each, every one inside the
+capture's bound, under 20 minutes. The first revision's: 1,339 s (3.2) and 1,598 s (5.3), 2026-10-07; a quieter full run took 503 s.
 It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first, so you can see which one moved).
-Published hashes: parts `9a3ce228ac5426d2a1f8905b395bdac5` · race `5cbff7738f6eff151607ffa9817a8244` · change `c0f81182253084c550d11e7f34044e98` · kitchen `7ce6d5a24c34de2262339c959fa2fd15` · dead `b13f60fd44d1234c04adc9d73fe67464` · groups `ec7f685b75f7291de7d99f949df5fbaf` · trap `20f246deb7d812743684fd83577f858d` · native `11bbe9ceb2ae864839af0a8da58c8ad4` · exercise `e206184a3743ef9e03b94281cff11c86`.
+Published hashes: parts `0d8f4f521c4b011662ac23434cf7c997` · race `c24478c0e8390b4df1e06967d0b333bc` · change `3f9d7ec79e62d924beeb24fd687d0f9b` · kitchen `7ce6d5a24c34de2262339c959fa2fd15` · dead `b13f60fd44d1234c04adc9d73fe67464` · groups `ec7f685b75f7291de7d99f949df5fbaf` · trap `20f246deb7d812743684fd83577f858d` · native `7010780aad65a5106cc439f9c010605e` · exercise `e206184a3743ef9e03b94281cff11c86`
 
 ## The GraalVM
 
@@ -63,14 +64,22 @@ offline first; (3) after the first build the script checks Boot's parent POM, `s
 and the zip are in `$M2`; (4) every build's log is searched for the plugin's own download line — found, the build's line says
 `offline: no` and the run stops.
 
-**From a clone, sealed (2026-10-07, brief S4.2).** The repository was cloned (at this unit's commit, less this paragraph:
-`README.md` is the only file changed since) into an empty folder — no `.m2-demo` in this unit or
-in unit 21's, no seed folder — and `./receipts.sh` run under `env -i`: a `HOME` whose Maven settings send every repository to a
-`file://` copy of Central's files made from `.m2-demo`, and `http_proxy` and the rest pointed at a port that refuses. **With
-`GRAALVM_HOME` set: exit 0 after 927 s** — all 9 captures = published, every spoken number asserted, 0 raw demo tokens. **Without it:
-the 8 captures that need no GraalVM = published, the exercise's included, then the stop the script announces (exit 1 after 275 s).**
-Both times the first build said `offline: no` (the metadata zip was not in the empty `.m2-demo`) and filled it from the copy, every
-later build said `offline: yes`, `.m2-demo` ended with 1,328 files, and `github` appears 0 times in either log.
+**From a clone, sealed — this revision (2026-10-08, RED C5-S4 part A's fixes; brief S4.2).** The repository was cloned (`git clone`
+of its HEAD) into an empty folder, and the seven folders this revision changes — `c5-unit21` to `c5-unit26` and `c5-tiffinbox` — put
+in exactly as the commit holds them (212 files, nothing git ignores: no `.m2-demo`, no `.harness/`, no `.r-*` anywhere; `README.md`
+is the only file of this unit's folder changed since, by this paragraph and the run-times note; the other folders' later
+changes — their published hashes, the solutions' notes, unit 21's start-summary fix — touch nothing this run reads). `bash receipts.sh` (Homebrew bash 5.3.9) ran under
+`env -i`, with a `HOME` whose `.mavenrc` points Maven's `user.home` there (Java reads `user.home` from the account, not from `$HOME`)
+and every Java proxy property at a port that refuses (127.0.0.1:9), and whose Maven settings send every repository to a `file://`
+copy of Central's files made from the units' `.m2-demo` (4,060 files: TiffinBox's own installs, `_remote.repositories`,
+`*.lastUpdated`, `resolver-status.properties` and `.DS_Store` left out, `maven-metadata-central.xml` served as `maven-metadata.xml`);
+`http_proxy`, `https_proxy`, their capitals and `ALL_PROXY` at the same refusing port; `GRAALVM_HOME` set. **Exit 0 after 2,297 s**
+(the load of three other receipts runs) — all 9 captures = published, every spoken number asserted, 0 raw demo tokens. One build
+said `offline: no` — the first (GraalVM's metadata repository was not in the empty `.m2-demo`) — and took 488 files, every one from
+the `file://` copy, 0 from anywhere else; every later build said `offline: yes`; `.m2-demo` ended with 1,328 files; the build logs
+hold 0 `https://repo` lines and 0 lines of the native plugin's metadata download. **The first revision's clone test (2026-10-07) was
+not sealed:** its `HOME` held Maven settings and no `.mavenrc`, and Maven read the account's settings (RED C5-S4 #9 measured it:
+`Reading user settings from` the account's home, `user.home` the account's) — that run fetched from Maven Central itself.
 
 ## The demo token — fake, and never printed
 
@@ -133,7 +142,8 @@ exposed. The exercise makes a random token of its own, which it never prints eit
 4. **Maven's and native-image's logs** are read, never printed whole: each build's `offline`/`exit` line; native-image's goal, the
    GraalVM it found, the builder's Java, its three warnings (the file URL cut), the eight stage names, the warning count and `BUILD
    SUCCESS`, the rest counted; every log searched for the plugin's metadata-repository download line.
-5. **No duration is captured**: the native build is judged against a bound (1 minute or more, under 10 minutes); its seconds go to
+5. **No duration is captured**: the native build is judged against a bound (1 minute or more, under 20 minutes — the brief's
+   ERRATA, RED C5-S4 #8: a build took 915 s under the load of two other units' native builds); its seconds go to
    the terminal. `race` prints no poll count and no time (S4.9): "`/kitchen` answered 200 at least once while liveness and readiness
    both answered 503".
 6. **Hygiene:** `receipts.sh` unsets every `TIFFINBOX_*`, `SPRING_*`, `MANAGEMENT_*`, `SERVER_*` and `LOGGING_*` variable, `DEBUG`,
@@ -165,13 +175,15 @@ The anchor as the Actuator lesson left it (`../c5-unit21/after`), built the READ
 with the harness's `CloseDb`: health `UP` with its groups while `/customers` answers 500 — nothing in health touches the database;
 the seven hash differently with the database gone (`576b655c…`: `/customers`, `/revenue`, `/dashboard` 500). (2) The README's flag
 that shows the components: **five** (`diskSpace`, `livenessState`, `ping`, `readinessState`, `ssl`) and **two groups**; Boot's own
-liveness and readiness groups answer `{"status":"UP"}` even with the flag — the groups Boot adds itself show no components. (3) The
+liveness and readiness groups answer `{"status":"UP"}` even with the flag — the groups Boot adds itself show no components; and how
+health and each group pick their answer, read from `spring-boot-health` 4.1.1 (`javap -c` of `Status`, its `DEFAULT_ORDER`): `DOWN
+OUT_OF_SERVICE UP UNKNOWN` — the first of them a component holds (RED C5-S4 #15: "the worst" was loose; UP beats UNKNOWN). (3) The
 README's line that switches the groups off (`management.endpoint.health.probes.enabled=false`), components shown: three components,
 the two states gone, liveness and readiness **404**. (4) The older key in its place (`management.health.probes.enabled=false`):
 liveness and readiness 200 — it changes nothing; Boot's own metadata, read from `spring-boot-health`'s
 `spring-configuration-metadata.json` in the jar's lib, gives its deprecation: since 2.3.2, level `error`, replaced by the first.
 
-`.r-parts.out` · md5 `9a3ce228ac5426d2a1f8905b395bdac5` · 3 of 3
+`.r-parts.out` · md5 `0d8f4f521c4b011662ac23434cf7c997` · 3 of 3
 
 ```
 the previous tree (the anchor as the Actuator lesson left it), copied to .harness/prev with a config tree, built the README's
@@ -204,6 +216,8 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19010/actuator/health/liveness
 $ $CURLSET 19010 .harness/prev/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
+  how health and each group pick their answer - Boot's status order, Status.DEFAULT_ORDER in spring-boot-health 4.1.1 (javap -c,
+  the jar's lib): DOWN OUT_OF_SERVICE UP UNKNOWN - the first of them a component holds
 3 - the switch for the groups: the README's line, the components shown too:
 $ cd .harness/prev && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19010 --management.endpoint.health.probes.enabled=false --management.endpoint.health.show-components=always
   listens on: 127.0.0.1:19010
@@ -246,7 +260,7 @@ mapper answers 503 for both) — that `/kitchen` answered 200 at least once whil
 the log's order: TiffinBox's server opened (in `@PostConstruct`, during the refresh), Boot's started line, `LivenessState CORRECT`,
 `ReadinessState ACCEPTING_TRAFFIC` (both on `main`), the close on `SpringApplicationShutdownHook`.
 
-`.r-race.out` · md5 `5cbff7738f6eff151607ffa9817a8244` · 3 of 3
+`.r-race.out` · md5 `c24478c0e8390b4df1e06967d0b333bc` · 3 of 3
 
 ```
 after/'s jar, extracted by the run's first build (.harness/after), run exploded with the harness's witness joined;
@@ -259,7 +273,7 @@ $ cd .harness/after && python3 ../../harness/race.py 19011 secrets/tiffinbox/shu
   exit 0 after POST /shutdown 200
 the run's log, in order - TiffinBox's line, Boot's started line (its times cut), the witness's lines. Not shown: the other
 16 lines (Boot's banner and starting lines, TiffinBox's own), and Spring's notes that a request's thread obtained
-a bean while the main thread held the singleton lock - not counted: their number moves from run to run:
+a bean while the main thread held the singleton lock - fewer than 10, a bound: their number moves from run to run:
   TiffinBox listening on http://127.0.0.1:19011
   Started TiffinBoxServer
   harness: LivenessState CORRECT - published on the thread main
@@ -275,7 +289,7 @@ counted, and its key lines (`grep -n`); what `application.yaml` gains that is ne
 `management:`, nine with the comment); the anchor README's new section, counted; `ActuatorRoutes.java`, `TiffinBoxServer.java` and
 `TiffinBoxApp.java` compared byte for byte.
 
-`.r-change.out` · md5 `c0f81182253084c550d11e7f34044e98` · 3 of 3
+`.r-change.out` · md5 `3f9d7ec79e62d924beeb24fd687d0f9b` · 3 of 3
 
 ```
 the previous tree against after/, both copied under .harness/ - the files that differ:
@@ -283,23 +297,23 @@ $ diff -rq -x target -x secrets .harness/before .harness/after
   Files .harness/before/README.md and .harness/after/README.md differ
   Only in .harness/after/tiffinbox-web/src/main/java/com/tiffinbox/web: KitchenHealthIndicator.java
   Files .harness/before/tiffinbox-web/src/main/resources/application.yaml and .harness/after/tiffinbox-web/src/main/resources/application.yaml differ
-  tiffinbox-web/src/main/java/com/tiffinbox/web/KitchenHealthIndicator.java - new: 39 lines · imports 5 · comment lines 8 · blank 5 - its key lines (grep -n):
-    17: @Component
-    18: public final class KitchenHealthIndicator implements HealthIndicator {
-    29: public Health health() {
-    31: return Health.up()
-    32: .withDetail("customers", repo.findAll().size())
-    33: .withDetail("ordersCooked", kitchen.cooked())
-    35: } catch (Exception e) {
-    36: return Health.down().withDetail("error", e.getClass().getSimpleName()).build();
+  tiffinbox-web/src/main/java/com/tiffinbox/web/KitchenHealthIndicator.java - new: 41 lines · imports 5 · comment lines 10 · blank 5 - its key lines (grep -n):
+    19: @Component
+    20: public final class KitchenHealthIndicator implements HealthIndicator {
+    31: public Health health() {
+    33: return Health.up()
+    34: .withDetail("customers", repo.findAll().size())
+    35: .withDetail("ordersCooked", kitchen.cooked())
+    37: } catch (Exception e) {
+    38: return Health.down().withDetail("error", e.getClass().getSimpleName()).build();
   tiffinbox-web/src/main/resources/application.yaml - the lines it gains that are neither comment nor blank:
       endpoint:
         health:
           group:
             readiness:
               include: readinessState,kitchen
-    (diff adds 9 lines, removes 0)
-  README.md - the anchor's README: lines added 69, removed 0 - its new section (not shown)
+    (diff adds 10 lines, removes 0)
+  README.md - the anchor's README: lines added 71, removed 0 - its new section (not shown)
   ActuatorRoutes.java against the previous tree's, byte for byte: the same
   TiffinBoxServer.java against the previous tree's, byte for byte: the same
   TiffinBoxApp.java against the previous tree's, byte for byte: the same
@@ -420,7 +434,9 @@ $ $CURLSET 19013 .harness/after/secrets/tiffinbox/shutdown-token
 ## 6 · groups — the break (A/B/A′)
 
 The database closed by the harness in every run; after/'s exploded run. **A** — after/ as it is: liveness 200, readiness **503**,
-`/customers` 500: a platform stops sending traffic and does not restart the process. **B** — the README's flag that leaves the
+`/customers` 500: a platform stops sending traffic and does not restart the process. (TiffinBox's own H2 lives in memory, so here a
+restart would rebuild it; the harness plays a database outside the process that stays down — the usual case, and the one this
+choice is for: RED C5-S4 #10, measured — after `CloseDb` the same jar restarted answers `/customers` 200.) **B** — the README's flag that leaves the
 kitchen out of readiness (`--management.endpoint.health.group.readiness.include=readinessState`): readiness **200**, `/customers`
 500 — traffic keeps arriving at a TiffinBox that cannot answer it. **A′** — A's command again: readiness 503. The seven hash the
 same in all three (`576b655c…`). C — the kitchen in liveness as well — is the exercise's capture (§9), not a panel: shown before the
@@ -541,7 +557,7 @@ exposure: `Starting AOT-processed`, readiness `{"components":{"kitchen":{"status
 kitchen's path 200, the seven `115c36ba…`. The indicator needed no hint: the health descriptors' JSON is written in the binary
 (the brief's re-measure).
 
-`.r-native.out` · md5 `11bbe9ceb2ae864839af0a8da58c8ad4` · 3 of 3
+`.r-native.out` · md5 `7010780aad65a5106cc439f9c010605e` · 3 of 3
 
 ```
 after/, copied to .harness/nat with a config tree; the README's two Maven lines, offline; $GRAALVM_HOME names the GraalVM:
@@ -565,7 +581,7 @@ $ cd .harness/nat && mvn -o -B -Dmaven.repo.local="$M2" -Pnative -pl tiffinbox-w
     [8/8] Creating image...
     The build process encountered 3 warnings.
     BUILD SUCCESS
-  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: 1 minute or more, under 10 minutes · offline: yes
+  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: 1 minute or more, under 20 minutes · offline: yes
   file: Mach-O 64-bit executable · the demo token in its bytes: 0
 the AOT jar - the README's AOT line, with the README's flag that shows the components, port 19016:
 $ cd .harness/nat && java -Dspring.aot.enabled=true -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19016 --management.endpoint.health.show-components=always
@@ -660,7 +676,8 @@ and publishes no availability state (`trap`); a liveness-driven restart is not m
   readiness request made Spring finish health's beans on the request's thread while the main thread was still creating singletons
   (11 of 11 runs counted for it here — 3 in a first receipts run, whose `race` drifted on exactly this count, and 8 by hand — 1 or 2
   lines per run). Spring Framework 7 allows it and says so; the answers were 503 until Boot published its states. Named in `race`,
-  not counted.
+  and counted as a bound (RED C5-S4 #21): **fewer than 10**. A lower bound fails — 15 of 15 runs at load 3-4 showed 1 or 2, but a
+  receipts run under three units' load showed 0 — so the line states the cap that held in every run.
 - **SIGTERM publishes nothing on TiffinBox.** In Boot 4.1.1's jars, the contexts that publish `REFUSING_TRAFFIC` while they close are
   `ServletWebServerApplicationContext` and `ReactiveWebServerApplicationContext` (`spring-boot-web-server`, read once in this unit's
   probe; not in TiffinBox's jar, not a capture). TiffinBox's context is an `AnnotationConfigApplicationContext`: draining a TiffinBox

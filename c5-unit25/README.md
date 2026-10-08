@@ -27,9 +27,14 @@ export GRAALVM_HOME=/path/to/a/graalvm-jdk-25      # GraalVM CE 25.3.4.1 for the
 ./receipts.sh     # 11 captures, 3 runs each; every spoken number asserted; 0 raw tokens; a published-md5 mismatch stops it
 ```
 
-(`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) It ran for 2,812 s under `./receipts.sh` (/bin/bash 3.2.57) and 2,949 s under `bash receipts.sh` (Homebrew bash 5.3.9) — the two runs of record of this revision, 2026-10-08 (RED C5-S4 part B's fixes: the variable clean-up, and the anchor's retired logging files), each EXIT 0 with all eleven captures = published, the hashes unchanged — beside units 24 and 26's receipts and their native builds (one-minute load averages 7-8 as the 3.2 run's timed captures began, 88-208 for the 5.3 run's); its six native builds, 184-443 s each, are over half of it. The first revision's runs of record on the logging lesson's tree (2026-10-07) took 2,673 s (3.2) and 2,563 s (5.3); on the Actuator lesson's tree, 2,129 s and 2,305 s.
+(`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) **After RED C5-S4
+part A's bridge fix (2026-10-08, carried into the logging lesson's tree that `anchor/` points at): 3,796 s under `./receipts.sh`**
+(/bin/bash 3.2.57, exit 0, all eleven captures = published), beside three other units' receipts (load averages about 120-400);
+the one hash that moved, `loaders` (RestartClassLoader's classes 14 → 16: ActuatorRoutes' two new lambdas), was published from a
+3.2 run of the same captures, 3/3, every capture but that one = published (5,288 s; its last check, the old `E_RCL`, stopped it as
+designed; `E_RCL` is 16 now). Part B's revision ran for 2,812 s under `./receipts.sh` (/bin/bash 3.2.57) and 2,949 s under `bash receipts.sh` (Homebrew bash 5.3.9) — the two runs of record of this revision, 2026-10-08 (RED C5-S4 part B's fixes: the variable clean-up, and the anchor's retired logging files), each EXIT 0 with all eleven captures = published, the hashes unchanged — beside units 24 and 26's receipts and their native builds (one-minute load averages 7-8 as the 3.2 run's timed captures began, 88-208 for the 5.3 run's); its six native builds, 184-443 s each, are over half of it. The first revision's runs of record on the logging lesson's tree (2026-10-07) took 2,673 s (3.2) and 2,563 s (5.3); on the Actuator lesson's tree, 2,129 s and 2,305 s.
 It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first, so you can see which one moved).
-Published hashes: added `aa2e2929f1165c758fbbbf8d6352ef4a` · loaders `31932a8561380caf709ac37530b90633` · restart `a5b72f622c926ca6facfe5845f3a79fa` · timing `0fc985516b6985f73c043bf65580c1c2` · identity `cdf54a312467ecbf166f7de80d000ab5` · which `02b1b496da15b94e587bd66b7048824d` · livereload `245eaab2d150323fc61850b42a312824` · ship `16eb4a4674231f5cf8aed0a8143bbfd5` · exits `96656dea659642d4ef7f9456e66adad2` · native `e2a620fd509723b89411d0551bd8d10e` · exercise `9b48c795e9543274eb9d10c4463049c1`.
+Published hashes: added `aa2e2929f1165c758fbbbf8d6352ef4a` · loaders `9ac6333e315dfd23153ae2182768f55b` · restart `a5b72f622c926ca6facfe5845f3a79fa` · timing `0fc985516b6985f73c043bf65580c1c2` · identity `cdf54a312467ecbf166f7de80d000ab5` · which `02b1b496da15b94e587bd66b7048824d` · livereload `245eaab2d150323fc61850b42a312824` · ship `16eb4a4674231f5cf8aed0a8143bbfd5` · exits `96656dea659642d4ef7f9456e66adad2` · native `e2a620fd509723b89411d0551bd8d10e` · exercise `9b48c795e9543274eb9d10c4463049c1`
 
 ## The GraalVM
 
@@ -203,14 +208,14 @@ $ $CURLSET 19040 .harness/dev/secrets/tiffinbox/shutdown-token
 
 The same run (no env flag), asked by **jcmd** — the JDK's tool that asks a running JVM — once readiness answered 200:
 `VM.classloaders show-classes=true`. Four loaders: bootstrap, platform, the application's (`"app"`, every jar on the class path) and
-DevTools' **RestartClassLoader** under it, which defined 14 classes (listed by name) — every class of TiffinBox's web module
+DevTools' **RestartClassLoader** under it, which defined 16 classes (listed by name) — every class of TiffinBox's web module
 (ActuatorRoutes, KitchenHealthIndicator, KitchenMetrics, Route, TiffinBoxApp, TiffinBoxServer), the lambdas of ActuatorRoutes,
 KitchenMetrics and TiffinBoxServer, and one proxy class the JDK generated. The
 application loader defined TiffinBoxServer and TiffinBoxApp too — the first `main` loaded both before DevTools restarted it on
 `restartedMain` — every tiffinbox-core class that had loaded by then (10), and DevTools' own classes; RestartClassLoader none
 of either.
 
-`.r-loaders.out` · md5 `31932a8561380caf709ac37530b90633` · 3 of 3
+`.r-loaders.out` · md5 `9ac6333e315dfd23153ae2182768f55b` · 3 of 3
 
 ```
 the copy's class-path run again, port 19041; once readiness answers 200, jcmd - the JDK's tool that asks a running JVM - lists
@@ -225,8 +230,10 @@ $ jcmd $pid VM.classloaders show-classes=true
        +-- "platform", jdk.internal.loader.ClassLoaders$PlatformClassLoader
           +-- "app", jdk.internal.loader.ClassLoaders$AppClassLoader
              +-- org.springframework.boot.devtools.restart.classloader.RestartClassLoader
-  the classes RestartClassLoader defined, sorted by name: 14 -
+  the classes RestartClassLoader defined, sorted by name: 16 -
     com.tiffinbox.web.ActuatorRoutes
+    com.tiffinbox.web.ActuatorRoutes$$Lambda
+    com.tiffinbox.web.ActuatorRoutes$$Lambda
     com.tiffinbox.web.ActuatorRoutes$$Lambda
     com.tiffinbox.web.ActuatorRoutes$$Lambda
     com.tiffinbox.web.ActuatorRoutes$$Lambda
@@ -715,10 +722,11 @@ measured answer, run exactly as written in a clean `env -i` shell, is `exercise/
   that goal has no `exclusions` parameter (its descriptor), so neither the native plugin's `<exclusion>` nor Boot's `<exclude>` removes
   it (both measured while writing this unit). The anchor's own native-profile jar already carries Jackson 3's metadata files the same
   way. The plain jar holds no DevTools entry.
-- **RestartClassLoader holds 14 classes on this tree, not 6**, and the application loader holds TiffinBoxApp beside TiffinBoxServer
+- **RestartClassLoader holds 16 classes on this tree, not 6**, and the application loader holds TiffinBoxApp beside TiffinBoxServer
   (the probe named only the server): the first `main` names both. ActuatorRoutes (the Actuator lesson), KitchenHealthIndicator (the
   health lesson) and KitchenMetrics (the metrics lesson) joined the web module, with their lambdas (10 classes on the Actuator lesson's
-  tree, before the re-point).
+  tree, before the re-point; 14 before RED C5-S4 part A's bridge fix, whose request handling gives ActuatorRoutes two lambdas more by
+  the time readiness answers — the `Accept` match and the query merge: 3 → 5).
 - **`includeOptional` brings DevTools alone on this tree** — the probe saw Jackson 3.1.5 come in and the Compose module stay out; the
   anchor's three Boot-plugin excludes (the Actuator lesson's) now keep all three out of the jar too.
 - **A change touched too early is missed.** TiffinBox answers mid-refresh; a class file touched at its first answer, before DevTools'
@@ -739,7 +747,7 @@ list and the log group `kitchen`. tiffinbox-core did not change. TiffinBoxServer
 | capture | on `../c5-unit21/after` | on `../c5-unit24/after` | what moved |
 |---|---|---|---|
 | `added` | `e6e17c0e25993a642937252392040a30` | `aa2e2929f1165c758fbbbf8d6352ef4a` | its first line names the logging lesson; `diff`'s hunk `53a54` → `61a62` (the web POM has eight lines more above DevTools' line: Prometheus' registry and its comment); jars under `BOOT-INF/lib` 39 and 39 → 46 and 46; the class path Maven lists 47 → 54 entries |
-| `loaders` | `ab81385e35c5ec1c182be20671b095ac` | `31932a8561380caf709ac37530b90633` | RestartClassLoader's classes 10 → 14 — KitchenHealthIndicator, KitchenMetrics and KitchenMetrics' two lambdas — and the list sorted by name |
+| `loaders` | `ab81385e35c5ec1c182be20671b095ac` | `31932a8561380caf709ac37530b90633` (`9ac6333e315dfd23153ae2182768f55b` since the bridge fix, 2026-10-08: 16 classes) | RestartClassLoader's classes 10 → 14 — KitchenHealthIndicator, KitchenMetrics and KitchenMetrics' two lambdas — and the list sorted by name; then 14 → 16, ActuatorRoutes' two new lambdas |
 | `restart` | `a5b72f622c926ca6facfe5845f3a79fa` | `a5b72f622c926ca6facfe5845f3a79fa` | nothing: the same capture, byte for byte |
 | `timing` | `0fc985516b6985f73c043bf65580c1c2` | `0fc985516b6985f73c043bf65580c1c2` | nothing: the same capture, byte for byte |
 | `identity` | `cdf54a312467ecbf166f7de80d000ab5` | `cdf54a312467ecbf166f7de80d000ab5` | nothing: the same capture, byte for byte |
@@ -750,11 +758,11 @@ list and the log group `kitchen`. tiffinbox-core did not change. TiffinBoxServer
 | `native` | `e2a620fd509723b89411d0551bd8d10e` | `e2a620fd509723b89411d0551bd8d10e` | nothing: the same capture, byte for byte |
 | `exercise` | `9b48c795e9543274eb9d10c4463049c1` | `9b48c795e9543274eb9d10c4463049c1` | nothing: the same capture, byte for byte |
 
-- **The checks' tree-dependent expectations** (the top of `receipts.sh`'s checks): `E_LIBS` 39 → 46, `E_CP` 47 → 54, `E_RCL` 10 → 14,
+- **The checks' tree-dependent expectations** (the top of `receipts.sh`'s checks): `E_LIBS` 39 → 46, `E_CP` 47 → 54, `E_RCL` 10 → 14 (→ 16 after the bridge fix, 2026-10-08),
   `E_CORE` 10 → 10, `E_AOT` 144 → 149 — and a sixth, which had been hard-coded inside the `loaders` checks: the web module's classes in
   RestartClassLoader, by name (four on the Actuator lesson's tree, six here), now `E_WEB`. The builder reads every spoken number off the
   captures; two moved: "forty-seven jars" → "fifty-four jars", "ten classes of the web module" → "fourteen classes" (673 spoken
-  words, as before).
+  words, as before) — and "sixteen classes" since the bridge fix (the same word count).
 - **`loaders` lists the restart loader's classes sorted by name** (Masks, 5): on this tree the order jcmd lists them in moved from one
   run to the next (a first pass's and the first publishing run's), so a capture that kept jcmd's order could not stay the same.
 - **Unchanged by the tree:** the 11 lines `readme()` reads from the anchor's README, and its table row (the script's own message said

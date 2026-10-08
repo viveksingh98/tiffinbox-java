@@ -14,7 +14,7 @@ with POST /shutdown and its token; waits for it to exit; and prints the two leve
 The `exec` makes the background job TiffinBox's own process, so `wait` returns when it exits — and only then is the log counted:
 TiffinBox writes an answer's line after the answer is on the wire, so a count taken the moment curl returns could miss it.)
 
-## Measured — `exercise/README.md` run exactly as written, then the line above (2026-10-07; again 2026-10-08, after RED C5-S4 part B's fixes: the same)
+## Measured — `exercise/README.md` run exactly as written, then the line above (2026-10-07; again 2026-10-08, after RED C5-S4 part B's fixes: the same; and after part A's bridge fix, 2026-10-08: the same, line for line)
 
 In one clean shell — `env -i HOME="$HOME" PATH="/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin" bash --noprofile --norc`: no
 variable of mine, Homebrew's `bin` for `mvn` — from `c5-unit24/`, JDK 25.0.4.1, Maven 3.9.16, offline against `.m2-demo`, no GraalVM.

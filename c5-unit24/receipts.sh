@@ -29,8 +29,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #             loggers; never a total), the group alone; then Boot's own groups web and sql at DEBUG - the seven, the log
 #   runtime   after/'s jar, the README's loggers flag: three requests at INFO, the README's POST to DEBUG, three more, the
 #             README's POST back to null, three more - one process, its log read behind a barrier
-#   lock      the README's read-only line: the POST 405, the level unchanged; then C (labelled): the writes the bridge takes
-#             (no Content-Type, no body), and a group then one of its members
+#   lock      the README's read-only line: the POST 405, the level unchanged; then C (labelled): the writes the bridge refuses
+#             (no JSON Content-Type, no body: 415), and a group then one of its members
 #   names     the break, which name the level is set on: A the group · B com.tiffinbox alone · A' = A; then C (labelled): a
 #             group and a member at start, both orders; every logger at TRACE - the seven, the token and its header counted
 #   native    after/ built natively (the README's two Maven lines): the AOT jar and the binary - the loggers flag (404) and the
@@ -595,9 +595,9 @@ lock() {
   start "$(at .harness/serve 19035 "$R_LOCKED")"; up; ready 19035
   ask "$R_DEBUG" 19035; ask "$R_GROUP" 19035
   seven 19035 .harness/serve
-  echo "C (labelled) - the writes the bridge takes: the README's loggers flag line, port 19035:"
+  echo "C (labelled) - the writes the bridge refuses: the README's loggers flag line, port 19035:"
   start "$(at .harness/serve 19035 "$R_LOGGERS")"; up; ready 19035
-  echo "the README's POST without Content-Type:"; ask "$R_NOTYPE" 19035; ask "$R_GROUP" 19035
+  echo "the README's POST without a JSON Content-Type (curl -d sends a form's):"; ask "$R_NOTYPE" 19035; ask "$R_GROUP" 19035
   echo "the README's POST with no body:"; ask "$R_EMPTY" 19035; ask "$R_GROUP" 19035
   echo "C (labelled) - the group to DEBUG, then its member tiffinbox to INFO (the README's two POSTs), and one request:"
   ask "$R_DEBUG" 19035; ask "$R_MEMBER" 19035
@@ -868,19 +868,21 @@ has "$R3" "  its DEBUG lines: 3 · tiffinbox: 0 route lines, 3 answer lines · n
 has "$R3" "$SEVEN" "runtime: the seven"
 echo "  runtime: 0 -> 204 -> 3 -> 204 -> 3, one process"
 
-# "read-only: the same POST answers four hundred five, and the level stays. And mind the bridge: it reads any body as JSON, so a POST
-# without a content type still works, and an empty one resets the group."
+# "read-only: the same POST answers four hundred five, and the level stays. Like Boot's own adapter, the bridge takes a write only as
+# JSON: without that content type, or with no body at all, four fifteen, and the group stays." (RED C5-S4 #46: the bridge's request
+# handling, fixed in the Actuator lesson's anchor)
 K1=$(blk lock 'the lock - ' 'C (labelled) - the writes'); K2=$(blk lock 'C (labelled) - the writes' 'C (labelled) - the group to DEBUG'); K3=$(blk lock 'C (labelled) - the group to DEBUG' '')
 has "$K1" '  {"error":"method not allowed"} 405' "lock: 405"; has "$K1" '  {"configuredLevel":null,"members":["tiffinbox","com.tiffinbox"]} 200' "lock: the level stays"
 x lock '^\$ cd \.harness/serve && java -jar tiffinbox-web/target/tiffinbox-web-1\.0\.0\.jar --tiffinbox\.port=19035 --management\.endpoints\.web\.exposure\.include=health,prometheus,loggers --management\.endpoint\.loggers\.access=read-only$'
-[ "$(printf '%s\n' "$K2" | sed -n '/^the README.s POST without Content-Type:$/,/^the README.s POST with no body:$/p' | grep -cxF -e '   204' -e '  {"configuredLevel":"DEBUG","members":["tiffinbox","com.tiffinbox"]} 200')" = 2 ] || die "lock: no Content-Type, 204 and DEBUG"
-[ "$(printf '%s\n' "$K2" | sed -n '/^the README.s POST with no body:$/,$p' | grep -cxF -e '   204' -e '  {"configuredLevel":null,"members":["tiffinbox","com.tiffinbox"]} 200')" = 2 ] || die "lock: no body, 204 and null"
+[ "$(printf '%s\n' "$K2" | sed -n '/^the README.s POST without a JSON Content-Type/,/^the README.s POST with no body:$/p' | grep -cxF -e '  {"error":"unsupported media type"} 415' -e '  {"configuredLevel":null,"members":["tiffinbox","com.tiffinbox"]} 200')" = 2 ] || die "lock: no JSON Content-Type, 415 and the group unchanged"
+[ "$(printf '%s\n' "$K2" | sed -n '/^the README.s POST with no body:$/,$p' | grep -cxF -e '  {"error":"unsupported media type"} 415' -e '  {"configuredLevel":null,"members":["tiffinbox","com.tiffinbox"]} 200')" = 2 ] || die "lock: no body, 415 and the group unchanged"
+[ "$(printf '%s\n' "$K2" | grep -c ' 204$')" = 0 ] || die "lock: a refused write answered 204"
 has "$K3" '  {"configuredLevel":"DEBUG","members":["tiffinbox","com.tiffinbox"]} 200' "lock: the group still says DEBUG"
 has "$K3" '  {"configuredLevel":"INFO","effectiveLevel":"INFO"} 200' "lock: the member, INFO"
 has "$K3" '  {"configuredLevel":"DEBUG","effectiveLevel":"DEBUG"} 200' "lock: the other member, DEBUG"
 has "$K3" "  answer lines in its log: 0" "lock: the member's last write wins"
 [ "$(n lock "^$SEVEN\$")" = 2 ] || die "lock: the seven, twice"
-echo "  lock: read-only 405, level unchanged · no Content-Type 204 · no body 204, null · group DEBUG then member INFO: the member's write wins, the group still says DEBUG"
+echo "  lock: read-only 405, level unchanged · no JSON Content-Type 415 · no body 415 · the group unchanged · group DEBUG then member INFO: the member's write wins, the group still says DEBUG"
 
 # "A: the group at debug, one request, one answer line. B: only com dot tiffinbox, the same request, zero answer lines ... All B
 # prints is Spring's own line about TiffinBox. A again: one. And at trace, on every logger, the seven requests leave the token zero
@@ -934,7 +936,7 @@ x exercise '^  exit 0 · listening on 19039 now: 0$'
 echo "  exercise: the README as written, then the solution's line -> tiffinbox DEBUG, com.tiffinbox INFO, 1 request line"
 
 # the anchor's README states the same numbers
-for t in '`GET /customers -> 200`' '`UNKNOWN -> 405`' '**`logging.group.kitchen: tiffinbox, com.tiffinbox`**' '`org.slf4j.bridge.SLF4JBridgeHandler`' 'appender, `CONSOLE`' 'three requests at INFO, 0 lines; the POST, `204`; three more, 3 lines; `null`, `204`; three more,' 'The POST answers `405`, and the level stays' 'answers `204` here' '`web` (5 members) and `sql` (3)' 'its `.level = FINE`' '`loggers` by flag answers 404' 'the log holds the token 0 times and the header'"'"'s name 0 times' 'print their six lines' 'Spring'"'"'s one line about TiffinBox and 0 lines per answer' 'the seven requests add six'; do
+for t in '`GET /customers -> 200`' '`UNKNOWN -> 405`' '**`logging.group.kitchen: tiffinbox, com.tiffinbox`**' '`org.slf4j.bridge.SLF4JBridgeHandler`' 'appender, `CONSOLE`' 'three requests at INFO, 0 lines; the POST, `204`; three more, 3 lines; `null`, `204`; three more,' 'The POST answers `405`, and the level stays' 'answers `415` here' '`web` (5 members) and `sql` (3)' 'its `.level = FINE`' '`loggers` by flag answers 404' 'the log holds the token 0 times and the header'"'"'s name 0 times' 'print their six lines' 'Spring'"'"'s one line about TiffinBox and 0 lines per answer' 'the seven requests add six'; do
   grep -qF -- "$t" after/README.md || die "after/README.md no longer states: $t"; done
 cmp -s after/README.md ../c5-tiffinbox/README.md || echo "  (after/README.md and ../c5-tiffinbox/README.md differ - the anchor has moved on: it is unit 26's after/ now)" >&3
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"

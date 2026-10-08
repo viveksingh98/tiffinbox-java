@@ -36,8 +36,8 @@ spring:
       enabled: false
 # Boot's Actuator: the endpoints TiffinBox's server answers under /actuator. Health, and prometheus - the meters in the
 # text a Prometheus server scrapes - and nothing else: widening it is a line someone reviews. Under Spring's AOT step,
-# and so in the native binary, this list is read when the jar is built: a --management.endpoints.web.exposure.include
-# given at run time changes nothing there.
+# and so in the native binary, this list is fixed when the jar is built: a run-time exposure flag adds nothing there,
+# though it can still remove one - health too.
 management:
   endpoints:
     web:
@@ -45,8 +45,9 @@ management:
         include: health,prometheus
   # Health's groups. Readiness - "send TiffinBox traffic?" - holds Boot's own readiness state and the kitchen
   # (KitchenHealthIndicator: DOWN when the database does not answer). Liveness - "restart TiffinBox?" - stays Boot's own
-  # state alone: a restart cannot bring a database back. With probes switched off
-  # (management.endpoint.health.probes.enabled=false) readinessState does not exist, and this line stops the start.
+  # state alone: a restart cannot bring back a database outside the process. (TiffinBox's own H2 lives in memory, and a
+  # restart would rebuild it: the health lesson's harness plays the outside database that stays down.) With probes switched
+  # off (management.endpoint.health.probes.enabled=false) readinessState does not exist, and this line stops the start.
   endpoint:
     health:
       group:

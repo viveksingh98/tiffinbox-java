@@ -36,8 +36,13 @@ export GRAALVM_HOME=/path/to/a/graalvm-jdk-25      # GraalVM CE 25.3.4.1 for the
 ./receipts.sh     # 10 captures, 3 runs each; every spoken number asserted; 0 raw tokens; a published-md5 mismatch stops it
 ```
 
-(`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) It runs for about 15 to 35 minutes on the author's Mac, most of it the three native builds (282-439 s each in the runs below, beside
-other units' native builds). The runs of record of this revision (RED C5-S4 part B's fixes), 2026-10-08: **2105 s under
+(`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) It runs for about 15 to 60 minutes on the author's Mac, most of it the three native builds (282-439 s each in the runs below, beside
+other units' native builds). **After RED C5-S4 part A's bridge fix (2026-10-08, the Actuator lesson's anchor carried here):**
+**3,397 s under `./receipts.sh`** (/bin/bash 3.2.57, this folder, exit 0) and **2,747 s under `bash receipts.sh`** (Homebrew bash
+5.3.9, this folder, exit 0), every capture 3/3 and = published, beside three or four other units' receipts (load averages about
+160-410; native builds 415-703 s, inside the 20-minute bound); the two hashes that moved (`change`: the anchor README's lines
+added 114 → 116; `lock`: 415 and 415) were published from a 3.2 run of the same captures, 3/3, every check passed (2,611 s).
+The runs of record of part B's revision, 2026-10-08: **2105 s under
 `./receipts.sh`** (/bin/bash 3.2.57, this folder, exit 0) and **1794 s under `bash receipts.sh`** (Homebrew bash 5.3.9, this folder,
 exit 0), every capture 3/3 and = published, while three units' receipts and their native builds held the one-minute load average
 between about 40 and 190; every native build inside the capture's bound, under 20 minutes. The four hashes that moved (`change`,
@@ -45,7 +50,7 @@ between about 40 and 190; every native build inside the capture's bound, under 2
 captures, 3/3, every check passed (879 s). The first revision's runs of record, 2026-10-07: 663 s (5.3) and 652 s (3.2, from a sealed
 clone).
 It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first, so you can see which one moved).
-Published hashes: before `f54f1d0d9ce7dcd505da38a4204082a3` · change `6db2f73f1dd91b9d399d332e62ff5661` · path `aaa999e1098123fb1fba017041040f3c` · files `d1af636441477c70f89b55ec97250a9d` · groups `9fa009d838477a2bff5ec74f287074e7` · runtime `ac87b9c21245e07e69ab5f4aea79c762` · lock `06fe5c6fa2b4fe662e33f820ae5d2681` · names `0363b233f9c9cc17b76fbd6c2422def9` · native `38eaddc5731595eb78a81ffdc87059cd` · exercise `8dab017186f32397e9e2b0645516f4ca`.
+Published hashes: before `f54f1d0d9ce7dcd505da38a4204082a3` · change `a442bcd0ee990675e62fe581d3fb7c6e` · path `aaa999e1098123fb1fba017041040f3c` · files `d1af636441477c70f89b55ec97250a9d` · groups `9fa009d838477a2bff5ec74f287074e7` · runtime `ac87b9c21245e07e69ab5f4aea79c762` · lock `b3b2ff8169e6939a8832d51d0a63ee2a` · names `0363b233f9c9cc17b76fbd6c2422def9` · native `38eaddc5731595eb78a81ffdc87059cd` · exercise `8dab017186f32397e9e2b0645516f4ca`
 
 ## The GraalVM
 
@@ -248,7 +253,7 @@ gained lines that are neither comment nor blank; the anchor README's new section
 target`: 0 files); `TiffinBoxApp.java`, `ActuatorRoutes.java`, `KitchenHealthIndicator.java` and `KitchenMetrics.java` byte for
 byte; the POM's one removed line, the exec argument; the two files: in the previous tree yes, in after/ no.
 
-`.r-change.out` · md5 `6db2f73f1dd91b9d399d332e62ff5661` · 3 of 3
+`.r-change.out` · md5 `a442bcd0ee990675e62fe581d3fb7c6e` · 3 of 3
 
 ```
 the previous tree against after/, both copied under .harness/ - the files that differ:
@@ -276,7 +281,7 @@ $ diff -rq -x target -x secrets .harness/before .harness/after
       group:
         kitchen: tiffinbox, com.tiffinbox
     (diff adds 8 lines, removes 0)
-  README.md - the anchor's README: lines added 114, removed 1 - its new section (not shown)
+  README.md - the anchor's README: lines added 116, removed 1 - its new section (not shown)
   tiffinbox-core against the previous tree's (diff -rq -x target): 0 files differ
   TiffinBoxApp.java against the previous tree's, byte for byte: the same
   ActuatorRoutes.java against the previous tree's, byte for byte: the same
@@ -589,14 +594,16 @@ $ $CURLSET 19034 .harness/serve/secrets/tiffinbox/shutdown-token
 ```
 
 
-## 7 · lock — read-only; and C, the writes the bridge takes
+## 7 · lock — read-only; and C, the writes the bridge refuses
 
 The README's read-only line (`--management.endpoint.loggers.access=read-only`): the README's POST, then the group. Then **C
-(labelled)**, the README's loggers flag line: the README's POST without `Content-Type`, the group; the README's POST with no body,
-the group; then the group to DEBUG and its member `tiffinbox` to INFO (the README's two POSTs), all three answers, one request, the
+(labelled)**, the README's loggers flag line: the README's POST without a JSON `Content-Type` (curl's `-d` sends a form's type) →
+**415**, the group still `null`; the README's POST with no body → **415**, still `null` — since RED C5-S4 #46's fix in the Actuator
+lesson's anchor the bridge takes a write only as JSON, as Boot's own adapter does (before the fix: 204 and the group at DEBUG, then
+204 and the group back to `null`); then the group to DEBUG and its member `tiffinbox` to INFO (the README's two POSTs), all three answers, one request, the
 answer lines.
 
-`.r-lock.out` · md5 `06fe5c6fa2b4fe662e33f820ae5d2681` · 3 of 3
+`.r-lock.out` · md5 `b3b2ff8169e6939a8832d51d0a63ee2a` · 3 of 3
 
 ```
 the lock - the README's read-only line, port 19035:
@@ -613,20 +620,20 @@ $ $CURLSET 19035 .harness/serve/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 0 · the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
   its log: the demo token 0 times · X-Shutdown-Token 0 times
-C (labelled) - the writes the bridge takes: the README's loggers flag line, port 19035:
+C (labelled) - the writes the bridge refuses: the README's loggers flag line, port 19035:
 $ cd .harness/serve && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19035 --management.endpoints.web.exposure.include=health,prometheus,loggers
   listens on: 127.0.0.1:19035
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19035/actuator/health/readiness
   {"status":"UP"} 200
-the README's POST without Content-Type:
+the README's POST without a JSON Content-Type (curl -d sends a form's):
 $ curl -s -w ' %{http_code}\n' -X POST -d '{"configuredLevel":"DEBUG"}' http://127.0.0.1:19035/actuator/loggers/kitchen
-   204
+  {"error":"unsupported media type"} 415
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19035/actuator/loggers/kitchen
-  {"configuredLevel":"DEBUG","members":["tiffinbox","com.tiffinbox"]} 200
+  {"configuredLevel":null,"members":["tiffinbox","com.tiffinbox"]} 200
 the README's POST with no body:
 $ curl -s -w ' %{http_code}\n' -X POST http://127.0.0.1:19035/actuator/loggers/kitchen
-   204
+  {"error":"unsupported media type"} 415
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19035/actuator/loggers/kitchen
   {"configuredLevel":null,"members":["tiffinbox","com.tiffinbox"]} 200
 C (labelled) - the group to DEBUG, then its member tiffinbox to INFO (the README's two POSTs), and one request:
@@ -931,7 +938,7 @@ the measured answer, run exactly as written in a clean `env -i` shell, is `exerc
 | Break B, `com.tiffinbox` only | not run | **0 answer lines**; its one DEBUG line is Spring's `Running with Spring Boot v4.1.1, Spring v7.0.9`, under `com.tiffinbox.web.TiffinBoxServer` (`names`) |
 | The binary's start-time level | not measured | **works**: `--logging.level.kitchen=debug` → 5 route lines, Spring's line, the answer line — in the AOT jar and in the binary; `loggers` by flag → 404, GET and POST, in both (`native`) |
 | A level on a group, then on a member | not measured | **while it runs:** the last write wins for each logger, and the group's own answer keeps what was last set on the group (`kitchen` DEBUG, `tiffinbox` INFO, `com.tiffinbox` DEBUG, 0 answer lines — `lock` C); **at start:** the group won in both orders on the command line (`names` C). The voice says nothing about precedence; a chip says set one or the other |
-| A POST without `Content-Type` → 415 | 10-07 on Tomcat (Spring MVC) | **204 on TiffinBox's bridge** — it reads any body as JSON — and a POST with no body sets the group back to `null` (`lock` C) |
+| A POST without `Content-Type` → 415 | 10-07 on Tomcat (Spring MVC) | first revision: **204 on TiffinBox's bridge** (it read any body as JSON) and a POST with no body set the group back to `null`; since RED C5-S4 #46's fix: **415 and 415, the group unchanged** — as on Tomcat (`lock` C) |
 | Read-only → 405, level unchanged | 10-07 on Tomcat | **405** (`{"error":"method not allowed"}`), the group still `null` (`lock`) |
 | `web` and `sql` silent on TiffinBox | 10-07: 0 DEBUG lines each (base tree, no Actuator) | **0 each on the anchor with Actuator and the bridge**; `web` 5 members, `sql` 3 (`groups`) |
 | What a level in Boot does to JUL | 10-06 in-process: `setLogLevel` → FINE | **the same through the endpoint**: DEBUG → `java.util.logging`'s `tiffinbox` `FINE`, `System.Logger` DEBUG loggable; `null` → INFO, not loggable (`path`) — and the INFO stays: a later root DEBUG leaves it, Actuator says DEBUG, 0 lines; on a fresh process the root DEBUG prints the line (`path` C) |
@@ -1000,8 +1007,8 @@ counts log lines, the DEBUG line is silent unless it sets a level; whether a lev
 is **not measured here**. Its `anchor/` link and `before = after` move from `../c5-unit21/after` to `../c5-unit24/after`; its receipts re-run 3/3 under
 both bashes (S4.1).
 
-**For RED:** ⚑6b (above: RED decided, deleted here); the bridge's body handling (no `Content-Type` → 204, no body → reset) and its
-dropped query string, both ⚑1's argument list — deferred to BLUE part A's bridge fix; whether the voice should say anything about
+**For RED:** ⚑6b (above: RED decided, deleted here); the bridge's body handling and its query string — fixed by BLUE part A in the
+Actuator lesson's anchor and carried here (`lock` C: 415, 415); whether the voice should say anything about
 group-then-member (it does not; a chip does). And a
 method note for every unit's S4.2 test: a `HOME` with a `settings.xml` does not seal Maven — Java reads `user.home` from the account,
 so Maven reads the account's settings (here, none: straight to Maven Central). A sealed run needs `HOME/.mavenrc` setting
