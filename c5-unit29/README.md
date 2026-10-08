@@ -43,7 +43,20 @@ found, the run stops. **Docker:** no pull. `docker build` printed 0 lines that s
 `sha256:fcd7fd7b387f…`, already on the daemon); Compose printed 0 `Pulling` lines (`postgres:18-alpine` already there). At run time
 nothing leaves 127.0.0.1 — a container listens on its own addresses, published on the host's `127.0.0.1` alone.
 
-(pending)
+**From a clone, sealed (2026-10-08, brief S5.2).** The repository was cloned (`git clone` of the local repository at this unit's
+first commit) into an empty folder — nothing git ignores: no `.m2-demo`, no `.harness/`, no `.r-*`; `README.md` is the only file
+changed since, by this paragraph and the runs-of-record note. `bash receipts.sh` (Homebrew bash 5.3.9) ran under `env -i`, with a
+`HOME` whose `.mavenrc` points Maven's `user.home` there (Java reads `user.home` from the account, not from `$HOME`) and every Java
+proxy property at a port that refuses (127.0.0.1:9); Maven settings that send every repository to a `file://` copy of Central's
+files made from `.m2-demo` (4,164 files: TiffinBox's own installs, `_remote.repositories`, `*.lastUpdated`,
+`resolver-status.properties` and `.DS_Store` left out, `maven-metadata-central.xml` served as `maven-metadata.xml`); `http_proxy`,
+`https_proxy`, their capitals and `ALL_PROXY` at the same refusing port; `GRAALVM_HOME` set; and `DOCKER_CONFIG` at the account's
+`~/.docker` (the docker CLI's context — OrbStack — and its Compose plugin live there; nothing of Maven's). **Exit 0 after 735 s** —
+all 8 captures = published, every spoken number asserted, 0 raw demo tokens. Two builds said `offline: no` — the first (GraalVM's
+metadata repository was not in the empty `.m2-demo`) and the class-path line's pre-capture build (Maven's dependency plugin) — every
+file they took came from the `file://` copy (the sealed `HOME`'s `.m2` ended holding its `settings.xml` alone); every capture's build
+said `offline: yes`; `.m2-demo` ended with 1,856 files; 0 lines of the native plugin's metadata download in any build log; Docker
+pulled nothing.
 
 ## The demo token — fake, and never printed
 
@@ -120,7 +133,23 @@ cache entry holds it.
    a time (`.r-lock`). A last check fails if any `docker run` line in this script, this README or the exercise publishes a port
    without `127.0.0.1:`.
 
-**Interrupted.** (pending)
+**Interrupted.** `receipts.sh`'s exit trap stops the processes it started in the background — a serving TiffinBox (`$pid`)
+and a start expected to end by itself (`$fpid`) — if they still run, then `sweep()`s this run's process group (a TiffinBox JVM, a
+binary, native-image's driver or builder, a `docker compose --file …` command Boot's Compose support started) — TERM, then KILL after
+5 s — then `dclean()`: `docker rm -f` of its containers, `docker compose -p tiffinbox-dev down -v` until the project is empty, and
+its images by name and by every recorded ID (only once the start-up checks found none of those names: it never removes what it
+did not create). After an interrupt it deletes the capture runs left unfinished (`.r-NAME.1-3`), then drops the lock. **Tested
+2026-10-08 on the final script, from the sealed clone**, `receipts.sh` as a job of its own process group and `SIGINT` sent to the
+whole group twice: (1) during `ops`, once its JVM listened on 19152 (8 processes in the group); (2) during `dev`, once Compose's
+Postgres listened on 127.0.0.1:18881 and the image `tiffinbox-capstone:1.0.0` existed (6 processes). Each time: **exit 130**; 5 s
+later 0 processes in the group, 0 TiffinBox JVMs; 18425, 8080, 18881 and 19150-19159 free; 0 containers and 0 images named
+`tiffinbox*`, 0 containers and 0 volumes of `tiffinbox-dev`; `.r-lock` gone; 0 unfinished capture files.
+
+**Planted faults** (S5.18, 2026-10-08), each on a copy of the published captures, each run once: `ops`' DEBUG count made 5 → `ops:
+expected … - 6:`; an image ID (`sha256:` + 64 hex) appended to `image` → `holds an ID other than the base image's digest`; a `docker
+run -p 19155:18425` line appended to the README → `publishes a port on every address`; `forms`' summary made `4 of 5` → `forms:
+expected …`; `dev`'s leftover-variable name made `tiffinbox-dev` → `dev: expected /^  name: planted-canary$/`; `promises`' `neither 0`
+made `neither 1` → `promises: expected …`. Each check died on its fault, and every check passed on the published captures.
 
 ## 1 · the image: the README's two lines, then its run line
 
