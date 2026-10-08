@@ -444,6 +444,6 @@ script proves each one by running the ordinary online `verify` into the scratch 
 then the same command with `-o` in that same repository. It never runs `-o` against a repository it did
 not fill itself — that is the false green verify_course2.sh printed.
 
-Videos publish a few per day on the channel. Roadmap: Core Java → Spring Framework → Spring Boot → JPA → REST → Security → … → Spring AI.
+Videos publish a few per day on the channel. Roadmap (19 courses): Java Fundamentals → Core Java II → Build & Test Like a Pro → Spring Framework Core → Spring Boot → Spring Web MVC → Data with JPA & Hibernate → … → Spring AI.
 
 — Vivek Singh · Prompt Vidya AI: https://www.youtube.com/@PromptVidyaAI
