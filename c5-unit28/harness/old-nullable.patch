@@ -1,0 +1,11 @@
+--- a/tiffinbox-web/src/main/java/com/tiffinbox/web/BareArgumentAnalyzer.java
++++ b/tiffinbox-web/src/main/java/com/tiffinbox/web/BareArgumentAnalyzer.java
+@@ -10,7 +10,7 @@
+  */
+ class BareArgumentAnalyzer extends AbstractFailureAnalyzer<BareArgumentGuard.BareArguments> {
+ 
+-    @Override
++    @Override @org.springframework.lang.Nullable
+     protected FailureAnalysis analyze(Throwable rootFailure, BareArgumentGuard.BareArguments cause) {
+         return new FailureAnalysis(cause.description(), cause.action(), cause);
+     }

@@ -1,0 +1,19 @@
+--- a/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java
++++ b/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java
+@@ -1,6 +1,6 @@
+ package com.tiffinbox.web;
+ 
+-import com.fasterxml.jackson.databind.ObjectMapper;
++import tools.jackson.databind.json.JsonMapper;
+ import com.sun.net.httpserver.HttpExchange;
+ import com.sun.net.httpserver.HttpHandler;
+ import com.sun.net.httpserver.HttpServer;
+@@ -70,7 +70,7 @@
+     /** System.Logger: the JDK's own logging facade. No dependency, and no println in this file. */
+     private static final System.Logger LOG = System.getLogger("tiffinbox");
+ 
+-    private static final ObjectMapper JSON = new ObjectMapper();
++    private static final JsonMapper JSON = JsonMapper.builder().build();
+ 
+     private final CustomerRepository repo;
+     private final Dashboard dashboard;
