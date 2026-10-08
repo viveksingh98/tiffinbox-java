@@ -21,7 +21,9 @@ export PATH="$JAVA_HOME/bin:$PATH"
 (`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) No GraalVM, no
 Docker. It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first). It needs a **full clone**:
 `readme` reads the README as commit `53379bd` (the last before this unit) had it, with `git show`.
-**Runs of record:** pending.
+**Runs of record (2026-10-08):** **37 s under `./receipts.sh`** (/bin/bash 3.2.57, this folder, exit 0, all 3 captures = published,
+every check passed); **36 s under `bash receipts.sh`** (Homebrew bash 5.3.9, the same); and the sealed clone below (bash 5.3.9, 38 s).
+Load averages about 4.
 Published hashes: seam `17f19fc59cbae08b7f8deb9987225d13` · pieces `c80148f080eeb937a8731b9b4ba1256c` · readme `72e6188c38581d5058cf05418760730b`
 
 ## The repository, and what was downloaded
@@ -32,7 +34,17 @@ is the README's plain `mvn -B package`, made before the captures (on a fresh clo
 and none uses the README's class-path line, so Maven's dependency plugin is not needed (unit 27's finding does not apply). At run time
 nothing leaves 127.0.0.1.
 
-**From a clone, sealed:** pending - this paragraph is replaced by the sealed clone's run of record.
+**From a clone, sealed (2026-10-08, brief S5.2).** The repository was cloned (`git clone` of the local repository at this unit's
+first commit, `dd5852d`) into an empty folder — nothing git ignores: no `.m2-demo`, no `.harness/`, no `.r-*`; this README is the
+only file changed since, by this paragraph and the two notes beside it. `bash receipts.sh` (Homebrew bash 5.3.9) ran under `env -i`,
+with a `HOME` whose `.mavenrc` points Maven's `user.home` there (Java reads `user.home` from the account, not from `$HOME`) and every
+Java proxy property at a port that refuses (127.0.0.1:9); Maven settings that send every repository to a `file://` copy of Central's
+files made from `.m2-demo` (4,164 files: TiffinBox's own installs, `_remote.repositories`, `*.lastUpdated`,
+`resolver-status.properties` and `.DS_Store` left out, `maven-metadata-central.xml` served as `maven-metadata.xml`); `http_proxy`,
+`https_proxy`, their capitals and `ALL_PROXY` at the same refusing port. **Exit 0 after 38 s** — all 3 captures = published, every
+spoken number asserted, 0 raw demo tokens. The one build, before the captures, said `offline: no`: 494 artifacts, every one
+`Downloaded from sealed: file://…` (0 from anywhere else); `.m2-demo` ended with 1,333 files; the sealed `HOME` ended holding its
+`.mavenrc` and `.m2/settings.xml` alone.
 
 ## The demo token — fake, and never printed
 
@@ -77,7 +89,12 @@ harness, the repository's README and `receipts.md5`: 0 each. The builder counts 
    `MAVEN_OPTS`, `MAVEN_ARGS`, `NATIVE_IMAGE_OPTIONS` (no Docker here, so no `COMPOSE_*`). `127.0.0.1` first in `no_proxy`/`NO_PROXY`.
    One run at a time (`.r-lock`).
 
-**Interrupted:** pending.
+**Interrupted.** `receipts.sh`'s exit trap stops the server it started in the background (`$pid`) if it still runs, then `sweep()`s
+this run's process group (a TiffinBox JVM, a Maven build) — TERM, then KILL after 5 s — deletes the capture runs left unfinished
+(`.r-NAME.1-3`) after an interrupt, and drops the lock. **Tested 2026-10-08 on the final script, from the sealed clone**,
+`receipts.sh` as a job of its own process group under `env -i`, and `SIGINT` sent to the whole group once `seam`'s JVM listened on
+19160 (3 processes in the group): **exit 130**; 5 s later 0 processes in the group, 0 TiffinBox JVMs; 18425, 8080 and 19160-19169
+free; `.r-lock` gone; 0 unfinished capture files.
 
 **Planted faults** (S5.18, 2026-10-08), each on a copy of the published captures, the checks run once on each: B's timer line made
 `GET /customersXYZ (new) -> 1` → `seam B: timed as GET /customers`; C given a DEBUG line → `seam C: no line`; B's byte-for-byte made
