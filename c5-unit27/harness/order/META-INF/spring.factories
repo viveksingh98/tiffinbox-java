@@ -1,0 +1,2 @@
+# The harness's own file of names (the course's, never TiffinBox's): joined to a class path only for the order capture.
+org.springframework.context.ApplicationListener=probe.cli.Order
