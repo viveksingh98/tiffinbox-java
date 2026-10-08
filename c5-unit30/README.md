@@ -19,6 +19,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ./receipts.sh     # 3 captures, 3 runs each; every spoken number asserted; 0 raw tokens; a published-md5 mismatch stops it
 ```
 
+**Runs of record after BLUE (2026-10-09, RED C5-S5 #42 #44 #50; `seam`, `pieces`, `readme` republished):** **109 s under `./receipts.sh`** (/bin/bash 3.2.57, exit 0, all 3 = published, every check passed); **110 s under `bash receipts.sh`** (Homebrew bash 5.3.9, exit 0, all 3 = published); **108 s from a sealed fresh clone** (`git clone` of commit `0aaac65`; `env -i`; `HOME` holding only `.mavenrc` — `-Duser.home` and refusing proxy properties — and a `settings.xml` mirroring everything to a `file://` copy of the four units' `.m2-demo`; proxy variables at 127.0.0.1:9; bash 5.3.9): exit 0, all 3 = published, one pre-capture build `offline: no`, 494 artifacts all from the `file://` copy. Load averages 50-230 (three other units ran alongside). Interrupt test (own process group, SIGINT once 19160 listened): exit 130, 0 processes left, 19160-19162 free, no `.r-lock`, no partial capture, the published captures unchanged. The earlier runs below are of the tree before BLUE.
+
 (`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) No GraalVM, no
 Docker. It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first). It needs a **full clone**:
 `readme` reads the README as commit `53379bd` (the last before this unit) had it, with `git show`.
