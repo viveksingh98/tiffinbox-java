@@ -1,0 +1,20 @@
+--- a/tiffinbox-web/pom.xml
++++ b/tiffinbox-web/pom.xml
+@@ -62,7 +62,17 @@
+     <dependency>
+       <groupId>org.springframework.boot</groupId>
+       <artifactId>spring-boot-starter-webmvc</artifactId>
++      <exclusions>
++        <exclusion>
++          <groupId>org.springframework.boot</groupId>
++          <artifactId>spring-boot-starter-tomcat</artifactId>
++        </exclusion>
++      </exclusions>
+     </dependency>
++    <dependency>
++      <groupId>org.springframework.boot</groupId>
++      <artifactId>spring-boot-starter-jetty</artifactId>
++    </dependency>
+   </dependencies>
+ 
+   <build>
