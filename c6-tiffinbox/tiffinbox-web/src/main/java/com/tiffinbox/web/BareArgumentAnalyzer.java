@@ -6,7 +6,7 @@ import org.springframework.boot.diagnostics.FailureAnalysis;
 /**
  * Course 5: the refusal BareArgumentGuard throws, explained to Boot - its description and its action, in place of the stack
  * trace. Boot runs its failure analysis even when the start fails before any container exists, as this one does; it reads
- * this class from META-INF/spring.factories, like PortTakenFailureAnalyzer.
+ * this class from META-INF/spring.factories (Course 6: the only analyzer TiffinBox names there).
  */
 class BareArgumentAnalyzer extends AbstractFailureAnalyzer<BareArgumentGuard.BareArguments> {
 

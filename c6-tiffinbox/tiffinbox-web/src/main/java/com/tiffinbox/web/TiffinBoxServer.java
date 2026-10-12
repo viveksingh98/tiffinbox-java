@@ -1,16 +1,16 @@
 package com.tiffinbox.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.boot.SpringApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Component;
+import org.springframework.web.HttpRequestHandler;
 import com.tiffinbox.Customer;
 import com.tiffinbox.CustomerRepository;
 import com.tiffinbox.Dashboard;
@@ -20,14 +20,12 @@ import com.tiffinbox.TiffinBoxProperties;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.Executors;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.INFO;
@@ -36,21 +34,27 @@ import static java.lang.System.Logger.Level.INFO;
  * TiffinBox Web — the HTTP half of the service, and the only module that knows HTTP exists.
  * It has no SQL in it: every row it serves arrives from tiffinbox-core as a record.
  *
- * <p>jdk.httpserver on a virtual-thread executor, Jackson for JSON, and a router built by
- * reflection from the {@link Route} annotation. The five classes it talks to — Customer,
- * CustomerRepository, Database, Dashboard, OrderQueue — are the other jar, and the only
- * reason this file compiles is the one dependency in tiffinbox-web/pom.xml.
+ * <p>Jackson for JSON, and a router built by reflection from the {@link Route} annotation. The five classes it talks
+ * to — Customer, CustomerRepository, Database, Dashboard, OrderQueue — are the other jar, and the only reason this
+ * file compiles is the one dependency in tiffinbox-web/pom.xml.
+ *
+ * <p>Course 6: TiffinBox no longer runs a server of its own. Until Course 6 the JDK's HttpServer listened here, on a
+ * virtual-thread executor. Now embedded Tomcat listens - Spring MVC's starter brings it, and application.yaml gives it
+ * tiffinbox.address and tiffinbox.port - on a virtual thread per request (spring.threads.virtual.enabled), and Spring
+ * MVC's DispatcherServlet hands each request to the handler {@link #handlers()} names for its path: one per path,
+ * registered by {@link RouteMapping}, the verb still matched inside {@link #handle}.
  *
  * <p>Course 5: {@code @RegisterReflectionForBinding} tells Spring's ahead-of-time step that Jackson turns a Customer into
  * JSON by reflection: the record, its components and their accessors are registered, so a native binary can write
  * /customers. No build step sees Jackson reach the record.
  *
- * <p>Course 5: the same server answers under /actuator with Boot's Actuator endpoints - one more constructor argument, the
- * handler {@link ActuatorRoutes} builds, and one more context. One server, one stop.
+ * <p>Course 5 served Boot's Actuator endpoints on TiffinBox's own server, through a handler of its own. Course 6: Boot's
+ * own adapter serves them on Tomcat, and POST /shutdown closes the application context once its reply is on the wire -
+ * Boot's graceful shutdown stops Tomcat, and the JVM exits. One server, one stop.
  *
  * <p>Course 5: every answer of TiffinBox's own routes is timed - tiffinbox.requests, in the registry Boot made, tagged
  * with the route TiffinBox declares and the status it answered. Never a verb or a path as a client typed it: a tag's
- * every value is one more series to keep.
+ * every value is one more series to keep. (Course 6: Boot's http.server.requests times the same answers too.)
  *
  * <p>Course 5: every answer of TiffinBox's own routes also logs one line at DEBUG, through the same System.Logger: the
  * route and the status, the two values the timer tags - never a header, never the token, never what the client typed.
@@ -76,28 +80,23 @@ public final class TiffinBoxServer {
     private final Dashboard dashboard;
     private final OrderQueue kitchen;
     private final int days;
-    private final int port;
-    private final String address;
     private final List<MealType> mealTypes;
     private final byte[] shutdownToken;
-    private final HttpHandler actuator;
     private final MeterRegistry registry;
-    private volatile HttpServer server;
+    private final ConfigurableApplicationContext context;
+    private volatile Map<String, Method> routes;
     private volatile boolean stopRequested;
-    private volatile boolean stopped;
 
     TiffinBoxServer(CustomerRepository repo, Dashboard dashboard, OrderQueue kitchen, TiffinBoxProperties settings,
-                    HttpHandler actuator, MeterRegistry registry) {
+                    MeterRegistry registry, ConfigurableApplicationContext context) {
         this.repo = repo;
         this.dashboard = dashboard;
         this.kitchen = kitchen;
         this.days = settings.days();
-        this.port = settings.port();
-        this.address = settings.address();
         this.mealTypes = settings.mealTypes();
         this.shutdownToken = settings.shutdownToken().getBytes(StandardCharsets.UTF_8);
-        this.actuator = actuator;
         this.registry = registry;
+        this.context = context;
     }
 
     // ---- the routes, declared not registered -------------------------------
@@ -164,38 +163,64 @@ public final class TiffinBoxServer {
         return routes;
     }
 
-    private void handle(HttpExchange exchange, Map<String, Method> routes, String path)
-            throws IOException {
+    /**
+     * Course 6: one handler per distinct path, for {@link RouteMapping}; the verb is matched inside {@link #handle}, as
+     * before. Named, never a lambda: Spring prints a handler by its toString() - at DEBUG, and in /actuator/mappings - and
+     * a lambda's is a generated class name and a hash.
+     */
+    Map<String, HttpRequestHandler> handlers() {
+        var out = new LinkedHashMap<String, HttpRequestHandler>();
+        for (String path : paths(routes)) {
+            out.put(path, new RouteHandler(this, path));
+        }
+        return out;
+    }
+
+    /** The handler for one path: Spring's HttpRequestHandlerAdapter calls it, and it calls {@link #handle}. */
+    private record RouteHandler(TiffinBoxServer server, String path) implements HttpRequestHandler {
+        @Override
+        public void handleRequest(HttpServletRequest request, HttpServletResponse response) throws IOException {
+            server.handle(request, response, path);
+        }
+
+        @Override
+        public String toString() {
+            return "TiffinBox route " + path;
+        }
+    }
+
+    private void handle(HttpServletRequest request, HttpServletResponse response, String path) throws IOException {
         Timer.Sample sample = Timer.start(registry);
-        String key = exchange.getRequestMethod() + " " + path;
+        String key = request.getMethod() + " " + path;
         Method handler = routes.get(key);
         try {
             if (handler == null) {                       // the path exists, the verb does not
-                respond(exchange, 405, ordered("error", "method not allowed"));
+                respond(response, 405, ordered("error", "method not allowed"));
                 return;
             }
-            if (key.equals("POST /shutdown") && !holdsToken(exchange)) {   // the server keeps running
-                respond(exchange, 403, ordered("error", "forbidden"));
+            if (key.equals("POST /shutdown") && !holdsToken(request)) {   // the server keeps running
+                respond(response, 403, ordered("error", "forbidden"));
                 return;
             }
             try {
-                respond(exchange, 200, handler.invoke(this));
+                respond(response, 200, handler.invoke(this));
             } catch (Exception | LinkageError e) {   // a class the route needs, missing: 500, never a silent client
                 LOG.log(System.Logger.Level.ERROR, key + " failed", e);   // a route TiffinBox declares (its handler exists), and the trace
                 Throwable cause = e.getCause() == null ? e : e.getCause();
-                respond(exchange, 500, ordered("error", cause.getClass().getSimpleName()));
+                respond(response, 500, ordered("error", cause.getClass().getSimpleName()));
             }
         } finally {                                  // a route TiffinBox declares, never what the client typed
             String route = handler != null ? key : "UNKNOWN";
-            String status = Integer.toString(exchange.getResponseCode());
+            String status = Integer.toString(response.getStatus());
             LOG.log(DEBUG, "{0} -> {1}", route, status);   // one line per answer, at DEBUG; before the timer stops
             sample.stop(Timer.builder("tiffinbox.requests").description("TiffinBox's answers, by route and status")
                     .tag("route", route)
                     .tag("status", status)
                     .register(registry));
         }
-        if (stopRequested) {                         // the reply is on the wire; now stop
-            Thread.ofPlatform().start(this::stop);
+        if (stopRequested) {                         // the reply goes on the wire first; then the context closes
+            response.flushBuffer();
+            Thread.ofPlatform().start(context::close);
         }
     }
 
@@ -204,21 +229,20 @@ public final class TiffinBoxServer {
      * byte whatever it finds, so the time a wrong guess takes does not tell how much of it was right. Nothing is logged:
      * neither the header nor the token.
      */
-    private boolean holdsToken(HttpExchange exchange) {
-        String sent = exchange.getRequestHeaders().getFirst("X-Shutdown-Token");
+    private boolean holdsToken(HttpServletRequest request) {
+        String sent = request.getHeader("X-Shutdown-Token");
         return sent != null && MessageDigest.isEqual(sent.getBytes(StandardCharsets.UTF_8), shutdownToken);
     }
 
-    private static void respond(HttpExchange exchange, int status, Object value) throws IOException {
+    private static void respond(HttpServletResponse response, int status, Object value) throws IOException {
         byte[] body = JSON.writeValueAsBytes(value);
-        exchange.getResponseHeaders().add("Content-Type", "application/json");
-        exchange.sendResponseHeaders(status, body.length);
-        try (var os = exchange.getResponseBody()) {
-            os.write(body);
-        }
+        response.setStatus(status);
+        response.setContentType("application/json");
+        response.setContentLength(body.length);
+        response.getOutputStream().write(body);
     }
 
-    // ---- start and stop: called by the container, not by main ----------------
+    // ---- the kitchen and the routes: made by the container, not by main ------
 
     /**
      * The rail runs at startup and is drained before the first request: the slips go on, the cooks
@@ -235,28 +259,12 @@ public final class TiffinBoxServer {
         }
         kitchen.close();
 
-        var routes = scanRoutes();
-        server = HttpServer.create(new InetSocketAddress(address, port), 0);
-        server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
-        for (String path : paths(routes)) {
-            server.createContext(path, ex -> handle(ex, routes, path));
-        }
-        server.createContext("/actuator", actuator);
-        server.start();
+        routes = scanRoutes();
 
         LOG.log(INFO, "orders cooked:  {0,number,#}", kitchen.cooked());
         LOG.log(INFO, "kitchen value:  {0,number,#}", kitchen.cookedValue());
         LOG.log(INFO, "meal types:     {0}", mealTypes);
         LOG.log(INFO, "routes mapped:  {0}", List.copyOf(routes.keySet()));
-        LOG.log(INFO, "TiffinBox listening on http://" + address + ":" + port);
-    }
-
-    @PreDestroy
-    synchronized void stop() {
-        if (!stopped && server != null) {
-            stopped = true;
-            server.stop(0);
-        }
     }
 
     // ---- main --------------------------------------------------------------
@@ -266,8 +274,8 @@ public final class TiffinBoxServer {
         SpringApplication.run(TiffinBoxApp.class, args);
     }
 
-    /** One HTTP context per distinct path; the verb is matched inside the handler. */
-    private static List<String> paths(TreeMap<String, Method> routes) {
+    /** One handler per distinct path; the verb is matched inside the handler. */
+    private static List<String> paths(Map<String, Method> routes) {
         return routes.keySet().stream()
                 .map(key -> key.substring(key.indexOf(' ') + 1))
                 .distinct()

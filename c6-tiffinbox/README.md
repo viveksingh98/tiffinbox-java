@@ -9,7 +9,113 @@ Actuator bridge (`ActuatorRoutes`) and the port analyzer (`PortTakenFailureAnaly
 measured doing the web's jobs. Course 6's units are planned to hand those jobs to Spring Web MVC, and each unit that
 changes this folder records it below as a `## Course 6 · unit NN` section, as Course 5's did. `c5-tiffinbox` stays
 frozen from here on, so every Course 5 unit keeps pointing at what it measured. Everything below the rule is
-`c5-tiffinbox`'s README exactly as it was at 7b1fe27.
+`c5-tiffinbox`'s README exactly as it was at 7b1fe27, except the history notes a Course 6 unit made false: each is
+amended in place, in a note that starts *Course 6, unit NN*, and the unit sections keep their history. *(Course 6, unit
+04: three of the four files' jobs have moved — `TiffinBoxServer`'s server half is out, and `ActuatorRoutes` and
+`PortTakenFailureAnalyzer` are deleted; Tomcat, Boot's Actuator adapter and Boot's port analyzer do their jobs. `Route`
+stays until Course 6's request-mapping lesson.)*
+
+## Course 6 · unit 04 — embedded Tomcat: TiffinBox's own server handed over (2026-10-12)
+
+TiffinBox's routes, its token, its JSON and its kitchen are unchanged; the server under them is not. Since Core Java II the JDK's
+`HttpServer` listened here, one virtual thread per answer. From this unit on, **embedded Tomcat** listens — the web server Spring
+MVC's starter brings, running inside TiffinBox's own JVM — and Spring MVC's **`DispatcherServlet`** (the one servlet every request
+goes through) hands each request to TiffinBox's handler for its path. Six files changed, two deleted, one new:
+- `tiffinbox-web/pom.xml` — **`spring-boot-starter-webmvc`**: Spring MVC, Tomcat and Jackson 3, the JSON library Spring writes its
+  own answers with. Twelve more jars in `BOOT-INF/lib` (46 → 58), none removed. The Boot plugin's two `tools.jackson.core`
+  `<exclude>`s and the native plugin's two `<exclusion>`s are gone; the Compose module's stay. Course 5 needed them because the
+  Compose module's Jackson 3 reached Spring's AOT step but not the jar; the starter puts Jackson 3 in the jar, so the step, the jar
+  and the binary agree. Until Course 6's Jackson lessons, one jar holds two Jacksons: Jackson 2 writes TiffinBox's five answers,
+  Jackson 3 writes Spring's (an error body, Actuator's answers).
+- `TiffinBoxServer.java` — the server half is out: no `HttpServer`, no executor, no contexts, no `stop()`. `handle()`, `respond()`
+  and `holdsToken()` work on the servlet API (`HttpServletRequest`, `HttpServletResponse`); `handlers()` builds one **handler** per
+  path (the object a request is handed to), each named — its `toString()` reads `TiffinBox route /customers` — and the verb is still
+  matched inside `handle()`. POST /shutdown flushes its reply, then a platform thread closes the application context. Its
+  `TiffinBox listening on http://…` line is gone: Tomcat logs `Tomcat started on port 18431 (http) with context path '/'`, which
+  never prints the address. The Javadoc's "jdk.httpserver on a virtual-thread executor" and "One server, one stop" sentences are
+  rewritten.
+- `RouteMapping.java` (new) — one **handler mapping** (what the `DispatcherServlet` asks "which handler takes this request?"):
+  Spring's own `SimpleUrlHandlerMapping`, a table of paths, here TiffinBox's five, each with its handler. Spring's
+  `HttpRequestHandlerAdapter` calls the handler. `@Route` and `scanRoutes()` stay TiffinBox's until Course 6's request-mapping
+  lesson.
+- `ActuatorRoutes.java` — **deleted** (196 lines): a JDK `HttpHandler` cannot outlive the JDK's server. Boot's own Actuator adapter
+  answers `/actuator` on Tomcat, with the same content types (Course 6's mappings lesson lists its routes).
+- `PortTakenFailureAnalyzer.java` — **deleted** (51 lines), and its name taken out of `META-INF/spring.factories`, which keeps the
+  bare-argument guard and its analyzer. A port taken is Tomcat's now, and Boot's own analyzer explains it, exit 1, no stack trace:
+  `Web server failed to start. Port 18431 was already in use.` and `Identify and stop the process that's listening on port 18431 or
+  configure this application to listen on another port.` Boot's action names no setting; TiffinBox's said `--tiffinbox.port=<a free
+  port>`. That is the one thing lost.
+- `application.yaml` — in its **first document, above the `---`**: `server.address: ${tiffinbox.address}` and
+  `server.port: ${tiffinbox.port}`, and `spring.threads.virtual.enabled: true` under the `spring:` key it already had.
+- `META-INF/spring.factories` — the analyzer's name out of the `FailureAnalyzer` key, and the comment rewritten.
+- `BareArgumentAnalyzer.java` — one Javadoc line, which named the deleted analyzer. Its code is unchanged.
+
+The Dockerfile, `compose.yaml`, `Route.java`, the indicator, the meters, `TiffinBoxApp.java`, the guard and `tiffinbox-core` are
+not touched.
+
+**The address Tomcat never prints.** Tomcat's line names a port, never an address: the address the process listens on is the
+only witness, and it is `127.0.0.1:18431`, this computer only, as before. Without `server.address`, Tomcat listens on **every
+interface** — measured on a copy of the previous tree with the starter added and no alias: `*:<port>` (`../c6-unit04/`, `bind` B).
+So the alias must sit above the `---`: below it, it would belong to the profile "rush" alone, and a plain start would listen on
+Tomcat's defaults — every interface, port 8080 (Boot's own metadata: `server.port` 8080, `server.address` no default). In the image,
+the Dockerfile's `TIFFINBOX_ADDRESS=0.0.0.0` reaches Tomcat through the alias: inside, Tomcat listens on every interface of the
+container, and the port is published on the Mac's `127.0.0.1` alone. **One port, two names:** where both are given, Boot's own
+`--server.port` wins over `--tiffinbox.port`. TiffinBox's commands use `--tiffinbox.port=`, as every README line here does.
+
+```bash
+mvn -B package
+java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431
+java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --server.port=18432
+curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:18431/customers
+```
+
+**Whose threads.** With `spring.threads.virtual.enabled: true` (`application.yaml`), Tomcat answers each request on a virtual
+thread of its own, `tomcat-handler-N`, and Boot's task executor is a `SimpleAsyncTaskExecutor` whose tasks run on virtual threads.
+Switched off, Tomcat's default pool answers — platform threads named `http-nio-127.0.0.1-18431-exec-N`, ten kept while idle, two
+hundred at most (`server.tomcat.threads.max`) — and Boot's executor is a `ThreadPoolTaskExecutor` again. Eight slow requests at
+once: on virtual threads, eight threads answer; with virtual threads off and `--server.tomcat.threads.max=2`, two do
+(`../c6-unit04/`, `threads`). Idle, Tomcat keeps an Acceptor and a Poller (daemon threads), and `container-0` and two
+`Catalina-utility` threads, which are not daemons: they keep the JVM alive while Tomcat runs. **Under Spring's AOT step the build
+decides:** the AOT jar runs on `tomcat-handler-N` even with `--spring.threads.virtual.enabled=false` at run time, and the
+native binary, built the same way, runs on `tomcat-handler-N` too. `%thread %msg%n` makes Logback print each line as its thread's whole name and the message.
+
+```bash
+java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --spring.threads.virtual.enabled=false
+java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --spring.threads.virtual.enabled=false --server.tomcat.threads.max=2
+java -Dspring.aot.enabled=true -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --spring.threads.virtual.enabled=false --logging.level.kitchen=debug --logging.pattern.console='%thread %msg%n'
+tiffinbox-web/target/tiffinbox-web --tiffinbox.port=18431 --logging.level.web=debug --logging.level.kitchen=debug --logging.pattern.console='%thread %msg%n'
+```
+
+**The seven, on Tomcat.** Six of `../c5-unit11/curlset.sh`'s seven lines are byte for byte what TiffinBox's own server answered.
+One differs, `GET /nowhere`: the JDK's `404 text/html <h1>404 Not Found</h1>No context found for request` is now Spring's
+`404 application/json {"timestamp":"…","status":404,"error":"Not Found","path":"/nowhere"}`. No handler TiffinBox registered takes
+`/nowhere`; Boot's static-resource handler (`/**`) does, finds no file, and the 404 goes to Boot's `/error` controller, which writes
+JSON with Jackson 3: Spring MVC's one JSON converter is `JacksonJsonHttpMessageConverter`, on Jackson 3's `JsonMapper` (Boot's
+`web` log group at DEBUG shows each step; `../c6-unit04/`, `seven`). The timestamp moves every run, so the set is compared
+**masked**: the timestamp's value becomes `…` (both forms: an ISO-8601 string, which Jackson 3 writes here, and epoch milliseconds),
+and the masked set hashes to `571faaea42e87e85add8c9548c64c961` — the comparison set from here on. `GET /shutdown` is still
+TiffinBox's own `405 {"error":"method not allowed"}`: its handler still matches the verb.
+
+```bash
+java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.web=debug
+```
+
+**The seam.** Paths the JDK's server matched by prefix — `/customersXYZ`, `/customers/`, `/kitchen/anything` — answered 200; Spring's
+handler mapping matches whole paths, and they answer 404. `/actuator` answers 200, Boot's list of links, where the bridge said 404.
+HEAD, `Accept: application/xml` and DELETE answer as before (TiffinBox's handler decides them). **Two timers** now time TiffinBox's
+answers: Boot's `http_server_requests` (it tags every 404 here `uri="/**"`) beside TiffinBox's own `tiffinbox_requests`.
+
+**What stops it.** POST /shutdown answers `{"stopping":true}`, then the context closes, Boot's graceful shutdown (`server.shutdown`'s
+default is `graceful`; `spring.lifecycle.timeout-per-shutdown-phase` 30s) stops Tomcat — `Commencing graceful shutdown. Waiting for
+active requests to complete`, `Graceful shutdown complete` — and the JVM exits **0**. Tomcat is TiffinBox's only server: with
+two servers in one JVM, Tomcat's `container-0` kept it alive after TiffinBox's own server stopped (Course 6's servlet-container
+lesson).
+
+**Every form still serves:** the jar, the AOT jar, the native binary (a build of under 20 minutes; the binary's DEBUG says `Mapped to
+TiffinBox route /customers`), and the image — each listening on `127.0.0.1` (the image: published there), each answering the seven
+`571faaea…` (masked), each exit 0 after POST /shutdown.
+
+Evidence for every sentence in this section: `../c6-unit04/` (`receipts.sh`, ten captures).
 
 ---
 
@@ -310,7 +416,10 @@ port Docker publishes does not arrive there — measured: the log says `TiffinBo
 the Mac's `curl` gets `curl: (52) Empty reply from server` (on OrbStack; another Docker may answer differently). Give
 the container `TIFFINBOX_ADDRESS=0.0.0.0` — every interface of the container — and publish the port on the Mac's
 `127.0.0.1` alone. Boot's own key, `server.address` (`SERVER_ADDRESS`), changes nothing here: TiffinBox's `HttpServer`
-never reads it.
+never reads it. *(Course 6, unit 04: Tomcat reads `server.address` now, and `application.yaml` sets it to
+`${tiffinbox.address}`, so `TIFFINBOX_ADDRESS` still moves the address — in the image too. The `TiffinBox listening on …`
+line is gone: Tomcat's `Tomcat started on port 18431 (http) with context path '/'` replaces it, and never prints the
+address.)*
 
 **An image with no Dockerfile.** Boot's Maven plugin hands the jar to Paketo's buildpacks, in two steps: the first builds
 both modules (so `tiffinbox-core` lands in the `application` layer, unit 14's index), the second builds the web module's
@@ -461,7 +570,10 @@ and Boot's cache for reading class files.
 given at run time is read and ignored: the environment says `true`, and Boot's executor is still the pool
 (`ThreadPoolTaskExecutor`, eight platform threads) — no warning. Built with the switch on
 (`-Dspring-boot.aot.jvmArguments=-Dspring.threads.virtual.enabled=true`), the same run without it gets virtual threads. An
-`@Async` method follows Boot's executor: under AOT, the pool. Choose such settings when you build.
+`@Async` method follows Boot's executor: under AOT, the pool. Choose such settings when you build. *(Course 6, unit 04:
+`application.yaml` switches virtual threads on, so every build is made with them. On the JVM, Boot's executor is a
+`SimpleAsyncTaskExecutor` whose tasks run on virtual threads, and Tomcat answers on virtual threads too; under AOT, a
+run-time `--spring.threads.virtual.enabled=false` leaves Tomcat's request threads virtual — `../c6-unit04/`, `threads`.)*
 
 **A faster start, with the JDK's AOT cache too** — Course 3's training run, now on TiffinBox, on the extracted jar (unit 13's
 command): train once — one command records the run and writes the cache — then run with the cache:
@@ -559,12 +671,15 @@ Four files changed and one is new. The seven responses are the same before and a
 - `tiffinbox-web/src/main/java/com/tiffinbox/web/ActuatorRoutes.java` — **new**: three beans that put Boot's endpoints on
   TiffinBox's own server, under `/actuator`.
 - `TiffinBoxServer.java` — one more constructor argument, the handler `ActuatorRoutes` builds, and one more context:
-  `server.createContext("/actuator", actuator)`. One server, one stop: POST /shutdown still ends the JVM.
+  `server.createContext("/actuator", actuator)`. One server, one stop: POST /shutdown still ends the JVM. *(Course 6, unit 04:
+  both are gone with TiffinBox's own server. Boot's own adapter answers `/actuator` on Tomcat, and POST /shutdown closes the
+  application context: Tomcat stops, and the JVM exits 0.)*
 - `application.yaml` — `management.endpoints.web.exposure.include: health`: the endpoints that answer, written down.
 - `.gitignore` — `*.hprof`: a heap dump holds the shutdown token (below), so none is ever committed.
 
 **The starter alone reaches nothing.** Boot's HTTP side of Actuator waits for a web application it knows — Spring MVC or WebFlux,
 on Tomcat, Jetty or Netty (Course 6). TiffinBox's server is the JDK's own, so to Boot TiffinBox is no web application (`NONE`).
+*(Course 6, unit 04: on Tomcat it is a servlet web application — its context is a `ConfigServletWebServerApplicationContext`.)*
 Measured with the starter and nothing else: 59 bean definitions become 134 and 10 auto-configuration classes 31, one endpoint bean
 exists (`health`) — and no bean hands it to HTTP or to JMX: `/actuator/health` gets TiffinBox's own server's 404 (`No context found
 for request`). Boot's condition report (`--debug`) says why, in Boot's words: `WebEndpointAutoConfiguration` —
@@ -572,7 +687,8 @@ for request`). Boot's condition report (`--debug`) says why, in Boot's words: `W
 find property 'spring.jmx.enabled'`; `HealthEndpointWebExtensionConfiguration` — `did not find servlet web application classes`.
 JMX switched on carries health and, with every endpoint exposed, 11 MBeans — never `heapdump`, `logfile` or `prometheus`, whose
 classes are `@WebEndpoint`s. Spring MVC on Tomcat makes TiffinBox the web application Boot waits for: 12 more jars and a second
-server in the JVM, which keeps running after TiffinBox's POST /shutdown until it is killed — Course 6's road.
+server in the JVM, which keeps running after TiffinBox's POST /shutdown until it is killed — Course 6's road. *(Course 6,
+unit 04 took that road with one server: TiffinBox's own is gone, Tomcat is the only one, and POST /shutdown ends the JVM.)*
 
 **So TiffinBox serves the endpoints itself** — `ActuatorRoutes`, from Boot's own parts. An endpoint is a bean with operations, HTTP
 is one adapter, and exposure is a filter:
@@ -621,6 +737,8 @@ curl -s -w ' %{http_code}\n' http://127.0.0.1:18431/actuator/env/tiffinbox.shutd
   Spring Security here: Course 10); `=always` prints the shutdown token in clear. Never `always`.
 - `beans` lists every bean (153 with every endpoint exposed) and where each was read from — for TiffinBox's own, the jar's absolute
   path. `conditions` is the condition report. `mappings` is empty: TiffinBox's routes are not Spring MVC's (Course 6 lists them).
+  *(Course 6, unit 04: they are Spring MVC's now — five paths in one `SimpleUrlHandlerMapping`, `tiffinBoxRoutes`; Course 6's
+  mappings lesson lists them.)*
 - `heapdump` has access NONE by default: exposed, it still answers 404. Switched on for one run, it hands over a copy of the JVM's
   memory, over 20 MB, with 3 copies of the shutdown token in it — `rm heap.hprof` at once (`.gitignore` keeps it out of a
   commit):
@@ -959,7 +1077,10 @@ java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431
 ```
 
 The second exits 1 with two sentences and no stack trace — `TiffinBox could not listen on 127.0.0.1:18431: something else
-already listens there.` and `Stop the program on that port, or start TiffinBox on another: --tiffinbox.port=<a free port>.` Before
+already listens there.` and `Stop the program on that port, or start TiffinBox on another: --tiffinbox.port=<a free port>.` *(Course
+6, unit 04: `PortTakenFailureAnalyzer` is deleted, and its name is out of `spring.factories`: a port taken is Tomcat's now, and
+Boot's own analyzer prints `Web server failed to start. Port 18431 was already in use.` — exit 1, no stack trace; its action
+names no setting.)* Before
 this change it printed 40 stack frames and no analysis: Boot's own port analyzer, `PortInUseFailureAnalyzer`, lives in
 `spring-boot-web-server`, for Boot's own web servers, and it only knows Boot's own `PortInUseException`; TiffinBox's server is
 the JDK's. An address this machine does not have is not a taken port — the trace, and `Can't assign requested address`:
@@ -967,6 +1088,9 @@ the JDK's. An address this machine does not have is not a taken port — the tra
 ```bash
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --tiffinbox.address=192.0.2.1
 ```
+
+*(Course 6, unit 04: on Tomcat that start fails as `Unable to start embedded Tomcat server`, with the trace and no analysis —
+`../c6-unit04/`, `taken` D.)*
 
 The analysis for the taken port comes from the AOT jar and from the native binary too. **The trace is still there**, with Boot's
 condition report, under `--debug`:
@@ -1238,6 +1362,8 @@ kitchen value:  24300
 routes mapped:  [GET /customers, GET /dashboard, GET /kitchen, GET /revenue, POST /shutdown]
 TiffinBox listening on http://127.0.0.1:18425
 ```
+
+*(Course 6, unit 04: that last line is gone — Tomcat's `Tomcat started on port …` replaces it.)*
 
 `-Djava.util.logging.config.file=` is not decoration: `logging.properties` pins
 `SimpleFormatter.format = %5$s%n`, and without it the JDK stamps a date and the calling method

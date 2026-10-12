@@ -45,8 +45,8 @@
       <optional>true</optional>
     </dependency>
     <!-- Course 5: Boot's Actuator - endpoints that report on the running application, health first, and Micrometer
-         for its metrics. TiffinBox's own server answers them under /actuator (ActuatorRoutes): Boot's HTTP side of
-         Actuator waits for a web application it knows, and TiffinBox's server is the JDK's. -->
+         for its metrics. Course 6: with Spring MVC below, TiffinBox is the web application Boot's HTTP side of Actuator
+         waits for, and Boot's own adapter answers them under /actuator (Course 5's ActuatorRoutes is gone). -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
@@ -58,6 +58,13 @@
     <dependency>
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+    <!-- Course 6: Spring MVC and the server it runs on - embedded Tomcat, Spring's DispatcherServlet, and Jackson 3,
+         which writes Spring's own JSON (an error body, Actuator's answers). TiffinBox's routes sit behind the
+         DispatcherServlet (RouteMapping), and their answers keep the Jackson 2 above. Boot's parent manages its version. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc</artifactId>
     </dependency>
   </dependencies>
 
@@ -73,22 +80,15 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
         <!-- Course 5: Spring's ahead-of-time step (process-aot, the profile native) reads Maven's class path, not the
-             jar's - with the optional Docker Compose module and the Jackson 3 it brings. With Actuator, it decided on a
-             Jackson 3 JSON mapper the jar and the binary do not hold, and both stopped at start. These three excludes
-             keep the three jars out of that step, as the native plugin's exclusions keep them out of the binary. -->
+             jar's - with the optional Docker Compose module. This exclude keeps it out of that step, as the native
+             plugin's exclusion keeps it out of the binary. Course 6: the two Jackson 3 excludes beside it are gone. Course
+             5 needed them because the Compose module's Jackson 3 reached that step but not the jar; Spring MVC's starter
+             puts Jackson 3 in the jar, so the step, the jar and the binary hold the same Jackson again. -->
         <configuration>
           <excludes>
             <exclude>
               <groupId>org.springframework.boot</groupId>
               <artifactId>spring-boot-docker-compose</artifactId>
-            </exclude>
-            <exclude>
-              <groupId>tools.jackson.core</groupId>
-              <artifactId>jackson-databind</artifactId>
-            </exclude>
-            <exclude>
-              <groupId>tools.jackson.core</groupId>
-              <artifactId>jackson-core</artifactId>
             </exclude>
           </excludes>
         </configuration>
@@ -103,21 +103,13 @@
         <groupId>org.graalvm.buildtools</groupId>
         <artifactId>native-maven-plugin</artifactId>
         <!-- Course 5: the plugin builds the binary from Maven's class path, not from the jar's - with the optional Docker
-             Compose module and the Jackson 3 it brings, which the executable jar leaves out. These three exclusions keep
-             them out of the binary too. -->
+             Compose module, which the executable jar leaves out. This exclusion keeps it out of the binary too. Course 6:
+             the two Jackson 3 exclusions are gone - Spring MVC's starter puts Jackson 3 in the jar, and in the binary. -->
         <configuration>
           <exclusions>
             <exclusion>
               <groupId>org.springframework.boot</groupId>
               <artifactId>spring-boot-docker-compose</artifactId>
-            </exclusion>
-            <exclusion>
-              <groupId>tools.jackson.core</groupId>
-              <artifactId>jackson-databind</artifactId>
-            </exclusion>
-            <exclusion>
-              <groupId>tools.jackson.core</groupId>
-              <artifactId>jackson-core</artifactId>
             </exclusion>
           </exclusions>
         </configuration>
