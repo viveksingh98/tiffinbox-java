@@ -1,0 +1,8 @@
+# Boot's own file of names, read by a loader - one key per kind of thing Boot asks for, its classes after the "=".
+# ApplicationListener: a listener Boot calls from the first moment of a start, before any container exists. TiffinBox's
+# BareArgumentGuard listens for the prepared environment - the arguments parsed, nothing started - and refuses a bare argument.
+# FailureAnalyzer: when a start fails, Boot asks every analyzer named here, in every such file on the class path, in turn; the
+# first that recognises the failure prints its description and action instead of the stack trace. TiffinBox's two explain its
+# own port taken and its refusal of a bare argument.
+org.springframework.context.ApplicationListener=com.tiffinbox.web.BareArgumentGuard
+org.springframework.boot.diagnostics.FailureAnalyzer=com.tiffinbox.web.PortTakenFailureAnalyzer,com.tiffinbox.web.BareArgumentAnalyzer
