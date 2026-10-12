@@ -11,17 +11,21 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # video says is asserted at the bottom by a check that can fail; the demo token is masked (gsub), and the checks count 0 raw
 # copies of it in every capture, in the log of every JVM, and in every file this unit ships.
 #   before    where the last course left it: the anchor alone (the README's run line) - its one listener, the seven, exit 0;
-#             then the copy - the POM's diff, the jars each executable jar carries, the copy's run line: two servers in one JVM,
-#             each named by its port and its own log line, both addresses read off the process; the seven on TiffinBox's port;
-#             after POST /shutdown TiffinBox's port is closed and the JVM lives on, so it is stopped by its process id
+#             then the copy - the POM's diff, the jars each executable jar carries; C (labelled): the copy's run line with Tomcat's
+#             own connector logger at INFO - its lines name the address, and Boot's logging defaults set that logger to WARN; then
+#             the copy's run line at Boot's default levels: two servers in one JVM, each named by its port and its log line
+#             (TiffinBox's own; Boot's started line for Tomcat, which names the port), both addresses read off the process; the
+#             seven on TiffinBox's port; after POST /shutdown TiffinBox's port is closed and the JVM lives on, so it is stopped by
+#             its process id
 #   toy       the toy path: a copy of the copy with ONE line added to TiffinBox's customers() (its diff -U0 hunk first) that
 #             prints the frames the stack walker shows when -Dprobe.stack=true; GET /customers on TiffinBox's own port - the
 #             frames, grouped by the declared filter; then C (labelled): GET /nowhere on TiffinBox's own port
 #   path      the industrial path: the harness's @RestController (probe.path.Stack, outside com.tiffinbox) on Tomcat's port
 #             returns its own stack - the thread, the frames, grouped bottom to top by the declared filter
-#   log       the path in Spring's own words - the anchor README's web line (Boot's log group web at DEBUG) on the copy: A GET
-#             /probe/stack · B GET /nowhere, a path nobody declared · A' = A, its $ command shown - each with the lines it
-#             added at DEBUG
+#   log       the path in Spring's own words - the anchor README's web line (Boot's log group web at DEBUG) on the copy, readiness
+#             polled on TiffinBox's own port so that the README's readiness line is the first request to reach Tomcat; the lines
+#             at DEBUG before A counted, not shown; A GET /probe/stack · B GET /nowhere, a path nobody declared · A' = A, its $
+#             command shown - each with the lines it added at DEBUG
 #   exercise  exercise/README.md's commands, exactly as written (the misspelt option), then exercise/solution/SOLUTION.md's
 #             line, then the README's run line again (A')
 # Commands are printed exactly as they run: each goes through eval. "$CURLSET" is the comparison set since the last course's
@@ -119,6 +123,7 @@ R_READY=$(readme "curl -s -w ' %{http_code}\n' http://127.0.0.1:18431/actuator/h
 # the copy) and its class joined (--spring.main.sources). Each is asserted to be exactly that, so nothing else changed.
 COPY='--server.address=127.0.0.1 --server.port=18432'
 R_MRUN=$(ours "java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 $COPY")
+R_MCON=$(ours "java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 $COPY --logging.level.org.apache.coyote.http11.Http11NioProtocol=info")
 R_TOY=$(ours "java -Dprobe.stack=true -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.kitchen=debug $COPY")
 R_HCP=$(ours "java -cp \"tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc\" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=18431 $COPY --spring.main.sources=probe.path.Stack")
 R_HWEB=$(ours "java -cp \"tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc\" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=18431 --logging.level.web=debug $COPY --spring.main.sources=probe.path.Stack")
@@ -128,6 +133,7 @@ R_NOWH=$(ours "curl -s -w ' %{http_code} %{content_type}\n' http://127.0.0.1:184
 R_TCUST=$(ours "curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:18431/customers")
 R_TNOWH=$(ours "curl -s -w ' %{http_code} %{content_type}\n' http://127.0.0.1:18431/nowhere")
 [ "$R_MRUN" = "$R_RUN $COPY" ] || die "the copy's run line: the README's run line and the copy's two options"
+[ "$R_MCON" = "$R_MRUN --logging.level.org.apache.coyote.http11.Http11NioProtocol=info" ] || die "C's line: the copy's run line and one logging option"
 [ "$R_TOY" = "${R_KDEBUG/java -jar/java -Dprobe.stack=true -jar} $COPY" ] || die "the toy's line: the README's DEBUG line, the probe's switch and the copy's two options"
 [ "$R_HCP" = "${R_CP/lib\/\*\"/lib/*:../hc\"} $COPY --spring.main.sources=probe.path.Stack" ] || die "the harness's line: the README's class-path line, the harness's classes, the copy's options, the harness joined"
 [ "$R_HWEB" = "${R_HCP/--tiffinbox.port=18431 /--tiffinbox.port=18431 ${R_WEB##* } }" ] || die "the harness's web line: the harness's line and the README's web flag"
@@ -146,7 +152,7 @@ exe() { printf '%s\n' "$1" | sed -E 's/&& (([A-Z_]+=[^ ]* )*)/\&\& \1exec /'; }
 [ "$(at .harness/x 19304 19305 "$R_HCP")" = 'cd .harness/x && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19304 --server.address=127.0.0.1 --server.port=19305 --spring.main.sources=probe.path.Stack' ] || die "at(), the harness's line"
 [ "$(exe "$(at .harness/x 19300 19301 "$R_MRUN")")" = 'cd .harness/x && exec java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19300 --server.address=127.0.0.1 --server.port=19301' ] || die "exe()"
 [ "$(url "$R_TNOWH" 19302)" = "curl -s -w ' %{http_code} %{content_type}\n' http://127.0.0.1:19302/nowhere" ] && [ "$(url "$R_NOWH" 19307)" = "curl -s -w ' %{http_code} %{content_type}\n' http://127.0.0.1:19307/nowhere" ] || die "url()"
-echo "  the commands: anchor/README.md gives the 7 lines this script runs or derives from; README.md the copy's 10"
+echo "  the commands: anchor/README.md gives the 7 lines this script runs or derives from; README.md the copy's 11"
 
 # ---- build: before the captures - the copy, the anchor, the toy; on a fresh clone (.m2-demo empty: git ignores it) the first
 # ---- build fills .m2-demo, once. No capture builds anything but the exercise, whose README builds its own copy.
@@ -202,6 +208,16 @@ ready() { local i=0 c=""
     kill -0 "$pid" 2> /dev/null || { tail -20 .harness/run.out >&3; die "it exited before readiness answered 200"; }; sleep 0.25; i=$((i + 1)); done
   [ "$c" = 200 ] || die "readiness never answered 200 on $1"
   local q; q=$(url "$R_READY" "$1"); echo "\$ $q"; (eval "$q") 2>&1 < /dev/null | sed 's/^/  /'; }
+# readyvia TPORT CPORT: readiness polled on TiffinBox's own port (not printed) until it answers 200 - every 0.25 s, up to 60 s. It
+# answers 200 only once the start has finished, so Boot's started line for Tomcat must already be in the log (checked); then the
+# README's readiness line, printed and run once on Tomcat's port - the first request to reach Tomcat, so the lines Spring logs
+# before the next request are a count, not a range (log only; brief S1.13 polls Tomcat's port - README, "Found on the way")
+readyvia() { local i=0 c="" q
+  while [ $i -lt 240 ]; do c=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$1/actuator/health/readiness" 2> /dev/null || true); [ "$c" = 200 ] && break
+    kill -0 "$pid" 2> /dev/null || { tail -20 .harness/run.out >&3; die "it exited before readiness answered 200"; }; sleep 0.25; i=$((i + 1)); done
+  [ "$c" = 200 ] || die "readiness never answered 200 on $1"
+  grep -qE " : Tomcat started on port $2 " .harness/run.out || die "readiness answered 200 on $1 before Boot's started line for Tomcat on $2 was in the log"
+  q=$(url "$R_READY" "$2"); echo "\$ $q"; (eval "$q") 2>&1 < /dev/null | sed 's/^/  /'; }
 # addrs PORT...: the addresses the JVM listens on, read off its process (after readiness: both servers are up by then); each must
 # be 127.0.0.1 and one of PORT... - the answer is printed, computed, and the checks below read it
 addrs() { local a w p ok=yes
@@ -209,9 +225,13 @@ addrs() { local a w p ok=yes
   w=" $*"; for p in $a; do case "$p" in 127.0.0.1:*) case "$w " in *" ${p#127.0.0.1:} "*) ;; *) ok=no ;; esac ;; *) ok=no ;; esac; done
   [ "$(printf '%s\n' $a | grep -c .)" = $# ] || ok=no
   echo "  listening, read off its process: ${a:-nothing} · on 127.0.0.1 alone, each a port of this run: $ok"; }
-# own TPORT [CPORT]: each server's own line - TiffinBox's, and Tomcat's when there is one (Tomcat's never names the address)
+# own TPORT [CPORT]: each server's log line - TiffinBox's own, and, when Tomcat runs beside it, Boot's started line for Tomcat
+# (its logger printed: Boot's class, o.s.boot.tomcat.TomcatWebServer), which names the port; Tomcat's own connector line, which
+# names the address too, is below the level Boot's logging defaults give its logger (C in before)
 own() { echo "  TiffinBox's own line ($1): $(msg 'TiffinBox listening on ')"
-  [ -z "${2:-}" ] || echo "  Tomcat's own line ($2): $(msg 'Tomcat started on port ')"; }
+  [ -z "${2:-}" ] || echo "  Boot's started line ($2) - logger: message: $(grep -m1 -E ' : Tomcat started on port ' .harness/run.out | sed 's/^.*--- \[[^]]*\] //; s/ *: /: /')"; }
+# con: Tomcat's own connector lines in the run's log (logger org.apache.coyote.http11.Http11NioProtocol), from the logger on
+con() { grep -E ' o\.a\.coyote\.http11\.Http11NioProtocol +: ' .harness/run.out | sed 's/^.*--- \[[^]]*\] //; s/ *: /: /' || true; }
 logtok() { local t h; t=$(raw "$TOKEN" .harness/run.out .harness/run.err); h=$(cat .harness/run.out .harness/run.err | LC_ALL=C grep -aoi -- 'x-shutdown-token' | wc -l | tr -d ' ')
   LOGS=$((LOGS + 1)); [ "$t" = 0 ] && [ "$h" = 0 ] || die "a log held the demo token ($t) or its header's name ($h)"
   echo "  its log: the demo token 0 times · X-Shutdown-Token 0 times · WARN lines $(grep -cE '^[0-9-]+T[^ ]+ +WARN ' .harness/run.out || true) · ERROR lines $(grep -cE '^[0-9-]+T[^ ]+ +ERROR ' .harness/run.out || true)"; }
@@ -230,15 +250,15 @@ seven() { local i e=0
   [ "$(listeners "$1")" = 0 ] || die "something still listens on $1"
   echo "  exit $e · the seven responses: $(wc -l < .harness/responses.txt | tr -d ' ') lines · md5 $(md5 -q .harness/responses.txt)"
   logtok; }
-# halt TPORT CPORT: the JVM stopped by its process id (TERM), waited for (30 s at most), its exit code; Tomcat's own lines on the
-# way out; both ports free; its log counted (logtok). Never pkill.
+# halt TPORT CPORT: the JVM stopped by its process id (TERM), waited for (30 s at most), its exit code; Boot's graceful-shutdown
+# lines on the way out, with their logger (Boot's class); both ports free; its log counted (logtok). Never pkill.
 halt() { local i=0 e=0
   echo "\$ kill \"\$pid\"    # TERM, by its process id"
   kill "$pid" 2> /dev/null || true
   while kill -0 "$pid" 2> /dev/null && [ $i -lt 120 ]; do sleep 0.25; i=$((i + 1)); done
   kill -0 "$pid" 2> /dev/null && { kill -9 "$pid"; die "the JVM on $1/$2 was still running 30 s after TERM"; }
   wait "$pid" || e=$?; pid=""
-  echo "  exit $e · Tomcat's own lines on the way out: $(grep -E ' : (Commencing graceful shutdown|Graceful shutdown complete)' .harness/run.out | sed 's/^.* : //' | paste -sd'|' - | sed 's/|/ · /g')"
+  echo "  exit $e · Boot's graceful-shutdown lines ($(grep -E ' : (Commencing graceful shutdown|Graceful shutdown complete)' .harness/run.out | sed 's/^.*--- \[[^]]*\] //; s/ *: .*$//' | sort -u | paste -sd' ' -)): $(grep -E ' : (Commencing graceful shutdown|Graceful shutdown complete)' .harness/run.out | sed 's/^.* : //' | paste -sd'|' - | sed 's/|/ · /g')"
   now "$1" "$2"; [ "$(listeners "$1")$(listeners "$2")" = 00 ] || die "a port of the JVM on $1/$2 is still taken"
   logtok; }
 # seven2 TPORT CPORT DIR: the seven against TiffinBox's port while Tomcat serves beside it - every response line printed and the
@@ -264,7 +284,7 @@ function layer(f, top) {
   if (f ~ /^org\.apache\.tomcat\.util\.net\.|^org\.apache\.coyote\.|^org\.apache\.catalina\.connector\./) return "the connector"
   if (f ~ /^sun\.net\.httpserver\.ServerImpl\$Exchange\./) return "the JDK server"
   if (f ~ /^org\.apache\.catalina\.core\.Standard|^org\.apache\.catalina\.valves\.|^org\.apache\.catalina\.authenticator\./) return "the container"
-  if (f ~ /^org\.apache\.catalina\.core\.ApplicationFilterChain\.|^org\.springframework\.web\.filter\.|^org\.apache\.tomcat\.websocket\.server\.WsFilter\.|^com\.sun\.net\.httpserver\.Filter\$|^sun\.net\.httpserver\.(AuthFilter|ServerImpl\$Exchange\$LinkHandler)\./) return "the filters"
+  if (f ~ /^org\.apache\.catalina\.core\.ApplicationFilterChain\.|^org\.springframework\.web\.filter\.|^org\.apache\.tomcat\.websocket\.server\.WsFilter\.|^com\.sun\.net\.httpserver\.Filter\$|^sun\.net\.httpserver\.(AuthFilter|ServerImpl\$Exchange\$LinkHandler)\./) return "the filter chain"
   if (f ~ /^jakarta\.servlet\.|^org\.springframework\.web\.servlet\.FrameworkServlet\./) return "the servlet"
   if (f ~ /^org\.springframework\.web\.(servlet|method)\./) return "Spring MVC"
   if (f ~ /^com\.tiffinbox\./) return "TiffinBox router"
@@ -278,7 +298,7 @@ END {
     k = l SUBSEP c; if (!(k in kc)) { kord[l, ++nk[l]] = c }; kc[k]++ }
   for (j = 1; j <= nl; j++) { l = ord[j]; s = ""
     for (m = 1; m <= nk[l]; m++) { c = kord[l, m]; s = s (m > 1 ? " · " : "") c (kc[l, c] > 1 ? " ×" kc[l, c] : "") }
-    printf "  %2d  %-14s %s\n", cnt[l], l, s }
+    printf "  %2d  %-16s %s\n", cnt[l], l, s }
   printf "  %2d  in all · frames no rule took: %d\n", n, cnt["unmatched"] + 0 }
 function meth(f,   m) { m = f; sub(/^.*\./, "", m); return m }'
 # frames FILE: the frame lines of FILE ("N frame"), counted and printed as they came, then grouped (GROUPAWK)
@@ -352,8 +372,15 @@ before() { local P=19300 T=19301
   jar tf .harness/mvc/tiffinbox-web/target/tiffinbox-web-1.0.0.jar | grep -E '^BOOT-INF/lib/.+\.jar$' | sed 's/^BOOT-INF\/lib\///' | sort > .harness/lib-mvc.txt
   echo "  the anchor's: $(grep -c . .harness/lib-anchor.txt) · the copy's: $(grep -c . .harness/lib-mvc.txt) · only in the copy's: $(comm -13 .harness/lib-anchor.txt .harness/lib-mvc.txt | grep -c .) · only in the anchor's: $(comm -23 .harness/lib-anchor.txt .harness/lib-mvc.txt | grep -c . || true)"
   comm -13 .harness/lib-anchor.txt .harness/lib-mvc.txt | sed 's/^/    + /'
+  echo "C (labelled) - the copy's run line with Tomcat's own connector logger at INFO (README.md: one logging option added), from .harness/mvc, ports $P and $T:"
+  start "$(at .harness/mvc $P $T "$R_MCON")"; ready $T; addrs $P $T; own $P $T
+  echo "  Tomcat's own connector lines, before the stop - logger: message:"; con | sed 's/^/    /'
+  local j; j=$(ls .harness/mvc/tiffinbox-web/target/extracted/lib | grep -E '^spring-boot-[0-9.]+\.jar$')
+  echo "  Boot's logging defaults for that logger ($j, org/springframework/boot/logging/logback/defaults.xml): $(unzip -p ".harness/mvc/tiffinbox-web/target/extracted/lib/$j" org/springframework/boot/logging/logback/defaults.xml | grep -F '"org.apache.coyote.http11.Http11NioProtocol"' | sed 's/^[[:space:]]*//')"
+  halt $P $T
   echo "the copy, two servers in one JVM - the copy's run line (README.md: the anchor's, Tomcat's address and port added), from .harness/mvc, ports $P and $T:"
   start "$(at .harness/mvc $P $T "$R_MRUN")"; ready $T; addrs $P $T; own $P $T
+  echo "  Tomcat's own connector lines in this log, at Boot's default levels: $(con | grep -c . || true)"
   echo "the seven, on TiffinBox's own port:"
   seven2 $P $T .harness/mvc; }
 
@@ -396,10 +423,21 @@ path() { local P=19304 T=19305
 ask() { local c w0; c=$(url "$1" "$2"); w0=$(wcount)
   echo "\$ $c"; (eval "$c") 2>&1 < /dev/null | sed 's/^/  /'
   wsettle; echo "  its lines at DEBUG: $(( $(wcount) - w0 ))"; wlines "$w0"; }
+# cut0: Spring's lines at DEBUG before A, not shown - counted, all of them, by where they fall: before Boot's started line (the
+# context's start), and with the README's readiness request on Tomcat's port, the first request to reach Tomcat (readyvia), the
+# DispatcherServlet's set-up among them - the lines between its "Initializing Servlet" and "Completed initialization" lines
+cut0() { local u a b
+  u=$(grep -nE ' : Tomcat started on port ' .harness/run.out | head -1 | cut -d: -f1)
+  a=$(grep -nE " : Initializing Servlet 'dispatcherServlet'" .harness/run.out | head -1 | cut -d: -f1)
+  b=$(grep -nE ' : Completed initialization in ' .harness/run.out | head -1 | cut -d: -f1)
+  [ -n "$u" ] && [ -n "$a" ] && [ -n "$b" ] || die "log: Boot's started line, or the DispatcherServlet's two set-up lines, missing before A"
+  grep -nE "$WEBL" .harness/run.out | cut -d: -f1 | awk -v u="$u" -v a="$a" -v b="$b" '
+    { n++; if ($1 < u) s++; else if ($1 > a && $1 < b) k++; else r++ }
+    END { printf "  Spring%cs lines at DEBUG before A, not shown - counted: %d · %d while the context started, before Boot%cs started line · %d with the README%cs readiness request, the first to reach Tomcat - %d of them the DispatcherServlet%cs set-up, between its Initializing Servlet and Completed initialization lines\n", 39, n, s, 39, k + r, 39, k, 39 }'; }
 logcap() { local P=19306 T=19307 w
   echo "the anchor README's web line (Boot's log group web at DEBUG) on the copy, with the harness - README.md, ports $P and $T:"
-  start "$(at .harness/mvc $P $T "$R_HWEB")"; ready $T; addrs $P $T; own $P $T
-  wsettle; echo "  Spring's lines at DEBUG before A - readiness, and the DispatcherServlet's set-up at the first request - are not shown: their number moves with the polls readiness took"
+  start "$(at .harness/mvc $P $T "$R_HWEB")"; readyvia $P $T; addrs $P $T; own $P $T
+  wsettle; cut0
   echo "A - GET /probe/stack on Tomcat's port, the harness's route:"
   ask "$R_ASK" $T
   echo "B - GET /nowhere on Tomcat's port, a path nobody declared:"
@@ -470,10 +508,12 @@ echo "  token: 0 raw copies in $(ls .harness/raw-* | wc -l | tr -d ' ') raw capt
 
 # LOOP 'TEXT' PORTS WHAT: the listening line - on 127.0.0.1 alone, the run's own ports
 loop() { has "$1" "  listening, read off its process: $2 · on 127.0.0.1 alone, each a port of this run: yes" "$3: listening on 127.0.0.1 alone"; }
-HALT="  exit 143 · Tomcat's own lines on the way out: Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete"
+HALT="  exit 143 · Boot's graceful-shutdown lines (o.s.boot.tomcat.GracefulShutdown): Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete"
+# STARTED PORT: Boot's started line for Tomcat, its logger Boot's class
+started() { printf "  Boot's started line (%s) - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port %s (http) with context path '/'\n" "$1" "$1"; }
 # "The last course ended here: TiffinBox's own server, the seven. One dependency line puts Spring MVC beside it: twelve jars more,
 # Tomcat among them. Two servers in one JVM, each on its own port, both on this computer only. The seven: the same."
-B0=$(blk before 'where the last course left it' 'the copy - Spring MVC'); B1=$(blk before 'the copy, two servers' '')
+B0=$(blk before 'where the last course left it' 'the copy - Spring MVC'); BC=$(blk before 'C (labelled)' 'the copy, two servers'); B1=$(blk before 'the copy, two servers' '')
 loop "$B0" "127.0.0.1:19300" "before, the anchor"; has "$B0" "  TiffinBox's own line (19300): TiffinBox listening on http://127.0.0.1:19300" "before: the anchor's line"
 has "$B0" "  exit 0 · the seven responses: 7 lines · md5 $S115" "before: the anchor's seven, exit 0"; has "$B0" "$LOGOK" "before: the anchor's log"
 x before '^the anchor against the last course.s own anchor, \.\./c5-tiffinbox .*: 0 differences$'
@@ -485,23 +525,31 @@ x before '^  \+    <dependency><groupId>org\.springframework\.boot</groupId><art
 NJA=$(sed -n 's/^  the anchor.s: \([0-9]*\) · .*/\1/p' .r-before.out); NJM=$(sed -n 's/^  the anchor.s: [0-9]* · the copy.s: \([0-9]*\) · .*/\1/p' .r-before.out)
 x before "^  the anchor's: $NJA · the copy's: $NJM · only in the copy's: 12 · only in the anchor's: 0\$"; [ $((NJM - NJA)) = 12 ] || die "before: twelve jars more"
 for j in tomcat-embed-core spring-webmvc spring-web jackson-databind-3; do x before "^    \+ $j"; done
+# "Boot's started line names the port; Tomcat's own connector line names the address, and Boot's defaults hide it" - C, then the copy
+loop "$BC" "127.0.0.1:19300 127.0.0.1:19301" "before, C"; has "$BC" "$(started 19301)" "before C: Boot's started line"
+has "$BC" '    o.a.coyote.http11.Http11NioProtocol: Initializing ProtocolHandler ["http-nio-127.0.0.1-19301"]' "before C: Tomcat's connector line names the address"
+has "$BC" '    o.a.coyote.http11.Http11NioProtocol: Starting ProtocolHandler ["http-nio-127.0.0.1-19301"]' "before C: Tomcat's second connector line"
+[ "$(printf '%s\n' "$BC" | grep -c '^    o\.a\.coyote\.http11\.Http11NioProtocol: ' || true)" = 2 ] || die "before C: two connector lines"
+has "$BC" '  Boot'"'"'s logging defaults for that logger (spring-boot-4.1.1.jar, org/springframework/boot/logging/logback/defaults.xml): <logger name="org.apache.coyote.http11.Http11NioProtocol" level="WARN"/>' "before C: Boot's default level for Tomcat's connector logger"
+has "$BC" "$HALT" "before C: stopped by its process id"; has "$BC" "  listening now: 19300 0 · 19301 0" "before C: both ports free"; has "$BC" "$LOGOK" "before C: its log"
 loop "$B1" "127.0.0.1:19300 127.0.0.1:19301" "before, the copy"
 has "$B1" "  TiffinBox's own line (19300): TiffinBox listening on http://127.0.0.1:19300" "before: TiffinBox's line"
-has "$B1" "  Tomcat's own line (19301): Tomcat started on port 19301 (http) with context path '/'" "before: Tomcat's line"
+has "$B1" "$(started 19301)" "before: Boot's started line"
+has "$B1" "  Tomcat's own connector lines in this log, at Boot's default levels: 0" "before: Tomcat's connector lines hidden at Boot's default levels"
 has "$B1" "  the seven responses: 7 lines · md5 $S115" "before: the copy's seven"
 has "$B1" "  after POST /shutdown: TiffinBox's port 19300, listening: 0 · the JVM, 2 s later: alive · it listens on: 127.0.0.1:19301" "before: TiffinBox's server stopped, the JVM lived"
 has "$B1" "$HALT" "before: stopped by its process id"; has "$B1" "  listening now: 19300 0 · 19301 0" "before: both ports free"; has "$B1" "$LOGOK" "before: the copy's log"
-echo "  before: the anchor 127.0.0.1:19300, the seven $S115, exit 0 · = ../c5-tiffinbox · the copy: 1 file, +1 line, 2 excludes; jars $NJA -> $NJM (+12) · 127.0.0.1:19300 + :19301, each its own line · the seven $S115 · TiffinBox stopped, the JVM lived; TERM -> 143, graceful, both free"
+echo "  before: the anchor 127.0.0.1:19300, the seven $S115, exit 0 · = ../c5-tiffinbox · the copy: 1 file, +1 line, 2 excludes; jars $NJA -> $NJM (+12) · C: Tomcat's connector lines name 127.0.0.1:19301 at INFO, Boot's defaults WARN · 127.0.0.1:19300 + :19301, TiffinBox's line and Boot's started line, 0 connector lines · the seven $S115 · TiffinBox stopped, the JVM lived; TERM -> 143, Boot's graceful lines, both free"
 
 # "TiffinBox's own server needs eleven frames, on a virtual thread: the JDK's server, its own filter chain, your router, your method."
 x toy '^  @@ -106,0 \+107 @@$'; [ "$(blk toy '$ diff -U0 anchor/' '$ cd .harness/toy' | grep -c '^  [+-]')" = 1 ] || die "toy: one line added"
 loop "$(cat .r-toy.out)" "127.0.0.1:19302 127.0.0.1:19303" "toy"
-x toy "^  Tomcat's own line \(19303\): Tomcat started on port 19303 \(http\) with context path '/'\$"
+has "$(cat .r-toy.out)" "$(started 19303)" "toy: Boot's started line"
 NTOY=$(sed -n 's/^  the frames the stack walker shows, printed by the line in customers(): \([0-9]*\)$/\1/p' .r-toy.out); [ "$NTOY" = 11 ] || die "toy: eleven frames"
 x toy '^   1 java\.lang\.VirtualThread\.run$'; x toy '^  11 com\.tiffinbox\.web\.TiffinBoxServer\.customers$'
 x toy '^  11  in all · frames no rule took: 0$'
 x toy '^   2  the thread +VirtualThread · ThreadPerTaskExecutor\$TaskRunner$'; x toy '^   1  the JDK server +ServerImpl\$Exchange$'
-x toy '^   5  the filters +Filter\$Chain ×3 · ServerImpl\$Exchange\$LinkHandler · AuthFilter$'; x toy '^   2  TiffinBox router +TiffinBoxServer ×2$'
+x toy '^   5  the filter chain +Filter\$Chain ×3 · ServerImpl\$Exchange\$LinkHandler · AuthFilter$'; x toy '^   2  TiffinBox router +TiffinBoxServer ×2$'
 x toy '^   1  your method +TiffinBoxServer\.customers$'
 x toy '^  how handle\(\) calls the method - the anchor.s TiffinBoxServer\.java, line [0-9]+: respond\(exchange, 200, handler\.invoke\(this\)\); - reflection \(Method\.invoke\): no frame of it above, the stack walker hides reflection.s own$'
 [ "$(grep -c 'java\.lang\.reflect\.\|jdk\.internal\.reflect\.' .r-toy.out .r-path.out | awk -F: '{ s += $2 } END { print s }')" = 0 ] || die "a reflection frame shows"
@@ -511,31 +559,34 @@ has "$T1" "  200 application/json" "toy: /customers 200"; has "$T1" "  TiffinBox
 has "$TC" "  <h1>404 Not Found</h1>No context found for request 404 text/html" "toy C: the JDK's page"; has "$TC" "  TiffinBox's lines at DEBUG it added: 0" "toy C: no line"
 has "$TC" "  the line in customers() printed, in all: 11 frames" "toy C: customers() not called"
 has "$TC" "$HALT" "toy: stopped by its process id"; has "$TC" "  listening now: 19302 0 · 19303 0" "toy: both ports free"
-echo "  toy: one line added; 11 frames, VirtualThread.run at the bottom; 2 thread · 1 JDK server · 5 filters · 2 router · 1 method; C: the JDK's 404, 0 lines"
+echo "  toy: one line added; 11 frames, VirtualThread.run at the bottom; 2 thread · 1 JDK server · 5 filter chain · 2 router · 1 method; C: the JDK's 404, 0 lines"
 
 # "Spring's needs forty-five: Tomcat's pool thread, four; the connector, six; the container, six; the filter chain, fifteen, five
 # filters; the servlet, five; the DispatcherServlet and the handler adapter, eight; your method, one."
 loop "$(cat .r-path.out)" "127.0.0.1:19304 127.0.0.1:19305" "path"
-x path "^  Tomcat's own line \(19305\): Tomcat started on port 19305 \(http\) with context path '/'\$"
+has "$(cat .r-path.out)" "$(started 19305)" "path: Boot's started line"
 x path '^  thread http-nio-127\.0\.0\.1-19305-exec-N · virtual false$'; x path '^  frames the stack walker shows: 45$'
 x path '^  45 probe\.path\.Stack\.frames$'; x path '^   1 java\.lang\.Thread\.run$'
 x path '^  45  in all · frames no rule took: 0$'
 x path '^   4  the thread +Thread · TaskThread\$WrappingRunnable · ThreadPoolExecutor\$Worker · ThreadPoolExecutor$'
 x path '^   6  the connector +SocketProcessorBase · NioEndpoint\$SocketProcessor · AbstractProtocol\$ConnectionHandler · AbstractProcessorLight · Http11Processor · CoyoteAdapter$'
 x path '^   6  the container +StandardEngineValve · ErrorReportValve · StandardHostValve · AuthenticatorBase · StandardContextValve · StandardWrapperValve$'
-x path '^  15  the filters +ApplicationFilterChain ×6 · OncePerRequestFilter ×4 · CharacterEncodingFilter · ServerHttpObservationFilter · FormContentFilter · RequestContextFilter · WsFilter$'
+x path '^  15  the filter chain +ApplicationFilterChain ×6 · OncePerRequestFilter ×4 · CharacterEncodingFilter · ServerHttpObservationFilter · FormContentFilter · RequestContextFilter · WsFilter$'
 x path '^   5  the servlet +HttpServlet ×2 · FrameworkServlet ×3$'
 x path '^   8  Spring MVC +DispatcherServlet ×2 · AbstractHandlerMethodAdapter · RequestMappingHandlerAdapter ×2 · ServletInvocableHandlerMethod · InvocableHandlerMethod ×2$'
 x path '^   1  your method +Stack\.frames$'
 x path "^  its log at INFO, from the first request on Tomcat's port \(readiness's\) - logger: message: o\.a\.c\.c\.C\.\[Tomcat\]\.\[localhost\]\.\[/\]: Initializing Spring DispatcherServlet 'dispatcherServlet'\$"
 x path '^  the filters themselves - .*: 5 - Spring: CharacterEncodingFilter · Spring: ServerHttpObservationFilter · Spring: FormContentFilter · Spring: RequestContextFilter · Tomcat: WsFilter$'
-x path "^$HALT\$"; x path '^  listening now: 19304 0 · 19305 0$'
-echo "  path: 45 frames on http-nio-…-exec-N, not virtual: 4 thread · 6 connector · 6 container · 15 filters (5 filters: 4 Spring's, Tomcat's WsFilter) · 5 servlet · 8 Spring MVC · 1 method; 0 unmatched"
+grep -qxF -- "$HALT" .r-path.out || die "path: stopped by its process id, Boot's graceful-shutdown lines"; x path '^  listening now: 19304 0 · 19305 0$'
+echo "  path: 45 frames on http-nio-…-exec-N, not virtual: 4 thread · 6 connector · 6 container · 15 filter chain (5 filters: 4 Spring's, Tomcat's WsFilter) · 5 servlet · 8 Spring MVC · 1 method; 0 unmatched"
 
 # "A: five lines - the request, mapped to your method, completed 200. B: slash nowhere still finds a handler, the static-resource
 # one; an exception; the container sends it back through the DispatcherServlet, to Boot's error controller; JSON, four oh four.
 # A again: the same five lines."
 loop "$(cat .r-log.out)" "127.0.0.1:19306 127.0.0.1:19307" "log"
+# the cut before A, counted (R.13, R.53, R.83): the README's readiness line is the first request to reach Tomcat
+grep -qxF -- "\$ $(url "$R_READY" 19307)" .r-log.out || die "log: the README's readiness line, run once on Tomcat's port"
+x log "^  Spring's lines at DEBUG before A, not shown - counted: 17 · 7 while the context started, before Boot's started line · 10 with the README's readiness request, the first to reach Tomcat - 5 of them the DispatcherServlet's set-up, between its Initializing Servlet and Completed initialization lines\$"
 LA=$(blk log 'A - GET' 'B - GET'); LB=$(blk log 'B - GET' "A' - A again"); LA2=$(blk log "A' - A again" '$ kill "$pid"')
 has "$LA" "  200 text/plain;charset=UTF-8" "log A: 200"; has "$LA" "  its lines at DEBUG: 5" "log A: five lines"
 has "$LA" '    o.s.web.servlet.DispatcherServlet: GET "/probe/stack", parameters={}' "log A: the request"
@@ -552,7 +603,7 @@ has "$LB" '    o.s.web.servlet.DispatcherServlet: "ERROR" dispatch for GET "/err
 has "$LB" '    s.w.s.m.m.a.RequestMappingHandlerMapping: Mapped to org.springframework.boot.webmvc.autoconfigure.error.BasicErrorController#error(HttpServletRequest)' "log B: Boot's error controller"
 has "$LB" '    o.s.w.s.m.m.a.HttpEntityMethodProcessor: Writing [{timestamp=<masked: a date>, status=404, error=Not Found, path=/nowhere}]' "log B: the body written"
 [ "$(cnt "$LB" '    o.s.web.servlet.DispatcherServlet: GET "/nowhere", parameters={}')" = 1 ] && [ "$(printf '%s\n' "$LB" | grep -c '^    o\.s\.web\.servlet\.DispatcherServlet: ' || true)" = 4 ] || die "log B: through the DispatcherServlet twice"
-x log "^$HALT\$"; x log '^  listening now: 19306 0 · 19307 0$'
+grep -qxF -- "$HALT" .r-log.out || die "log: stopped by its process id, Boot's graceful-shutdown lines"; x log '^  listening now: 19306 0 · 19307 0$'
 echo "  log: A 200, 5 lines (GET, mapped to probe.path.Stack#frames(), completed) · B 404 JSON, 10 lines: ResourceHttpRequestHandler, NoResourceFoundException, the ERROR dispatch, BasicErrorController · A' = A"
 
 # the exercise's end state: the line exercise/README.md calls "Done" is a line of this capture, after the solution's line - and of

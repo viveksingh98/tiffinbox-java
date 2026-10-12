@@ -23,7 +23,30 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ./receipts.sh     # 6 captures, 3 runs each; every spoken number asserted; 0 raw tokens; a published-md5 mismatch stops it
 ```
 
-**Runs of record (2026-10-12, on the final script; load averages 100-140 — another unit's native build and the other units'
+**Runs of record (2026-10-13, after RED's part A — the final script; load averages 30-150, units 01, 02, 04 and 05 running
+beside it):**
+- **`./receipts.sh` (/bin/bash 3.2.57): exit 0 after 576 s** — all 6 captures 3/3 and = published, every check passed.
+- **`bash receipts.sh` (Homebrew bash 5.3.9): exit 0 after 381 s** — the same.
+- **From a sealed fresh clone (bash 5.3.9): exit 0 after 454 s** — all 6 = published, every check passed. `git clone` of the local
+  repository's HEAD (`01d411d`) into an empty folder; this unit's ten tracked files put in as they are committed (0 differences
+  from the working tree; the `anchor` link left as cloned; 0 files changed outside this folder; nothing git ignores: no
+  `.m2-demo`, no `.harness/`, no `.r-*`). `env -i`, a `HOME` holding `.mavenrc` (`-Duser.home` there, every Java proxy property at
+  127.0.0.1:9, a port that refuses) and `.m2/settings.xml` (every repository mirrored to a `file://` copy of Central's files made
+  from `.m2-demo`: 4,364 files, TiffinBox's own installs, `_remote.repositories`, `*.lastUpdated`, `resolver-status.properties` and
+  `.DS_Store` left out, `maven-metadata-central.xml` served as `maven-metadata.xml`); `http_proxy`, `https_proxy`, their capitals and
+  `ALL_PROXY` at the same refusing port; its own process group. The first build said `offline: no` and took **522 artifacts, every
+  one `Downloaded from sealed: file://…`, 0 from anywhere else**; the second said `offline: yes`; `.m2-demo` ended with 1,403 files;
+  the run's log names `github` 0 times. The sealed `HOME` ended holding `.mavenrc`, `.m2/settings.xml` and the bytecode cache macOS's
+  `/usr/bin/python3` writes under `Library/Caches/com.apple.python` (33 files; `receipts.sh` runs Python for the POM edit and the log
+  selection) — nothing a network call left.
+- **The exercise as a viewer runs it** — one `env -i` bash 3.2 shell started in this folder, `exercise/README.md`'s commands then
+  SOLUTION.md's line: `lines that register a route: 0` (exit 0), then `{GET [/probe/hello]}: hello()` (exit 0), the shell in this
+  folder after each. The 2026-10-12 files, run the same way, stop where RED found them: the shell left in `.harness/serve`, then `cd:
+  .harness/serve: No such file or directory`, exit 1.
+- An earlier pair of runs (unit 02's and this one's, started as two background jobs of one shell) was stopped with SIGTERM 55 s in,
+  before either could sweep the other's JVMs: exit 130, nothing left in the group, no lock, no unfinished capture.
+
+**Runs of record (2026-10-12, on the 2026-10-12 script; load averages 100-140 — another unit's native build and the other units'
 evidence ran alongside):**
 - **`./receipts.sh` (/bin/bash 3.2.57): exit 0 after 6 min 9 s** — all 6 captures 3/3 and = published, every check passed.
 - **`bash receipts.sh` (Homebrew bash 5.3.9): exit 0 after 4 min 57 s** — the same.
@@ -122,7 +145,8 @@ Options only: no run passes a bare word to the guarded tree.
   `getHandlerMappings()`; its adapters, exception resolvers, view resolvers and four single strategies **by reflection on its
   private fields — a harness, not an API** (Framework 7.0's names: `viewNameTranslator`, not `requestToViewNameTranslator`); each
   list set beside `getBeansOfType(...)` of its type: the count, and whether they are the same objects. Mappings print their order
-  and package. Also an `ApplicationReadyEvent` listener that logs, before any request, whether the servlet holds its mappings yet.
+  and package; a composite — a strategy that holds others and asks them in turn — prints what it holds, by its public getter
+  (`HandlerExceptionResolverComposite.getExceptionResolvers()`, `ViewResolverComposite.getViewResolvers()`). Also an `ApplicationReadyEvent` listener that logs, before any request, whether the servlet holds its mappings yet.
 - **`Converters`** — `@GetMapping("/probe/converters")`: `RequestMappingHandlerAdapter.getMessageConverters()`, public, in order.
 
 ## Masks, filters and hygiene — every one, declared
@@ -139,7 +163,10 @@ Options only: no run passes a bare word to the guarded tree.
    of them) and each TRACE registration block's mapping lines — reflection hands methods back in no specified order (Core Java II
    said so; here the scan logged `dashboard`, `kitchen`, `customers`, `revenue`, `shutdown`, not the file's order), so a capture
    that kept that order could drift. The `TreeMap`'s own INFO line is printed as logged: its order is the map's.
-4. **Boot's first line** is cut before ` with PID`. JSON is printed as answered (no Actuator JSON here needs sorting).
+4. **Boot's first line** is cut before ` with PID`. JSON is printed as answered (no Actuator JSON here needs sorting). **Labels:**
+   the line that says Tomcat started is **Boot's started line** (its logger, `o.s.boot.tomcat.TomcatWebServer`, is Boot's class; it
+   names the port), TiffinBox's is its own line, and the lines at TERM are **Boot's graceful-shutdown lines**
+   (`o.s.boot.tomcat.GracefulShutdown`, printed with them).
 5. **Hygiene:** `receipts.sh` unsets every `TIFFINBOX_*`, `SPRING_*`, `MANAGEMENT_*`, `SERVER_*` and `LOGGING_*` variable, `DEBUG`,
    `JAVA_TOOL_OPTIONS`, `JDK_JAVA_OPTIONS`, `_JAVA_OPTIONS`, `MAVEN_OPTS`, `MAVEN_ARGS` and `NATIVE_IMAGE_OPTIONS` first — the last
    course's loop, verbatim (`sed -E`, a canary planted under every name, the run stops if one survives); this unit runs no Docker,
@@ -196,7 +223,7 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19320/actuator/health/readiness
   {"status":"UP"} 200
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19321/actuator/health/readiness
   {"status":"UP"} 200
-its log, from its first line to Tomcat's started line - TiffinBox's scan, its TreeMap, both servers' own lines:
+its log, from its first line to Boot's started line for Tomcat - TiffinBox's scan, its TreeMap, TiffinBox's own line, Boot's started line:
   … 17 lines not shown …
   DEBUG tiffinbox: route GET /customers -> customers()
   DEBUG tiffinbox: route GET /dashboard -> dashboard()
@@ -234,22 +261,24 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19321/actuator/health/readiness
 $ kill $pid    # TERM, to the JVM this script started
   exit 143 · listening now: 19320 0 · 19321 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
-  its log, from TERM on: Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
+  Boot's graceful-shutdown lines, from TERM on (o.s.boot.tomcat.GracefulShutdown): Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
 ```
 
 ## 2 · lists — the strategies, read off the running servlet
 
 Before any request reached Tomcat the harness, at ready, finds the servlet's handler mappings `null` (brief S1.6, proposed R.89:
 the lists are read when the servlet initialises). After one request (the README's readiness line), the lists: **9 handler mappings
-(Actuator's three first, order -100, package `…boot.webmvc.actuate.endpoint.web`), 4 handler adapters, 2 exception resolvers, 4
-view resolvers**, and the multipart, locale, view-name and flash-map strategies — every count "here": Actuator's and the harness's
+(Actuator's three first, order -100, package `…boot.webmvc.actuate.endpoint.web`), 4 handler adapters, 2 exception resolvers — the
+second a `HandlerExceptionResolverComposite` holding 3: `ExceptionHandlerExceptionResolver`, `ResponseStatusExceptionResolver`,
+`DefaultHandlerExceptionResolver`, the one that resolved *What Happens Between curl and Your Method*'s `/nowhere` (its `log`
+capture) — 4 view resolvers** (the `ViewResolverComposite` among them holds none: no view resolver is registered here), and the multipart, locale, view-name and flash-map strategies — every count "here": Actuator's and the harness's
 beans are among them. **RE-MEASURE #4 settled:** each list has the same count as the context's beans of that type, and they are the
 same objects (identity), all four.
 
 ```
 $ cd .harness/serve && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../classes" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19322 --server.address=127.0.0.1 --server.port=19323 --spring.main.sources=probe.Strategies
   listens on (read off its pid): 127.0.0.1:19322 127.0.0.1:19323
-  19322 is TiffinBox's own server - its line: TiffinBox listening on http://127.0.0.1:19322 · 19323 is Tomcat, Spring MVC's server - its line: Tomcat started on port 19323 (http) with context path '/'
+  19322 is TiffinBox's own server - its own line: TiffinBox listening on http://127.0.0.1:19322 · 19323 is Tomcat, Spring MVC's server - Boot's started line: Tomcat started on port 19323 (http) with context path '/'
   before any request reached Tomcat - the harness, at ready: the DispatcherServlet's handler mappings: null
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19323/actuator/health/readiness
   {"status":"UP"} 200
@@ -272,11 +301,11 @@ $ curl -s -w ' %{http_code} %{content_type}\n' http://127.0.0.1:19323/probe/stra
   4 SimpleControllerHandlerAdapter
   exception resolvers: 2 · the context's beans of that type: 2 · the same objects: yes
   1 DefaultErrorAttributes
-  2 HandlerExceptionResolverComposite
+  2 HandlerExceptionResolverComposite - holds 3: ExceptionHandlerExceptionResolver · ResponseStatusExceptionResolver · DefaultHandlerExceptionResolver
   view resolvers: 4 · the context's beans of that type: 4 · the same objects: yes
   1 ContentNegotiatingViewResolver
   2 BeanNameViewResolver
-  3 ViewResolverComposite
+  3 ViewResolverComposite - holds 0
   4 InternalResourceViewResolver
   multipartResolver: StandardServletMultipartResolver
   localeResolver: AcceptHeaderLocaleResolver
@@ -318,7 +347,7 @@ $ grep -nvE '^[[:space:]]*(/\*\*|\*|\*/|$)' harness/probe/Hello.java
   20: }
 $ cd .harness/serve && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../classes" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19324 --server.address=127.0.0.1 --server.port=19325 --spring.main.sources=probe.Hello,probe.Frames --logging.level.kitchen=debug --logging.level.org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping=trace
   listens on (read off its pid): 127.0.0.1:19324 127.0.0.1:19325
-its log, from its first line to Tomcat's started line - TiffinBox's scan at DEBUG, Spring MVC's at TRACE:
+its log, from its first line to Boot's started line for Tomcat - TiffinBox's scan at DEBUG, Spring MVC's at TRACE:
   … 17 lines not shown …
   DEBUG tiffinbox: route GET /customers -> customers()
   DEBUG tiffinbox: route GET /dashboard -> dashboard()
@@ -387,7 +416,7 @@ converter is there only because the copy dropped those excludes (brief ⚑6, ⚑
 A - the copy:
 $ cd .harness/serve && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../classes" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19326 --server.address=127.0.0.1 --server.port=19327 --spring.main.sources=probe.Hello,probe.Converters --logging.level.web=debug --logging.level.org.springframework.web.servlet.DispatcherServlet=trace
   listens on (read off its pid): 127.0.0.1:19326 127.0.0.1:19327
-  19326 is TiffinBox's own server - its line: TiffinBox listening on http://127.0.0.1:19326 · 19327 is Tomcat, Spring MVC's server - its line: Tomcat started on port 19327 (http) with context path '/'
+  19326 is TiffinBox's own server - its own line: TiffinBox listening on http://127.0.0.1:19326 · 19327 is Tomcat, Spring MVC's server - Boot's started line: Tomcat started on port 19327 (http) with context path '/'
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19327/actuator/health/readiness
   {"status":"UP"} 200
 $ curl -s -w ' %{http_code} %{content_type}\n' http://127.0.0.1:19327/probe/converters
@@ -418,7 +447,7 @@ $ diff -U0 anchor/tiffinbox-web/pom.xml .harness/kept/tiffinbox-web/pom.xml | ta
   +    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-webmvc</artifactId></dependency>
 $ cd .harness/kept && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../classes" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19326 --server.address=127.0.0.1 --server.port=19327 --spring.main.sources=probe.Hello,probe.Converters --logging.level.web=debug --logging.level.org.springframework.web.servlet.DispatcherServlet=trace
   listens on (read off its pid): 127.0.0.1:19326 127.0.0.1:19327
-  19326 is TiffinBox's own server - its line: TiffinBox listening on http://127.0.0.1:19326 · 19327 is Tomcat, Spring MVC's server - its line: Tomcat started on port 19327 (http) with context path '/'
+  19326 is TiffinBox's own server - its own line: TiffinBox listening on http://127.0.0.1:19326 · 19327 is Tomcat, Spring MVC's server - Boot's started line: Tomcat started on port 19327 (http) with context path '/'
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19327/actuator/health/readiness
   {"status":"UP"} 200
 $ curl -s -w ' %{http_code} %{content_type}\n' http://127.0.0.1:19327/probe/converters
@@ -437,7 +466,7 @@ $ kill $pid    # TERM, to the JVM this script started
 A' - A again:
 $ cd .harness/serve && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../classes" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19326 --server.address=127.0.0.1 --server.port=19327 --spring.main.sources=probe.Hello,probe.Converters --logging.level.web=debug --logging.level.org.springframework.web.servlet.DispatcherServlet=trace
   listens on (read off its pid): 127.0.0.1:19326 127.0.0.1:19327
-  19326 is TiffinBox's own server - its line: TiffinBox listening on http://127.0.0.1:19326 · 19327 is Tomcat, Spring MVC's server - its line: Tomcat started on port 19327 (http) with context path '/'
+  19326 is TiffinBox's own server - its own line: TiffinBox listening on http://127.0.0.1:19326 · 19327 is Tomcat, Spring MVC's server - Boot's started line: Tomcat started on port 19327 (http) with context path '/'
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19327/actuator/health/readiness
   {"status":"UP"} 200
 $ curl -s -w ' %{http_code} %{content_type}\n' http://127.0.0.1:19327/probe/converters
@@ -478,7 +507,7 @@ Boot's own default, from its metadata (spring-boot-webmvc-4.1.1.jar, META-INF/sp
 A - the default:
 $ cd .harness/serve && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../classes" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19328 --server.address=127.0.0.1 --server.port=19329 --spring.main.sources=probe.Strategies
   listens on (read off its pid): 127.0.0.1:19328 127.0.0.1:19329
-  19328 is TiffinBox's own server - its line: TiffinBox listening on http://127.0.0.1:19328 · 19329 is Tomcat, Spring MVC's server - its line: Tomcat started on port 19329 (http) with context path '/'
+  19328 is TiffinBox's own server - its own line: TiffinBox listening on http://127.0.0.1:19328 · 19329 is Tomcat, Spring MVC's server - Boot's started line: Tomcat started on port 19329 (http) with context path '/'
   before any request reached Tomcat - its log's lines about the DispatcherServlet's start, Tomcat's start and the harness at ready:
   … 22 lines not shown …
   INFO o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19329 (http) with context path '/'
@@ -497,7 +526,7 @@ $ kill $pid    # TERM, to the JVM this script started
 B - --spring.mvc.servlet.load-on-startup=1:
 $ cd .harness/serve && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../classes" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19328 --server.address=127.0.0.1 --server.port=19329 --spring.main.sources=probe.Strategies --spring.mvc.servlet.load-on-startup=1
   listens on (read off its pid): 127.0.0.1:19328 127.0.0.1:19329
-  19328 is TiffinBox's own server - its line: TiffinBox listening on http://127.0.0.1:19328 · 19329 is Tomcat, Spring MVC's server - its line: Tomcat started on port 19329 (http) with context path '/'
+  19328 is TiffinBox's own server - its own line: TiffinBox listening on http://127.0.0.1:19328 · 19329 is Tomcat, Spring MVC's server - Boot's started line: Tomcat started on port 19329 (http) with context path '/'
   before any request reached Tomcat - its log's lines about the DispatcherServlet's start, Tomcat's start and the harness at ready:
   … 22 lines not shown …
   INFO o.a.c.c.C.[Tomcat].[localhost].[/]: Initializing Spring DispatcherServlet 'dispatcherServlet'
@@ -516,7 +545,7 @@ $ kill $pid    # TERM, to the JVM this script started
 A' - A again:
 $ cd .harness/serve && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../classes" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19328 --server.address=127.0.0.1 --server.port=19329 --spring.main.sources=probe.Strategies
   listens on (read off its pid): 127.0.0.1:19328 127.0.0.1:19329
-  19328 is TiffinBox's own server - its line: TiffinBox listening on http://127.0.0.1:19328 · 19329 is Tomcat, Spring MVC's server - its line: Tomcat started on port 19329 (http) with context path '/'
+  19328 is TiffinBox's own server - its own line: TiffinBox listening on http://127.0.0.1:19328 · 19329 is Tomcat, Spring MVC's server - Boot's started line: Tomcat started on port 19329 (http) with context path '/'
   before any request reached Tomcat - its log's lines about the DispatcherServlet's start, Tomcat's start and the harness at ready:
   … 22 lines not shown …
   INFO o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19329 (http) with context path '/'
@@ -538,24 +567,33 @@ $ kill $pid    # TERM, to the JVM this script started
 
 `exercise/README.md` ships broken: its logging option names `RequestMappingHandlerAdapter`, which logs no route (`lines that
 register a route: 0`). `solution/SOLUTION.md` names `RequestMappingHandlerMapping`: `{GET [/probe/hello]}: hello()` — the line the
-README calls Done, and a line of this capture. Both runs use `-Dspring.context.exit=onRefresh` (the last course's AOT-cache line's
+README calls Done, and a line of this capture. The two run **one after the other in ONE shell**, as a viewer runs them, and each
+leaves that shell in this folder (checked: the JVM runs in a subshell, `(cd .harness/serve && exec java …)`). Both runs use `-Dspring.context.exit=onRefresh` (the last course's AOT-cache line's
 property): the JVM refreshes the context and exits 0 before Tomcat starts (its log's `Tomcat started` lines: 0); nothing is left
 listening.
 
 ```
-exercise/README.md's commands, run exactly as written from this folder - 3 lines:
+exercise/README.md's commands, then the solution's line, run exactly as written, one after the other in ONE shell started in this folder - the README's 3 lines:
   $ export JAVA_HOME=/opt/homebrew/opt/openjdk@25
   $ export PATH="$JAVA_HOME/bin:$PATH"
-  $ cd .harness/serve && java -Dspring.context.exit=onRefresh -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../classes" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19320 --server.address=127.0.0.1 --server.port=19321 --spring.main.sources=probe.Hello --logging.level.org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter=trace > ../mine.log && echo "lines that register a route: $(grep -c '{GET' ../mine.log)"
+  $ (cd .harness/serve && exec java -Dspring.context.exit=onRefresh -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../classes" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19320 --server.address=127.0.0.1 --server.port=19321 --spring.main.sources=probe.Hello --logging.level.org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter=trace) > .harness/mine.log && echo "lines that register a route: $(grep -c '{GET' .harness/mine.log)"
   lines that register a route: 0
-  exit 0 · listening now: 19320 0 · 19321 0 · its log's lines saying Tomcat started: 0 · the demo token in its log: 0
-the solution's line (exercise/solution/SOLUTION.md), run exactly as written, from this folder:
-$ cd .harness/serve && java -Dspring.context.exit=onRefresh -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../classes" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19320 --server.address=127.0.0.1 --server.port=19321 --spring.main.sources=probe.Hello --logging.level.org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping=trace > ../mine.log && grep -F '[/probe/hello]' ../mine.log | tr -d '\t'
+  exit 0 · listening now: 19320 0 · 19321 0 · its log's lines saying Tomcat started: 0 · the demo token in its log: 0 · the shell is now in: this unit's folder
+the solution's line (exercise/solution/SOLUTION.md), next, in the same shell:
+$ (cd .harness/serve && exec java -Dspring.context.exit=onRefresh -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../classes" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19320 --server.address=127.0.0.1 --server.port=19321 --spring.main.sources=probe.Hello --logging.level.org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping=trace) > .harness/mine.log && grep -F '[/probe/hello]' .harness/mine.log | tr -d '\t'
   {GET [/probe/hello]}: hello()
-  exit 0 · listening now: 19320 0 · 19321 0 · the demo token in its log: 0
+  exit 0 · listening now: 19320 0 · 19321 0 · the demo token in its log: 0 · the shell is now in: this unit's folder
 ```
 
 ## Found on the way
+
+0. **RED's part A, 2026-10-13.** (a) *The exercise broke on its second run.* Its line was `cd .harness/serve && java …`, so the
+   README's run left the viewer's shell in `.harness/serve`, and SOLUTION.md's line, from that shell, failed (`cd: .harness/serve: No
+   such file or directory`, exit 1); `receipts.sh` ran each in a fresh subshell, so its check could never fail. Both lines now run the
+   JVM in a subshell, `receipts.sh` runs the two in ONE shell and checks where each left it, and the old files, run that way, fail
+   it: `the shell is now in: .harness/serve` (reproduced 2026-10-13 under `env -i`). (b) *"Two exception resolvers"* hid a
+   composite: the second holds three, among them the resolver that answered the first lesson's 404; the harness now prints what a
+   composite holds. (c) *Labels:* "its line" for Tomcat's is Boot's started line, now labelled so.
 
 1. **A readiness race (fixed before any hash was published).** Polling TiffinBox's own readiness while the context was still
    creating beans made Spring log `Obtaining singleton bean '…' in thread "" while other thread holds singleton lock …` at INFO —
@@ -567,7 +605,11 @@ $ cd .harness/serve && java -Dspring.context.exit=onRefresh -cp "tiffinbox-web/t
    caught by its check.
 4. **Planted faults, each caught every run before any capture:** the bind check given `*:19321 127.0.0.1:19320` (a wildcard) and
    `127.0.0.1:19320` (one server of two) — refused both, accepted the two loopback addresses; each mask given a planted line (an ISO
-   timestamp, an epoch timestamp, the milliseconds, the token). The init order checks and the scan order check compare line
+   timestamp, an epoch timestamp, the milliseconds, the token). **2026-10-13, the checks RED's part A added**, each on a copy of a
+   published capture, the checks alone run once on each, every one died and all passed on the restored captures: the README's run
+   leaving the shell in `.harness/serve` → `exercise: the README's commands and the solution's line, run in one shell, must each leave
+   it in this unit's folder`; the composite holding two → `lists: expected /…holds 3…/`; the TERM label "its log, from TERM on" →
+   `toy: Boot's graceful-shutdown lines on TERM`; Tomcat's line called "its line" again → `lists: expected /…Boot's started line…/`. The init order checks and the scan order check compare line
    numbers found one pattern at a time (a first version compared `grep -n`'s own increasing output, a check that could not fail).
 5. **Reflection's order:** this JVM's scan logged the routes as `dashboard`, `kitchen`, `customers`, `revenue`, `shutdown` — not the
    file's order (`customers` first). Core Java II's lesson said `getDeclaredMethods()` has no specified order; the captures print
@@ -581,13 +623,16 @@ Re-test: the sealed clone, SIGINT, both bashes; the listen-address assertion (`u
 forms); the survivor (`toy`: TiffinBox's server stopped, the JVM alive on 19321, then TERM by pid). The receipts' md5s:
 
 ```
-toy 899677faff6a8c27356add7553631035
-lists ba7e900dadc6130e37d44f76237d3184
-scan d6cbf9927ca314fa90a913ffc35a1510
-converters a51c6a7c7ec217c197b0052def6a0faf
-init 56789d5a4343fbe5826a1b1cd71917b0
-exercise c749c616368a6b150a4227a38927ea2a
+toy be49b878a63f831f406d1bc3c4b5c4e7
+lists 582cce806ed36f57d10059c389c0239f
+scan 89e78e20bc392e8726fc814f78527a6b
+converters cf9f78f47daff6056605ec2585efb600
+init efe3ffa7fad80a68786242c70c432f35
+exercise 5848a4265ff4089ae5ceb4ae39f9696d
 ```
+
+(2026-10-12's, before RED's part A: toy `899677fa…`, lists `ba7e900d…`, scan `d6cbf992…`, converters `a51c6a7c…`, init `56789d5a…`,
+exercise `c749c616…` — the labels, the composite's line and the one-shell exercise moved all six.)
 
 ## Ledger rows paid, and what is handed on
 

@@ -17,14 +17,18 @@ import org.springframework.web.servlet.HandlerAdapter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.ViewResolver;
+import org.springframework.web.servlet.handler.HandlerExceptionResolverComposite;
+import org.springframework.web.servlet.view.ViewResolverComposite;
 
 /**
  * The harness's own, outside com.tiffinbox: it reads the running DispatcherServlet's strategy lists. The handler mappings come
  * from the servlet's public getter; the adapters, the two resolver lists and the four single strategies from its private fields,
  * by reflection - a harness, not an API (the field names are Framework 7.0's). Each list is set beside the context's own beans of
  * that type: how many, and whether they are the same objects. A handler mapping is printed with its order and its package (the
- * package says whose it is: Actuator's, Spring MVC's or Boot's). Once the application is ready, before any request, it logs whether
- * the servlet holds its handler mappings yet. It joins TiffinBox by --spring.main.sources=probe.Strategies and changes nothing.
+ * package says whose it is: Actuator's, Spring MVC's or Boot's). A composite in a list - a strategy that holds others and asks
+ * them in turn - is printed with what it holds, read by its public getter. Once the application is ready, before any request, it
+ * logs whether the servlet holds its handler mappings yet. It joins TiffinBox by --spring.main.sources=probe.Strategies and
+ * changes nothing.
  */
 @RestController
 public class Strategies {
@@ -61,6 +65,13 @@ public class Strategies {
         return out.toString();
     }
 
+    /** What a composite holds, in its own order: how many, and each one's simple name. */
+    private static void holds(StringBuilder out, List<?> inner) {
+        out.append(" - holds ").append(inner.size());
+        String sep = ": ";
+        for (Object o : inner) { out.append(sep).append(o.getClass().getSimpleName()); sep = " · "; }
+    }
+
     private Object field(String name) throws Exception {
         Field f = DispatcherServlet.class.getDeclaredField(name);
         f.setAccessible(true);
@@ -87,6 +98,8 @@ public class Strategies {
                 out.append(" (order ").append(o instanceof Ordered od ? String.valueOf(od.getOrder()) : "-").append(") · ")
                    .append(o.getClass().getPackageName());
             }
+            if (o instanceof HandlerExceptionResolverComposite c) holds(out, c.getExceptionResolvers());
+            if (o instanceof ViewResolverComposite c) holds(out, c.getViewResolvers());
             out.append('\n');
         }
     }

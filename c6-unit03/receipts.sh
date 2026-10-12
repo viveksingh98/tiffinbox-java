@@ -17,7 +17,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #               TiffinBox's server; after POST /shutdown, which server stopped and whether the JVM lived; then the JVM stopped by pid
 #   lists       the DispatcherServlet's strategy lists, read off the running servlet after one request (19322/19323) by the
 #               harness's Strategies: the handler mappings by the servlet's public getter, the rest by reflection - each list set
-#               beside the context's own beans of that type; and what the servlet held at ready, before any request
+#               beside the context's own beans of that type, a composite with what it holds; and what the servlet held at ready,
+#               before any request
 #   scan        declare, scan, register, invoke - side by side in one start (19324/19325): TiffinBox's scan at DEBUG and Spring
 #               MVC's registration at TRACE, before Tomcat started; one request's frames, down to the DispatcherServlet; two paths
 #               a pattern refuses, and the prefix TiffinBox's server takes
@@ -26,7 +27,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #   init        when the servlet reads its lists (19328/19329) - Boot's own default, from its metadata; A the default, B
 #               --spring.mvc.servlet.load-on-startup=1, A' = A: the lines before any request reached Tomcat, the harness at ready,
 #               then the first request
-#   exercise    exercise/README.md's commands and exercise/solution/SOLUTION.md's, read from the files and run as written
+#   exercise    exercise/README.md's commands, then exercise/solution/SOLUTION.md's line, read from the files and run as written,
+#               one after the other in ONE shell, as a viewer runs them - and where each left that shell
 # "$CURLSET" is the comparison set since the last course's secrets lesson (../c5-unit11/curlset.sh: the seven requests, POST
 # /shutdown with the token's header read from the file). "$M2" is this unit's own repository, .m2-demo. "$pid" is the JVM this
 # script started. The harness - harness/probe/*.java, package probe, outside com.tiffinbox - joins TiffinBox by
@@ -214,8 +216,9 @@ up() { local i=0 c="" a=""
     kill -0 "$pid" 2> /dev/null || { tail -20 .harness/run.out >&3; die "it exited before readiness answered 200"; }; sleep 0.25; i=$((i + 1)); done
   [ "$c" = 200 ] || die "readiness never answered 200 on $1"
   echo "  listens on (read off its pid): $a"; }
-# who TPORT SPORT: which server is which - each one's own line in the run's log (a request below names its server by its port)
-who() { echo "  $1 is $SAY_T - its line: $(grep -m1 -E ' tiffinbox +: TiffinBox listening on ' .harness/run.out | sed 's/^.* : //') · $2 is $SAY_S - its line: $(grep -m1 -E '[.]TomcatWebServer +: Tomcat started on port ' .harness/run.out | sed 's/^.* : //')"; }
+# who TPORT SPORT: which server is which - TiffinBox's own line, and Boot's started line for Tomcat (logger TomcatWebServer, Boot's
+# class), which names the port, in the run's log (a request below names its server by its port)
+who() { echo "  $1 is $SAY_T - its own line: $(grep -m1 -E ' tiffinbox +: TiffinBox listening on ' .harness/run.out | sed 's/^.* : //') · $2 is $SAY_S - Boot's started line: $(grep -m1 -E '[.]TomcatWebServer +: Tomcat started on port ' .harness/run.out | sed 's/^.* : //')"; }
 ask() { local c; c=$(url "$1" "$2"); echo "\$ $c"; (eval "$c") 2>&1 < /dev/null | sed 's/^/  /'; }
 # req PORT PATH: the request line (the README's /customers line, its port and path changed, the content type added), printed and run
 req() { local c; c=$(url "$Q" "$1"); c=${c%/customers}$2; echo "\$ $c"; (eval "$c") 2>&1 < /dev/null | sed 's/^/  /'; }
@@ -327,7 +330,7 @@ toy() { local i=0 a
   start "cd .harness/serve && $L_TOY"; up 19320 19321
   echo "  Boot's first line: $(grep -m1 ' : Starting ' .harness/run.out | sed 's/^.* : //; s/ with PID .*$//')"
   ask "$R_READY" 19320; ask "$R_READY" 19321
-  echo "its log, from its first line to Tomcat's started line - TiffinBox's scan, its TreeMap, both servers' own lines:"
+  echo "its log, from its first line to Boot's started line for Tomcat - TiffinBox's scan, its TreeMap, TiffinBox's own line, Boot's started line:"
   logf 0 'TomcatWebServer: Tomcat started on port' "$STARTUP"
   echo "each server asked for its own route, and for the other's - 19320 is $SAY_T, 19321 $SAY_S:"
   a=$(lines); req 19320 /customers; settle "$a" ' tiffinbox +: GET /customers -> 200$'
@@ -346,7 +349,7 @@ toy() { local i=0 a
   echo "after POST /shutdown: TiffinBox's server stopped - listening on 19320: 0 · the JVM: $(kill -0 "$pid" 2> /dev/null && echo alive || echo gone) · it listens on: ${a:-nothing}"
   ask "$R_READY" 19321
   a=$(lines); down 19320 19321
-  echo "  its log, from TERM on: $(tail -n +$((a + 1)) .harness/run.out | grep -E 'GracefulShutdown' | sed 's/^.* : //' | paste -sd'|' - | sed 's/|/ · /g')"; }
+  echo "  Boot's graceful-shutdown lines, from TERM on ($(tail -n +$((a + 1)) .harness/run.out | grep -E 'GracefulShutdown' | sed 's/^.*--- \[[^]]*\] //; s/ *: .*$//' | sort -u | paste -sd' ' -)): $(tail -n +$((a + 1)) .harness/run.out | grep -E 'GracefulShutdown' | sed 's/^.* : //' | paste -sd'|' - | sed 's/|/ · /g')"; }
 
 # ---- lists: the strategies, read off the running servlet ----------------------------------------------------------------------
 lists() {
@@ -363,7 +366,7 @@ scan() { local a
   echo "\$ grep -nvE '^[[:space:]]*(/\*\*|\*|\*/|\$)' harness/probe/Hello.java"
   grep -nvE '^[[:space:]]*(/\*\*|\*|\*/|$)' harness/probe/Hello.java | sed -E 's/^([0-9]+):/  \1: /'
   start "cd .harness/serve && $L_SCAN"; up 19324 19325
-  echo "its log, from its first line to Tomcat's started line - TiffinBox's scan at DEBUG, Spring MVC's at TRACE:"
+  echo "its log, from its first line to Boot's started line for Tomcat - TiffinBox's scan at DEBUG, Spring MVC's at TRACE:"
   logf 0 'TomcatWebServer: Tomcat started on port' "$STARTUP"
   ask "$R_READY" 19325
   echo "one request - the frames above the harness's frames(), on its own thread, reflection's shown:"
@@ -419,21 +422,29 @@ print("  %s · %s · default %s · %s" % (p["name"], p["type"], p.get("defaultVa
 
 # ---- exercise: the README's commands, exactly as written, then the solution's ---------------------------------------------
 block() { awk '/^```bash$/ { if (!d) { f = 1 }; next } f && /^```$/ { f = 0; d = 1 } f' "$1"; }
-exercise() { local setup sol ec=0
+# here: where the shell running the exercise is now - this unit's folder, or a folder under it (named), or elsewhere
+here() { case "$PWD" in "$U") echo "this unit's folder" ;; "$U"/*) echo "${PWD#"$U"/}" ;; *) echo "outside this unit's folder" ;; esac; }
+exercise() { local setup sol
   setup=$(block exercise/README.md); sol=$(block exercise/solution/SOLUTION.md)
   [ -n "$setup" ] && [ -n "$sol" ] || die "exercise/README.md or SOLUTION.md no longer gives its commands"
   [ "$(printf '%s\n' "$sol" | grep -c .)" = 1 ] || die "SOLUTION.md's first bash block must be its one line"
-  echo "exercise/README.md's commands, run exactly as written from this folder - $(printf '%s\n' "$setup" | grep -c .) lines:"
+  rm -f .harness/ex-setup.out .harness/ex-setup.st .harness/ex-sol.out .harness/ex-sol.st
+  # ONE shell, as a viewer runs them: the README's commands, then the solution's line - each one's output, exit code, the ports and
+  # the folder it left the shell in kept apart (absolute paths: a command that moves the shell must not move these files)
+  ( set +e
+    eval "$setup" > "$U/.harness/ex-setup.out" 2>&1 < /dev/null; e=$?
+    echo "  exit $e · listening now: 19320 $(listeners 19320) · 19321 $(listeners 19321) · its log's lines saying Tomcat started: $(grep -c 'Tomcat started on port' "$U/.harness/mine.log" 2> /dev/null || true) · the demo token in its log: $(raw "$TOKEN" "$U/.harness/mine.log" 2> /dev/null) · the shell is now in: $(here)" > "$U/.harness/ex-setup.st"
+    eval "$sol" > "$U/.harness/ex-sol.out" 2>&1 < /dev/null; e=$?
+    echo "  exit $e · listening now: 19320 $(listeners 19320) · 19321 $(listeners 19321) · the demo token in its log: $(raw "$TOKEN" "$U/.harness/mine.log" 2> /dev/null) · the shell is now in: $(here)" > "$U/.harness/ex-sol.st" )
+  echo "exercise/README.md's commands, then the solution's line, run exactly as written, one after the other in ONE shell started in this folder - the README's $(printf '%s\n' "$setup" | grep -c .) lines:"
   printf '%s\n' "$setup" | sed 's/^/  $ /'
-  (eval "$setup") > .harness/ex-setup.out 2>&1 < /dev/null || ec=$?
   sed 's/^/  /' .harness/ex-setup.out
-  echo "  exit $ec · listening now: 19320 $(listeners 19320) · 19321 $(listeners 19321) · its log's lines saying Tomcat started: $(grep -c 'Tomcat started on port' .harness/mine.log || true) · the demo token in its log: $(raw "$TOKEN" .harness/mine.log)"
-  [ $ec = 0 ] || die "the exercise's commands failed"
-  echo "the solution's line (exercise/solution/SOLUTION.md), run exactly as written, from this folder:"
+  cat .harness/ex-setup.st
+  grep -q '^  exit 0 ' .harness/ex-setup.st || die "the exercise's commands failed"
+  echo "the solution's line (exercise/solution/SOLUTION.md), next, in the same shell:"
   echo "\$ $sol"
-  ec=0; (eval "$sol") > .harness/ex-sol.out 2>&1 < /dev/null || ec=$?
   sed 's/^/  /' .harness/ex-sol.out
-  echo "  exit $ec · listening now: 19320 $(listeners 19320) · 19321 $(listeners 19321) · the demo token in its log: $(raw "$TOKEN" .harness/mine.log)"; }
+  cat .harness/ex-sol.st; }
 
 cap toy toy
 cap lists lists
@@ -480,7 +491,7 @@ T1=$(blk toy 'its log, from its first line' 'each server asked')
 has "$T1" "  DEBUG tiffinbox: route GET /customers -> customers()" "toy: the scan's line"
 has "$T1" "  INFO tiffinbox: routes mapped:  [GET /customers, GET /dashboard, GET /kitchen, GET /revenue, POST /shutdown]" "toy: the TreeMap's keys"
 has "$T1" "  INFO tiffinbox: TiffinBox listening on http://127.0.0.1:19320" "toy: TiffinBox's own line"
-has "$T1" "  INFO o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19321 (http) with context path '/'" "toy: Tomcat's own line"
+has "$T1" "  INFO o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19321 (http) with context path '/'" "toy: Boot's started line for Tomcat"
 T2=$(blk toy 'each server asked' 'the seven, on')
 has "$T2" '  [{"name":"Meera","mealsPerDay":1,"pricePerMeal":150,"mealType":"NON_VEG"},{"name":"Priya","mealsPerDay":1,"pricePerMeal":120,"mealType":"VEGAN"},{"name":"Ravi","mealsPerDay":2,"pricePerMeal":120,"mealType":"VEG"},{"name":"Sunil","mealsPerDay":3,"pricePerMeal":100,"mealType":"VEG"}] 200 application/json' "toy: TiffinBox's /customers"
 has "$T2" "  TiffinBox's line at DEBUG: GET /customers -> 200" "toy: its DEBUG line"
@@ -491,12 +502,12 @@ x toy "^  the seven responses: 7 lines · md5 $S115\$"
 x toy '^after POST /shutdown: TiffinBox.s server stopped - listening on 19320: 0 · the JVM: alive · it listens on: 127\.0\.0\.1:19321$'
 [ "$(n toy "^$READY\$")" = 3 ] || die "toy: readiness 200 on both, and on Tomcat after POST /shutdown"
 x toy '^  exit 143 · listening now: 19320 0 · 19321 0$'
-x toy '^  its log, from TERM on: Commencing graceful shutdown\. Waiting for active requests to complete · Graceful shutdown complete$'
+grep -qxF -- "  Boot's graceful-shutdown lines, from TERM on (o.s.boot.tomcat.GracefulShutdown): Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete" .r-toy.out || die "toy: Boot's graceful-shutdown lines on TERM"
 echo "  toy: +1 starter, -2 excludes, 58 jars; @Route x5, getAnnotation, TreeMap, routes.put, handler.invoke; 127.0.0.1:19320 + :19321; 5 route lines, routes mapped; each server 404s the other's route; 115c36ba...; JVM alive on 19321 after POST /shutdown; TERM exit 143"
 
 # "Nine handler mappings, Actuator's three first. Four adapters. Two exception resolvers. Four view resolvers. Each list the context's
 # own beans of that kind, the same objects. Before any request: null."
-x lists "^  19322 is TiffinBox's own server - its line: TiffinBox listening on http://127\\.0\\.0\\.1:19322 · 19323 is Tomcat, Spring MVC's server - its line: Tomcat started on port 19323 \\(http\\) with context path '/'\$"
+x lists "^  19322 is TiffinBox's own server - its own line: TiffinBox listening on http://127\\.0\\.0\\.1:19322 · 19323 is Tomcat, Spring MVC's server - Boot's started line: Tomcat started on port 19323 \\(http\\) with context path '/'\$"
 x lists '^  before any request reached Tomcat - the harness, at ready: the DispatcherServlet.s handler mappings: null$'
 x lists "^  handler mappings: 9 · the context's beans of that type: 9 · the same objects: yes\$"
 x lists "^  handler adapters: 4 · the context's beans of that type: 4 · the same objects: yes\$"
@@ -508,6 +519,9 @@ x lists '^  3 ControllerEndpointHandlerMapping \(order -100\) · org\.springfram
 [ "$(n lists '^  [4-9] [A-Za-z]+ \(order -?[0-9]+\) · org\.springframework\.[a-z.]+$')" = 6 ] && [ "$(n lists '^  [4-9] .*\.actuate\.')" = 0 ] || die "lists: six more handler mappings, none of them Actuator's"
 x lists '^  5 RequestMappingHandlerMapping \(order 0\) · org\.springframework\.web\.servlet\.mvc\.method\.annotation$'
 x lists '^  3 HttpRequestHandlerAdapter$'; x lists '^  1 RequestMappingHandlerAdapter$'
+# "two exception resolvers; the second is a composite of three, the one that answered the first lesson's four oh four among them"
+x lists '^  1 DefaultErrorAttributes$'
+x lists '^  2 HandlerExceptionResolverComposite - holds 3: ExceptionHandlerExceptionResolver · ResponseStatusExceptionResolver · DefaultHandlerExceptionResolver$'
 x lists '^  multipartResolver: StandardServletMultipartResolver$'; x lists '^  localeResolver: AcceptHeaderLocaleResolver$'
 x lists '^  viewNameTranslator: DefaultRequestToViewNameTranslator$'; x lists '^  flashMapManager: SessionFlashMapManager$'
 x lists '^  exit 143 · listening now: 19322 0 · 19323 0$'
@@ -575,6 +589,7 @@ awk '/^\*\*Done\*\*/ { f = 1 } f' exercise/README.md | grep -qxF -- "$l" || die 
 grep -qxF -- "$l" exercise/solution/SOLUTION.md || die "SOLUTION.md: the measured run shows no such line"
 x exercise '^  lines that register a route: 0$'
 [ "$(n exercise '^  exit 0 · listening now: 19320 0 · 19321 0')" = 2 ] || die "exercise: both runs exit 0, nothing left listening"
+[ "$(n exercise " · the shell is now in: this unit's folder\$")" = 2 ] || die "exercise: the README's commands and the solution's line, run in one shell, must each leave it in this unit's folder"
 echo "  exercise: the README as written -> 0 registration lines (the adapter's logger); the solution -> {GET [/probe/hello]}: hello()"
 [ -z "$(diff -rq -x target -x secrets -x .m2-demo -x .harness -x README.md anchor ../c6-tiffinbox 2>&1)" ] || echo "  (the anchor has moved past this tree: this unit's captures are of ../c5-unit27/after, the last course's final tree)" >&3
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"

@@ -55,8 +55,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # N its own length; this folder's absolute path "…", the folder above it "…/..", the home folder "~", your user name "<user>";
 # Spring's error timestamp "<time>" (an ISO-8601 string) or "<epoch ms>" (a number); a request thread's number (exec-N,
 # qtp<hash>-N), Jetty's scheduler's "Scheduler-<hash>-" and identity hashes "@<hash>" - in every line of every capture. A
-# run's log is read through declared filters (the harness's own lines, the container's started line, Boot's graceful-shutdown
-# lines), the rest counted or not printed; Boot's first line (its process id, your user, this folder) is never printed. No
+# run's log is read through declared filters (the harness's own lines, Boot's started line for the container - its logger is
+# Boot's class, and it names the port - and Boot's graceful-shutdown lines), the rest counted or not printed; Boot's first line (its process id, your user, this folder) is never printed. No
 # duration is captured.
 # Ports (brief ⚑1, 19310-19319): servlet, life, swap's A, B and A' 19310 (TiffinBox) and 19311 (the container) · filter 19312
 # and 19313 · two's D 19314 and 19315, E 19316 and 19317 · the exercise 19318 and 19319. 18425 (TiffinBox's default) and 8080
@@ -221,19 +221,21 @@ addrs() { lsof -nP -a -p "$pid" -iTCP -sTCP:LISTEN 2> /dev/null | awk 'NR > 1 { 
 # other address stops the run (README.md, "Found on the way": shown failing on a planted wildcard line first)
 loopback() { [ "$1" = "127.0.0.1:$2 127.0.0.1:$3" ] || die "the JVM listens on [$1], not on 127.0.0.1:$2 and 127.0.0.1:$3 alone"; }
 # up TB C: readiness asked of TiffinBox's own server (TB) every 0.25 s, up to 60 s, until it answers 200 - the start has then
-# finished, the container's included, and the container's own line must already be in the log; the addresses the JVM listens
-# on (only 127.0.0.1:TB and 127.0.0.1:C); TiffinBox's own line and the container's; then the README's readiness line, run once.
-up() { local i=0 c="" cl
+# finished, the container's included, and Boot's started line for the container must already be in the log; the addresses the JVM
+# listens on (only 127.0.0.1:TB and 127.0.0.1:C); TiffinBox's own line, and Boot's started line with its logger (Boot's class:
+# TomcatWebServer or JettyWebServer); then the README's readiness line, run once.
+up() { local i=0 c="" cl lg
   while [ $i -lt 240 ]; do c=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$1/actuator/health/readiness" 2> /dev/null || true); [ "$c" = 200 ] && break
     kill -0 "$pid" 2> /dev/null || { tail -20 .harness/run.out >&3; die "it exited before readiness answered 200"; }
     sleep 0.25; i=$((i + 1)); done
   [ "$c" = 200 ] || die "readiness never answered 200 on $1"
   cl=$(grep -m1 -oE "(Tomcat|Jetty) started on port $2 \(http(/1\.1)?\) with context path .*\$" .harness/run.out || true)
-  [ -n "$cl" ] || die "readiness answered 200 on $1 before the container's started line was logged"
+  [ -n "$cl" ] || die "readiness answered 200 on $1 before Boot's started line for the container was logged"
+  lg=$(grep -m1 -E "(Tomcat|Jetty) started on port $2 " .harness/run.out | sed 's/^.*--- \[[^]]*\] //; s/ *: .*$//')
   loopback "$(addrs)" "$1" "$2"
   echo "  listens on: $(addrs) - TiffinBox's own server, $1, and the container, $2"
   echo "  TiffinBox's own line: $(grep -m1 -oE 'TiffinBox listening on http://[0-9.]+:[0-9]+$' .harness/run.out || echo '(none)')"
-  echo "  the container's own line, in the log once readiness answered: $cl"
+  echo "  Boot's started line, in the log once readiness answered - logger: message: $lg: $cl"
   echo "\$ $(url "$R_READY" "$1")"; (eval "$(url "$R_READY" "$1")") 2>&1 < /dev/null | sed 's/^/  /'; }
 logtok() { local t h; t=$(raw "$TOKEN" .harness/run.out .harness/run.err); h=$(cat .harness/run.out .harness/run.err | LC_ALL=C grep -aoi -- 'x-shutdown-token' | wc -l | tr -d ' ')
   LOGS=$((LOGS + 1)); [ "$t" = 0 ] && [ "$h" = 0 ] || die "a log held the demo token ($t) or its header's name ($h)"
@@ -247,7 +249,7 @@ halt() { local i=0 e=0
   wait "$pid" || e=$?; pid=""
   [ "$(listeners "$1")" = 0 ] && [ "$(listeners "$2")" = 0 ] || die "something still listens on $1 or $2"
   echo "  exit $e · listening on $1 and $2 now: 0 and 0"
-  echo "  Boot's lines while it stopped: $(grep -oE 'Commencing graceful shutdown\. Waiting for active requests to complete$|Graceful shutdown complete$' .harness/run.out | paste -sd'|' - | sed 's/|/ · /g')"
+  echo "  Boot's graceful-shutdown lines ($(grep -E ' : (Commencing graceful shutdown|Graceful shutdown complete)' .harness/run.out | sed 's/^.*--- \[[^]]*\] //; s/ *: .*$//' | sort -u | paste -sd' ' -)): $(grep -oE 'Commencing graceful shutdown\. Waiting for active requests to complete$|Graceful shutdown complete$' .harness/run.out | paste -sd'|' - | sed 's/|/ · /g')"
   logtok; }
 ask() { echo "\$ $1"; (eval "$1") 2>&1 < /dev/null | sed 's/^/  /'; }
 # harn: the harness's own lines in this run's log (System.out: "harness: ..."), in the log's order
@@ -472,7 +474,7 @@ undertow() { local e=0
   ! grep -qE 'offline mode|Could not resolve|could not be resolved|Cannot access' .harness/undertow.log || die "undertow: Maven could not resolve Boot's parent offline - run the pre-capture builds"
   echo "  exit $e"
   grep -m1 -E "^\[ERROR\] +'dependencies\.dependency\.version' " .harness/undertow.log | sed -E 's/^\[ERROR\] +/  [ERROR] /' || echo "  (no such line)"
-  echo "Boot's own lists of the versions it manages - its BOM, spring-boot-dependencies - as the last Boot 3 shipped it and as Boot"
+  echo "Boot's own lists of the versions it manages - its BOM, spring-boot-dependencies - as Boot 3.5.16 ships it and as Boot"
   echo "4.1.1 ships it (harness/boms/pom.xml copies the two files into .harness/boms/target/boms):"
   rm -rf .harness/boms; rsync -a harness/boms/ .harness/boms/
   echo "\$ $R_BOMS"; mbuild "$R_BOMS" .harness/boms.log "the two BOMs' copy"
@@ -524,7 +526,8 @@ blk() { awk -v a="$2" -v b="$3" 'index($0, a) == 1 { f = 1; next } b != "" && in
 has() { printf '%s\n' "$1" | grep -qxF -- "$2" || die "$3: expected the line: $2"; }
 S115='115c36bac276128e245ca57df11c2891'
 LOGOK="  its log: the demo token 0 times · X-Shutdown-Token 0 times"
-GRACE="  Boot's lines while it stopped: Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete"
+GRACE="  Boot's graceful-shutdown lines (o.s.boot.tomcat.GracefulShutdown): Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete"
+GRACEJ="  Boot's graceful-shutdown lines (o.s.boot.jetty.GracefulShutdown): Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete"
 # THE TOKEN: no capture holds it, raw - counted on each run's own output BEFORE masking - and neither does any log (each counted
 # when it was read: logtok(), the exercise's), nor anything this unit ships
 for f in .harness/raw-*; do [ "$(cat "$f")" = 0 ] || die "a capture's raw output held the demo token ($f)"; done
@@ -563,7 +566,7 @@ has "$SV" "$(gl /raw/lunch.tiff 200 "$TP" seen 'raw servlet: pattern=/raw/* matc
 for p in /customers /rawXYZ /nowhere; do has "$SV" "$(gl "$p" 404 application/json seen '{"timestamp":"<time>","status":404,"error":"Not Found","path":"'"$p"'"}')" "servlet $p"; done
 [ "$(printf '%s\n' "$SV" | grep -c '^  GET ')" = 7 ] || die "servlet: seven answers"
 x servlet "^$(gl /customers 200 application/json - '')\\[\\{"
-x servlet '^  listens on: 127\.0\.0\.1:19310 127\.0\.0\.1:19311 - '; x servlet "^  the container's own line, in the log once readiness answered: Tomcat started on port 19311 \(http\) with context path '/'\$"
+x servlet '^  listens on: 127\.0\.0\.1:19310 127\.0\.0\.1:19311 - '; x servlet "^  Boot's started line, in the log once readiness answered - logger: message: o\.s\.boot\.tomcat\.TomcatWebServer: Tomcat started on port 19311 \(http\) with context path '/'\$"
 x servlet '^  exit 143 · listening on 19310 and 19311 now: 0 and 0$'
 echo "  servlet: EXACT, PATH, EXTENSION, PATH beats EXTENSION; 3 x 404 by the DispatcherServlet; text/plain;charset=ISO-8859-1; TiffinBox's own server: no filter header"
 
@@ -587,7 +590,7 @@ x life '^  the raw servlet.s lines in all: init 1 · service 3 · destroy 1 - in
 LF=$(blk life "  the raw servlet's lines in all:" '')
 [ "$(printf '%s\n' "$LF" | paste -sd'|' -)" = '  harness: raw servlet init - thread http-nio-127.0.0.1-19311-exec-N|  harness: raw servlet service GET /raw|  harness: raw servlet service GET /raw|  harness: raw servlet service GET /raw|  harness: raw servlet destroy - thread SpringApplicationShutdownHook' ] || die "life: init on a request thread, three services, destroy on the shutdown hook"
 [ "$(n life '^  raw servlet: pattern=/raw match=EXACT 200 text/plain;charset=ISO-8859-1$')" = 3 ] || die "life: three answers"
-x life "^$GRACE\$"; x life '^  exit 143 · listening on 19310 and 19311 now: 0 and 0$'
+grep -qxF -- "$GRACE" .r-life.out || die "life: Boot's graceful-shutdown lines"; x life '^  exit 143 · listening on 19310 and 19311 now: 0 and 0$'
 echo "  life: init 0 at startup -> 1 at the first request (exec-N) · service 3 · destroy 1 on SpringApplicationShutdownHook · graceful lines"
 
 # "A, Tomcat. B, Jetty: one exclusion, one dependency. The same four bodies; the same nine frames on top; below them, all different;
@@ -596,8 +599,8 @@ SA=$(blk swap 'A - Tomcat' 'B - Jetty'); SB=$(blk swap 'B - Jetty' "A' - A again
 [ "$SA" = "$SA2" ] || die "swap: A' is not A"
 [ "$(printf '%s\n' "$SA" | grep '^\$ cd')" = "$(printf '%s\n' "$SA2" | grep '^\$ cd')" ] || die "swap: A' is not A's command"
 [ "$(printf '%s\n' "$SA" | grep '^\$ cd' | sed 's|\.harness/tc|.harness/jt|')" = "$(printf '%s\n' "$SB" | grep '^\$ cd')" ] || die "swap: B's command is not A's on the twin"
-has "$SA" "  the container's own line, in the log once readiness answered: Tomcat started on port 19311 (http) with context path '/'" "swap A: Tomcat"
-has "$SB" "  the container's own line, in the log once readiness answered: Jetty started on port 19311 (http/1.1) with context path '/'" "swap B: Jetty"
+has "$SA" "  Boot's started line, in the log once readiness answered - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19311 (http) with context path '/'" "swap A: Tomcat"
+has "$SB" "  Boot's started line, in the log once readiness answered - logger: message: o.s.boot.jetty.JettyWebServer: Jetty started on port 19311 (http/1.1) with context path '/'" "swap B: Jetty"
 has "$SA" '  the raw servlet'"'"'s init, before any request reached the container: 0 line(s)' "swap A: init not at startup"
 has "$SB" '  the raw servlet'"'"'s init, before any request reached the container: 1 line(s) - thread main' "swap B: init at startup, on main"
 has "$SA" '  the raw servlet'"'"'s init: 1 line - thread http-nio-127.0.0.1-19311-exec-N' "swap A: init on a request thread"
@@ -630,7 +633,7 @@ TA_='    Catalina-utility-1 - a org.apache.tomcat.util.threads.TaskThread|    Ca
 JA_='    qtp<hash>-N - a java.lang.Thread  x7|    qtp<hash>-N-acceptor-0@<hash>-oejs.ServerConnector@<hash>{HTTP/1.1, (http/1.1)}{127.0.0.1:19317} - a java.lang.Thread'
 [ "$(thr "$TE" 11)" = "    DestroyJavaVM - a java.lang.Thread|    HTTP-Dispatcher - a java.lang.Thread|    Scheduler-<hash>-1 - a java.lang.Thread|$JA_" ] || die "two E: before"
 [ "$(thr "$TE" 10)" = "    DestroyJavaVM - a java.lang.Thread|    Scheduler-<hash>-1 - a java.lang.Thread|$JA_" ] || die "two E: after - Jetty's scheduler and its eight pool threads left"
-for s in "$TD" "$TE"; do has "$s" "$GRACE" "two: graceful lines on SIGTERM"; done
+has "$TD" "$GRACE" "two D: Boot's graceful-shutdown lines on SIGTERM"; has "$TE" "$GRACEJ" "two E: Boot's graceful-shutdown lines on SIGTERM, Jetty's"
 has "$TD" '  exit 143 · listening on 19314 and 19315 now: 0 and 0' "two D: stopped by its pid"; has "$TE" '  exit 143 · listening on 19316 and 19317 now: 0 and 0' "two E: stopped by its pid"
 echo "  two: D the seven 115c36ba..., alive 2 s later on 19315, Catalina-utility-1/2 + container-0 left, SIGTERM 143, graceful · E Jetty: alive on 19317, its scheduler and pool threads left, 143"
 

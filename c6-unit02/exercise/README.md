@@ -1,7 +1,6 @@
 # Exercise — one pattern more
 
-**Your turn:** register the raw servlet on `*.menu` as well, then request `/lunch.menu` and `/raw/lunch.menu`. Which pattern
-matched each?
+**Your turn:** register the raw servlet on `*.menu` too, request `/lunch.menu` and `/raw/lunch.menu`, and read each match.
 
 The video registered the harness's raw servlet on three kinds of pattern — an exact path, a path ending in `/*`, and an
 extension — and asked the container which one matched each request: the servlet's answer says it, read from

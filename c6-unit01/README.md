@@ -23,15 +23,21 @@ export PATH="$JAVA_HOME/bin:$PATH"
 (`receipts.sh` carries the two `export` lines at its top; a bare `java` on this Mac is 23.0.1.) No GraalVM, no Docker, no native
 build. It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first). Run it from a shell whose
 own command line names none of `tiffinbox-web-1.0.0.jar`, `com.tiffinbox.web.TiffinBoxServer` or `plexus-classworlds`: on exit it
-stops everything in its process group that does (see "Interrupted").
+stops everything in its process group that does (see "Interrupted"). For the same reason, never start two units' `receipts.sh` as
+background jobs of one shell: they share its process group, and each one's clean-up would stop the other's JVMs.
 
-**Runs of record (2026-10-12, the final script):** **335 s under `./receipts.sh`** (/bin/bash 3.2.57, this folder, exit 0, all 5
-captures = published, every check passed); **369 s under `bash receipts.sh`** (Homebrew bash 5.3.9, the same); **224 s from a sealed
-fresh clone** (bash 5.3.9, below: exit 0, all 5 = published). Load averages 40-215 during them: units 02-04 ran beside it, one of
-them building natively. The hashes were first published from an earlier run of the same captures (bash 3.2, exit 0, 309 s) and have
-not moved since. Interrupted with SIGINT mid-run: exit 130, nothing left (below).
+**Runs of record (2026-10-13, after RED's part A — the final script):** **492 s under `./receipts.sh`** (/bin/bash 3.2.57, this
+folder, exit 0, all 5 captures = published, every check passed); **417 s under `bash receipts.sh`** (Homebrew bash 5.3.9, the same).
+Load averages 4-72 during them: units 02-05 ran beside it. The four captures RED's labels touched (`before`, `toy`, `path`, `log`)
+were re-published from a first run of the final script (bash 3.2, every capture 3/3) and have not moved since; `exercise` did not
+move. Interrupted with SIGINT while a JVM listened: exit 130, nothing left (below). The sealed clone below is of the 2026-10-12
+script (224 s); this round's sealed clone was made of *DispatcherServlet, Opened* (`../c6-unit03`), the unit whose exercise changed.
+The exercise as a viewer runs it — one `env -i` bash 3.2 shell started in this folder, `exercise/README.md`'s commands then
+SOLUTION.md's line: `frames the stack walker shows: 45 · the bottom frame: java.lang.Thread.run` (exit 0), then the same line
+with `42` and `java.lang.VirtualThread.run` (exit 0), the shell in this folder after each, nothing left on 19308 or 19309.
 
-Published hashes: before `c67cdf96de5d0018d460c7b6a61b16cf` · toy `0892f260750ade487a59b9341159ccaa` · path `46a78b2a7134db80cb30057acb4faac4` · log `486781dc5a288c47183360ea674290c3` · exercise `7f0ba47c17612be3e861239cbd2b88f5`
+Published hashes: before `36a30f7e93618251909ef92e10153091` · toy `20bfc66db96bd08e0cb971e97898b5ee` · path `8e03c4d0f39af296d76271c6fa63b66a` · log `f62a885e11204680883f28d8892251b9` · exercise `7f0ba47c17612be3e861239cbd2b88f5`
+(2026-10-12: before `c67cdf96…`, toy `0892f260…`, path `46a78b2a…`, log `486781dc…` — RED's part A changed their labels and `log`'s cut).
 
 ## The repository, and what was downloaded
 
@@ -81,9 +87,13 @@ in what it printed, counted on each of its runs. The builder counts the demo tok
   `toy` 19302 / 19303 · `path` 19304 / 19305 · `log` 19306 / 19307 · the exercise 19308 / 19309 (TiffinBox's / Tomcat's). 18425
   (TiffinBox's default) and 8080 (Tomcat's) are checked free and never bound. Nothing listened on 19300-19309 before or after any run.
 - **Every server listens on 127.0.0.1 alone**, read off its process after readiness (`listening, read off its process: … · on
-  127.0.0.1 alone, each a port of this run: yes`). Tomcat's own line names its port and never the address, so the process is the
-  only witness. Every run passes Tomcat `--server.address=127.0.0.1 --server.port=…`; a last check fails any line of this README, the
-  exercise's files or a capture that gives Tomcat a port without that address.
+  127.0.0.1 alone, each a port of this run: yes`). Boot's started line for Tomcat (logger `o.s.boot.tomcat.TomcatWebServer`, Boot's
+  class) names the port only. Tomcat's own connector line names the address too — `Initializing ProtocolHandler
+  ["http-nio-127.0.0.1-19301"]` — but Boot's logging defaults set its logger, `org.apache.coyote.http11.Http11NioProtocol`, to WARN,
+  so at the default levels it never prints (`before`: C, the same run line with that logger at INFO, shows its two lines; the copy's
+  own run shows 0). The request threads' names carry the address as well (`http-nio-127.0.0.1-19305-exec-N`, `path`). The receipts
+  read the address off the process. Every run passes Tomcat `--server.address=127.0.0.1 --server.port=…`; a last check fails any
+  line of this README, the exercise's files or a capture that gives Tomcat a port without that address.
 - **Every JVM is stopped by its process id** (`kill "$pid"`, TERM), waited for, and both its ports checked free; the anchor alone
   is stopped by the seven's POST /shutdown (exit 0). While two servers share a JVM, `before` says which one stopped and whether the
   JVM lived: TiffinBox's port closed, the JVM alive 2 s later, still listening on Tomcat's port.
@@ -92,14 +102,16 @@ in what it printed, counted on each of its runs. The builder counts the demo tok
 
 `receipts.sh` reads seven lines from `anchor/README.md` (`readme()`) — `mvn -B package`, the run line, the DEBUG line
 (`--logging.level.kitchen=debug`), the web line (`--logging.level.web=debug`), the `extract` line, the class-path line and the
-readiness curl line — and the ten lines below from this README (`ours()`), each asserted to be an anchor line with exactly the
-copy's options added: Tomcat's address and port (`--server.address=127.0.0.1 --server.port=18432`), and for the harness's runs its
-classes on the class path (`../hc`, beside the copy) and its class joined (`--spring.main.sources=probe.path.Stack`). Ports 18431
+readiness curl line — and the eleven lines below from this README (`ours()`), each asserted to be an anchor line with exactly the
+copy's options added: Tomcat's address and port (`--server.address=127.0.0.1 --server.port=18432`); for `before`'s C, one logging
+option more (`--logging.level.org.apache.coyote.http11.Http11NioProtocol=info`, Tomcat's own connector logger at INFO); and for the
+harness's runs its classes on the class path (`../hc`, beside the copy) and its class joined (`--spring.main.sources=probe.path.Stack`). Ports 18431
 (TiffinBox's) and 18432 (Tomcat's) become each run's own. The class-path layout of the harness's runs is the extracted jar plus the
 harness's classes (`lib/*` is the JVM's own class-path wildcard).
 
 ```bash
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --server.address=127.0.0.1 --server.port=18432
+java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --server.address=127.0.0.1 --server.port=18432 --logging.level.org.apache.coyote.http11.Http11NioProtocol=info
 java -Dprobe.stack=true -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.kitchen=debug --server.address=127.0.0.1 --server.port=18432
 java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=18431 --server.address=127.0.0.1 --server.port=18432 --spring.main.sources=probe.path.Stack
 java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=18431 --logging.level.web=debug --server.address=127.0.0.1 --server.port=18432 --spring.main.sources=probe.path.Stack
@@ -122,9 +134,14 @@ curl -s -w ' %{http_code} %{content_type}\n' http://127.0.0.1:18431/nowhere
    time, a thread number, an identity hash, a raw timestamp or a build that went online.
 2. **A log line** is printed from its logger on — its time, level, process id and thread cut; TiffinBox's answer lines (logger
    `tiffinbox`, `ROUTE -> STATUS`) from their message on. **Spring's lines at DEBUG** (`log`): every DEBUG line a request added,
-   counted, and all of them printed — the readiness polls' and the DispatcherServlet's first-request set-up lines come before A
-   and are not shown (their number moves with the polls readiness took). Each request waits until its lines stop moving for half a
-   second and the last one ends a request (`Completed …`, or the end of the ERROR dispatch) — up to 20 s, then it dies.
+   counted, and all of them printed. The lines before A are not shown, and counted, all of them, by where they fall: `log` polls
+   readiness on TiffinBox's own port (it answers 200 only once the start has finished, and Boot's started line for Tomcat is
+   checked present), so the one request that reaches Tomcat before A is the README's readiness line — 17 lines: 7 while the context
+   started, 10 with that request, 5 of them the DispatcherServlet's set-up (between its `Initializing Servlet` and `Completed
+   initialization` lines). Each request waits until its lines stop moving for half a second and the last one ends a request
+   (`Completed …`, or the end of the ERROR dispatch) — up to 20 s, then it dies. **Labels:** the line that says Tomcat started is
+   **Boot's started line** — its logger is Boot's class, `o.s.boot.tomcat.TomcatWebServer`, printed with it — and the shutdown lines
+   are **Boot's graceful-shutdown lines** (`o.s.boot.tomcat.GracefulShutdown`).
 3. **The frames** (`toy`, `path`, the exercise) are the stack walker's: it hides reflection's own frames (`toy` shows why:
    `handle()` calls `customers()` through `handler.invoke(this)`, and no `Method.invoke` frame appears). They are grouped by
    `GROUPAWK` (in `receipts.sh`): each frame takes the first layer whose rule matches its class — the top frame is **your method**;
@@ -134,7 +151,8 @@ curl -s -w ' %{http_code} %{content_type}\n' http://127.0.0.1:18431/nowhere
    `org.apache.catalina.valves.*`, `org.apache.catalina.authenticator.*` → **the container**;
    `org.apache.catalina.core.ApplicationFilterChain`, `org.springframework.web.filter.*`,
    `org.apache.tomcat.websocket.server.WsFilter`, `com.sun.net.httpserver.Filter$…`, `sun.net.httpserver.AuthFilter`,
-   `sun.net.httpserver.ServerImpl$Exchange$LinkHandler` → **the filters**; `jakarta.servlet.*`,
+   `sun.net.httpserver.ServerImpl$Exchange$LinkHandler` → **the filter chain** (the filters and the chain's own calls: the JDK's
+   `LinkHandler` is not a filter, it is the link that hands the server's own chain on to the user chain); `jakarta.servlet.*`,
    `org.springframework.web.servlet.FrameworkServlet` → **the servlet**; `org.springframework.web.servlet.*`,
    `org.springframework.web.method.*` → **Spring MVC**; `com.tiffinbox.*` → **TiffinBox router**; anything else → unmatched
    (counted: 0, or the checks stop the run). Printed bottom to top, each layer with its classes in the order they first appear
@@ -155,10 +173,12 @@ curl -s -w ' %{http_code} %{content_type}\n' http://127.0.0.1:18431/nowhere
 **Interrupted.** `receipts.sh`'s exit trap stops the JVM it started in the background (`$pid`) if it still runs, then `sweep()`s
 this run's process group — a TiffinBox JVM (the exercise's own included), a Maven build: TERM, then KILL after 5 s — deletes the
 capture runs left unfinished (`.r-NAME.1-3`) after an interrupt, and drops the lock. A JVM a non-interactive shell starts in the
-background ignores SIGINT, so the trap's TERM is what stops it. **Tested 2026-10-12 on the final script:** `./receipts.sh` as a job
-of its own process group (`set -m`), SIGINT sent to the whole group once `before`'s first JVM listened on 19300 (4 processes in the
-group, 1 of them java): **exit 130**; 5 s later 0 processes in its group, 0 java processes running in this folder, 18425, 8080 and
-19300-19309 free, no `.r-lock`, 0 unfinished capture files, the five published captures intact.
+background ignores SIGINT, so the trap's TERM is what stops it. **Tested 2026-10-13 on the final script:** `./receipts.sh` as a job
+of its own process group (`set -m`), SIGINT sent to the whole group the moment `before`'s C listened on 19301 (4 processes in the
+group, 1 of them java): **exit 130, 0.7 s later**; 5 s later 0 processes in its group, 0 java processes running in this folder, 18425,
+8080 and 19300-19309 free, no `.r-lock`, 0 unfinished capture files, the five published captures intact (a first try that signalled
+between two of `before`'s JVMs, 5 processes and no java, ended the same way: exit 130, nothing left). Tested 2026-10-12 on the
+earlier script, once `before`'s first JVM listened on 19300: the same.
 
 **Planted faults** (R.65, S1.19; 2026-10-12), each on a copy of the published captures (or of this README, or the exercise's), the
 checks run once on each — every check died on its fault, and every check passed on the published captures: the listen-address line
@@ -173,16 +193,27 @@ changed by one digit → `before: the copy's seven`; 13 jars more → `before: e
 `Done names no such line`. **The live functions too:** `addrs()` given planted listener lists — `*:19301 127.0.0.1:19300` → `…: no`;
 `127.0.0.1:8080` beside the run's port → `…: no`; the run's two loopback ports → `…: yes`; `mask()` given raw lines — both JSON
 timestamps, the DEBUG date, `exec-12`, `tomcat-handler-3`, an identity hash, the token, the paths and a short user name — masked each,
-`openjdk@25` left alone, the same bytes under both bashes.
+`openjdk@25` left alone, the same bytes under both bashes. **2026-10-13, the checks RED's part A added**, each on a copy of a published
+capture, the checks alone run once on each (`receipts.sh` with its builds and captures taken out), every one died on its fault and
+all passed on the published captures, restored byte for byte: C's `Initializing ProtocolHandler` line removed → `before C: Tomcat's
+connector line names the address`; Boot's default for that logger given as INFO → `before C: Boot's default level for Tomcat's
+connector logger`; two connector lines at the default levels → `before: Tomcat's connector lines hidden at Boot's default levels`;
+the started line's logger made Tomcat's (`o.a.catalina.startup.Tomcat`) → `toy: Boot's started line`; the old label "Tomcat's own
+lines on the way out" → `path: stopped by its process id, Boot's graceful-shutdown lines`; the cut before A counted 18 → `log:
+expected /… counted: 17 …/`; the readiness line on TiffinBox's port, not Tomcat's → `log: the README's readiness line, run once on
+Tomcat's port`; the toy's layer named "the filters" again → `toy: expected /…the filter chain…/`.
 
 ## 1 · before — where the last course left it, and the copy
 
 The anchor alone: the README's run line, readiness, its one listener, the seven — `115c36ba…`, exit 0. Then the copy: one file
 differs, its `diff -U0` (+1 line, the two excludes −8), the jars each executable jar carries (46 → 58: 12 only in the copy's — Tomcat's
-two, Jackson 3's two, Spring Framework's web two, Boot's six), and the copy's run line: two servers in one JVM, `127.0.0.1:19300` and
-`127.0.0.1:19301` read off the process, each server's own line; the seven on TiffinBox's port, `115c36ba…` again; then which server
-stopped — TiffinBox's port 0 — and that the JVM lived, still listening on Tomcat's port, so it is stopped by its process id: exit 143
-(TERM), Tomcat's two graceful-shutdown lines, both ports free.
+two, Jackson 3's two, Spring Framework's web two, Boot's six). **C (labelled):** the copy's run line with one logging option more,
+Tomcat's own connector logger at INFO — its two lines, `Initializing ProtocolHandler ["http-nio-127.0.0.1-19301"]` and `Starting …`,
+name the address; Boot's logging defaults set that logger to WARN (the line from `spring-boot-4.1.1.jar`). Then the copy's run line
+at the default levels: two servers in one JVM, `127.0.0.1:19300` and `127.0.0.1:19301` read off the process, TiffinBox's own line and
+Boot's started line (the port only), 0 connector lines; the seven on TiffinBox's port, `115c36ba…` again; then which server stopped
+— TiffinBox's port 0 — and that the JVM lived, still listening on Tomcat's port, so it is stopped by its process id: exit 143 (TERM),
+Boot's two graceful-shutdown lines, both ports free.
 
 ```
 where the last course left it - the anchor, TiffinBox's own server alone: the README's run line, from .harness/anchor, port 19300:
@@ -230,13 +261,29 @@ the jars each executable jar carries (BOOT-INF/lib):
     + spring-webmvc-7.0.9.jar
     + tomcat-embed-core-11.0.24.jar
     + tomcat-embed-websocket-11.0.24.jar
+C (labelled) - the copy's run line with Tomcat's own connector logger at INFO (README.md: one logging option added), from .harness/mvc, ports 19300 and 19301:
+$ cd .harness/mvc && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19300 --server.address=127.0.0.1 --server.port=19301 --logging.level.org.apache.coyote.http11.Http11NioProtocol=info
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19301/actuator/health/readiness
+  {"status":"UP"} 200
+  listening, read off its process: 127.0.0.1:19300 127.0.0.1:19301 · on 127.0.0.1 alone, each a port of this run: yes
+  TiffinBox's own line (19300): TiffinBox listening on http://127.0.0.1:19300
+  Boot's started line (19301) - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19301 (http) with context path '/'
+  Tomcat's own connector lines, before the stop - logger: message:
+    o.a.coyote.http11.Http11NioProtocol: Initializing ProtocolHandler ["http-nio-127.0.0.1-19301"]
+    o.a.coyote.http11.Http11NioProtocol: Starting ProtocolHandler ["http-nio-127.0.0.1-19301"]
+  Boot's logging defaults for that logger (spring-boot-4.1.1.jar, org/springframework/boot/logging/logback/defaults.xml): <logger name="org.apache.coyote.http11.Http11NioProtocol" level="WARN"/>
+$ kill "$pid"    # TERM, by its process id
+  exit 143 · Boot's graceful-shutdown lines (o.s.boot.tomcat.GracefulShutdown): Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
+  listening now: 19300 0 · 19301 0
+  its log: the demo token 0 times · X-Shutdown-Token 0 times · WARN lines 0 · ERROR lines 0
 the copy, two servers in one JVM - the copy's run line (README.md: the anchor's, Tomcat's address and port added), from .harness/mvc, ports 19300 and 19301:
 $ cd .harness/mvc && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19300 --server.address=127.0.0.1 --server.port=19301
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19301/actuator/health/readiness
   {"status":"UP"} 200
   listening, read off its process: 127.0.0.1:19300 127.0.0.1:19301 · on 127.0.0.1 alone, each a port of this run: yes
   TiffinBox's own line (19300): TiffinBox listening on http://127.0.0.1:19300
-  Tomcat's own line (19301): Tomcat started on port 19301 (http) with context path '/'
+  Boot's started line (19301) - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19301 (http) with context path '/'
+  Tomcat's own connector lines in this log, at Boot's default levels: 0
 the seven, on TiffinBox's own port:
 $ $CURLSET 19300 .harness/mvc/secrets/tiffinbox/shutdown-token
   GET   /customers  -> 200 application/json  [{"name":"Meera","mealsPerDay":1,"pricePerMeal":150,"mealType":"NON_VEG"},{"name":"Priya","mealsPerDay":1,"pricePerMeal":120,"mealType":"VEGAN"},{"name":"Ravi","mealsPerDay":2,"pricePerMeal":120,"mealType":"VEG"},{"name":"Sunil","mealsPerDay":3,"pricePerMeal":100,"mealType":"VEG"}]
@@ -249,7 +296,7 @@ $ $CURLSET 19300 .harness/mvc/secrets/tiffinbox/shutdown-token
   the seven responses: 7 lines · md5 115c36bac276128e245ca57df11c2891
   after POST /shutdown: TiffinBox's port 19300, listening: 0 · the JVM, 2 s later: alive · it listens on: 127.0.0.1:19301
 $ kill "$pid"    # TERM, by its process id
-  exit 143 · Tomcat's own lines on the way out: Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
+  exit 143 · Boot's graceful-shutdown lines (o.s.boot.tomcat.GracefulShutdown): Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
   listening now: 19300 0 · 19301 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times · WARN lines 0 · ERROR lines 0
 ```
@@ -257,8 +304,8 @@ $ kill "$pid"    # TERM, by its process id
 ## 2 · toy — TiffinBox's own server, asked who called customers()
 
 One line added to `customers()` in a copy (its hunk first); `GET /customers` on TiffinBox's port → 11 frames, `VirtualThread.run`
-at the bottom (TiffinBox's executor gives each request a virtual thread), the JDK's server and its own filter chain (`AuthFilter`,
-`LinkHandler`, three `Filter$Chain` frames), TiffinBox's router (`lambda$start$0`, `handle`), the method. **C (labelled):**
+at the bottom (TiffinBox's executor gives each request a virtual thread), the JDK's server and its own filter chain (one filter,
+`AuthFilter`; the chain's link, `LinkHandler`; three `Filter$Chain` frames), TiffinBox's router (`lambda$start$0`, `handle`), the method. **C (labelled):**
 `GET /nowhere` on the same port → the JDK's HTML 404 and 0 TiffinBox lines at DEBUG: TiffinBox's router never ran.
 
 ```
@@ -271,7 +318,7 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19303/actuator/health/readiness
   {"status":"UP"} 200
   listening, read off its process: 127.0.0.1:19302 127.0.0.1:19303 · on 127.0.0.1 alone, each a port of this run: yes
   TiffinBox's own line (19302): TiffinBox listening on http://127.0.0.1:19302
-  Tomcat's own line (19303): Tomcat started on port 19303 (http) with context path '/'
+  Boot's started line (19303) - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19303 (http) with context path '/'
 GET /customers on TiffinBox's own port - the method its router calls:
 $ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:19302/customers
   200 application/json
@@ -288,11 +335,11 @@ $ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:1930
    2 java.util.concurrent.ThreadPerTaskExecutor$TaskRunner.run
    1 java.lang.VirtualThread.run
   bottom to top, grouped by the README's filter - frames · layer · classes:
-   2  the thread     VirtualThread · ThreadPerTaskExecutor$TaskRunner
-   1  the JDK server ServerImpl$Exchange
-   5  the filters    Filter$Chain ×3 · ServerImpl$Exchange$LinkHandler · AuthFilter
+   2  the thread       VirtualThread · ThreadPerTaskExecutor$TaskRunner
+   1  the JDK server   ServerImpl$Exchange
+   5  the filter chain Filter$Chain ×3 · ServerImpl$Exchange$LinkHandler · AuthFilter
    2  TiffinBox router TiffinBoxServer ×2
-   1  your method    TiffinBoxServer.customers
+   1  your method      TiffinBoxServer.customers
   11  in all · frames no rule took: 0
   how handle() calls the method - the anchor's TiffinBoxServer.java, line 182: respond(exchange, 200, handler.invoke(this)); - reflection (Method.invoke): no frame of it above, the stack walker hides reflection's own
   TiffinBox's lines at DEBUG it added: 1
@@ -303,7 +350,7 @@ $ curl -s -w ' %{http_code} %{content_type}\n' http://127.0.0.1:19302/nowhere
   TiffinBox's lines at DEBUG it added: 0
   the line in customers() printed, in all: 11 frames
 $ kill "$pid"    # TERM, by its process id
-  exit 143 · Tomcat's own lines on the way out: Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
+  exit 143 · Boot's graceful-shutdown lines (o.s.boot.tomcat.GracefulShutdown): Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
   listening now: 19302 0 · 19303 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times · WARN lines 0 · ERROR lines 0
 ```
@@ -311,7 +358,7 @@ $ kill "$pid"    # TERM, by its process id
 ## 3 · path — the harness's method on Tomcat, asked the same question
 
 The harness's route on Tomcat's port → 45 frames on `http-nio-127.0.0.1-19305-exec-N`, not virtual: the thread 4 · the connector 6 ·
-the container 6 · the filters 15 (five filters: four of Spring's — `CharacterEncodingFilter`, `ServerHttpObservationFilter`,
+the container 6 · the filter chain 15 (five filters: four of Spring's — `CharacterEncodingFilter`, `ServerHttpObservationFilter`,
 `FormContentFilter`, `RequestContextFilter` — and Tomcat's `WsFilter`, each wrapped in `ApplicationFilterChain.doFilter`) · the
 servlet 5 · Spring MVC 8 · your method 1; no frame unmatched. Tomcat's context log names the servlet at the first request (readiness's):
 `Initializing Spring DispatcherServlet 'dispatcherServlet'` (INFO, the README's default level).
@@ -323,7 +370,7 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19305/actuator/health/readiness
   {"status":"UP"} 200
   listening, read off its process: 127.0.0.1:19304 127.0.0.1:19305 · on 127.0.0.1 alone, each a port of this run: yes
   TiffinBox's own line (19304): TiffinBox listening on http://127.0.0.1:19304
-  Tomcat's own line (19305): Tomcat started on port 19305 (http) with context path '/'
+  Boot's started line (19305) - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19305 (http) with context path '/'
   its log at INFO, from the first request on Tomcat's port (readiness's) - logger: message: o.a.c.c.C.[Tomcat].[localhost].[/]: Initializing Spring DispatcherServlet 'dispatcherServlet'
 $ curl -s http://127.0.0.1:19305/probe/stack
   frames the stack walker shows: 45
@@ -374,29 +421,31 @@ $ curl -s http://127.0.0.1:19305/probe/stack
    1 java.lang.Thread.run
   thread http-nio-127.0.0.1-19305-exec-N · virtual false
   bottom to top, grouped by the README's filter - frames · layer · classes:
-   4  the thread     Thread · TaskThread$WrappingRunnable · ThreadPoolExecutor$Worker · ThreadPoolExecutor
-   6  the connector  SocketProcessorBase · NioEndpoint$SocketProcessor · AbstractProtocol$ConnectionHandler · AbstractProcessorLight · Http11Processor · CoyoteAdapter
-   6  the container  StandardEngineValve · ErrorReportValve · StandardHostValve · AuthenticatorBase · StandardContextValve · StandardWrapperValve
-  15  the filters    ApplicationFilterChain ×6 · OncePerRequestFilter ×4 · CharacterEncodingFilter · ServerHttpObservationFilter · FormContentFilter · RequestContextFilter · WsFilter
-   5  the servlet    HttpServlet ×2 · FrameworkServlet ×3
-   8  Spring MVC     DispatcherServlet ×2 · AbstractHandlerMethodAdapter · RequestMappingHandlerAdapter ×2 · ServletInvocableHandlerMethod · InvocableHandlerMethod ×2
-   1  your method    Stack.frames
+   4  the thread       Thread · TaskThread$WrappingRunnable · ThreadPoolExecutor$Worker · ThreadPoolExecutor
+   6  the connector    SocketProcessorBase · NioEndpoint$SocketProcessor · AbstractProtocol$ConnectionHandler · AbstractProcessorLight · Http11Processor · CoyoteAdapter
+   6  the container    StandardEngineValve · ErrorReportValve · StandardHostValve · AuthenticatorBase · StandardContextValve · StandardWrapperValve
+  15  the filter chain ApplicationFilterChain ×6 · OncePerRequestFilter ×4 · CharacterEncodingFilter · ServerHttpObservationFilter · FormContentFilter · RequestContextFilter · WsFilter
+   5  the servlet      HttpServlet ×2 · FrameworkServlet ×3
+   8  Spring MVC       DispatcherServlet ×2 · AbstractHandlerMethodAdapter · RequestMappingHandlerAdapter ×2 · ServletInvocableHandlerMethod · InvocableHandlerMethod ×2
+   1  your method      Stack.frames
   45  in all · frames no rule took: 0
   the filters themselves - each class whose name ends in Filter, bottom to top (OncePerRequestFilter, the base class Spring's filters share, left out): 5 - Spring: CharacterEncodingFilter · Spring: ServerHttpObservationFilter · Spring: FormContentFilter · Spring: RequestContextFilter · Tomcat: WsFilter
 $ kill "$pid"    # TERM, by its process id
-  exit 143 · Tomcat's own lines on the way out: Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
+  exit 143 · Boot's graceful-shutdown lines (o.s.boot.tomcat.GracefulShutdown): Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
   listening now: 19304 0 · 19305 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times · WARN lines 0 · ERROR lines 0
 ```
 
 ## 4 · log — the path in Spring's own words
 
-The anchor README's web line (Boot's log group `web` at DEBUG) on the copy, with the harness. **A** `GET /probe/stack` → 200, 5 lines:
+The anchor README's web line (Boot's log group `web` at DEBUG) on the copy, with the harness; readiness polled on TiffinBox's own port,
+then the README's readiness line once on Tomcat's — the 17 lines at DEBUG before A counted, not shown. **A** `GET /probe/stack` → 200, 5 lines:
 the request, `Mapped to probe.path.Stack#frames()` (the handler mapping), the two lines that write the answer, `Completed 200 OK`.
 **B** `GET /nowhere`, a path nobody declared → Spring's JSON 404 (its timestamp masked), 10 lines: the static-resource handler
-takes it (`Mapped to ResourceHttpRequestHandler […]`), finds no file, `NoResourceFoundException`, `Completed 404 NOT_FOUND`; then a
-second trip through the DispatcherServlet — `"ERROR" dispatch for GET "/error"` — to Boot's `BasicErrorController#error`, which
-writes the body. **A′** — A's `$` command again: the same 5 lines.
+takes it (`Mapped to ResourceHttpRequestHandler […]`), finds no file, `NoResourceFoundException` (resolved by
+`DefaultHandlerExceptionResolver`), `Completed 404 NOT_FOUND`; then the request comes back through the DispatcherServlet — `"ERROR"
+dispatch for GET "/error"` — to Boot's `BasicErrorController#error`, which writes the body. (Who sends it back — the container, on
+the 404 status — is not captured here; *Boot's Default Error Response* opens that path.) **A′** — A's `$` command again: the same 5 lines.
 
 ```
 the anchor README's web line (Boot's log group web at DEBUG) on the copy, with the harness - README.md, ports 19306 and 19307:
@@ -405,8 +454,8 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19307/actuator/health/readiness
   {"status":"UP"} 200
   listening, read off its process: 127.0.0.1:19306 127.0.0.1:19307 · on 127.0.0.1 alone, each a port of this run: yes
   TiffinBox's own line (19306): TiffinBox listening on http://127.0.0.1:19306
-  Tomcat's own line (19307): Tomcat started on port 19307 (http) with context path '/'
-  Spring's lines at DEBUG before A - readiness, and the DispatcherServlet's set-up at the first request - are not shown: their number moves with the polls readiness took
+  Boot's started line (19307) - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19307 (http) with context path '/'
+  Spring's lines at DEBUG before A, not shown - counted: 17 · 7 while the context started, before Boot's started line · 10 with the README's readiness request, the first to reach Tomcat - 5 of them the DispatcherServlet's set-up, between its Initializing Servlet and Completed initialization lines
 A - GET /probe/stack on Tomcat's port, the harness's route:
 $ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:19307/probe/stack
   200 text/plain;charset=UTF-8
@@ -440,7 +489,7 @@ $ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:1930
     m.m.a.RequestResponseBodyMethodProcessor: Writing ["frames the stack walker shows: 45<EOL>45 probe.path.Stack.frames<EOL>44 org.springframework.web.method.suppo (truncated)..."]
     o.s.web.servlet.DispatcherServlet: Completed 200 OK
 $ kill "$pid"    # TERM, by its process id
-  exit 143 · Tomcat's own lines on the way out: Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
+  exit 143 · Boot's graceful-shutdown lines (o.s.boot.tomcat.GracefulShutdown): Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
   listening now: 19306 0 · 19307 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times · WARN lines 0 · ERROR lines 0
 ```
@@ -496,6 +545,22 @@ $ (cd .harness/mine/mvc && exec java -cp "tiffinbox-web/target/extracted/tiffinb
 java.lang.VirtualThread.run`, a line of the `exercise` capture; the README's commands and the solution's line run exactly as written.
 
 ## Found on the way
+
+- **RED's part A, 2026-10-13 — the labels were Tomcat's where the lines are Boot's.** The line that says Tomcat started is logged by
+  Boot's `TomcatWebServer`, and the shutdown lines by Boot's `GracefulShutdown`; the captures now say "Boot's started line" and
+  "Boot's graceful-shutdown lines", each with its logger. Tomcat's own connector line names the address — `before`'s C shows it at
+  INFO — and Boot's logging defaults set its logger to WARN, so the default run shows 0 of it: the address is read off the process,
+  and Tomcat's thread names carry it too (`path`). "The process is the only witness" was wrong, and is gone.
+- **A cut that moved.** `log` polled readiness on Tomcat's port, so the lines Spring logged before A were as many as the polls that
+  reached Tomcat (RED counted 42 at DEBUG, 20 shown): not a count, and not bounded. `log` alone now polls TiffinBox's own port — it
+  answers 200 only once the start has finished, and Boot's started line is checked present — and asks Tomcat once, with the README's
+  readiness line: 17 lines before A, 3 of 3 (the brief's S1.13 polls Tomcat's port; that rule's reason, a 503 from TiffinBox's port
+  before Tomcat started, is met by polling until 200 and checking the line).
+- **`LinkHandler` is not a filter.** The JDK's server runs its own filter chain, then hands it on to the user chain through
+  `ServerImpl$Exchange$LinkHandler`; the toy's chain holds one filter, `AuthFilter`. The layer is now "the filter chain" in both
+  stacks (the voice already said "its own small filter chain" and "the filter chain").
+- **Two receipts, one shell.** Started as two background jobs of one shell, two units' `receipts.sh` share a process group, and the
+  first to finish would stop the other's JVMs in its clean-up. Each runs from its own shell (or its own process group).
 
 - **A thread's number moved a hash.** Spring's DEBUG line for A quotes the first 100 characters of the answer. The harness first
   printed its thread first, and `exec-9` against `exec-10` moved the cut by one character — `log` drifted across three runs. The

@@ -19,6 +19,15 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ./receipts.sh     # 8 captures, 3 runs each; every spoken number asserted; 0 raw tokens; a published-md5 mismatch stops it
 ```
 
+**Runs of record (2026-10-13, after RED's part A — the final script):** **771 s under `bash receipts.sh`** (Homebrew bash 5.3.9,
+exit 0, all 8 captures = published, every check passed) and **798 s under `./receipts.sh`** (/bin/bash 3.2.57, the same); load
+averages 30-150, units 01, 03, 04 and 05 running beside it. The six captures whose labels RED's part A touched (`servlet`, `filter`,
+`life`, `swap`, `two`, `undertow`) were re-published from a first run of the final script (bash 3.2, every capture 3/3, 584 s);
+`jars` and `exercise` did not move. This round's sealed clone was made of *DispatcherServlet, Opened* (`../c6-unit03`); this unit's,
+below, is of the 2026-10-12 script. The exercise, run as a viewer runs it — one `env -i` bash 3.2 shell started in this folder: the
+README's setup (exit 0), its try line (`/lunch.menu` 404, `/raw/lunch.menu` PATH), SOLUTION's line (`*.menu` EXTENSION, `/raw/*`
+PATH) — each exit 0, the shell still in this folder, nothing left listening on 19318 or 19319.
+
 **Runs of record (2026-10-12):** **347 s under `./receipts.sh`** (/bin/bash 3.2.57, this folder, exit 0, all 8 captures =
 published, every check passed; load averages about 7-35) and **478 s under `bash receipts.sh`** (Homebrew bash 5.3.9, exit 0, all
 8 = published; load averages about 24-143, other units' builds beside it); **523 s from a sealed fresh clone** (bash 5.3.9, exit 0,
@@ -28,7 +37,7 @@ published. The published hashes were made by `./receipts.sh` (/bin/bash 3.2.57).
 (`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) It needs `javac`,
 `python3`, `curl`, `rsync`, `patch`, `unzip` and `lsof`; no GraalVM and no Docker. It **dies** when a capture's md5 differs from
 `receipts.md5` (it prints the `DIFFERS` line first).
-Published hashes: jars `4a746bccbf394b63e0737d6e0d27c661` · servlet `da33b8f7ad9eb71033da35a58443486d` · filter `f43d1ee80faafbe7b704e55cd88db985` · life `c16035cfd2362c6c3f74deeae64ce9b0` · swap `d067681f45cbbd8b743abb535e152ca4` · two `9dda9b961e2f89daecb7eba9401e7f93` · undertow `17b6bf1d11087e62f27a964b1991eee1` · exercise `f9b2a9ad88feb63de7786dad7d946aa6`
+Published hashes: jars `4a746bccbf394b63e0737d6e0d27c661` · servlet `d92042b03859651dc7eba8f94794f45e` · filter `de2ac94bb8ea3c382ad348bc3949ec86` · life `97e5bd961285c5c84556a4eecf53f1d5` · swap `c6cc92e492479c554ac2b55649603337` · two `01790d3700949ccfa38a7f9500250151` · undertow `6489ca82e0c5340a1b1058549e2ec424` · exercise `f9b2a9ad88feb63de7786dad7d946aa6`
 
 ## The repository, and what was downloaded
 
@@ -141,8 +150,10 @@ unit's scripts, READMEs and captures for one.
 5. **`GET /threads`'s answer** (`threadsview`): each thread's name and the class of its `Thread` object, masked as in 3, each
    distinct line once with its count (`x7`). **The container's table** (`/actuator/mappings`): its servlets and its filters, one row
    each — name, patterns sorted, class — sorted by name.
-6. **A run's log** is never printed whole: the harness's own lines (`harness: …`); TiffinBox's `TiffinBox listening on …` and the
-   container's `… started on port …` line; Boot's two graceful-shutdown lines; the token and the header's name counted. Boot's first
+6. **A run's log** is never printed whole: the harness's own lines (`harness: …`); TiffinBox's `TiffinBox listening on …` and
+   **Boot's started line** for the container (`… started on port …`, which names the port; its logger printed, Boot's class:
+   `o.s.boot.tomcat.TomcatWebServer` / `o.s.boot.jetty.JettyWebServer`); **Boot's graceful-shutdown lines**, with their logger
+   (`o.s.boot.tomcat.GracefulShutdown` / `o.s.boot.jetty.GracefulShutdown`); the token and the header's name counted. Boot's first
    line (its process id, your user, this folder) is never printed. **A Maven log**: the `built … · offline: … · exit …` line; for
    `undertow` the exit code and the first `'dependencies.dependency.version' …` line (Maven prints it twice).
 7. **TiffinBox's own `/customers`** (`servlet`) is cut after its first 30 characters, the cut counted.
@@ -228,7 +239,7 @@ answer reports the container's own decision: `getHttpServletMapping()`. The writ
 — the servlet set `text/plain` and no charset. `X-Raw-Filter: seen` on all seven. The same path asked of TiffinBox's own server
 (the JDK's `HttpServer`, no container): 200, and no filter header.
 
-`.r-servlet.out` · md5 `da33b8f7ad9eb71033da35a58443486d` · 3 of 3
+`.r-servlet.out` · md5 `d92042b03859651dc7eba8f94794f45e` · 3 of 3
 
 ```
 the copy (built by capture jars), run exploded - the extracted jar and the harness's folder - with the raw servlet on /raw,
@@ -240,7 +251,7 @@ $ grep -n 'bean.setUrlMappings\|= req.getHttpServletMapping()' harness/web/harne
 $ cd .harness/tc && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19310 --spring.main.sources=harness.RawServletConfig,harness.RawFilterConfig --server.address=127.0.0.1 --server.port=19311
   listens on: 127.0.0.1:19310 127.0.0.1:19311 - TiffinBox's own server, 19310, and the container, 19311
   TiffinBox's own line: TiffinBox listening on http://127.0.0.1:19310
-  the container's own line, in the log once readiness answered: Tomcat started on port 19311 (http) with context path '/'
+  Boot's started line, in the log once readiness answered - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19311 (http) with context path '/'
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19310/actuator/health/readiness
   {"status":"UP"} 200
 seven requests to Tomcat, 19311 - which servlet the container gave each, as the answer says (the raw servlet's names the
@@ -258,7 +269,7 @@ $ harness/paths.sh 19310 /customers
   GET /customers       -> 200 application/json  X-Raw-Filter: -  [{"name":"Meera","mealsPerDay" … (252 characters more)
 $ kill $pid
   exit 143 · listening on 19310 and 19311 now: 0 and 0
-  Boot's lines while it stopped: Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
+  Boot's graceful-shutdown lines (o.s.boot.tomcat.GracefulShutdown): Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 ```
 
@@ -272,7 +283,7 @@ servlets, 6 filters** — ours; four of Spring's, three of them in Boot's own `O
 ("Tomcat WebSocket (JSR356) Filter"). One request's path (`GET /where`): **the same 6, outermost first** — Spring's four, then
 ours, then Tomcat's.
 
-`.r-filter.out` · md5 `f43d1ee80faafbe7b704e55cd88db985` · 3 of 3
+`.r-filter.out` · md5 `de2ac94bb8ea3c382ad348bc3949ec86` · 3 of 3
 
 ```
 the same copy, the raw servlet and the raw filter joined, and the harness's route too (GET /where); mappings exposed by a
@@ -285,7 +296,7 @@ $ grep -n 'bean.addUrlPatterns\|resp.setHeader\|chain.doFilter(request\|println(
 $ cd .harness/tc && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19312 --spring.main.sources=harness.RawServletConfig,harness.RawFilterConfig,harness.Where --server.address=127.0.0.1 --server.port=19313 --management.endpoints.web.exposure.include=health,mappings
   listens on: 127.0.0.1:19312 127.0.0.1:19313 - TiffinBox's own server, 19312, and the container, 19313
   TiffinBox's own line: TiffinBox listening on http://127.0.0.1:19312
-  the container's own line, in the log once readiness answered: Tomcat started on port 19313 (http) with context path '/'
+  Boot's started line, in the log once readiness answered - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19313 (http) with context path '/'
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19312/actuator/health/readiness
   {"status":"UP"} 200
 $ harness/paths.sh 19313
@@ -316,7 +327,7 @@ $ curl -s http://127.0.0.1:19313/where
   the filters it passed, outermost first: 6 - CharacterEncodingFilter · ServerHttpObservationFilter · FormContentFilter · RequestContextFilter · RawFilter · WsFilter
 $ kill $pid
   exit 143 · listening on 19312 and 19313 now: 0 and 0
-  Boot's lines while it stopped: Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
+  Boot's graceful-shutdown lines (o.s.boot.tomcat.GracefulShutdown): Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 ```
 
@@ -327,14 +338,14 @@ On Tomcat, the raw servlet alone joined: **at startup, 0 lines; the first reques
 (`http-nio-127.0.0.1-19311-exec-N`); each request runs `service` — 3 requests, 3 lines; `kill $pid` (SIGTERM) → Boot's two
 graceful-shutdown lines, and `destroy` once, on `SpringApplicationShutdownHook`**; exit 143, both ports free.
 
-`.r-life.out` · md5 `c16035cfd2362c6c3f74deeae64ce9b0` · 3 of 3
+`.r-life.out` · md5 `97e5bd961285c5c84556a4eecf53f1d5` · 3 of 3
 
 ```
 the raw servlet's life, on Tomcat - the copy with the raw servlet joined; TiffinBox on 19310, Tomcat on 19311:
 $ cd .harness/tc && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19310 --spring.main.sources=harness.RawServletConfig --server.address=127.0.0.1 --server.port=19311
   listens on: 127.0.0.1:19310 127.0.0.1:19311 - TiffinBox's own server, 19310, and the container, 19311
   TiffinBox's own line: TiffinBox listening on http://127.0.0.1:19310
-  the container's own line, in the log once readiness answered: Tomcat started on port 19311 (http) with context path '/'
+  Boot's started line, in the log once readiness answered - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19311 (http) with context path '/'
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19310/actuator/health/readiness
   {"status":"UP"} 200
   the raw servlet's lines so far: init 0 · service 0 · destroy 0
@@ -347,7 +358,7 @@ $ curl -s -w ' %{http_code} %{content_type}\n' http://127.0.0.1:19311/raw
   the raw servlet's lines so far: init 1 · service 3 · destroy 0
 $ kill $pid
   exit 143 · listening on 19310 and 19311 now: 0 and 0
-  Boot's lines while it stopped: Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
+  Boot's graceful-shutdown lines (o.s.boot.tomcat.GracefulShutdown): Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
   its log: the demo token 0 times · X-Shutdown-Token 0 times
   the raw servlet's lines in all: init 1 · service 3 · destroy 1 - in the log's order:
   harness: raw servlet init - thread http-nio-127.0.0.1-19311-exec-N
@@ -376,14 +387,14 @@ container's first request.
   loaded the harness's class, and `loadClass("harness.Where")` hands back the very class the application loaded: identity is name
   plus loader (Core Java II), and here one loader sits behind both (ledger C6-29).
 
-`.r-swap.out` · md5 `d067681f45cbbd8b743abb535e152ca4` · 3 of 3
+`.r-swap.out` · md5 `c6cc92e492479c554ac2b55649603337` · 3 of 3
 
 ```
 A - Tomcat: the copy (capture jars built it):
 $ cd .harness/tc && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19310 --spring.main.sources=harness.RawServletConfig,harness.Where --server.address=127.0.0.1 --server.port=19311
   listens on: 127.0.0.1:19310 127.0.0.1:19311 - TiffinBox's own server, 19310, and the container, 19311
   TiffinBox's own line: TiffinBox listening on http://127.0.0.1:19310
-  the container's own line, in the log once readiness answered: Tomcat started on port 19311 (http) with context path '/'
+  Boot's started line, in the log once readiness answered - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19311 (http) with context path '/'
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19310/actuator/health/readiness
   {"status":"UP"} 200
   the raw servlet's init, before any request reached the container: 0 line(s)
@@ -405,7 +416,7 @@ $ harness/paths.sh 19311 /raw /raw/menu/today /lunch.tiff /raw/lunch.tiff
   the raw servlet's init: 1 line - thread http-nio-127.0.0.1-19311-exec-N
 $ kill $pid
   exit 143 · listening on 19310 and 19311 now: 0 and 0
-  Boot's lines while it stopped: Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
+  Boot's graceful-shutdown lines (o.s.boot.tomcat.GracefulShutdown): Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 B - Jetty: its twin, one exclusion and one dependency more in tiffinbox-web/pom.xml, against the copy's (capture jars built it):
 $ diff -U0 .harness/tc/tiffinbox-web/pom.xml .harness/jt/tiffinbox-web/pom.xml | sed 1,2d
@@ -424,7 +435,7 @@ $ diff -U0 .harness/tc/tiffinbox-web/pom.xml .harness/jt/tiffinbox-web/pom.xml |
 $ cd .harness/jt && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19310 --spring.main.sources=harness.RawServletConfig,harness.Where --server.address=127.0.0.1 --server.port=19311
   listens on: 127.0.0.1:19310 127.0.0.1:19311 - TiffinBox's own server, 19310, and the container, 19311
   TiffinBox's own line: TiffinBox listening on http://127.0.0.1:19310
-  the container's own line, in the log once readiness answered: Jetty started on port 19311 (http/1.1) with context path '/'
+  Boot's started line, in the log once readiness answered - logger: message: o.s.boot.jetty.JettyWebServer: Jetty started on port 19311 (http/1.1) with context path '/'
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19310/actuator/health/readiness
   {"status":"UP"} 200
   the raw servlet's init, before any request reached the container: 1 line(s) - thread main
@@ -446,13 +457,13 @@ $ harness/paths.sh 19311 /raw /raw/menu/today /lunch.tiff /raw/lunch.tiff
   the raw servlet's init: 1 line - thread main
 $ kill $pid
   exit 143 · listening on 19310 and 19311 now: 0 and 0
-  Boot's lines while it stopped: Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
+  Boot's graceful-shutdown lines (o.s.boot.jetty.GracefulShutdown): Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 A' - A again:
 $ cd .harness/tc && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19310 --spring.main.sources=harness.RawServletConfig,harness.Where --server.address=127.0.0.1 --server.port=19311
   listens on: 127.0.0.1:19310 127.0.0.1:19311 - TiffinBox's own server, 19310, and the container, 19311
   TiffinBox's own line: TiffinBox listening on http://127.0.0.1:19310
-  the container's own line, in the log once readiness answered: Tomcat started on port 19311 (http) with context path '/'
+  Boot's started line, in the log once readiness answered - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19311 (http) with context path '/'
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19310/actuator/health/readiness
   {"status":"UP"} 200
   the raw servlet's init, before any request reached the container: 0 line(s)
@@ -474,7 +485,7 @@ $ harness/paths.sh 19311 /raw /raw/menu/today /lunch.tiff /raw/lunch.tiff
   the raw servlet's init: 1 line - thread http-nio-127.0.0.1-19311-exec-N
 $ kill $pid
   exit 143 · listening on 19310 and 19311 now: 0 and 0
-  Boot's lines while it stopped: Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
+  Boot's graceful-shutdown lines (o.s.boot.tomcat.GracefulShutdown): Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 ```
 
@@ -486,12 +497,13 @@ $ kill $pid
 `HTTP-Dispatcher` (TiffinBox's own server) and **`container-0` — a `org.springframework.boot.tomcat.TomcatWebServer$1`: Boot's**.
 The seven against TiffinBox's own server (`115c36ba…`, POST /shutdown last): TiffinBox's server stops (19314 closes). **2 s later
 the JVM is still running, listening on 127.0.0.1:19315 alone, and 4 threads that are not daemons are left** — the dispatcher gone,
-Boot's `container-0` and Tomcat's two utility threads still there. Stopped by its pid (SIGTERM): Boot's two graceful-shutdown
-lines, exit 143, both ports free. **E** — the same on Jetty (19316 / 19317): alive 2 s later on 19317, held by Jetty's scheduler
-and its **8** pool threads (`qtp<hash>-N` ×7 and its acceptor); exit 143. What stops the JVM once Tomcat is TiffinBox's only
+`DestroyJavaVM`, which only waits for the rest, and the **three that hold the JVM**: Boot's `container-0` and Tomcat's two utility
+threads. Stopped by its pid (SIGTERM): Boot's two graceful-shutdown lines, exit 143, both ports free. **E** — the same on Jetty
+(19316 / 19317): alive 2 s later on 19317, held by Jetty's scheduler and, here, its **8** pool threads (`qtp<hash>-N` ×7 and its
+acceptor; the pool's size moves with the processor count — "Found on the way"); exit 143. What stops the JVM once Tomcat is TiffinBox's only
 server: *Embedded Tomcat, Threads and Connectors* (ledger C6-15, its other half).
 
-`.r-two.out` · md5 `9dda9b961e2f89daecb7eba9401e7f93` · 3 of 3
+`.r-two.out` · md5 `01790d3700949ccfa38a7f9500250151` · 3 of 3
 
 ```
 D (labelled) - two servers in one JVM: the copy, TiffinBox's own server on 19314, Tomcat on 19315; the harness's route joined
@@ -499,7 +511,7 @@ D (labelled) - two servers in one JVM: the copy, TiffinBox's own server on 19314
 $ cd .harness/tc && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19314 --spring.main.sources=harness.Where --server.address=127.0.0.1 --server.port=19315
   listens on: 127.0.0.1:19314 127.0.0.1:19315 - TiffinBox's own server, 19314, and the container, 19315
   TiffinBox's own line: TiffinBox listening on http://127.0.0.1:19314
-  the container's own line, in the log once readiness answered: Tomcat started on port 19315 (http) with context path '/'
+  Boot's started line, in the log once readiness answered - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19315 (http) with context path '/'
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19314/actuator/health/readiness
   {"status":"UP"} 200
 $ curl -s http://127.0.0.1:19315/threads
@@ -521,13 +533,13 @@ $ curl -s http://127.0.0.1:19315/threads
     container-0 - a org.springframework.boot.tomcat.TomcatWebServer$1
 $ kill $pid
   exit 143 · listening on 19314 and 19315 now: 0 and 0
-  Boot's lines while it stopped: Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
+  Boot's graceful-shutdown lines (o.s.boot.tomcat.GracefulShutdown): Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 E (labelled) - the same on Jetty: its twin, TiffinBox's own server on 19316, Jetty on 19317:
 $ cd .harness/jt && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19316 --spring.main.sources=harness.Where --server.address=127.0.0.1 --server.port=19317
   listens on: 127.0.0.1:19316 127.0.0.1:19317 - TiffinBox's own server, 19316, and the container, 19317
   TiffinBox's own line: TiffinBox listening on http://127.0.0.1:19316
-  the container's own line, in the log once readiness answered: Jetty started on port 19317 (http/1.1) with context path '/'
+  Boot's started line, in the log once readiness answered - logger: message: o.s.boot.jetty.JettyWebServer: Jetty started on port 19317 (http/1.1) with context path '/'
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19316/actuator/health/readiness
   {"status":"UP"} 200
 $ curl -s http://127.0.0.1:19317/threads
@@ -549,7 +561,7 @@ $ curl -s http://127.0.0.1:19317/threads
     qtp<hash>-N-acceptor-0@<hash>-oejs.ServerConnector@<hash>{HTTP/1.1, (http/1.1)}{127.0.0.1:19317} - a java.lang.Thread
 $ kill $pid
   exit 143 · listening on 19316 and 19317 now: 0 and 0
-  Boot's lines while it stopped: Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
+  Boot's graceful-shutdown lines (o.s.boot.jetty.GracefulShutdown): Commencing graceful shutdown. Waiting for active requests to complete · Graceful shutdown complete
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 ```
 
@@ -561,7 +573,7 @@ starter: **`mvn -o validate` → exit 1, `'dependencies.dependency.version' for 
 is missing.`** Boot's own lists of the versions it manages, copied by `harness/boms/pom.xml`: **3.5.16's BOM mentions Undertow on 11
 lines (its starter on 1); 4.1.1's on 0**. Jetty's starter is in both (ledger C6-20, measured twice; contract R.84).
 
-`.r-undertow.out` · md5 `17b6bf1d11087e62f27a964b1991eee1` · 3 of 3
+`.r-undertow.out` · md5 `6489ca82e0c5340a1b1058549e2ec424` · 3 of 3
 
 ```
 C (labelled) - Undertow, asked for the way Boot 3's parent offered it: harness/undertow/pom.xml names its starter on Boot
@@ -569,7 +581,7 @@ C (labelled) - Undertow, asked for the way Boot 3's parent offered it: harness/u
 $ cd .harness/undertow && mvn -o -B -Dmaven.repo.local="$M2" validate
   exit 1
   [ERROR] 'dependencies.dependency.version' for org.springframework.boot:spring-boot-starter-undertow:jar is missing. @ line 24, column 17
-Boot's own lists of the versions it manages - its BOM, spring-boot-dependencies - as the last Boot 3 shipped it and as Boot
+Boot's own lists of the versions it manages - its BOM, spring-boot-dependencies - as Boot 3.5.16 ships it and as Boot
 4.1.1 ships it (harness/boms/pom.xml copies the two files into .harness/boms/target/boms):
 $ cd .harness/boms && mvn -o -B -Dmaven.repo.local="$M2" validate
   built the two BOMs' copy · offline: yes · exit 0
@@ -611,7 +623,8 @@ $ exercise/try.sh exercise/solution/RawServletConfig.java /lunch.menu /raw/lunch
 
 ## Exercise
 
-`exercise/README.md`: register the raw servlet on `*.menu` as well, then request `/lunch.menu` and `/raw/lunch.menu`. It ships
+`exercise/README.md` — its "Your turn", the spoken beat word for word: register the raw servlet on `*.menu` too, request `/lunch.menu`
+and `/raw/lunch.menu`, and read each match. It ships
 broken (`exercise/RawServletConfig.java` lists `/raw` and `/raw/*` only); `exercise/try.sh CONFIG PATH…` compiles the raw servlet
 with the registration you name, runs the copy in `.harness/mine` (TiffinBox 19318, Tomcat 19319, both on `127.0.0.1`), asks Tomcat,
 and stops the JVM by its pid. The measured answer, run exactly as written: `exercise/solution/`. Run `./receipts.sh` once first on a
@@ -634,6 +647,21 @@ fresh clone (it fills `.m2-demo`).
 
 ## Found on the way
 
+- **RED's part A, 2026-10-13.** (a) *The labels were the container's where the lines are Boot's:* the started line is logged by
+  Boot's `TomcatWebServer` / `JettyWebServer`, the shutdown lines by Boot's `GracefulShutdown` — each capture now says "Boot's started
+  line" and "Boot's graceful-shutdown lines", with the logger. (b) *"A JVM runs until its last thread that isn't a daemon ends"* was
+  contradicted by its own counts: both include `DestroyJavaVM`, the thread `main` ran on, which only waits for the rest. A probe
+  (JDK 25, `java Last.java`: `main` starts one thread that is not a daemon and returns; that thread, 2 s later, lists the threads that
+  are not daemons — `worker DestroyJavaVM` — then ends) exits 0 when the worker ends: `DestroyJavaVM` holds nothing. So D's four are
+  `DestroyJavaVM` and the three that hold the JVM, and the voice says so. (c) *Jetty's pool size is this Mac's:* RED's runs of the
+  Jetty twin with `-XX:ActiveProcessorCount=2` and `=8` gave 7 pool threads and the acceptor, 8 in all, and `=32` gave 14 and the
+  acceptor; the voice says "here". (d) *"Forty-five on Jetty"* holds for its first request (below), and the voice now says so. (e)
+  The exercise README's "Your turn" line is now the spoken beat, word for word. (f) `undertow`'s label names Boot 3.5.16, the BOM
+  it measured, not "the last Boot 3" (the version sweep recorded the newest 4.x GA only). The checks that changed with the labels were each shown
+  failing once on a copy of a published capture, the checks alone run (2026-10-13), and passing on the restored captures: the started
+  line's logger made Tomcat's own → `servlet: expected /…TomcatWebServer…/`; Jetty's started line given Jetty's own logger →
+  `swap B: Jetty`; the old shutdown label → `life: Boot's graceful-shutdown lines`; Jetty's run given Tomcat's shutdown logger →
+  `two E: Boot's graceful-shutdown lines on SIGTERM, Jetty's`.
 - **Jetty initialises servlets at startup; Tomcat at their first request.** The brief (from the probe, on Tomcat) said "init runs
   once, at the first request, on a request thread". Measured on both: Tomcat ran the raw servlet's `init` — and the
   `DispatcherServlet`'s, `Initializing Servlet 'dispatcherServlet'` — at the first request; Jetty ran both on `main`, before
@@ -675,6 +703,12 @@ fresh clone (it fills `.m2-demo`).
   top-level command.
 
 ## Interrupted
+
+**RED's part A, 2026-10-13:** `./receipts.sh` as the foreground job of a real terminal, Ctrl-C while `servlet`'s JVM listened on
+19311 (6 processes in its group, 1 java): exit 130 after 0.1 s; 5 s later nothing in its group, 18425, 8080 and 19310-19319 free, no
+`.r-lock`, no unfinished capture, 8 of 8 captures = published. **This round, by accident:** a run of the final script under bash 5.3
+and unit 03's were started as two background jobs of one shell — one process group — and were stopped with SIGTERM 55 s in, before
+either could sweep the other's JVMs: exit 130, 0 processes left in the group, no lock, no unfinished capture, every port free.
 
 **Tested 2026-10-12 on the final script, twice**, with `receipts.sh` as a job of its own process group (job control on, as a
 terminal's foreground job is) and `SIGINT` sent to the whole group: **(1) during `jars`' Maven build**, 24 s in (in the group: the

@@ -1,6 +1,6 @@
 # Exercise — virtual threads, and the frames that leave
 
-**Your turn:** add one option that switches on virtual threads, ask the harness route again, and count the frames. Name the ones that left.
+**Your turn:** the option meant to switch on virtual threads does nothing. Find why, fix it, name the frames that left.
 
 The video asked one question of Spring MVC's server, on a copy of TiffinBox with Spring MVC beside its own server: who called
 the harness's method? The harness's `@RestController` (`harness/probe/path/Stack.java`, outside `com.tiffinbox`) answers

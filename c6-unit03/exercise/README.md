@@ -6,9 +6,9 @@ does it print?
 In the video, Spring MVC registered the harness's `@GetMapping` method while TiffinBox started, before Tomcat started — one TRACE
 line per method. The command below is meant to show that line, and shows none: its logging option names the wrong class.
 
-Run everything from `c6-unit03/`. The command starts the copy this unit's `receipts.sh` builds in `.harness/serve` — the anchor
-with Spring MVC's starter added — from that folder, which holds a config tree with the demo token; the harness's classes are in
-`.harness/classes`. Both are git-ignored, and `receipts.sh` makes them: on a fresh clone, run `./receipts.sh` once first. The run
+Run everything from `c6-unit03/`, in one shell. The command starts the copy this unit's `receipts.sh` builds in `.harness/serve` —
+the anchor with Spring MVC's starter added — from that folder, which holds a config tree with the demo token, in a subshell (the
+parentheses), so your shell stays in `c6-unit03/` for the next run; the harness's classes are in `.harness/classes`. Both are git-ignored, and `receipts.sh` makes them: on a fresh clone, run `./receipts.sh` once first. The run
 uses `-Dspring.context.exit=onRefresh`, the property the last course's AOT-cache line uses: the JVM starts, refreshes the context
 — that is when a route is registered — and exits by itself, before Tomcat listens. TiffinBox's own server listens on
 `127.0.0.1:19320` for that moment; nothing is left running.
@@ -16,11 +16,11 @@ uses `-Dspring.context.exit=onRefresh`, the property the last course's AOT-cache
 ```bash
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
 export PATH="$JAVA_HOME/bin:$PATH"
-cd .harness/serve && java -Dspring.context.exit=onRefresh -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../classes" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19320 --server.address=127.0.0.1 --server.port=19321 --spring.main.sources=probe.Hello --logging.level.org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter=trace > ../mine.log && echo "lines that register a route: $(grep -c '{GET' ../mine.log)"
+(cd .harness/serve && exec java -Dspring.context.exit=onRefresh -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../classes" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19320 --server.address=127.0.0.1 --server.port=19321 --spring.main.sources=probe.Hello --logging.level.org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter=trace) > .harness/mine.log && echo "lines that register a route: $(grep -c '{GET' .harness/mine.log)"
 ```
 
 It prints `lines that register a route: 0`. Change the logging option so that it names the class that finds handlers and
-registers routes, run it again, and print the line for `/probe/hello` from `.harness/mine.log`.
+registers routes, run it again from the same shell, and print the line for `/probe/hello` from `.harness/mine.log`.
 
 **Done** when you can print
 
