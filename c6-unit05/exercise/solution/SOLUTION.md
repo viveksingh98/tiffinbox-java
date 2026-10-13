@@ -1,15 +1,20 @@
 # Solution — TiffinBox's own rows, and their verbs
 
-Run from `c6-unit05/`, after `exercise/README.md`'s commands. One line: the README's last line with the endpoint's id spelt as
-Boot spells it — `mappings`, plural. `mapping` names no endpoint, and Boot's exposure list ignores an id it does not know: the
-shipped run's log names no `mapping` and holds no WARN or ERROR line, and its one hint is a count at INFO — `Exposing 2 endpoints
+Run from `c6-unit05/`, after `exercise/README.md`'s commands — in the same shell, or in a new one: the README's two `export`
+lines come first here too, because a bare `java` may be another JDK (on the author's Mac it is 23, which cannot run this jar).
+Then one line, in a subshell, so your shell stays in `c6-unit05/`: the README's last line with the endpoint's id spelt as Boot
+spells it — `mappings`, plural. `mapping` names no endpoint, and Boot's exposure list ignores an id it does not know: the shipped
+run's log names no `mapping` and holds no WARN or ERROR line, and its one hint is a count at INFO — `Exposing 2 endpoints
 beneath base path '/actuator'`, where this line's run says 3 (this unit's `exercise` capture).
 
 ```bash
-cd .harness/mine/tree && { java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19349 --management.endpoints.web.exposure.include=health,prometheus,mappings > ../run.log 2>&1 & } && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19349/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && curl -s http://127.0.0.1:19349/actuator/mappings > ../answer.json && ../../../harness/shutdown.sh 19349 secrets/tiffinbox/shutdown-token > /dev/null && wait && python3 ../../../harness/table.py tiffinbox < ../answer.json
+export JAVA_HOME=/opt/homebrew/opt/openjdk@25
+export PATH="$JAVA_HOME/bin:$PATH"
+(cd .harness/mine/tree && { java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19349 --management.endpoints.web.exposure.include=health,prometheus,mappings > ../run.log 2>&1 & } && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19349/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && curl -s http://127.0.0.1:19349/actuator/mappings > ../answer.json && ../../../harness/shutdown.sh 19349 secrets/tiffinbox/shutdown-token > /dev/null && wait $! && python3 ../../../harness/table.py tiffinbox < ../answer.json)
 ```
 
-Measured (this unit's `exercise` capture, `receipts.sh`, 2026-10-13):
+Measured (this unit's `exercise` capture, `receipts.sh`, 2026-10-13 — run in the same shell as the README's commands, which left
+it in `c6-unit05/`):
 
 ```
 TiffinBox's rows: 5 · the verbs the table gives them: none

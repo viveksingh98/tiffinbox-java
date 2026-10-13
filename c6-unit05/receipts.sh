@@ -1,4 +1,5 @@
 #!/bin/bash
+XPATH=$PATH                                           # the PATH you started this with: the exercise's own shell gets it
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25        # JDK 25.0.4.1 on the author's Mac: point it at your JDK 25
 export PATH="$JAVA_HOME/bin:$PATH"
 # Course 6 · /actuator/mappings: Every Route, Listed - this unit's receipts. The last course asked Boot for its routing table and
@@ -15,10 +16,12 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #             class Boot's rows name and the jar it lives in; the previous tree's seven
 #   rows      what a row says: Actuator's health row and TiffinBox's /customers row, every key the table gives each; then a
 #             wrong verb (DELETE) on each path - who answers it, and its Allow header
-#   catchall  A/B/A': the two rows that catch every path - A the anchor (Boot's web log group at DEBUG): the table, GET
-#             /customers, GET /nowhere and its lines; B the same with spring.web.resources.add-mappings=false; A' = A
+#   catchall  A/B/A': the two static rows, /webjars/** (one folder) and /** (every path) - A the anchor (Boot's web log group at
+#             DEBUG): the table, GET /customers, GET /nowhere and its lines; B the same with spring.web.resources.add-mappings=false;
+#             A' = A; D (labelled): A's line, started from a folder that holds a static/ folder - /** serves its file
 #   exposure  C (labelled): the AOT jar - the anchor built with the profile native - with the same flag: mappings is not there
-#   exercise  exercise/README.md's commands and exercise/solution/SOLUTION.md's, read from the files and run as written
+#   exercise  exercise/README.md's commands, then exercise/solution/SOLUTION.md's, read from the files and run as written, one after
+#             the other in ONE shell a viewer could have: env -i, /bin/bash, started in this folder
 # "The anchor" is anchor/, the link to ../c6-unit04/after: the tree the embedded-Tomcat lesson froze (= ../c6-tiffinbox when this
 # unit was made). "The previous tree" is ../c5-unit27/after: the anchor as Course 5 left it, TiffinBox's own server and its bridge.
 # Both are COPIED under .harness/ (after, before, aot) - this script never writes into another unit's folder, and never builds a
@@ -43,8 +46,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # things, and counts each: a "produces" list keeps its first type, and a Java class name before "#" keeps its last part. A run's log
 # lines are printed from their message on (no time, no process id, no thread); Boot's first line is cut before " with PID". Long
 # DEBUG output goes through a declared filter, and what it cuts is counted. No duration is captured.
-# Ports (brief ⚑1, 19340-19349): table 19340 · the previous tree 19341 · adapter's anchor 19342 · rows 19343 · catchall 19344 · the
-# AOT jar 19345 · the exercise 19349 (19346-19348 unused, checked free). 18425 (TiffinBox's default) and 8080 (Tomcat's) are
+# Ports (brief ⚑1, 19340-19349): table 19340 · the previous tree 19341 · adapter's anchor 19342 · rows 19343 · catchall 19344 (D too)
+# · the AOT jar 19345 · the exercise 19349 (19346-19348 unused, checked free). 18425 (TiffinBox's default) and 8080 (Tomcat's) are
 # checked free too, and never bound.
 set -e
 # bash 5.2 and later turn an & in the replacement of ${x/pattern/replacement} into the matched text (patsub_replacement, on by
@@ -58,8 +61,8 @@ cd "$(dirname "$0")"
 # One run at a time: two runs share .harness/ and the ports, and one would corrupt the other.
 mkdir .r-lock 2> /dev/null || { echo "  *** another receipts.sh is running in this folder (.r-lock exists) - if none is, rmdir .r-lock ***"; exit 1; }
 # On every exit - the end, a failed check, or Ctrl-C - stop the processes this script started in the background ($pid, a server;
-# $xpid, the exercise's commands), if they still run, then sweep(): anything of this run still alive in its process group - a
-# TiffinBox JVM - is stopped. After an interrupt, a capture's unfinished runs (.r-NAME.1-3) go too; after a failed check they stay,
+# $xpid, the exercise's shell, with every process under it - its Maven, its JVM, its curl), if they still run, then sweep():
+# anything of this run still alive in its process group - a TiffinBox JVM - is stopped. After an interrupt, a capture's unfinished runs (.r-NAME.1-3) go too; after a failed check they stay,
 # for the diff the message names. The clean-up ignores a second Ctrl-C, and nothing in it can fail under set -e, so it always
 # reaches the rmdir; the script still exits 130 after an interrupt (README.md, "Interrupted"). $pid and $xpid are cleared whenever
 # their process has been reaped.
@@ -73,12 +76,15 @@ sweep() { local g i l
     [ -n "$l" ] || return 0
     if [ $i -lt 10 ]; then kill $l 2> /dev/null || true; else kill -9 $l 2> /dev/null || true; fi
     sleep 0.5; i=$((i + 1)); done; }
-trap 'trap "" INT TERM; for p in "$pid" "$xpid"; do if [ -n "$p" ] && kill "$p" 2> /dev/null; then wait "$p" 2> /dev/null || true; fi; done; sweep || true; [ -z "$INTR" ] || rm -f .r-*.[123]; rmdir .r-lock 2> /dev/null || true' EXIT
+# desc PID: every process under PID - its children, theirs, and so on (ps, by parent); killtree PID: PID and all of them, TERM
+desc() { ps -axo pid=,ppid= 2> /dev/null | awk -v r="$1" '{ p[$1] = $2 } END { n = 1; q[1] = r; for (i = 1; i <= n; i++) for (c in p) if (p[c] == q[i]) { q[++n] = c; print c } }'; }
+killtree() { local d; d=$(desc "$1"); kill "$1" $d 2> /dev/null || true; }
+trap 'trap "" INT TERM; [ -z "$xpid" ] || killtree "$xpid"; for p in "$pid" "$xpid"; do if [ -n "$p" ] && kill "$p" 2> /dev/null; then wait "$p" 2> /dev/null || true; fi; done; sweep || true; [ -z "$INTR" ] || rm -f .r-*.[123]; rmdir .r-lock 2> /dev/null || true' EXIT
 INTR=""; trap 'INTR=1; exit 130' INT TERM
 exec 3>&1                                            # die() speaks to the terminal even inside a redirected capture
 die() { echo "  *** $* ***" >&3; exit 1; }
 java -version 2>&1 | grep -q 'version "25' || die "JDK 25 needed; JAVA_HOME gives: $(java -version 2>&1 | head -1)"
-for t in python3 curl rsync lsof unzip; do command -v $t > /dev/null || die "$t is needed"; done
+for t in python3 curl rsync lsof unzip openssl; do command -v $t > /dev/null || die "$t is needed"; done
 # A variable of yours must not become a property source, a JVM flag or a build setting: every TIFFINBOX_*, SPRING_*, MANAGEMENT_*,
 # SERVER_* and LOGGING_* variable, DEBUG (Boot reads it as --debug), the variables that inject JVM flags, MAVEN_OPTS, MAVEN_ARGS and
 # NATIVE_IMAGE_OPTIONS are removed first (the last course's failure lesson's loop, verbatim: sed -E, a canary planted under every
@@ -141,6 +147,7 @@ L_ROW=$(mine 'curl -s http://127.0.0.1:18431/actuator/mappings | python3 harness
 L_LINKS=$(mine 'curl -s http://127.0.0.1:18431/actuator | python3 harness/table.py links')
 L_RAW=$(mine "curl -s -w ' %{http_code}\n' http://127.0.0.1:18431/actuator/mappings")
 L_DEL=$(mine "curl -s -X DELETE -w ' %{http_code} allow=%header{allow}\n' http://127.0.0.1:18431/customers")
+L_STATIC=$(mine "mkdir -p static && printf 'a file in static/, beside secrets/' > static/probe.txt")
 # off DIR 'README mvn LINE' PHASE: the README's Maven line as this script runs it - from DIR, offline (-o), this unit's own
 # repository, clean and without tests. dev() takes those things back out, and must give the README's line again.
 off() { local c=${2/mvn -B /mvn -o -B -Dmaven.repo.local=\"\$M2\" }; c=${c/ $3/ -DskipTests clean $3}; printf 'cd %s && %s\n' "$1" "$c"; }
@@ -157,7 +164,7 @@ for c in "$(off .harness/x "$R_PLAIN" package)" "$(off .harness/x "$R_PNAT" pack
   r=$(dev "$c"); [ "$r" = "$R_PLAIN" ] || [ "$r" = "$R_PNAT" ] || die "not a README line with the offline changes: $c"; done
 [ "$(exe "$(at .harness/x 19340 "$L_MAP")")" = "cd .harness/x && exec java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19340 $EXPO" ] || die "exe()"
 [ "$(url "$L_TABLE" 19340)" = 'curl -s http://127.0.0.1:19340/actuator/mappings | python3 harness/table.py' ] && [ "$(qc 19341 /actuator)" = "curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:19341/actuator" ] || die "url(), qc()"
-echo "  the commands: anchor/README.md gives the 8 lines this script derives from, README.md the 10 it adds (the exposure flag, the table's reader, one wrong verb)"
+echo "  the commands: anchor/README.md gives the 8 lines this script derives from, README.md the 11 it adds (the exposure flag, the table's reader, one wrong verb, a static/ folder)"
 
 # ---- build: before the captures - the anchor with the profile native (it fills .m2-demo on a fresh clone, Spring's AOT step and
 # ---- GraalVM's native plugin included), and the previous tree - copies under .harness/, never the frozen trees -------------------
@@ -209,9 +216,11 @@ lb() { local a n=0; for a in $1; do n=$((n + 1)); case $a in 127.0.0.1:*) ;; *) 
 up() { local l; l=$(listening "$1"); [ "$l" != nothing ] || { tail -20 .harness/run.out >&3; die "it never listened"; }
   case " $l " in *':8080 '*) kill -9 "$pid" 2> /dev/null || true; die "it listened on 8080, Tomcat's default - never bound by this script";; esac
   echo "  listens on: $l · loopback only: $(lb "$l")"; echo "  Boot's first line: $(first .harness/run.out)"; }
-# tline: Tomcat's own line, from its message on - polled until it is there (up to 30 s)
+# tline: Boot's started line - logged by Boot's TomcatWebServer, not by Tomcat: its logger, then its message - polled until it is
+# there (up to 30 s). It names the port, never the address (the embedded-Tomcat lesson, bind F: Tomcat's own connector line names
+# both, at a level Boot's logging defaults hide).
 tline() { local i=0; while ! grep -q 'Tomcat started on port ' .harness/run.out && [ $i -lt 120 ]; do sleep 0.25; i=$((i + 1)); done
-  echo "  Tomcat's own line: $(grep -m1 'Tomcat started on port ' .harness/run.out | sed 's/^.* : //')"; }
+  echo "  Boot's started line - logger: message: $(grep -m1 ' : Tomcat started on port ' .harness/run.out | sed 's/^.*--- \[[^]]*\] //; s/ *: /: /')"; }
 # sortj: lines that start with a JSON object - curl's status and anything after it kept - the object's keys sorted (Jackson 2
 # and Jackson 3 order keys differently)
 sortj() { python3 -c '
@@ -380,7 +389,7 @@ rows() {
   del 19343 /actuator/health; del 19343 /customers
   stop 19343 .harness/after; }
 
-# ---- catchall: the two rows that catch every path (A/B/A') -------------------------------------------------------------------------
+# ---- catchall: the two static rows - /webjars/** for one folder, /** for every path (A/B/A', C) -------------------------------------
 # web PORT 'LINE': the run - its handler mappings at start, the table, GET /customers and GET /nowhere, each with its lines
 web() { local n0 c
   start "$(at .harness/after "$1" "$2")"; up "$1"; ready "$1"; tline
@@ -400,7 +409,17 @@ catchall() {
   echo "B - the same, and the static-resource mappings off (this unit's line):"
   web 19344 "$L_WEBOFF"
   echo "A' - A again:"
-  web 19344 "$L_WEB"; }
+  web 19344 "$L_WEB"
+  echo "D (labelled) - A's line, started from a folder that holds a static/ folder with one file in it (README.md's line, run in the copy's folder): /** serves that file - the row's ServletContext [/] reads the static/ folder of the folder TiffinBox starts in - and neither that folder's own files nor secrets/:"
+  local c n0; c="cd .harness/after && $L_STATIC"; echo "\$ $c"; (eval "$c") 2>&1 < /dev/null | sed 's/^/  /'
+  start "$(at .harness/after 19344 "$L_WEB")"; up 19344; ready 19344; tline
+  settle; n0=$(wc -l < .harness/run.out | tr -d ' ')
+  q 19344 /probe.txt
+  settle; lv "$n0"
+  c=$(url "$R_GET" 19344); c=${c%/customers}/probe.txt; echo "\$ $c"; (eval "$c") 2>&1 < /dev/null | sed 's/^/  /'
+  q 19344 /pom.xml; q 19344 /secrets/tiffinbox/shutdown-token
+  stop 19344 .harness/after
+  rm -rf .harness/after/static; }
 
 # ---- exposure: C (labelled) - the AOT jar ------------------------------------------------------------------------------------------
 exposure() {
@@ -413,32 +432,52 @@ exposure() {
   tab 19345 "$L_LINKS"
   stop 19345 .harness/aot; }
 
-# ---- exercise: the README's commands, exactly as written, then the solution's -------------------------------------------------
+# ---- exercise: the README's commands, exactly as written, then the solution's - in ONE shell --------------------------------------
 block() { awk '/^```bash$/ { if (!d) { f = 1 }; next } f && /^```$/ { f = 0; d = 1 } f' "$1"; }
-# xrun 'COMMANDS': run (eval) in the background, bounded (300 s); its output in .harness/x.out; its exit code
-xrun() { local i=0; XE=0; (eval "$1") > .harness/x.out 2>&1 < /dev/null & xpid=$!
-  while kill -0 "$xpid" 2> /dev/null && [ $i -lt 1200 ]; do sleep 0.25; i=$((i + 1)); done
-  kill -0 "$xpid" 2> /dev/null && { kill "$xpid"; die "the exercise's commands still ran after 300 s"; }
-  wait "$xpid" || XE=$?; xpid=""; }
-# xlog: the exercise's own log, read after it exited - the copy's token in it (raw), Actuator's count of the endpoints it exposes
-# (INFO, Boot's default level), the lines that name "mapping", WARN and ERROR lines; and the exercise's port
-xlog() { local f=.harness/mine/run.log
-  echo "  the copy's own token in its log: $(raw "$(head -1 .harness/mine/tree/$TF)" "$f") times · listening on 19349 now: $(listeners 19349)"
-  echo "  its log, at INFO (Boot's default): $(grep -o "Exposing [0-9]* endpoints beneath base path '/actuator'" "$f" || echo 'no line that counts the endpoints') · lines that name mapping: $(grep -ci 'mapping' "$f" || true) · WARN: $(grep -c ' WARN ' "$f" || true) · ERROR: $(grep -c ' ERROR ' "$f" || true)"; }
-exercise() { local setup sol ec
+# xlog LOG: the exercise's own log, read after it exited - the copy's token in it (raw), Actuator's count of the endpoints it
+# exposes (INFO, Boot's default level), the lines that name "mapping", WARN and ERROR lines
+xlog() { echo "  the copy's own token in its log: $(raw "$(head -1 .harness/mine/tree/$TF)" "$1") times"
+  echo "  its log, at INFO (Boot's default): $(grep -o "Exposing [0-9]* endpoints beneath base path '/actuator'" "$1" || echo 'no line that counts the endpoints') · lines that name mapping: $(grep -ci 'mapping' "$1" || true) · WARN: $(grep -c ' WARN ' "$1" || true) · ERROR: $(grep -c ' ERROR ' "$1" || true)"; }
+# The shell a viewer has: env -i - nothing this script set reaches it (its JAVA_HOME, the JDK at the front of its PATH, LC_ALL,
+# no_proxy) - with HOME and the PATH you started this script with; /bin/bash without profile or rc files, started in this folder.
+# A driver in .harness/ runs the README's block, then SOLUTION.md's, as a viewer pastes them - each with its output, its exit
+# code and the folder it left the shell in kept apart (absolute paths: a command that moved the shell must not move these files),
+# and the README's run log kept before the solution's run writes its own. Bounded (600 s); on the way out, or past the bound, the
+# shell and every process under it are stopped (killtree).
+# where DIR: the folder the shell was left in - this unit's folder, a folder under it (named), or elsewhere
+where() { case "$1" in "$U") echo "this unit's folder" ;; "$U"/*) echo "${1#"$U"/}" ;; *) echo "outside this unit's folder" ;; esac; }
+exercise() { local setup sol i=0 e1 d1 e2 d2
   setup=$(block exercise/README.md); sol=$(block exercise/solution/SOLUTION.md)
   [ -n "$setup" ] && [ -n "$sol" ] || die "exercise/README.md or SOLUTION.md no longer gives its commands"
-  [ "$(printf '%s\n' "$sol" | grep -c .)" = 1 ] || die "SOLUTION.md's first bash block must be its one line"
-  echo "exercise/README.md's commands, run exactly as written from this folder - $(printf '%s\n' "$setup" | grep -c .) lines:"
+  [ "$(printf '%s\n' "$sol" | grep -c .)" = 3 ] || die "SOLUTION.md's first bash block must be its two export lines and its one command"
+  [ "$(printf '%s\n' "$sol" | sed -n 1,2p)" = "$(printf '%s\n' "$setup" | sed -n 1,2p)" ] || die "SOLUTION.md must start with the README's two export lines (a new shell's java may be another JDK)"
+  rm -f .harness/ex-*
+  printf '%s\n' "$setup" > .harness/ex-readme.sh; printf '%s\n' "$sol" > .harness/ex-sol.sh
+  cat > .harness/ex-drive.sh <<'DRV'
+cd "$1" || exit 1
+. "$1/.harness/ex-readme.sh" > "$1/.harness/ex-readme.out" 2>&1 < /dev/null
+echo "$? $PWD" > "$1/.harness/ex-readme.st"
+cp "$1/.harness/mine/run.log" "$1/.harness/ex-readme.log" 2> /dev/null
+. "$1/.harness/ex-sol.sh" > "$1/.harness/ex-sol.out" 2>&1 < /dev/null
+echo "$? $PWD" > "$1/.harness/ex-sol.st"
+DRV
+  env -i HOME="$HOME" PATH="$XPATH" /bin/bash --noprofile --norc .harness/ex-drive.sh "$U" > .harness/ex-shell.out 2>&1 < /dev/null & xpid=$!
+  while kill -0 "$xpid" 2> /dev/null && [ $i -lt 2400 ]; do sleep 0.25; i=$((i + 1)); done
+  kill -0 "$xpid" 2> /dev/null && { killtree "$xpid"; die "the exercise's shell still ran after 600 s"; }
+  wait "$xpid" || true; xpid=""
+  [ -f .harness/ex-readme.st ] && [ -f .harness/ex-sol.st ] || { cat .harness/ex-shell.out .harness/ex-readme.out .harness/ex-sol.out 2> /dev/null | tail -20 >&3; die "the exercise's shell did not reach the end of both blocks"; }
+  read -r e1 d1 < .harness/ex-readme.st; read -r e2 d2 < .harness/ex-sol.st
+  [ "$e1" = 0 ] || { tail -20 .harness/ex-readme.out >&3; die "the exercise's commands failed: exit $e1"; }
+  [ "$e2" = 0 ] || { tail -20 .harness/ex-sol.out >&3; die "the solution's lines failed: exit $e2"; }
+  echo "exercise/README.md's commands, then the solution's lines (exercise/solution/SOLUTION.md), exactly as written, one after the other in ONE shell - env -i (HOME, and the PATH this script was started with), /bin/bash --noprofile --norc, started in this folder:"
+  echo "the README's $(printf '%s\n' "$setup" | grep -c .) lines:"
   printf '%s\n' "$setup" | sed 's/^/  $ /'
-  xrun "$setup"; ec=$XE; [ "$ec" = 0 ] || { tail -20 .harness/x.out >&3; die "the exercise's commands failed: exit $ec"; }
-  echo "  exit $ec · what they printed:"; sed 's/^/    /' .harness/x.out
-  xlog
-  echo "the solution's line (exercise/solution/SOLUTION.md), run exactly as written, from this folder:"
-  echo "\$ $sol"
-  xrun "$sol"; ec=$XE; [ "$ec" = 0 ] || { tail -20 .harness/x.out >&3; die "the solution's line failed: exit $ec"; }
-  echo "  exit $ec · what it printed:"; sed 's/^/    /' .harness/x.out
-  xlog; }
+  echo "  exit $e1 · what they printed:"; sed 's/^/    /' .harness/ex-readme.out
+  echo "  the shell is now in: $(where "$d1")"; xlog .harness/ex-readme.log
+  echo "the solution's $(printf '%s\n' "$sol" | grep -c .) lines, next, in the same shell:"
+  printf '%s\n' "$sol" | sed 's/^/  $ /'
+  echo "  exit $e2 · what they printed:"; sed 's/^/    /' .harness/ex-sol.out
+  echo "  the shell is now in: $(where "$d2") · listening on 19349 now: $(listeners 19349)"; xlog .harness/mine/run.log; }
 
 cap table table
 cap adapter adapter
@@ -469,7 +508,7 @@ S115='115c36bac276128e245ca57df11c2891'; S571='571faaea42e87e85add8c9548c64c961'
 READY='  {"status":"UP"} 200'
 STOPPED() { printf '  exit 0 · listening on %s now: 0\n' "$1"; }
 LB() { printf '  listens on: 127.0.0.1:%s · loopback only: yes\n' "$1"; }
-TC() { printf "  Tomcat's own line: Tomcat started on port %s (http) with context path '/'\n" "$1"; }
+TC() { printf "  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port %s (http) with context path '/'\n" "$1"; }
 PLAIN="  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1"
 HEAD3='  contexts: 1 (application) · kinds: 3 (dispatcherServlets servletFilters servlets)'
 for c in table adapter rows catchall; do x "$c" "^$PLAIN\$"; done
@@ -519,17 +558,18 @@ x rows '^  \{"error":"method not allowed"\} 405 allow=$'
 x rows "^$(STOPPED 19343)\$"
 echo "  rows: health 3 keys, GET, Boot's OperationHandler; /customers 2 keys; DELETE: Spring's 405 Allow GET / TiffinBox's own 405, no Allow"
 
-# "The last two rows: /webjars/** and /**, the static-file handler - they catch what the rows above don't. /customers is
-#  TiffinBox's; /nowhere falls through, no file, four oh four. B: twelve rows, neither catch-all; no handler at all, a
-#  different exception, the same four oh four. A again: fourteen."
+# "The last two rows are the static ones: /webjars/** for one folder, /** for every path - Spring's static-file handler, which Boot
+#  maps there. /customers stops at TiffinBox's row; /nowhere falls to /**, no file, four oh four. B: twelve rows, neither static
+#  row; no handler at all, a different exception, the same four oh four. A again: fourteen. D: a static/ folder where TiffinBox
+#  starts - /** serves its file; not the folder's own files, not secrets/."
 x catchall "^Boot's own metadata, in the anchor's jar: spring\.web\.resources\.add-mappings default true \(spring-boot-autoconfigure-4\.1\.1\.jar\)\$"
-CA=$(blk catchall 'A - the anchor' 'B - the same'); CB=$(blk catchall 'B - the same' "A' - A again"); CA2=$(blk catchall "A' - A again" '')
+CA=$(blk catchall 'A - the anchor' 'B - the same'); CB=$(blk catchall 'B - the same' "A' - A again"); CA2=$(blk catchall "A' - A again" 'D (labelled)'); CD=$(blk catchall 'D (labelled)' '')
 for b in "$CA" "$CA2"; do has "$b" "  dispatcherServlets · dispatcherServlet: 14 rows, in the table's order - a run of rows with details sorted by pattern (produces lists cut: 5 · class names cut to their last part: 2)" "catchall A/A': 14 rows"
   printf '%s\n' "$b" | grep -qF "Patterns [/webjars/**, /**] in 'resourceHandlerMapping'" || die "catchall A/A': the resource mapping at start"
   has "$b" '    o.s.w.s.handler.SimpleUrlHandlerMapping: Mapped to TiffinBox route /customers' "catchall A/A': /customers is TiffinBox's"
   printf '%s\n' "$b" | grep -qE '^    o\.s\.w\.s\.handler\.SimpleUrlHandlerMapping: Mapped to ResourceHttpRequestHandler \[classpath \[META-INF/resources/\]' || die "catchall A/A': /nowhere to the static-file handler"
   printf '%s\n' "$b" | grep -qF 'NoResourceFoundException' || die "catchall A/A': NoResourceFoundException"
-  has "$b" '  its lines at DEBUG and WARN - 10 (its other lines: 0):' "catchall A/A': ten lines for /nowhere"
+  printf '%s\n' "$b" | grep -qE '^  its lines at DEBUG and WARN - [0-9]+ \(its other lines: 0\):$' && ! printf '%s\n' "$b" | grep -qE '\(its other lines: [1-9][0-9]*\):$' || die "catchall A/A': every line of each request shown"
   has "$b" "$(STOPPED 19344)" "catchall A/A': exit 0"; done
 [ "$(printf '%s\n' "$CA" | grep '^\$ cd')" = "$(printf '%s\n' "$CA2" | grep '^\$ cd')" ] || die "catchall: A' is not A's command"
 [ "$(printf '%s\n' "$CA" | grep -vE '^\$ cd')" = "$(printf '%s\n' "$CA2" | grep -vE '^\$ cd')" ] || die "catchall: A' differs from A"
@@ -538,10 +578,22 @@ has "$CB" "  dispatcherServlets · dispatcherServlet: 12 rows, in the table's or
 ! printf '%s\n' "$CB" | grep -qF "in 'resourceHandlerMapping'" || die "catchall B: the resource mapping logged at start"
 has "$CB" '    WARN o.s.web.servlet.PageNotFound: No mapping for GET /nowhere' "catchall B: no mapping"
 printf '%s\n' "$CB" | grep -qF 'Resolved [org.springframework.web.servlet.NoHandlerFoundException: No endpoint GET /nowhere.]' || die "catchall B: NoHandlerFoundException"
-has "$CB" '  its lines at DEBUG and WARN - 10 (its other lines: 0):' "catchall B: ten lines"; has "$CB" "$(STOPPED 19344)" "catchall B: exit 0"
+printf '%s\n' "$CB" | grep -qE '^  its lines at DEBUG and WARN - [0-9]+ \(its other lines: 0\):$' && ! printf '%s\n' "$CB" | grep -qE '\(its other lines: [1-9][0-9]*\):$' || die "catchall B: every line of the request shown"; has "$CB" "$(STOPPED 19344)" "catchall B: exit 0"
 NW='  {"error":"Not Found","path":"/nowhere","status":404,"timestamp":"…"} 404    (keys sorted)'
 for b in "$CA" "$CB" "$CA2"; do has "$b" "$NW" "catchall: the same 404, masked"; done
-echo "  catchall: A 14 rows, /webjars/** and /** last ('resourceHandlerMapping'), /customers TiffinBox's, /nowhere -> the static-file handler -> NoResourceFoundException -> 404; B 12 rows, No mapping, NoHandlerFoundException, the same 404; A' = A"
+# D: the static row's ServletContext [/] - a static/ folder where TiffinBox starts is served; the start folder's own files and the
+# config tree are not
+has "$CD" "\$ cd .harness/after && mkdir -p static && printf 'a file in static/, beside secrets/' > static/probe.txt" "catchall D: the static/ folder"
+printf '%s\n' "$CD" | grep -q -- "--logging.level.web=debug\$" && [ "$(printf '%s\n' "$CD" | grep '^\$ cd .harness/after && java')" = "$(printf '%s\n' "$CA" | grep '^\$ cd .harness/after && java')" ] || die "catchall D: A's line"
+# ans BLOCK 'COMMAND': the line after the command's own $ line in BLOCK - its answer
+ans() { printf '%s\n' "$1" | grep -A1 -xF -- "\$ $2" | sed -n 2p; }
+has "$(ans "$CD" "$(qc 19344 /probe.txt)")" '  200 text/plain' "catchall D: the file served"
+has "$CD" '  a file in static/, beside secrets/ 200' "catchall D: its content"
+printf '%s\n' "$CD" | grep -qE '^    o\.s\.w\.s\.handler\.SimpleUrlHandlerMapping: Mapped to ResourceHttpRequestHandler \[classpath \[META-INF/resources/\].*ServletContext \[/\]\]$' || die "catchall D: the /** row's handler"
+has "$(ans "$CD" "$(qc 19344 /pom.xml)")" '  404 application/json' "catchall D: the start folder's own file not served"
+has "$(ans "$CD" "$(qc 19344 /secrets/tiffinbox/shutdown-token)")" '  404 application/json' "catchall D: the config tree not served"
+has "$CD" "$(STOPPED 19344)" "catchall D: exit 0"
+echo "  catchall: A 14 rows, /webjars/** and /** last ('resourceHandlerMapping'), /customers TiffinBox's, /nowhere -> /** -> NoResourceFoundException -> 404; B 12 rows, No mapping, NoHandlerFoundException, the same 404; A' = A; D a static/ folder served by /**, pom.xml and secrets/ 404"
 
 # "Spring's AOT step fixes the endpoint list at build: the AOT jar with the same flag - mappings four oh four, not among the links."
 x exposure '^  built the anchor, the profile native · offline: yes · exit 0$'; x exposure "^  Boot's first line: Starting AOT-processed TiffinBoxServer v1\.0\.0 using Java 25\.0\.4\.1\$"
@@ -550,17 +602,22 @@ x exposure '^\$ cd \.harness/aot && java -Dspring\.aot\.enabled=true -jar tiffin
 x exposure '^  the links: health health-path prometheus self$'; x exposure "^$(STOPPED 19345)\$"; x exposure "^$(LB 19345)\$"
 echo "  exposure C: the AOT jar, the same flag - /actuator/mappings 404, the links without it"
 
-# the exercise's end state: the line exercise/README.md calls "Done" is a line of this capture, after the solution's line - and of
-# SOLUTION.md's measured run; the README's own line, as shipped, finds no table
-XS=$(blk exercise "exercise/README.md's commands" "the solution's line"); XE=$(blk exercise "the solution's line" '')
+# the exercise's end state: the README's commands, then the solution's, in ONE env -i shell - each leaves the shell in this folder;
+# the line exercise/README.md calls "Done" is a line of this capture, after the solution's lines, and of SOLUTION.md's measured run;
+# the README's own last line, as shipped, finds no table
+XS=$(blk exercise "the README's" "the solution's"); XE=$(blk exercise "the solution's" '')
 l="TiffinBox's rows: 5 · the verbs the table gives them: none"
 has "$XE" "    $l" "exercise: the solution"; has "$XS" "    TiffinBox's rows: 0 · not a routing table: status 404" "exercise: as shipped"
 awk '/^\*\*Done\*\*/ { f = 1 } f' exercise/README.md | grep -qxF -- "$l" || die "exercise/README.md: Done names no such line"
 grep -qxF -- "$l" exercise/solution/SOLUTION.md || die "SOLUTION.md: the measured run shows no such line"
-[ "$(n exercise '^  the copy.s own token in its log: 0 times · listening on 19349 now: 0$')" = 2 ] || die "exercise: the copy's token, the port"
+has "$XS" '  exit 0 · what they printed:' "exercise: the README's commands, exit 0"; has "$XE" '  exit 0 · what they printed:' "exercise: the solution's lines, exit 0"
+has "$XS" "  the shell is now in: this unit's folder" "exercise: the README's commands leave the shell in this unit's folder"
+has "$XE" "  the shell is now in: this unit's folder · listening on 19349 now: 0" "exercise: the solution's lines leave the shell in this unit's folder, nothing listening"
+[ "$(n exercise '^  the copy.s own token in its log: 0 times$')" = 2 ] || die "exercise: the copy's token, in both logs"
+[ "$(printf '%s\n' "$XE" | grep -c '^  \$ export ')" = 2 ] || die "exercise: SOLUTION.md gives the README's two export lines"
 has "$XS" "  its log, at INFO (Boot's default): Exposing 2 endpoints beneath base path '/actuator' · lines that name mapping: 0 · WARN: 0 · ERROR: 0" "exercise: as shipped, silent - two endpoints"
 has "$XE" "  its log, at INFO (Boot's default): Exposing 3 endpoints beneath base path '/actuator' · lines that name mapping: 0 · WARN: 0 · ERROR: 0" "exercise: the solution - three endpoints"
-echo "  exercise: the README as written (mapping) -> no table, 404; the solution's line (mappings) -> 5 rows, no verbs"
+echo "  exercise: one env -i shell - the README as written (mapping) -> no table, 404; the solution's lines (mappings) -> 5 rows, no verbs; the shell in this unit's folder after each"
 
 [ -z "$(diff -rq -x target -x .m2-demo anchor/ ../c6-tiffinbox/ 2> /dev/null)" ] || echo "  (anchor/ and ../c6-tiffinbox differ - the anchor has moved past the tree this unit reads)" >&3
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"

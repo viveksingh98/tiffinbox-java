@@ -4,7 +4,8 @@ Course 6 · Spring Web MVC · Section 1 (The Servlet Layer), its fifth and last 
 Spring Boot 4.1.1** (Spring Framework 7.0.9, Tomcat 11.0.24), 2026-10-13. The last course asked Boot for its routing table —
 `/actuator/mappings`, exposed by a flag for one run — and got one context with nothing in it: TiffinBox's routes were its own. Since
 the embedded-Tomcat lesson they are rows in Spring MVC's table. This unit prints the table, reads what each kind of row says, finds
-the two rows that catch every path, and shows the one place a flag cannot add the endpoint at all.
+the two static rows — `/webjars/**` for one folder, `/**` for every path — and what `/**` also serves, and shows the one place a
+flag cannot add the endpoint at all.
 
 **No anchor change.** `anchor` is the link to `../c6-unit04/after` — the tree the embedded-Tomcat lesson froze, equal to
 `../c6-tiffinbox` when this unit was made (`diff -rq -x target`: empty). "The previous tree" is `../c5-unit27/after`, the anchor as
@@ -21,31 +22,35 @@ export PATH="$JAVA_HOME/bin:$PATH"
 (`receipts.sh` carries the two `export` lines at its top; a bare `java` on this Mac is 23.0.1.) It **dies** when a capture's md5
 differs from `receipts.md5` (it prints the `DIFFERS` line first).
 
-**Runs of record (2026-10-13, this script as committed):** **166 s under `./receipts.sh`** (/bin/bash 3.2.57, this folder, exit 0,
-all 6 = published, every check passed); **174 s under `bash receipts.sh`** (Homebrew bash 5.3.9, the same); **186 s from a sealed
-fresh clone under `./receipts.sh`** (/bin/bash 3.2.57): `git clone` of the local repository (HEAD e25e54c) plus this unit's working
-files — nothing git ignores: no `.m2-demo`, no `.harness/`, no `.r-*` — run under `env -i`, with a `HOME` whose `.mavenrc` points
-Maven's `user.home` there (Java reads `user.home` from the account, not from `$HOME`) and every Java proxy property at a port that
-refuses (127.0.0.1:9), and whose Maven settings send every repository to a `file://` copy of Central's files made from `.m2-demo`
-(4,377 files: TiffinBox's own installs, `_remote.repositories`, `*.lastUpdated`, `resolver-status.properties` and `.DS_Store` left
-out, `maven-metadata-central.xml` served as `maven-metadata.xml`); `http_proxy`, `https_proxy`, their capitals and `ALL_PROXY` at the
-same refusing port; `PATH` the system's and Homebrew's, so `python3` was the system's 3.9.6 there (3.14.7 in this folder's runs) —
-the same captures. Exit 0, all 6 = published, every check passed. The first pre-capture build said `offline: no` (GraalVM's metadata
-repository was not in the empty `.m2-demo`) and took **523 artifacts, every one from the `file://` copy, 0 from anywhere else**; the
-second said `offline: yes`, and so did every capture's build; `.m2-demo` ended with 1,405 files; the sealed `HOME` ended holding its
-`.mavenrc`, its `.m2/settings.xml` and the system Python's bytecode cache (`Library/Caches/com.apple.python`). Load averages 4.8-5.7
-during these runs (other units' receipts ran alongside). Earlier runs, on revisions of this script, found the two faults under "Found
-on the way" that the script itself had: rows in a moving order, and an escaped `…`.
+**Runs of record (2026-10-13, this script as committed — after RED part B's fixes):** **262 s under `./receipts.sh`** (/bin/bash
+3.2.57, this folder, exit 0, all 6 = published, every check passed); **327 s under `bash receipts.sh`** (Homebrew bash 5.3.9, the
+same); **413 s from a sealed fresh clone under `./receipts.sh`** (/bin/bash 3.2.57): `git clone` of the local repository (HEAD
+1ecd413) with `c6-unit04`, `c6-unit05` and `c6-tiffinbox` replaced by their working-tree files as they are committed (71 files, 0
+differences) — nothing git ignores: no `.m2-demo`, no `.harness/`, no `.r-*` — run under `env -i`, with a `HOME` whose `.mavenrc`
+points Maven's `user.home` there (Java reads `user.home` from the account, not from `$HOME`) and every Java proxy property at a port
+that refuses (127.0.0.1:9), and whose Maven settings send every repository to a `file://` copy of Central's files made from
+`.m2-demo` (4,364 files: TiffinBox's own installs, `_remote.repositories`, `*.lastUpdated`, `resolver-status.properties` and
+`.DS_Store` left out, `maven-metadata-central.xml` served as `maven-metadata.xml`); `http_proxy`, `https_proxy`, their capitals and
+`ALL_PROXY` at the same refusing port; `PATH` the system's and Homebrew's. Exit 0, all 6 = published, every check passed — the
+exercise's `env -i` shell got that same `PATH`. The first pre-capture build said `offline: no` (GraalVM's metadata repository was not
+in the empty `.m2-demo`) and took **523 artifacts, every one from the `file://` copy, 0 from anywhere else** (`github` in the run's
+log: 0); the second said `offline: yes`, and so did every capture's build; `.m2-demo` ended with 1,405 files; the sealed `HOME` ended
+holding its `.mavenrc`, its `.m2/settings.xml` and the system Python's bytecode cache. Load averages 10-100 during these runs (unit
+04's receipts, native builds among them, ran alongside, each in its own process group). Earlier runs, on revisions of this script:
+the first run after the fixes stopped at its last checks on a fault of the check itself (`catchall` D read the wrong `$` line;
+every capture was = published) — fixed, and the run above repeated in full; before RED part B, 166 s (3.2), 174 s (5.3) and a
+sealed clone (186 s), with the faults under "Found on the way" that the script itself had.
 
-Published hashes: table `452ba448ecb8e205a92d57433320b149` · adapter `b9cfe3b9589e5416f2db62da7b32c056` · rows `fe3370d32a3fa12bf19942d063e5cb32` · catchall `5283262f2f1e8e2d61917201321652bb` · exposure `8305170c0b56f2599d536b2b95766854` · exercise `4ad5cd04417c1c204e969ccc50ef9705`.
+Published hashes: table `6dd90143fe3c3ee4b8df913847f9f04f` · adapter `14a9bab0e42d962e3f00c99df01343f7` · rows `f0b7b9565ce9847dedd61900c6cf8cca` · catchall `af2ed0623e5d89a3691327631024a395` · exposure `16c4e57e108525376d4b076a36799ab7` · exercise `df3bf187e37d23a9a0f557c900959637`.
 
-## The commands — the anchor's lines, and the ten this unit adds
+## The commands — the anchor's lines, and the eleven this unit adds
 
 Every command a capture runs is a whole line of `anchor/README.md` — the anchor's own `mvn -B package` and `mvn -B -Pnative package`,
 its run line, its web log group line, its AOT line, its readiness, `/customers` and status-and-type `curl` lines — or a whole line of
 this README, each read by `readme()` or `mine()`, asserted, then run with its port changed, or in its offline form (`mvn -o -B
 -Dmaven.repo.local="$M2" … -DskipTests clean …`). This unit's run lines are the anchor's run line, or its AOT line, plus options
-only; the other lines read Actuator's answers through the course's harness, `harness/table.py`, or send one wrong verb:
+only; the other lines read Actuator's answers through the course's harness, `harness/table.py`, send one wrong verb, or give the
+copy a `static/` folder:
 
 ```bash
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --management.endpoints.web.exposure.include=health,prometheus,mappings
@@ -58,6 +63,7 @@ curl -s -X DELETE -w ' %{http_code} allow=%header{allow}\n' http://127.0.0.1:184
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --management.endpoints.web.exposure.include=health,prometheus,mappings --logging.level.web=debug
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --management.endpoints.web.exposure.include=health,prometheus,mappings --logging.level.web=debug --spring.web.resources.add-mappings=false
 java -Dspring.aot.enabled=true -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --management.endpoints.web.exposure.include=health,prometheus,mappings
+mkdir -p static && printf 'a file in static/, beside secrets/' > static/probe.txt
 ```
 
 - **`--management.endpoints.web.exposure.include=health,prometheus,mappings`** — the anchor's own list (`application.yaml`:
@@ -75,13 +81,17 @@ java -Dspring.aot.enabled=true -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar
   declared below (Masks, 4).
 - **The DELETE line** prints the answer's body, its status and its `Allow` header (`allow=`, empty when there is none); `rows` sends it
   to `/actuator/health` (its path changed) and to `/customers`.
+- **The `static/` line** runs in the copy's folder, the folder TiffinBox starts in (`catchall` D): one file in a `static/` folder there.
+  `/**`'s row ends `ServletContext [/]` — Tomcat's document root, which Boot takes from that folder — so the file answers at
+  `/probe.txt`. The folder's own files (`pom.xml`) and the config tree (`secrets/`) do not.
 - Start TiffinBox from a copy of the anchor that holds a config tree with a token (`secrets/tiffinbox/shutdown-token`), and run the
   `curl … | python3 harness/table.py` lines from this folder, with the port you started it on.
 
 ## The repository, and what was downloaded
 
-`.m2-demo` (git-ignored) was seeded once from `../c6-unit04/.m2-demo` — without `com/tiffinbox`, which that unit's install wrote
-(brief ⚑17) — and `../../spring-web-mvc/_research/m2-seed-s1/`: 5,827 files, never from Central first. Every Maven build runs
+`.m2-demo` (git-ignored) is seeded from `../../spring-web-mvc/_research/m2-seed-s1/` alone (brief S1.2, R.50): 5,827 files, no
+`com/tiffinbox` (brief ⚑17), never from Central first. (It was first copied from `../c6-unit04/.m2-demo` less `com/tiffinbox`;
+re-checked 2026-10-13 against the seed — `diff -rq`: 0 differences, so the two were the same files.) Every Maven build runs
 offline (`-o`) against it and says so: every build here said `offline: yes`, and the profile native's build (`exposure`) read GraalVM's
 metadata repository from `.m2-demo` (`file:`) — its log holds 0 lines of the plugin's own download (`Downloaded GraalVM reachability
 metadata repository from http`, `Failed to download from http`; the run stops on either). **Downloads in this unit: none** (0 files,
@@ -138,22 +148,24 @@ never printed.
 
 ## Interrupted
 
-Ctrl-C (SIGINT to the foreground process group) stops it with **exit 130**: the trap stops the JVM it started (`$pid`, the
-exercise's `$xpid`), sweeps its process group for any TiffinBox JVM left, deletes the capture runs it had not finished (`.r-NAME.1-3`),
-and removes `.r-lock`. The published captures are untouched. **Measured** (the receipt in its own process group, SIGINT to the whole group once 19344 listened — `catchall`'s A, about 52 s in):
-**exit 130**; 0 processes left in the group; 19340-19349, 8080 and 18425 free; no JVM with its folder here; no `.r-lock`; no
-unfinished capture run; the published captures unchanged.
+Ctrl-C (SIGINT to the foreground process group) stops it with **exit 130**: the trap stops the JVM it started (`$pid`, and the
+exercise's shell `$xpid` with every process under it — `killtree`, by parent pid), sweeps its process group for any TiffinBox JVM left, deletes the capture runs it had not finished (`.r-NAME.1-3`),
+and removes `.r-lock`. The published captures are untouched. **Measured** (2026-10-13, this script; the receipt in its own process group, SIGINT to the whole group 584 s in, while the
+exercise's `env -i` shell ran its README's JVM on 19349 — 6 processes in the group, 1 java): **exit 130** 0.2 s later; 5 s later 0
+processes in the group, 0 anywhere naming this folder, no exercise shell; 19340-19349, 8080 and 18425 free; no `.r-lock`; no
+unfinished capture run; the published captures unchanged. (Before RED part B, on the earlier script: SIGINT while `catchall`'s A
+listened on 19344 — exit 130, nothing left.)
 
 ## 1 · table — the routing table, filled (C6-4)
 
-The anchor on the plain JVM with the exposure list for one run; Tomcat's own line, the address read off the process; the table read by
+The anchor on the plain JVM with the exposure list for one run; Boot's started line, the address read off the process; the table read by
 `harness/table.py`: 1 context, 3 kinds (`dispatcherServlets`, `servletFilters`, `servlets`); 14 rows for the `DispatcherServlet` —
 Actuator's 5, **TiffinBox's 5 (rows 6-10, `TiffinBox route /customers` …)**, `/error` ×2, `/webjars/**` and `/**`; 7 with details, 7
 without, 5 naming a verb (all GET); 5 filters, each on `/*`; 1 servlet. The check that each TiffinBox row is named for its own path
 (and no handler is a lambda's generated name) passes here, and fails on a planted copy of the same answer. Then the seven, with
 `mappings` exposed: `571faaea…`, the comparison set since the embedded-Tomcat lesson.
 
-`.r-table.out` · md5 `452ba448ecb8e205a92d57433320b149` · 3 of 3
+`.r-table.out` · md5 `6dd90143fe3c3ee4b8df913847f9f04f` · 3 of 3
 
 ```
 the anchor, copied under .harness/ with a config tree, built with its README's line (offline):
@@ -166,7 +178,7 @@ $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19340/actuator/health/readiness
   {"status":"UP"} 200
-  Tomcat's own line: Tomcat started on port 19340 (http) with context path '/'
+  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19340 (http) with context path '/'
 $ curl -s http://127.0.0.1:19340/actuator/mappings | python3 harness/table.py
   contexts: 1 (application) · kinds: 3 (dispatcherServlets servletFilters servlets)
   dispatcherServlets · dispatcherServlet: 14 rows, in the table's order - a run of rows with details sorted by pattern (produces lists cut: 5 · class names cut to their last part: 2)
@@ -205,7 +217,7 @@ in none of its jar's 46 libraries); TiffinBox's own line; `/actuator/mappings` �
 `115c36ba…`. Then the anchor: the bridge deleted, Boot's class in `spring-boot-webmvc-4.1.1.jar` (one of 58); the table's counts (14 · 5 ·
 1); **the same two content types**; `/actuator` 200, its links `health health-path mappings prometheus self`.
 
-`.r-adapter.out` · md5 `b9cfe3b9589e5416f2db62da7b32c056` · 3 of 3
+`.r-adapter.out` · md5 `14a9bab0e42d962e3f00c99df01343f7` · 3 of 3
 
 ```
 before - the previous tree: TiffinBox's own server, and its bridge (ActuatorRoutes), copied with a config tree, built with the README's line (offline):
@@ -239,7 +251,7 @@ $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19342/actuator/health/readiness
   {"status":"UP"} 200
-  Tomcat's own line: Tomcat started on port 19342 (http) with context path '/'
+  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19342 (http) with context path '/'
 $ curl -s http://127.0.0.1:19342/actuator/mappings | python3 harness/table.py count
   contexts: 1 (application) · kinds: 3 (dispatcherServlets servletFilters servlets) · rows: dispatcherServlet 14, servletFilters 5, servlets 1
 $ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:19342/actuator/health
@@ -264,7 +276,7 @@ produces), `handler`, `predicate`; TiffinBox's `/customers` row has 2 — `handl
 — and no `details` at all. Then DELETE on each path: Spring answers health itself — its JSON 405 and `Allow: GET`; TiffinBox's own
 handler answers `/customers` — `{"error":"method not allowed"}`, 405, no `Allow` header: the table never knew the verb.
 
-`.r-rows.out` · md5 `fe3370d32a3fa12bf19942d063e5cb32` · 3 of 3
+`.r-rows.out` · md5 `f0b7b9565ce9847dedd61900c6cf8cca` · 3 of 3
 
 ```
 the anchor on the plain JVM, the exposure list given for this one run (this unit's line), port 19343:
@@ -273,7 +285,7 @@ $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19343/actuator/health/readiness
   {"status":"UP"} 200
-  Tomcat's own line: Tomcat started on port 19343 (http) with context path '/'
+  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19343 (http) with context path '/'
 $ curl -s http://127.0.0.1:19343/actuator/mappings | python3 harness/table.py row /actuator/health /customers
   the row for /actuator/health: 1
   /actuator/health - 3 keys: details handler predicate
@@ -308,17 +320,22 @@ $ harness/shutdown.sh 19343 .harness/after/secrets/tiffinbox/shutdown-token
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 ```
 
-## 4 · catchall — the two rows that catch every path (A/B/A′)
+## 4 · catchall — the two static rows: /webjars/** for one folder, /** for every path (A/B/A′, D)
 
 Boot's metadata (`spring.web.resources.add-mappings` default `true`). **A** — the anchor with Boot's web log group at DEBUG: at start,
 `Patterns [/webjars/**, /**] in 'resourceHandlerMapping'` beside TiffinBox's `tiffinBoxRoutes`; the table, 14 rows, the two static ones
 last; `/customers` → `Mapped to TiffinBox route /customers`; `/nowhere` → `Mapped to ResourceHttpRequestHandler […]`, `Resource not
-found`, `NoResourceFoundException`, the ERROR dispatch to `BasicErrorController#error` — 10 lines — and Spring's JSON 404. **B** —
-`--spring.web.resources.add-mappings=false`: no `resourceHandlerMapping` at start; 12 rows, neither `**` row; `/nowhere` → `No mapping
-for GET /nowhere` (WARN), `NoHandlerFoundException`, the same ERROR dispatch — 10 lines — and **the same 404 body** (masked). **A′** = A,
-line for line.
+found`, `NoResourceFoundException`, the ERROR dispatch to `BasicErrorController#error` — every line of the request — and Spring's
+JSON 404: `/nowhere` fell to `/**` (row 14, its handler's list ends `ServletContext [/]`), never to `/webjars/**` (row 13, one
+folder). The handler is Spring MVC's (`ResourceHttpRequestHandler`, spring-webmvc); Boot maps it there. **B** —
+`--spring.web.resources.add-mappings=false`: no `resourceHandlerMapping` at start; 12 rows, neither static row; `/nowhere` → `No
+mapping for GET /nowhere` (WARN), `NoHandlerFoundException`, the same ERROR dispatch, and **the same 404 body** (masked). **A′** = A,
+line for line. **D (labelled)** — A's line, from a copy given `static/probe.txt` (this README's line, run in the copy's folder):
+`/probe.txt` → `200 text/plain` and the file, through the `/**` row's handler: `ServletContext [/]` is Tomcat's document root, which
+Boot takes from the folder TiffinBox starts in (its `static/`; `public/` and `src/main/webapp/` too — Boot's `DocumentRoot`, below);
+the copy's own `pom.xml` and its config tree, `secrets/tiffinbox/shutdown-token`, answer 404.
 
-`.r-catchall.out` · md5 `5283262f2f1e8e2d61917201321652bb` · 3 of 3
+`.r-catchall.out` · md5 `af2ed0623e5d89a3691327631024a395` · 3 of 3
 
 ```
 Boot's own metadata, in the anchor's jar: spring.web.resources.add-mappings default true (spring-boot-autoconfigure-4.1.1.jar)
@@ -328,7 +345,7 @@ $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19344/actuator/health/readiness
   {"status":"UP"} 200
-  Tomcat's own line: Tomcat started on port 19344 (http) with context path '/'
+  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19344 (http) with context path '/'
   at start, the handler mappings that logged their patterns: Patterns [/customers, /dashboard, /kitchen, /revenue, /shutdown] in 'tiffinBoxRoutes'|2 mappings in 'requestMappingHandlerMapping'|Patterns [/webjars/**, /**] in 'resourceHandlerMapping'
 $ curl -s http://127.0.0.1:19344/actuator/mappings | python3 harness/table.py
   contexts: 1 (application) · kinds: 3 (dispatcherServlets servletFilters servlets)
@@ -380,7 +397,7 @@ $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19344/actuator/health/readiness
   {"status":"UP"} 200
-  Tomcat's own line: Tomcat started on port 19344 (http) with context path '/'
+  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19344 (http) with context path '/'
   at start, the handler mappings that logged their patterns: Patterns [/customers, /dashboard, /kitchen, /revenue, /shutdown] in 'tiffinBoxRoutes'|2 mappings in 'requestMappingHandlerMapping'
 $ curl -s http://127.0.0.1:19344/actuator/mappings | python3 harness/table.py
   contexts: 1 (application) · kinds: 3 (dispatcherServlets servletFilters servlets)
@@ -430,7 +447,7 @@ $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19344/actuator/health/readiness
   {"status":"UP"} 200
-  Tomcat's own line: Tomcat started on port 19344 (http) with context path '/'
+  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19344 (http) with context path '/'
   at start, the handler mappings that logged their patterns: Patterns [/customers, /dashboard, /kitchen, /revenue, /shutdown] in 'tiffinBoxRoutes'|2 mappings in 'requestMappingHandlerMapping'|Patterns [/webjars/**, /**] in 'resourceHandlerMapping'
 $ curl -s http://127.0.0.1:19344/actuator/mappings | python3 harness/table.py
   contexts: 1 (application) · kinds: 3 (dispatcherServlets servletFilters servlets)
@@ -476,6 +493,30 @@ $ harness/shutdown.sh 19344 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 · curl exit 0
   exit 0 · listening on 19344 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
+D (labelled) - A's line, started from a folder that holds a static/ folder with one file in it (README.md's line, run in the copy's folder): /** serves that file - the row's ServletContext [/] reads the static/ folder of the folder TiffinBox starts in - and neither that folder's own files nor secrets/:
+$ cd .harness/after && mkdir -p static && printf 'a file in static/, beside secrets/' > static/probe.txt
+$ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19344 --management.endpoints.web.exposure.include=health,prometheus,mappings --logging.level.web=debug
+  listens on: 127.0.0.1:19344 · loopback only: yes
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19344/actuator/health/readiness
+  {"status":"UP"} 200
+  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19344 (http) with context path '/'
+$ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:19344/probe.txt
+  200 text/plain
+  its lines at DEBUG and WARN - 3 (its other lines: 0):
+    o.s.web.servlet.DispatcherServlet: GET "/probe.txt", parameters={}
+    o.s.w.s.handler.SimpleUrlHandlerMapping: Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+    o.s.web.servlet.DispatcherServlet: Completed 200 OK
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19344/probe.txt
+  a file in static/, beside secrets/ 200
+$ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:19344/pom.xml
+  404 application/json
+$ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:19344/secrets/tiffinbox/shutdown-token
+  404 application/json
+$ harness/shutdown.sh 19344 .harness/after/secrets/tiffinbox/shutdown-token
+  POST /shutdown -> 200 · curl exit 0
+  exit 0 · listening on 19344 now: 0
+  its log: the demo token 0 times · X-Shutdown-Token 0 times
 ```
 
 ## 5 · exposure — C (labelled): the AOT jar (R.69; RE-MEASURE 9)
@@ -484,7 +525,7 @@ The anchor built with the profile native (offline; the exposure list it was buil
 README's AOT line and the same flag: `Starting AOT-processed TiffinBoxServer`; `/actuator/mappings` → 404; the links `health health-path
 prometheus self` — no `mappings`. On the plain JVM the same flag lists it (`adapter`).
 
-`.r-exposure.out` · md5 `8305170c0b56f2599d536b2b95766854` · 3 of 3
+`.r-exposure.out` · md5 `16c4e57e108525376d4b076a36799ab7` · 3 of 3
 
 ```
 C (labelled) - the AOT jar: the anchor built with the profile native (its README's line: Spring's AOT step, run at build), copied with a config tree:
@@ -497,7 +538,7 @@ $ cd .harness/aot && java -Dspring.aot.enabled=true -jar tiffinbox-web/target/ti
   Boot's first line: Starting AOT-processed TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19345/actuator/health/readiness
   {"status":"UP"} 200
-  Tomcat's own line: Tomcat started on port 19345 (http) with context path '/'
+  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19345 (http) with context path '/'
 $ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:19345/actuator/mappings
   404 application/json
 $ curl -s http://127.0.0.1:19345/actuator | python3 harness/table.py links
@@ -508,41 +549,50 @@ $ harness/shutdown.sh 19345 .harness/aot/secrets/tiffinbox/shutdown-token
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 ```
 
-## 6 · exercise — the exercise, run as written
+## 6 · exercise — the exercise, run as written, in one shell
 
 `exercise/README.md`'s commands, read from the file and run exactly as written (as shipped: `mapping`, singular), then
-`exercise/solution/SOLUTION.md`'s line (`mappings`).
+`exercise/solution/SOLUTION.md`'s three lines (the README's two `export` lines, then `mappings`) in the **same** shell, as a viewer
+pastes them. The shell is `env -i` — none of this script's variables reach it, only `HOME` and the `PATH` you started `receipts.sh`
+with — `/bin/bash --noprofile --norc`, started in this folder; each block's exit code and the folder it left the shell in are printed
+(`this unit's folder`, both times: the JVM runs in a subshell).
 
-`.r-exercise.out` · md5 `4ad5cd04417c1c204e969ccc50ef9705` · 3 of 3
+`.r-exercise.out` · md5 `df3bf187e37d23a9a0f557c900959637` · 3 of 3
 
 ```
-exercise/README.md's commands, run exactly as written from this folder - 7 lines:
+exercise/README.md's commands, then the solution's lines (exercise/solution/SOLUTION.md), exactly as written, one after the other in ONE shell - env -i (HOME, and the PATH this script was started with), /bin/bash --noprofile --norc, started in this folder:
+the README's 7 lines:
   $ export JAVA_HOME=/opt/homebrew/opt/openjdk@25
   $ export PATH="$JAVA_HOME/bin:$PATH"
   $ rm -rf .harness/mine && mkdir -p .harness/mine && rsync -a --exclude target --exclude secrets anchor/ .harness/mine/tree/
   $ mkdir -p .harness/mine/tree/secrets/tiffinbox && chmod 700 .harness/mine/tree/secrets .harness/mine/tree/secrets/tiffinbox
-  $ (umask 077 && { LC_ALL=C tr -dc 'a-z0-9' < /dev/urandom | head -c 26; echo; } > .harness/mine/tree/secrets/tiffinbox/shutdown-token)
+  $ (umask 077 && openssl rand -hex 13 > .harness/mine/tree/secrets/tiffinbox/shutdown-token)
   $ M="$PWD/.m2-demo" && (cd .harness/mine/tree && mvn -o -B -q -Dmaven.repo.local="$M" -DskipTests package)
-  $ cd .harness/mine/tree && { java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19349 --management.endpoints.web.exposure.include=health,prometheus,mapping > ../run.log 2>&1 & } && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19349/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && curl -s http://127.0.0.1:19349/actuator/mappings > ../answer.json && ../../../harness/shutdown.sh 19349 secrets/tiffinbox/shutdown-token > /dev/null && wait && python3 ../../../harness/table.py tiffinbox < ../answer.json
+  $ (cd .harness/mine/tree && { java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19349 --management.endpoints.web.exposure.include=health,prometheus,mapping > ../run.log 2>&1 & } && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19349/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && curl -s http://127.0.0.1:19349/actuator/mappings > ../answer.json && ../../../harness/shutdown.sh 19349 secrets/tiffinbox/shutdown-token > /dev/null && wait $! && python3 ../../../harness/table.py tiffinbox < ../answer.json)
   exit 0 · what they printed:
     TiffinBox's rows: 0 · not a routing table: status 404
-  the copy's own token in its log: 0 times · listening on 19349 now: 0
+  the shell is now in: this unit's folder
+  the copy's own token in its log: 0 times
   its log, at INFO (Boot's default): Exposing 2 endpoints beneath base path '/actuator' · lines that name mapping: 0 · WARN: 0 · ERROR: 0
-the solution's line (exercise/solution/SOLUTION.md), run exactly as written, from this folder:
-$ cd .harness/mine/tree && { java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19349 --management.endpoints.web.exposure.include=health,prometheus,mappings > ../run.log 2>&1 & } && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19349/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && curl -s http://127.0.0.1:19349/actuator/mappings > ../answer.json && ../../../harness/shutdown.sh 19349 secrets/tiffinbox/shutdown-token > /dev/null && wait && python3 ../../../harness/table.py tiffinbox < ../answer.json
-  exit 0 · what it printed:
+the solution's 3 lines, next, in the same shell:
+  $ export JAVA_HOME=/opt/homebrew/opt/openjdk@25
+  $ export PATH="$JAVA_HOME/bin:$PATH"
+  $ (cd .harness/mine/tree && { java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19349 --management.endpoints.web.exposure.include=health,prometheus,mappings > ../run.log 2>&1 & } && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19349/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && curl -s http://127.0.0.1:19349/actuator/mappings > ../answer.json && ../../../harness/shutdown.sh 19349 secrets/tiffinbox/shutdown-token > /dev/null && wait $! && python3 ../../../harness/table.py tiffinbox < ../answer.json)
+  exit 0 · what they printed:
     TiffinBox's rows: 5 · the verbs the table gives them: none
-  the copy's own token in its log: 0 times · listening on 19349 now: 0
+  the shell is now in: this unit's folder · listening on 19349 now: 0
+  the copy's own token in its log: 0 times
   its log, at INFO (Boot's default): Exposing 3 endpoints beneath base path '/actuator' · lines that name mapping: 0 · WARN: 0 · ERROR: 0
 ```
 
 ## Exercise
 
 **Your turn:** expose mappings for one run, count TiffinBox's own rows, and name the verbs the table gives them. `exercise/README.md`
-has the commands (copy the anchor with a token of its own, build it offline); its last line starts TiffinBox on 19349 with an exposure
-list for one run, saves `/actuator/mappings`, stops it, and reads the answer with `harness/table.py tiffinbox` — as shipped it prints
-`TiffinBox's rows: 0 · not a routing table: status 404` (`mapping` names no endpoint). Done is `TiffinBox's rows: 5 · the verbs the
-table gives them: none`. Measured answer: `exercise/solution/SOLUTION.md`. Run `./receipts.sh` once first on a fresh clone.
+has the commands (copy the anchor with a token of its own, build it offline); its last line, in a subshell, starts TiffinBox on
+19349 with an exposure list for one run, saves `/actuator/mappings`, stops it, and reads the answer with `harness/table.py tiffinbox`
+— as shipped it prints `TiffinBox's rows: 0 · not a routing table: status 404` (`mapping` names no endpoint). Done is `TiffinBox's
+rows: 5 · the verbs the table gives them: none`. Measured answer: `exercise/solution/SOLUTION.md` (the README's two `export` lines,
+then the same line with `mappings`), run in the same shell. Run `./receipts.sh` once first on a fresh clone.
 
 ## RE-MEASURE — the brief's item this unit settles
 
@@ -552,6 +602,24 @@ table gives them: none`. Measured answer: `exercise/solution/SOLUTION.md`. Run `
 
 ## Found on the way
 
+- **Every new check fails on a planted fault first** (R.65; BLUE, 2026-10-13, the checks block run on the captures, each restored byte
+  for byte): `/probe.txt` not served; the config tree served; a line of `/nowhere`'s request left out; the README's commands leaving
+  the shell in the copy; Boot's started line called "Tomcat's own line" again — 5 plants, 5 stops. SOLUTION.md without its
+  `JAVA_HOME` line, and with another JDK's: both refused.
+- **README, then SOLUTION, in one shell broke** (RED part B #41): the old last line `cd`-ed into `.harness/mine/tree` and stayed,
+  so SOLUTION's `cd` failed (exit 1); in a new shell, with no `export JAVA_HOME`, this Mac's `java` 23 could not start the jar and the
+  readiness loop ran its 60 s before curl's exit 7. Now the JVM runs in a subshell, SOLUTION.md starts with the README's two exports,
+  `wait $!` ends the line with a failed JVM's exit code, and `exercise` runs both blocks in one `env -i` shell. The token comes from
+  `openssl rand -hex 13` (`tr -dc … | head` hangs when SIGPIPE is ignored), and the trap stops the exercise's shell with every
+  process under it (`killtree`).
+- **`/**` serves a `static/` folder** (RED part B #49): its handler's last location, `ServletContext [/]`, is Tomcat's document root,
+  and Boot's `org.springframework.boot.web.server.servlet.DocumentRoot` (`spring-boot-web-server-4.1.1.jar`; `javap -constants`) looks
+  for `src/main/webapp` (or `$WAR_SOURCE_DIRECTORY`), `public` and `static` under `.` — the folder TiffinBox starts in. RED's probe:
+  `public/` wins over `static/`; with neither, Spring's JSON 404. `catchall` D measures `static/`, and that `secrets/` beside it stays
+  404. The anchor keeps Boot's default (`add-mappings` true): the switch's side effect is named, not switched off.
+- **The line that names the port is Boot's**: `o.s.boot.tomcat.TomcatWebServer`'s `Tomcat started on port …`; Tomcat's own connector
+  line, which names the address, sits below Boot's default levels (the embedded-Tomcat lesson, `bind` F). Captures say "Boot's
+  started line".
 - **Two runs, two orders.** The rows a `RequestMappingInfo` describes — Actuator's five, `/error`'s two — came out of the table in
   another order in each of two runs; TiffinBox's five and the two static rows did not move (each from a `SimpleUrlHandlerMapping`'s
   table). `harness/table.py` sorts each run of rows with details by pattern, and says so on its header line; the captures went 3 of 3
@@ -567,6 +635,8 @@ table gives them: none`. Measured answer: `exercise/solution/SOLUTION.md`. Run `
 
 ## For RED (part B: 04-05)
 
+- **RED part B (2026-10-13)** found 28 rows on units 04-05 (2 HIGH, 7 MEDIUM, 18 LOW, 1 OK); BLUE's adjudication, one line per row, is
+  appended to `spring-web-mvc/_briefs/RED-C6-S1-2026-10-13.md` (outside this repository). Every fix above is in this commit.
 - The table's 14 rows, TiffinBox's 5 named for their paths, the planted lambda caught (`table`); the bridge measured, not cited
   (`adapter`); A/B/A′ on `spring.web.resources.add-mappings` with one exposure list throughout (`catchall` — the brief's 13 → 11 came
   from `health,mappings`; here 14 → 12); the AOT jar's 404 (`exposure`).

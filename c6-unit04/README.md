@@ -28,26 +28,47 @@ answer** (`docker info`; on OrbStack `orb start` is tried once if it does not), 
 script never pulls. It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first). One native
 build per `forms` run (three per receipt), judged against a bound (under 20 minutes); its seconds go to the terminal only.
 
-**Runs of record (2026-10-12, this script as committed):** **901 s under `bash receipts.sh`** (Homebrew bash 5.3.9, this folder, exit
-0, all 10 = published, every check passed); **961 s from a sealed fresh clone under `./receipts.sh`** (/bin/bash 3.2.57): `git clone`
-of the local repository (HEAD 6206374) plus this unit's and the anchor's working files — nothing git ignores: no `.m2-demo`, no
-`.harness/`, no `.r-*` — run under `env -i`, with a `HOME` whose `.mavenrc` points Maven's `user.home` there (Java reads `user.home`
-from the account, not from `$HOME`) and every Java proxy property at a port that refuses (127.0.0.1:9), and whose Maven settings send
-every repository to a `file://` copy of Central's files made from `.m2-demo` (4,377 files: TiffinBox's own installs,
-`_remote.repositories`, `*.lastUpdated`, `resolver-status.properties` and `.DS_Store` left out, `maven-metadata-central.xml` served
-as `maven-metadata.xml`); `http_proxy`, `https_proxy`, their capitals and `ALL_PROXY` at the same refusing port; `GRAALVM_HOME` set;
-`DOCKER_CONFIG=~/.docker` (see "Found on the way"). Exit 0, all 10 = published, every check passed. The first pre-capture build said
-`offline: no` (GraalVM's metadata repository was not in the empty `.m2-demo`) and took 536 artifacts, every one from the `file://`
-copy, 0 from anywhere else; the second said `offline: yes`, and so did every capture's build; the native plugin read its metadata
-repository from `.m2-demo` (`file:`) in all three native builds; `.m2-demo` ended with 1,451 files. **Interrupt tests** (the receipt
-in its own process group, SIGINT to the group): once when 19330 listened (`bind` A, 46 s in), once when the container's 19337
-listened (`bind`, 57 s in) — exit 130 both times; 0 processes left in the group; 19330-19339, 8080 and 18425 free; no container,
-no image, no `.r-lock`, no unfinished capture run; the published captures unchanged. Load averages 4-108 during these runs (units
-01-03 ran alongside). Earlier runs, on revisions of this script: 1,446 s under /bin/bash 3.2 and 1,283 s under bash 5.3 (all 10
-3/3; before `seven` read the JSON converter), 861 s under /bin/bash 3.2 (`change` and `seven` republished; the others = published),
-1,156 s under bash 5.3 (`forms` republished: the native warning's origin, below).
+**Runs of record (2026-10-13, this script as committed — after RED part B's fixes):** **1,603 s under `./receipts.sh`** (/bin/bash
+3.2.57, this folder, exit 0, all 10 = published, every check passed; the three native builds 282, 309 and 261 s) and **1,120 s under
+`bash receipts.sh`** (Homebrew bash 5.3.9, the same; 185, 190 and 189 s); and **1,115 s from a sealed fresh clone under `./receipts.sh`** (/bin/bash 3.2.57): `git clone` of the local repository (HEAD
+1ecd413) with `c6-unit04`, `c6-unit05` and `c6-tiffinbox` replaced by their working-tree files as they are committed (71 files, 0
+differences) — nothing git ignores: no `.m2-demo`, no `.harness/`, no `.r-*` — run under `env -i`, with a `HOME` whose `.mavenrc`
+points Maven's `user.home` there (Java reads `user.home` from the account, not from `$HOME`) and every Java proxy property at a port
+that refuses (127.0.0.1:9), and whose Maven settings send every repository to a `file://` copy of Central's files made from
+`.m2-demo` (4,364 files: TiffinBox's own installs, `_remote.repositories`, `*.lastUpdated`, `resolver-status.properties` and
+`.DS_Store` left out, `maven-metadata-central.xml` served as `maven-metadata.xml`); `http_proxy`, `https_proxy`, their capitals and
+`ALL_PROXY` at the same refusing port; `GRAALVM_HOME` set; `DOCKER_CONFIG=~/.docker` (see "Found on the way"); `PATH` the system's
+and Homebrew's — the exercise's `env -i` shell got the same. Exit 0, all 10 = published, every check passed (native builds 202, 213
+and 216 s). The first pre-capture build said `offline: no` (GraalVM's metadata repository was not in the empty `.m2-demo`) and took
+**536 artifacts, every one from the `file://` copy, 0 from anywhere else** (`github` in the run's log: 0); the second said `offline:
+yes`, and so did every capture's build; `.m2-demo` ended with 1,451 files. **Interrupt tests** (the receipt in its own process
+group, SIGINT to the group): during the native build (479 s in, GraalVM's builder running — 5 processes in the group, 2 of them java):
+**exit 130** 0.5 s later; 5 s later 0 processes in the group and 0 anywhere naming this folder; 19330-19339, 8080 and 18425 free; no
+container, no image, no `.r-lock`, no unfinished capture run; the published captures unchanged. Load averages 10-100 during these runs (unit 05's receipts ran alongside, in its own process
+group). Earlier runs, on revisions of this script: before RED part B — 901 s under bash 5.3 and a sealed fresh clone (961 s, HEAD
+6206374; 536 artifacts from the `file://` copy only), 1,446 s and 861 s under /bin/bash 3.2, 1,283 s and 1,156 s under bash 5.3; after
+it, BLUE's development runs, and one run stopped by SIGINT during `pool` (exit 130 in about a second; 5 s later 0 processes in its
+group, every port free, no container, no image, no `.r-lock`, no unfinished capture run) when `bind` gained the image's layer count.
 
-Published hashes: change `1ae4f740e764335082dddcccd95338c2` · bind `cc615a37ac7f03f1aeec54aea2c94288` · seven `7d79bf57c802b948c821d06fb089bd9a` · seam `fa72fa794b8c2f3284ab1cf1c3b3a2b0` · pool `65c65ae4bda8862190bdbeda0c5e5e2b` · threads `bb5a6a17b8bcc75b797b8ecb00099056` · stop `6aa3b5869e097746c437f392a30d49ed` · taken `027e92dce5de218d3b4bb76bc7c1f1ea` · exercise `fcdc989b2ddca69240f6a9950acfeb73` · forms `94760fdbf069d71534b096a8dd139c1c`.
+Published hashes: change `a520a10c1617e4601e6c5466a8798e01` · bind `0f6b837f1a885bf420511258b5205a72` · seven `d03f63370acd17f09bd2703d24896015` · seam `d9e791e58ab1850f677db6e4c14455f9` · pool `7445b2809ee20b9553efb8800da8bf9f` · threads `bb5a6a17b8bcc75b797b8ecb00099056` · stop `76a54614d0a8cf3e74d924d7c379197d` · taken `5fc14d56624b91148a008e94bf9c7bd5` · exercise `cb9eb4276f128f6b17329336da7f4ff2` · forms `69c29202be33c5e9067deea238424ddd`.
+
+## The commands this unit adds
+
+`after/README.md` — the anchor's own — gives every line `receipts.sh` runs or derives from but five, which are this unit's, each
+read from the block below and asserted to be exactly this (on the anchor's port 18431; each capture swaps in its own port):
+
+```bash
+java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.org.apache.coyote.http11.Http11NioProtocol=info
+java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --server.shutdown=immediate
+curl -s -D - -o /dev/null http://127.0.0.1:18431/customers
+curl -s -m 30 -o /dev/null -w '%{http_code}\n' 'http://127.0.0.1:18431/probe/slow?ms=3000'
+curl -s http://127.0.0.1:18431/probe/inflight
+```
+
+The first switches Tomcat's own connector logger to INFO (`bind` F: its lines name the address; Boot's logging defaults hold
+that logger at WARN). The second makes Boot's shutdown immediate (`stop` B). The third prints one answer's status line and
+headers (`seven`: what the seven leave out). The last two are the harness's (`harness/probe/web/Threads.java`, joined on the
+class-path line): a slow request of three seconds, and how many slow requests are in flight (`stop`).
 
 ## The GraalVM
 
@@ -75,27 +96,28 @@ The demo token — `TOKEN=` at the top of `receipts.sh`, 26 characters, fake and
 written into `.harness/*/secrets/tiffinbox/shutdown-token` (a config tree, mode 0600, git-ignored) when the script runs, mounted
 read-only into the container (`:ro`), and sent only by `../c5-unit11/curlset.sh` and `harness/shutdown.sh` on curl's standard input.
 Every capture's raw output is searched for it before masking (0 in all of them), and so are the log of every JVM that served, every
-start that ended by itself, the container's log (`docker logs`), every file this unit ships, and the binary's bytes: 0 everywhere.
+start that ended by itself, the container's log (`docker logs`), every file this unit ships, the binary's bytes, and every blob of
+the image (`docker save`, each gzip layer unpacked: 15 blobs, 11 layers; `bind`): 0 everywhere.
 The exercise makes a token of its own (26 random characters), counted 0 times in its own log and never printed.
 
 ## The folders, the names and the ports
 
 - `after/` — the anchor after this change (= `../c6-tiffinbox`). `.harness/before`, `.harness/after` — the two trees, copied, each
-  with a config tree; `.harness/two` — the two-server copy (B), made by `harness/two.py` from the previous tree; `.harness/aot` —
+  with a config tree; `.harness/noalias` — `after/` with the alias's three lines taken out of `application.yaml` (B); `.harness/aot` —
   `after/` built with the profile native (`threads` C); `.harness/nat` — `after/`'s native build (`forms`); `.harness/hc` — the
   harness's classes, compiled against `after/`'s own jar; `.harness/mine` — the exercise's copy.
 - **The harness** — the course's, never TiffinBox's: `harness/probe/web/Threads.java` (package `probe.web`, outside `com.tiffinbox`;
   joined by `--spring.main.sources=probe.web.Threads` on the README's class-path line — the extracted jar plus `../hc`): `/probe/slow`
-  (half a second, then the answering thread's name and whether it is virtual), `/probe/threads` (every live platform thread, daemon
-  or not), `/probe/executor` (Boot's `applicationTaskExecutor`: its class, and the thread a task ran on); and
+  (half a second, or `?ms=`, then the answering thread's name and whether it is virtual), `/probe/inflight` (how many slow answers
+  are on their way), `/probe/threads` (every live platform thread, daemon or not, and its class), `/probe/executor` (Boot's
+  `applicationTaskExecutor`: its class, and the thread a task ran on); and
   `harness/probe/web/Converters.java` (`--spring.main.sources=probe.web.Converters`, `seven`'s DEBUG run): `/probe/converters`, the
   message converters Spring MVC's `RequestMappingHandlerAdapter` holds, and each JSON one's class and mapper. `harness/slow8.sh` sends
-  eight `/probe/slow` at once; `harness/shutdown.sh` POSTs /shutdown with the token read from its file; `harness/two.py` makes the
-  two-server copy (Spring MVC's starter added, the Boot plugin's two Jackson 3 excludes removed — ⚑10's copy, no alias).
-- **Ports** (brief ⚑1, 19330-19339): after/'s jar 19330 · the previous tree 19331 (and E's `--tiffinbox.port`, never bound) · E's
-  `--server.port` and the idle pools 19332 · threads 19333 · the AOT jar 19334 · the two-server copy 19335 (TiffinBox's own server)
-  and 19336 (Tomcat, every interface: B only; `taken` C and D, never bound) · the image 19337 · the binary 19338 · the exercise
-  19339. 18425 (TiffinBox's default) and 8080 (Tomcat's) are checked free and never bound on this Mac (18425 only inside the
+  eight `/probe/slow` at once; `harness/shutdown.sh` POSTs /shutdown with the token read from its file.
+- **Ports** (brief ⚑1, 19330-19339): after/'s jar 19330 (`bind` F and `stop` too) · the previous tree 19331 (and E's
+  `--tiffinbox.port`, never bound) · E's `--server.port` and the idle pools 19332 · threads 19333 · the AOT jar 19334 · B's
+  `--tiffinbox.port` 19335 (nothing reads it there) and 19336 (Tomcat, every interface: B only; `taken` C and D, never bound) · the
+  image 19337 · the binary 19338 · the exercise 19339. 18425 (TiffinBox's default) and 8080 (Tomcat's) are checked free and never bound on this Mac (18425 only inside the
   container); a run that listens on 8080 is killed and the script dies.
 
 ## Masks, filters and hygiene — every one, declared
@@ -113,38 +135,46 @@ The exercise makes a token of its own (26 random characters), counted 0 times in
    `Catalina-utility-<n>` → `Catalina-utility-N`. Distinct threads are counted **before** the mask. The port in Tomcat's pool names
    (`http-nio-127.0.0.1-19333-exec-N`) is this unit's own and stays.
 4. **DEBUG lines** (`seven`, Boot's `web` group): from their logger on; an identity hash after `@` → `@…`; the date in the error
-   map's `timestamp=` → `timestamp=…`. The lines of `GET /nowhere` alone are shown, all of them (10), between two points where the
-   log stopped growing. The binary's DEBUG run (`forms`) shows its two lines for `GET /customers` only — the rest moves with the
-   readiness polls.
+   map's `timestamp=` → `timestamp=…`. The lines of `GET /nowhere` alone are shown, every one of them, between two points where the
+   log stopped growing; the DEBUG lines before them — the start, the readiness polls, `/probe/converters` — are bounded ("more than
+   20": the polls move their number). The binary's DEBUG run (`forms`) shows its two lines for `GET /customers`; its other lines are
+   bounded ("more than 40") — the readiness polls move them too.
 5. **A start that ended by itself** (`fails()`) is read after it exited, never printed whole: `APPLICATION FAILED TO START`, frames,
-   `Caused by:` and folded frames counted, and Tomcat's two start lines counted; WARN/ERROR lines from their level on, a WARN cut after
+   `Caused by:` and folded frames counted, and Boot's two Tomcat lines (`Tomcat initialized`, `Tomcat started`, logged by Boot's
+   `TomcatWebServer`) counted; WARN/ERROR lines from their level on, a WARN cut after
    its exception's class; each exception's first line; Boot's hint; the analysis from `Description:` on; the banner counted.
    **Never a line total** (R.45, R.77).
-6. **A running TiffinBox's log**: Boot's first line cut before ` with PID`; TiffinBox's own and Tomcat's lines from their message on.
+6. **A running TiffinBox's log**: Boot's first line cut before ` with PID`; TiffinBox's own line from its message on; Boot's started
+   line, and Tomcat's own connector lines (`bind` F), from their logger on (`logger: message`).
 7. **The native build's lines**: its plugin goals, the GraalVM line, the Java version, each `Warning:` — the file a warning names
    (`in 'file:…'`, or `in 'null'`, which native-image prints when the path holds a space) → `in '…'` — the eight stages cut after
    their name, the warnings count and `BUILD SUCCESS`; the rest counted, never shown.
 8. **`docker build --progress=plain`** through a filter: its `load metadata` line, its `FROM` line (the base image's digest), its
-   naming line, step numbers and timings cut (` done` and ` 0.0s done`; checked on a planted log first); lines that say pull, counted.
-9. **The idle threads** (`pool`): Tomcat's platform threads only (`http-nio-`, `container-`, `Catalina-`), identical lines counted;
-   the JVM's other platform threads — the virtual-thread scheduler's carriers among them, whose number moves — bounded ("fewer than
-   40"), never counted.
-10. **The scrape** (`seam`): its `_count` lines for TiffinBox's paths — Boot's `http_server_requests` (Actuator's own paths left out:
-   the readiness polls move them) and `tiffinbox_requests` — read until two reads half a second apart agree.
+   naming line, step numbers and timings cut (` done` and ` 0.0s done`; checked on a planted log first); lines that say pull, counted;
+   the rest bounded ("fewer than 300": 55 with every step cached, more on a first build).
+9. **The idle threads** (`pool`): the server's platform threads only (`http-nio-`, `container-`, `Catalina-`), each with its class,
+   identical lines counted; whose: a class of Boot's (`org.springframework.boot`, `container-0`'s `TomcatWebServer$1`) or the rest,
+   Tomcat's (`org.apache.tomcat`, or a plain `Thread` its connector names `http-nio-…`); the JVM's other platform threads — the
+   virtual-thread scheduler's carriers among them, whose number moves — bounded ("fewer than 40"), never counted.
+10. **The scrape** (`seam`): its `_count` lines for TiffinBox's paths — Boot's `http_server_requests` and `tiffinbox_requests` —
+   read until two reads half a second apart agree; Actuator's own series left out and bounded ("fewer than 10": the readiness polls
+   and the reads move their counts); then what each timer counted, summed from those lines.
 11. **Inside the container**: `/proc/net/tcp` and `tcp6`, LISTEN rows only, the address decoded (`[::]`, `0.0.0.0`, `127.0.0.1`).
     **On this Mac**: `lsof` by pid (or by port, for Docker's forwarder), the address column alone — never a command name (R.18).
 
 ## Interrupted
 
-Ctrl-C (SIGINT to the foreground process group) stops it with **exit 130**: the trap stops the JVM it started (`$pid`, `$fpid`, the
-exercise's `$xpid`), sweeps its process group for any TiffinBox JVM, binary or `native-image` left, removes the container and the
+Ctrl-C (SIGINT to the foreground process group) stops it with **exit 130**: the trap stops the JVM it started (`$pid`, `$fpid`, a
+slow request's curl `$spid`, and the exercise's shell `$xpid` with every process under it — `killtree`, by parent pid), sweeps its process group for any TiffinBox JVM, binary or `native-image` left, removes the container and the
 image, deletes the capture runs it had not finished (`.r-NAME.1-3`), and removes `.r-lock`. The published captures are untouched.
+**Measured** on this script (2026-10-13): SIGINT to the group during the native build — exit 130 in 0.5 s, and 5 s later nothing of
+the run left (above); and once during `pool`, a JVM listening — exit 130, nothing left.
 
 ## 1 · change — the previous tree against after/
 
-Both trees built with the README's line (offline); `diff -rq`; the three files that did the server's jobs, by their lines; the new handler mapping's code; the POM, the YAML and the factories file, their non-comment lines that differ; the files that did not change; the jar's `BOOT-INF/lib` before and after — 46 → 58, removed 0, added 12, Jackson 3 among them. The jar extracted (the README's line) for the harness.
+Both trees built with the README's line (offline); `diff -rq`; the three files that did the server's jobs, by their lines; the new handler mapping's code; the POM and the factories file, their non-comment lines that differ, and the YAML's with a line around each (`diff -U1`: `spring:` sits above the three lines that switch virtual threads on — `spring.threads.virtual.enabled`, never `server.…`); the files that did not change; the jar's `BOOT-INF/lib` before and after — 46 → 58, removed 0, added 12, Jackson 3 among them. The jar extracted (the README's line) for the harness.
 
-`.r-change.out` · md5 `1ae4f740e764335082dddcccd95338c2` · 3 of 3
+`.r-change.out` · md5 `a520a10c1617e4601e6c5466a8798e01` · 3 of 3
 
 ```
 the previous tree and after/, both copied under .harness/ with a config tree, each built with the README's line (offline):
@@ -205,20 +235,24 @@ the three files that did the server's jobs, their lines (wc -l), before -> after
     <               <artifactId>jackson-core</artifactId>
     <             </exclusion>
   tiffinbox-web/pom.xml - <dependency> 7 -> 8 · Boot's plugin's <exclude> 3 -> 1 · the native plugin's <exclusion> 3 -> 1
-  tiffinbox-web/src/main/resources/application.yaml - its lines that are neither comment nor blank, the ones that differ:
-    > server:
-    >   address: ${tiffinbox.address}
-    >   port: ${tiffinbox.port}
-    >   threads:
-    >     virtual:
-    >       enabled: true
+  tiffinbox-web/src/main/resources/application.yaml - its lines that are neither comment nor blank, the ones that differ, each with a line around it (diff -U1, its file names cut):
+    @@ -10,3 +10,9 @@
+         - VEGAN
+    +server:
+    +  address: ${tiffinbox.address}
+    +  port: ${tiffinbox.port}
+     spring:
+    +  threads:
+    +    virtual:
+    +      enabled: true
+       profiles:
   tiffinbox-web/src/main/resources/META-INF/spring.factories - its lines that are neither comment nor blank, before then after:
     before org.springframework.context.ApplicationListener=com.tiffinbox.web.BareArgumentGuard
     before org.springframework.boot.diagnostics.FailureAnalyzer=com.tiffinbox.web.PortTakenFailureAnalyzer,com.tiffinbox.web.BareArgumentAnalyzer
     after  org.springframework.context.ApplicationListener=com.tiffinbox.web.BareArgumentGuard
     after  org.springframework.boot.diagnostics.FailureAnalyzer=com.tiffinbox.web.BareArgumentAnalyzer
   BareArgumentAnalyzer.java - its Javadoc lines that differ: 1 · its lines that are neither comment nor blank, against the previous tree's: the same
-  README.md - the anchor's README: lines added 146, removed 5 - its new section and the history notes the change made false (not shown)
+  README.md - the anchor's README: lines added 160, removed 6 - its new section and the history notes the change made false (not shown)
   tiffinbox-core against the previous tree's (diff -rq -x target): 0 files differ
   Route.java against the previous tree's, byte for byte: the same
   TiffinBoxApp.java against the previous tree's, byte for byte: the same
@@ -245,11 +279,11 @@ the executable jar's BOOT-INF/lib: 46 jars -> 58 · removed 0 · added 12:
   Jackson 3 (tools.jackson) in the jar: before 0 -> after 2 · Jackson 2 (jackson-databind 2.x): before 1 -> after 1
 ```
 
-## 2 · bind — the address Tomcat never prints (D: A/B/A′), E, the container
+## 2 · bind — the address the log hides (D: A/B/A′), E, F, the container
 
-Boot's own metadata (`server.address` no default, `server.port` 8080); where the alias sits — and the check failing on a planted copy (S1.19); **A** after/: `127.0.0.1:19330` read off the process, Tomcat's line with no address; **B (labelled)** the two-server copy, no alias, the README's two-name line: `*:19336` — every interface — stopped by its pid as soon as Tomcat listened (exit 143; both ports free; the listen-address check says `no`); **A′** = A; **E (labelled)** both names: Boot's `--server.port` wins (19332; 19331 never bound); the container: the image from `after/`'s Dockerfile, inside `[::]:18425`, `docker port` and this Mac's listener `127.0.0.1:19337` (on OrbStack), `docker wait` 0.
+Boot's own metadata (`server.address` no default, `server.port` 8080); where the alias sits — and the check failing on a planted copy (S1.19); **A** after/: `127.0.0.1:19330` read off the process; Boot's started line — its logger `o.s.boot.tomcat.TomcatWebServer`, Boot's class — names the port, not the address, and Tomcat's own connector lines at Boot's default levels: 0; **B (labelled)** after/ with the alias's three lines taken out (`diff -U0`), the README's two-name line: `*:19336` — every interface — stopped by its pid as soon as Tomcat listened (exit 143; both ports free; the listen-address check says `no`); **A′** = A; **E (labelled)** both names: Boot's `--server.port` wins (19332; 19331 never bound); **F (labelled)** Tomcat's own connector logger at INFO (this README's line): `Initializing ProtocolHandler ["http-nio-127.0.0.1-19330"]` and `Starting …` — the connector names the address — and Boot's `defaults.xml` holds that logger at `WARN`; the container: the image from `after/`'s Dockerfile — saved (`docker save`) and every blob searched, each gzip layer unpacked: 0 tokens — inside `[::]:18425`, `docker port` and this Mac's listener `127.0.0.1:19337` (on OrbStack), `docker wait` 0.
 
-`.r-bind.out` · md5 `cc615a37ac7f03f1aeec54aea2c94288` · 3 of 3
+`.r-bind.out` · md5 `0f6b837f1a885bf420511258b5205a72` · 3 of 3
 
 ```
 Boot's own metadata, in after/'s jar: server.address no default (spring-boot-web-server-4.1.1.jar) · server.port default 8080 (spring-boot-web-server-4.1.1.jar)
@@ -262,18 +296,23 @@ $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19330/actuator/health/readiness
   {"status":"UP"} 200
-  Tomcat's own line: Tomcat started on port 19330 (http) with context path '/'
+  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19330 (http) with context path '/'
+  Tomcat's own connector lines in this log, at Boot's default levels: 0
 $ harness/shutdown.sh 19330 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 · curl exit 0
   exit 0 · listening on 19330 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
-B (labelled) - the two-server copy: the previous tree, Spring MVC's starter added (harness/two.py), no alias; the README's two-name line, ports 19335 and 19336, stopped as soon as Tomcat listens:
-  harness/two.py: tiffinbox-web/pom.xml's lines that differ from the previous tree's: 4 added (the starter) · 8 removed (two Jackson 3 excludes) · application.yaml: the same
-$ cd .harness/two && mvn -o -B -Dmaven.repo.local="$M2" -DskipTests clean package
-  built the two-server copy · offline: yes · exit 0
-$ cd .harness/two && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19335 --server.port=19336
-  listens on: *:19336 127.0.0.1:19335 · loopback only: no
-  its own line: TiffinBox listening on http://127.0.0.1:19335 · Tomcat's: Tomcat started on port 19336 (http) with context path '/'
+B (labelled) - after/ without the alias: its three lines taken out of application.yaml, then built; the README's two-name line - nothing reads --tiffinbox.port there now, so Tomcat's port is Boot's own name, 19336 - stopped as soon as Tomcat listens:
+$ diff -U0 after/tiffinbox-web/src/main/resources/application.yaml .harness/noalias/tiffinbox-web/src/main/resources/application.yaml
+  @@ -19,3 +18,0 @@
+  -server:
+  -  address: ${tiffinbox.address}
+  -  port: ${tiffinbox.port}
+$ cd .harness/noalias && mvn -o -B -Dmaven.repo.local="$M2" -DskipTests clean package
+  built after/ without the alias · offline: yes · exit 0
+$ cd .harness/noalias && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19335 --server.port=19336
+  listens on: *:19336 · loopback only: no
+  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19336 (http) with context path '/'
   stopped by its pid at once (SIGTERM): exit 143
   listening now: 19335 0 · 19336 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
@@ -283,7 +322,8 @@ $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19330/actuator/health/readiness
   {"status":"UP"} 200
-  Tomcat's own line: Tomcat started on port 19330 (http) with context path '/'
+  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19330 (http) with context path '/'
+  Tomcat's own connector lines in this log, at Boot's default levels: 0
 $ harness/shutdown.sh 19330 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 · curl exit 0
   exit 0 · listening on 19330 now: 0
@@ -294,11 +334,26 @@ $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19332/actuator/health/readiness
   {"status":"UP"} 200
-  Tomcat's own line: Tomcat started on port 19332 (http) with context path '/'
+  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19332 (http) with context path '/'
   listening now: 19331 0 · 19332 1
 $ harness/shutdown.sh 19332 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 · curl exit 0
   exit 0 · listening on 19332 now: 0
+  its log: the demo token 0 times · X-Shutdown-Token 0 times
+F (labelled) - after/, Tomcat's own connector logger at INFO (README.md: the run line, one logging option added), port 19330:
+$ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19330 --logging.level.org.apache.coyote.http11.Http11NioProtocol=info
+  listens on: 127.0.0.1:19330 · loopback only: yes
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19330/actuator/health/readiness
+  {"status":"UP"} 200
+  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19330 (http) with context path '/'
+  Tomcat's own connector lines - logger: message:
+    o.a.coyote.http11.Http11NioProtocol: Initializing ProtocolHandler ["http-nio-127.0.0.1-19330"]
+    o.a.coyote.http11.Http11NioProtocol: Starting ProtocolHandler ["http-nio-127.0.0.1-19330"]
+  Boot's logging defaults for that logger (spring-boot-4.1.1.jar, org/springframework/boot/logging/logback/defaults.xml): <logger name="org.apache.coyote.http11.Http11NioProtocol" level="WARN"/>
+$ harness/shutdown.sh 19330 .harness/after/secrets/tiffinbox/shutdown-token
+  POST /shutdown -> 200 · curl exit 0
+  exit 0 · listening on 19330 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 the container - after/'s Dockerfile (the README's two lines, Maven's above, then Docker), the README's run line with your user, published on 127.0.0.1:19337:
 $ cd .harness/after && docker build --progress=plain -t tiffinbox-tomcat:1.0.0 .
@@ -306,8 +361,9 @@ $ cd .harness/after && docker build --progress=plain -t tiffinbox-tomcat:1.0.0 .
     [internal] load metadata for docker.io/library/eclipse-temurin:25-jre
     [builder 1/4] FROM docker.io/library/eclipse-temurin:25-jre@sha256:fcd7fd7b387f94bb2ac461478a7436ad8e349924c374ea8313919624dceae636
     naming to docker.io/library/tiffinbox-tomcat:1.0.0
-  its lines that say pull: 0 · its other lines: not shown
+  its lines that say pull: 0 · its other lines: fewer than 300, not shown
   the image: user ubuntu · entrypoint ["java","-jar","application.jar"] · its environment's TIFFINBOX_ADDRESS: 0.0.0.0
+  the image saved (docker save): 15 blobs, its 11 layers among them, each read whole (gzip ones unpacked) · the demo token in them: 0
 $ cd .harness/after && docker run -d --name tiffinbox-tomcat --user "$(id -u):$(id -g)" -m 512m -v "$PWD/secrets:/app/secrets:ro" -p 127.0.0.1:19337:18425 tiffinbox-tomcat:1.0.0
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19337/actuator/health/readiness
   {"status":"UP"} 200
@@ -318,15 +374,15 @@ $ harness/shutdown.sh 19337 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 · curl exit 0
 $ docker wait tiffinbox-tomcat
   0
-  its log (docker logs): Tomcat's own line: Tomcat started on port 18425 (http) with context path '/' · the demo token 0 times · X-Shutdown-Token 0 times
+  its log (docker logs): Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 18425 (http) with context path '/' · the demo token 0 times · X-Shutdown-Token 0 times
   listening now: 19337 0
 ```
 
 ## 3 · seven — the comparison set, before and after (C6-11)
 
-The seven on the previous tree (TiffinBox's own server: `115c36ba…`, the mask changes 0 lines) and on after/ (Tomcat: the mask changes 1 line, `571faaea…`); the mask on planted lines; the diff — one line, `5c5`, `GET /nowhere`; why, at Boot's `web` log group's DEBUG (on the class-path layout, the harness's `Converters` joined): TiffinBox's handler mapping at start (`Patterns [/customers, /dashboard, /kitchen, /revenue, /shutdown]`); Spring MVC's one JSON converter, `JacksonJsonHttpMessageConverter`, its mapper Jackson 3's `tools.jackson.databind.json.JsonMapper`; then `GET /nowhere`'s 10 lines — the static-resource handler (`/**`), `NoResourceFoundException`, the ERROR dispatch to Boot's `BasicErrorController`, JSON.
+The seven on the previous tree (TiffinBox's own server: `115c36ba…`, the mask changes 0 lines) and on after/ (Tomcat: the mask changes 1 line, `571faaea…`); before each, one answer's status line and header names (this README's line), which the seven do not print: `[HTTP/1.1 200 OK]`, `Date Content-type Content-length` → `[HTTP/1.1 200 ]`, `Content-Type Content-Length Date` — so "six lines match" means status, type and body; the mask on planted lines; the diff — one line, `5c5`, `GET /nowhere`; why, at Boot's `web` log group's DEBUG (on the class-path layout, the harness's `Converters` joined): TiffinBox's handler mapping at start (`Patterns [/customers, /dashboard, /kitchen, /revenue, /shutdown]`); Spring MVC's one JSON converter, `JacksonJsonHttpMessageConverter`, its mapper Jackson 3's `tools.jackson.databind.json.JsonMapper`; then every line of `GET /nowhere` (10; the ones before it bounded) — Spring MVC's static-resource handler, which Boot maps to `/**`, `NoResourceFoundException`, the ERROR dispatch to Boot's `BasicErrorController`, JSON.
 
-`.r-seven.out` · md5 `7d79bf57c802b948c821d06fb089bd9a` · 3 of 3
+`.r-seven.out` · md5 `d03f63370acd17f09bd2703d24896015` · 3 of 3
 
 ```
 before - the previous tree, TiffinBox's own server: the README's run line, port 19331:
@@ -336,6 +392,8 @@ $ cd .harness/before && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar -
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19331/actuator/health/readiness
   {"status":"UP"} 200
   its own line: TiffinBox listening on http://127.0.0.1:19331
+$ curl -s -D - -o /dev/null http://127.0.0.1:19331/customers
+  its status line: [HTTP/1.1 200 OK] · its headers, by name: Date Content-type Content-length
 $ $CURLSET 19331 .harness/before/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 0 · md5 115c36bac276128e245ca57df11c2891
@@ -346,7 +404,9 @@ $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19330/actuator/health/readiness
   {"status":"UP"} 200
-  Tomcat's own line: Tomcat started on port 19330 (http) with context path '/'
+  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19330 (http) with context path '/'
+$ curl -s -D - -o /dev/null http://127.0.0.1:19330/customers
+  its status line: [HTTP/1.1 200 ] · its headers, by name: Content-Type Content-Length Date
 $ $CURLSET 19330 .harness/after/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 1 · md5 571faaea42e87e85add8c9548c64c961
@@ -376,9 +436,10 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19330/actuator/health/readiness
 $ curl -s http://127.0.0.1:19330/probe/converters
   converters: 6 · for application/json: 1
   org.springframework.http.converter.json.JacksonJsonHttpMessageConverter · its mapper: tools.jackson.databind.json.JsonMapper
+  the DEBUG lines before it - the start, the readiness polls (their number moves), /probe/converters: more than 20, not shown
 $ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:19330/nowhere
   404 application/json
-  its lines at DEBUG - 10:
+  its lines at DEBUG - all 10 of them:
     o.s.web.servlet.DispatcherServlet: GET "/nowhere", parameters={}
     o.s.w.s.handler.SimpleUrlHandlerMapping: Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
     o.s.w.s.r.ResourceHttpRequestHandler: Resource not found for path [nowhere]
@@ -397,9 +458,9 @@ $ harness/shutdown.sh 19330 .harness/after/secrets/tiffinbox/shutdown-token
 
 ## 4 · seam — Course 5's other checks, before and after; two timers
 
-`/customersXYZ`, `/customers/`, `/kitchen/anything`: 200 → 404; `/actuator`: 404 → 200 (Boot's links); `/actuator/health` and the scrape: the same content types from the bridge and from Boot's adapter; HEAD 405, `Accept: application/xml` 200 JSON and DELETE 405 on both; the scrape's count lines: Boot's `http_server_requests` (every 404 here `uri="/**"`) beside `tiffinbox_requests`.
+`/customersXYZ`, `/customers/`, `/kitchen/anything`: 200 → 404; `/actuator`: 404 → 200 (Boot's links); `/actuator/health` and the scrape: the same content types from the bridge and from Boot's adapter; HEAD 405, `Accept: application/xml` 200 JSON and DELETE 405 on both; the scrape's count lines: Boot's `http_server_requests` (every 404 here `uri="/**"`) beside `tiffinbox_requests`, and what each counted — 6 requests sent to TiffinBox's paths, Boot's timer 6, TiffinBox's 3 (its handler's own answers), the three 404s on Boot's alone.
 
-`.r-seam.out` · md5 `fa72fa794b8c2f3284ab1cf1c3b3a2b0` · 3 of 3
+`.r-seam.out` · md5 `d9e791e58ab1850f677db6e4c14455f9` · 3 of 3
 
 ```
 before - the previous tree, TiffinBox's own server: the README's run line, port 19331:
@@ -436,7 +497,7 @@ $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19330/actuator/health/readiness
   {"status":"UP"} 200
-  Tomcat's own line: Tomcat started on port 19330 (http) with context path '/'
+  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19330 (http) with context path '/'
 $ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:19330/customersXYZ
   404 application/json
 $ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:19330/customers/
@@ -455,24 +516,26 @@ $ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' -H 'Accept: applicati
   200 application/json
 $ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' -X DELETE http://127.0.0.1:19330/customers
   405 application/json
-the two timers now - the scrape's count lines for TiffinBox's paths (Actuator's own left out):
+the two timers now - the scrape's count lines for TiffinBox's paths:
   http_server_requests_seconds_count{error="none",exception="none",method="DELETE",outcome="CLIENT_ERROR",status="405",uri="/customers"} 1
   http_server_requests_seconds_count{error="none",exception="none",method="GET",outcome="CLIENT_ERROR",status="404",uri="/**"} 3
   http_server_requests_seconds_count{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/customers"} 1
   http_server_requests_seconds_count{error="none",exception="none",method="HEAD",outcome="CLIENT_ERROR",status="405",uri="/customers"} 1
   tiffinbox_requests_seconds_count{route="GET /customers",status="200"} 1
   tiffinbox_requests_seconds_count{route="UNKNOWN",status="405"} 2
+  Actuator's own series, left out: fewer than 10 (the readiness polls and these reads move their counts)
+  requests sent to TiffinBox's paths: 6 · counted by Boot's timer: 6 · by TiffinBox's: 3 · the 404s on Boot's: 3 · on TiffinBox's: 0
 $ harness/shutdown.sh 19330 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 · curl exit 0
   exit 0 · listening on 19330 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 ```
 
-## 5 · pool — Tomcat's platform threads, idle (A/B/A′)
+## 5 · pool — the server's platform threads, idle (A/B/A′)
 
-Boot's metadata (`server.tomcat.threads.max` 200, `min-spare` 10, `spring.threads.virtual.enabled` false); **A** after/ as built (virtual threads on): 5 Tomcat threads — Acceptor and Poller (daemons), `container-0` and 2 `Catalina-utility` (not daemons), no exec thread; **B** `--spring.threads.virtual.enabled=false`: + 10 `exec` threads (daemons); **A′** = A.
+Boot's metadata (`server.tomcat.threads.max` 200, `min-spare` 10, `spring.threads.virtual.enabled` false); **A** after/ as built (virtual threads on): 5 platform threads, each with its class — Tomcat's Acceptor and Poller (daemons, plain `Thread`s its connector names) and 2 `Catalina-utility` (`TaskThread`, not daemons), and `container-0`, whose class is Boot's (`org.springframework.boot.tomcat.TomcatWebServer$1`: Boot starts it, not a daemon); no exec thread; **B** `--spring.threads.virtual.enabled=false`: + 10 `exec` threads (daemons); **A′** = A.
 
-`.r-pool.out` · md5 `65c65ae4bda8862190bdbeda0c5e5e2b` · 3 of 3
+`.r-pool.out` · md5 `7445b2809ee20b9553efb8800da8bf9f` · 3 of 3
 
 ```
 Boot's own metadata, in after/'s jar: server.tomcat.threads.max default 200 (spring-boot-tomcat-4.1.1.jar) · server.tomcat.threads.min-spare default 10 (spring-boot-tomcat-4.1.1.jar) · spring.threads.virtual.enabled default false (spring-boot-autoconfigure-4.1.1.jar)
@@ -483,11 +546,11 @@ $ cd .harness/after && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19332/actuator/health/readiness
   {"status":"UP"} 200
 $ curl -s http://127.0.0.1:19332/probe/threads
-  2 × Catalina-utility-N non-daemon
-  1 × container-0 non-daemon
-  1 × http-nio-127.0.0.1-19332-Acceptor daemon
-  1 × http-nio-127.0.0.1-19332-Poller daemon
-  Tomcat's threads: 5 · not daemons among them: 3 · the JVM's other platform threads: fewer than 40, not shown
+  2 × Catalina-utility-N non-daemon · org.apache.tomcat.util.threads.TaskThread
+  1 × container-0 non-daemon · org.springframework.boot.tomcat.TomcatWebServer$1
+  1 × http-nio-127.0.0.1-19332-Acceptor daemon · java.lang.Thread
+  1 × http-nio-127.0.0.1-19332-Poller daemon · java.lang.Thread
+  the server's platform threads: 5 · of a class of Boot's (org.springframework.boot): 1 · Tomcat's, the rest: 4 · not daemons among them: 3 · the JVM's other platform threads: fewer than 40, not shown
 $ harness/shutdown.sh 19332 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 · curl exit 0
   exit 0 · listening on 19332 now: 0
@@ -499,12 +562,12 @@ $ cd .harness/after && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19332/actuator/health/readiness
   {"status":"UP"} 200
 $ curl -s http://127.0.0.1:19332/probe/threads
-  2 × Catalina-utility-N non-daemon
-  1 × container-0 non-daemon
-  1 × http-nio-127.0.0.1-19332-Acceptor daemon
-  1 × http-nio-127.0.0.1-19332-Poller daemon
-  10 × http-nio-127.0.0.1-19332-exec-N daemon
-  Tomcat's threads: 15 · not daemons among them: 3 · the JVM's other platform threads: fewer than 40, not shown
+  2 × Catalina-utility-N non-daemon · org.apache.tomcat.util.threads.TaskThread
+  1 × container-0 non-daemon · org.springframework.boot.tomcat.TomcatWebServer$1
+  1 × http-nio-127.0.0.1-19332-Acceptor daemon · java.lang.Thread
+  1 × http-nio-127.0.0.1-19332-Poller daemon · java.lang.Thread
+  10 × http-nio-127.0.0.1-19332-exec-N daemon · org.apache.tomcat.util.threads.TaskThread
+  the server's platform threads: 15 · of a class of Boot's (org.springframework.boot): 1 · Tomcat's, the rest: 14 · not daemons among them: 3 · the JVM's other platform threads: fewer than 40, not shown
 $ harness/shutdown.sh 19332 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 · curl exit 0
   exit 0 · listening on 19332 now: 0
@@ -516,11 +579,11 @@ $ cd .harness/after && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19332/actuator/health/readiness
   {"status":"UP"} 200
 $ curl -s http://127.0.0.1:19332/probe/threads
-  2 × Catalina-utility-N non-daemon
-  1 × container-0 non-daemon
-  1 × http-nio-127.0.0.1-19332-Acceptor daemon
-  1 × http-nio-127.0.0.1-19332-Poller daemon
-  Tomcat's threads: 5 · not daemons among them: 3 · the JVM's other platform threads: fewer than 40, not shown
+  2 × Catalina-utility-N non-daemon · org.apache.tomcat.util.threads.TaskThread
+  1 × container-0 non-daemon · org.springframework.boot.tomcat.TomcatWebServer$1
+  1 × http-nio-127.0.0.1-19332-Acceptor daemon · java.lang.Thread
+  1 × http-nio-127.0.0.1-19332-Poller daemon · java.lang.Thread
+  the server's platform threads: 5 · of a class of Boot's (org.springframework.boot): 1 · Tomcat's, the rest: 4 · not daemons among them: 3 · the JVM's other platform threads: fewer than 40, not shown
 $ harness/shutdown.sh 19332 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 · curl exit 0
   exit 0 · listening on 19332 now: 0
@@ -596,25 +659,60 @@ $ harness/shutdown.sh 19334 .harness/aot/secrets/tiffinbox/shutdown-token
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 ```
 
-## 7 · stop — what stops it (C6-15)
+## 7 · stop — what stops it, with a request in flight (C6-15; A/B/A′)
 
-Boot's metadata (`server.shutdown` `graceful`, `spring.lifecycle.timeout-per-shutdown-phase` 30s); after/'s jar; POST /shutdown → 200; the log after it — `Commencing graceful shutdown. Waiting for active requests to complete`, `Graceful shutdown complete`; exit 0, the port free.
+Boot's metadata (`server.shutdown` `graceful`, `spring.lifecycle.timeout-per-shutdown-phase` 30s); after/ on the README's class-path line with the harness joined (so a request can be in flight: `/probe/slow?ms=3000`, three seconds, sent in the background; `/probe/inflight` says `1` before the POST — this README's two lines); **A** Boot's default: POST /shutdown → 200; the slow request answers **200**; the log after the POST — `Commencing graceful shutdown. Waiting for active requests to complete`, `Graceful shutdown complete`; exit 0, the port free; **B** `--server.shutdown=immediate` (this README's line): the slow request gets **no answer** (`000`, curl exit 52 — the connection closed), 0 lines after the POST, exit 0; **A′** = A.
 
-`.r-stop.out` · md5 `6aa3b5869e097746c437f392a30d49ed` · 3 of 3
+`.r-stop.out` · md5 `76a54614d0a8cf3e74d924d7c379197d` · 3 of 3
 
 ```
 Boot's own metadata, in after/'s jar: server.shutdown default graceful (spring-boot-web-server-4.1.1.jar) · spring.lifecycle.timeout-per-shutdown-phase default 30s (spring-boot-autoconfigure-4.1.1.jar)
-after/, the README's run line, port 19330:
-$ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19330
+A - Boot's default: after/ on the README's class-path line with the harness joined, port 19330 - a slow request in flight, then POST /shutdown:
+$ cd .harness/after && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19330 --spring.main.sources=probe.web.Threads
   listens on: 127.0.0.1:19330 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19330/actuator/health/readiness
   {"status":"UP"} 200
-  Tomcat's own line: Tomcat started on port 19330 (http) with context path '/'
+$ curl -s -m 30 -o /dev/null -w '%{http_code}\n' 'http://127.0.0.1:19330/probe/slow?ms=3000' &
+$ curl -s http://127.0.0.1:19330/probe/inflight
+  1
 $ harness/shutdown.sh 19330 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 · curl exit 0
   exit 0 · listening on 19330 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
+  the slow request's answer: 200 · curl exit 0
+  its log after the POST, from the message on - 2 line(s):
+    Commencing graceful shutdown. Waiting for active requests to complete
+    Graceful shutdown complete
+B - the same, Boot's shutdown made immediate (README.md's option):
+$ cd .harness/after && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19330 --spring.main.sources=probe.web.Threads --server.shutdown=immediate
+  listens on: 127.0.0.1:19330 · loopback only: yes
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19330/actuator/health/readiness
+  {"status":"UP"} 200
+$ curl -s -m 30 -o /dev/null -w '%{http_code}\n' 'http://127.0.0.1:19330/probe/slow?ms=3000' &
+$ curl -s http://127.0.0.1:19330/probe/inflight
+  1
+$ harness/shutdown.sh 19330 .harness/after/secrets/tiffinbox/shutdown-token
+  POST /shutdown -> 200 · curl exit 0
+  exit 0 · listening on 19330 now: 0
+  its log: the demo token 0 times · X-Shutdown-Token 0 times
+  the slow request's answer: 000 · curl exit 52
+  its log after the POST, from the message on - 0 line(s):
+A' - A again:
+$ cd .harness/after && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19330 --spring.main.sources=probe.web.Threads
+  listens on: 127.0.0.1:19330 · loopback only: yes
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19330/actuator/health/readiness
+  {"status":"UP"} 200
+$ curl -s -m 30 -o /dev/null -w '%{http_code}\n' 'http://127.0.0.1:19330/probe/slow?ms=3000' &
+$ curl -s http://127.0.0.1:19330/probe/inflight
+  1
+$ harness/shutdown.sh 19330 .harness/after/secrets/tiffinbox/shutdown-token
+  POST /shutdown -> 200 · curl exit 0
+  exit 0 · listening on 19330 now: 0
+  its log: the demo token 0 times · X-Shutdown-Token 0 times
+  the slow request's answer: 200 · curl exit 0
   its log after the POST, from the message on - 2 line(s):
     Commencing graceful shutdown. Waiting for active requests to complete
     Graceful shutdown complete
@@ -622,9 +720,9 @@ $ harness/shutdown.sh 19330 .harness/after/secrets/tiffinbox/shutdown-token
 
 ## 8 · taken — a port taken, before and after; C and D (labelled)
 
-**before**: TiffinBox's own analyzer — exit 1, 0 frames, `TiffinBox could not listen on 127.0.0.1:19331: …` and its action naming `--tiffinbox.port`; **after**: Boot's analyzer — exit 1, 0 frames, `Web server failed to start. Port 19330 was already in use.` and an action that names no setting; the factories file names one analyzer (the key removed: RE-MEASURE 5); **C** a bare number: exit 2 before the banner, 0 Tomcat lines, never bound; **D** an address this Mac does not have (`192.0.2.1`): exit 1, the trace (39 frames), `Unable to start embedded Tomcat server`, `Can't assign requested address`.
+**before**: TiffinBox's own analyzer — exit 1, 0 frames, `TiffinBox could not listen on 127.0.0.1:19331: …` and its action naming `--tiffinbox.port`: the address and a setting named; the previous tree's libraries register 21 failure analyzers, and none holds Boot's sentence; **after**: Boot's analyzer — exit 1, 0 frames, `Web server failed to start. Port 19330 was already in use.` and its action: neither the address nor a setting named; the class that holds that sentence, `org.springframework.boot.web.server.PortInUseFailureAnalyzer` (`spring-boot-web-server-4.1.1.jar`); the libraries now register 24 (`spring-boot-tomcat` 1 and `spring-boot-web-server` 2 more); the factories file names one of TiffinBox's (the key removed: RE-MEASURE 5); **C** a bare number: exit 2 before the banner, 0 of Boot's Tomcat lines, never bound; **D** an address this Mac does not have (`192.0.2.1`): exit 1, the trace (39 frames), `Unable to start embedded Tomcat server`, `Can't assign requested address`.
 
-`.r-taken.out` · md5 `027e92dce5de218d3b4bb76bc7c1f1ea` · 3 of 3
+`.r-taken.out` · md5 `5fc14d56624b91148a008e94bf9c7bd5` · 3 of 3
 
 ```
 before - the previous tree on port 19331, then the same line again while it holds the port:
@@ -635,7 +733,7 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19331/actuator/health/readiness
   {"status":"UP"} 200
 $ cd .harness/before && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19331
   exit 1
-  its log, read after it exited: APPLICATION FAILED TO START 1 · stack frames 0 · Caused by: 0 · frames folded as common 0 · Tomcat lines 0
+  its log, read after it exited: APPLICATION FAILED TO START 1 · stack frames 0 · Caused by: 0 · frames folded as common 0 · Boot's Tomcat lines 0
   WARN s.c.a.AnnotationConfigApplicationContext: Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException …
   ERROR o.s.b.d.LoggingFailureAnalysisReporter:
   the hint Boot logs: Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
@@ -645,10 +743,13 @@ $ cd .harness/before && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar -
   Stop the program on that port, or start TiffinBox on another: --tiffinbox.port=<a free port>.
   its log: the banner's :: Spring Boot :: line 1
   its standard error: 0 lines · the demo token in its log: 0
+  its two sentences name the address: yes · a setting (--…): yes
 $ harness/shutdown.sh 19331 .harness/before/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 · curl exit 0
   exit 0 · listening on 19331 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
+  the failure analyzers its libraries register (META-INF/spring.factories): 21 (spring-boot 18, spring-boot-autoconfigure 2, spring-boot-micrometer-metrics 1)
+  the library class that holds Boot's sentence ("was already in use."): none
 after - after/ on port 19330, then the same line again while it holds the port:
 $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19330
   listens on: 127.0.0.1:19330 · loopback only: yes
@@ -657,7 +758,7 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19330/actuator/health/readiness
   {"status":"UP"} 200
 $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19330
   exit 1
-  its log, read after it exited: APPLICATION FAILED TO START 1 · stack frames 0 · Caused by: 0 · frames folded as common 0 · Tomcat lines 1
+  its log, read after it exited: APPLICATION FAILED TO START 1 · stack frames 0 · Caused by: 0 · frames folded as common 0 · Boot's Tomcat lines 1
   WARN ConfigServletWebServerApplicationContext: Exception encountered during context initialization - cancelling refresh attempt: org.springframework.context.ApplicationContextException …
   ERROR o.s.b.d.LoggingFailureAnalysisReporter:
   the hint Boot logs: Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
@@ -667,15 +768,18 @@ $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --
   Identify and stop the process that's listening on port 19330 or configure this application to listen on another port.
   its log: the banner's :: Spring Boot :: line 1
   its standard error: 0 lines · the demo token in its log: 0
+  its two sentences name the address: no · a setting (--…): no
 $ harness/shutdown.sh 19330 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 · curl exit 0
   exit 0 · listening on 19330 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
+  the failure analyzers its libraries register (META-INF/spring.factories): 24 (spring-boot 18, spring-boot-autoconfigure 2, spring-boot-micrometer-metrics 1, spring-boot-tomcat 1, spring-boot-web-server 2)
+  the library class that holds Boot's sentence ("was already in use."): org.springframework.boot.web.server.PortInUseFailureAnalyzer (spring-boot-web-server-4.1.1.jar)
   after/'s spring.factories, the analyzers it names: com.tiffinbox.web.BareArgumentAnalyzer
 C (labelled) - after/, a bare argument: the README's old command, its ports 19335 and 19336:
 $ cd .harness/after && TIFFINBOX_PORT=19335 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar 19336
   exit 2
-  its log, read after it exited: APPLICATION FAILED TO START 1 · stack frames 0 · Caused by: 0 · frames folded as common 0 · Tomcat lines 0
+  its log, read after it exited: APPLICATION FAILED TO START 1 · stack frames 0 · Caused by: 0 · frames folded as common 0 · Boot's Tomcat lines 0
   ERROR o.s.b.d.LoggingFailureAnalysisReporter:
   Description:
   TiffinBox reads no bare arguments: argument 1 of 1 is 19336.
@@ -687,7 +791,7 @@ $ cd .harness/after && TIFFINBOX_PORT=19335 java -jar tiffinbox-web/target/tiffi
 D (labelled) - after/, an address this Mac does not have: the README's line, port 19336:
 $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19336 --tiffinbox.address=192.0.2.1
   exit 1
-  its log, read after it exited: APPLICATION FAILED TO START 0 · stack frames 39 = 20 + 3 + 3 + 3 + 10 · Caused by: 4 · frames folded as common 88 · Tomcat lines 1
+  its log, read after it exited: APPLICATION FAILED TO START 0 · stack frames 39 = 20 + 3 + 3 + 3 + 10 · Caused by: 4 · frames folded as common 88 · Boot's Tomcat lines 1
   WARN ConfigServletWebServerApplicationContext: Exception encountered during context initialization - cancelling refresh attempt: org.springframework.context.ApplicationContextException …
   ERROR o.s.boot.SpringApplication: Application run failed
   org.springframework.context.ApplicationContextException: Failed to start bean 'webServerStartStop'
@@ -701,37 +805,40 @@ $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --
   listening now: 19336 0
 ```
 
-## 9 · exercise — the exercise, run as written
+## 9 · exercise — the exercise, run as written, in one shell
 
-`exercise/README.md`'s commands, exactly as written — its last line, as shipped, prints `threads that answered: 8` — then `exercise/solution/SOLUTION.md`'s line: `threads that answered: 2`.
+`exercise/README.md`'s commands, exactly as written — its last line, as shipped, prints `threads that answered: 8` — then `exercise/solution/SOLUTION.md`'s three lines, in the **same** shell, as a viewer pastes them: `threads that answered: 2`. The shell is `env -i` — none of this script's variables reach it, only `HOME` and the `PATH` you started `receipts.sh` with — `/bin/bash --noprofile --norc`, started in this folder; each block's exit code and the folder it left the shell in are printed (`this unit's folder`, both times: the JVM runs in a subshell). SOLUTION.md starts with the README's two `export` lines (checked), so a new shell gets JDK 25 too.
 
-`.r-exercise.out` · md5 `fcdc989b2ddca69240f6a9950acfeb73` · 3 of 3
+`.r-exercise.out` · md5 `cb9eb4276f128f6b17329336da7f4ff2` · 3 of 3
 
 ```
-exercise/README.md's commands, run exactly as written from this folder - 8 lines:
+exercise/README.md's commands, then the solution's lines (exercise/solution/SOLUTION.md), exactly as written, one after the other in ONE shell - env -i (HOME, and the PATH this script was started with), /bin/bash --noprofile --norc, started in this folder:
+the README's 8 lines:
   $ export JAVA_HOME=/opt/homebrew/opt/openjdk@25
   $ export PATH="$JAVA_HOME/bin:$PATH"
   $ rm -rf .harness/mine && mkdir -p .harness/mine && rsync -a --exclude target after/ .harness/mine/after/
   $ mkdir -p .harness/mine/after/secrets/tiffinbox && chmod 700 .harness/mine/after/secrets .harness/mine/after/secrets/tiffinbox
-  $ (umask 077 && { LC_ALL=C tr -dc 'a-z0-9' < /dev/urandom | head -c 26; echo; } > .harness/mine/after/secrets/tiffinbox/shutdown-token)
+  $ (umask 077 && openssl rand -hex 13 > .harness/mine/after/secrets/tiffinbox/shutdown-token)
   $ M="$PWD/.m2-demo" && (cd .harness/mine/after && mvn -o -B -q -Dmaven.repo.local="$M" -DskipTests package && java -Djarmode=tools -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar extract --destination tiffinbox-web/target/extracted > /dev/null)
   $ javac -d .harness/mine/hc -cp ".harness/mine/after/tiffinbox-web/target/extracted/lib/*" harness/probe/web/Threads.java
-  $ cd .harness/mine/after && { java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19339 --spring.main.sources=probe.web.Threads --server.tomcat.threads.max=2 > ../run.log 2>&1 & } && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19339/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && ../../../harness/slow8.sh 19339 > ../slow.txt && ../../../harness/shutdown.sh 19339 secrets/tiffinbox/shutdown-token > /dev/null && wait && echo "threads that answered: $(sort -u ../slow.txt | wc -l | tr -d ' ')"
+  $ (cd .harness/mine/after && { java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19339 --spring.main.sources=probe.web.Threads --server.tomcat.threads.max=2 > ../run.log 2>&1 & } && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19339/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && ../../../harness/slow8.sh 19339 > ../slow.txt && ../../../harness/shutdown.sh 19339 secrets/tiffinbox/shutdown-token > /dev/null && wait $! && echo "threads that answered: $(sort -u ../slow.txt | wc -l | tr -d ' ')")
   exit 0 · what they printed:
     threads that answered: 8
-  the copy's own token in its log: 0 times · listening on 19339 now: 0
-the solution's line (exercise/solution/SOLUTION.md), run exactly as written, from this folder:
-$ cd .harness/mine/after && { java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19339 --spring.main.sources=probe.web.Threads --server.tomcat.threads.max=2 --spring.threads.virtual.enabled=false > ../run.log 2>&1 & } && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19339/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && ../../../harness/slow8.sh 19339 > ../slow.txt && ../../../harness/shutdown.sh 19339 secrets/tiffinbox/shutdown-token > /dev/null && wait && echo "threads that answered: $(sort -u ../slow.txt | wc -l | tr -d ' ')"
-  exit 0 · what it printed:
+  the shell is now in: this unit's folder · the copy's own token in its log: 0 times
+the solution's 3 lines, next, in the same shell:
+  $ export JAVA_HOME=/opt/homebrew/opt/openjdk@25
+  $ export PATH="$JAVA_HOME/bin:$PATH"
+  $ (cd .harness/mine/after && { java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19339 --spring.main.sources=probe.web.Threads --server.tomcat.threads.max=2 --spring.threads.virtual.enabled=false > ../run.log 2>&1 & } && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19339/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && ../../../harness/slow8.sh 19339 > ../slow.txt && ../../../harness/shutdown.sh 19339 secrets/tiffinbox/shutdown-token > /dev/null && wait $! && echo "threads that answered: $(sort -u ../slow.txt | wc -l | tr -d ' ')")
+  exit 0 · what they printed:
     threads that answered: 2
-  listening on 19339 now: 0
+  the shell is now in: this unit's folder · the copy's own token in its log: 0 times · listening on 19339 now: 0
 ```
 
 ## 10 · forms — every form still serves (R.40)
 
-`after/`'s native build (the README's two Maven lines, offline: 8 of 8 stages, Mach-O, 0 token bytes, 0 download lines); then **1** the jar, **2** the AOT jar, **3** the binary — and the binary at DEBUG: `Mapped to TiffinBox route /customers` and TiffinBox's line, both on `tomcat-handler-N` (the named handler in the binary: RE-MEASURE 5) — **4** the image: each loopback (the image: published on `127.0.0.1`), each the seven `571faaea…`, each exit 0.
+`after/`'s native build (the README's two Maven lines, offline: 8 of 8 stages, Mach-O, 0 token bytes, 0 download lines); then **1** the jar, **2** the AOT jar, **3** the binary — and the binary at DEBUG: `Mapped to TiffinBox route /customers` and TiffinBox's line, both on `tomcat-handler-N` (the named handler in the binary: RE-MEASURE 5), its other lines bounded — **4** the image (its presence checked first: `docker run` would otherwise try to pull it): each the seven `571faaea…`, each exit 0, each with Boot's two graceful-shutdown lines in its log (4 of 4); loopback counted form by form — the jar, the AOT jar and the binary by their listeners, the image by `docker port`.
 
-`.r-forms.out` · md5 `94760fdbf069d71534b096a8dd139c1c` · 3 of 3
+`.r-forms.out` · md5 `69c29202be33c5e9067deea238424ddd` · 3 of 3
 
 ```
 the native build - after/ copied to .harness/nat with a config tree; the README's two Maven lines, offline; $GRAALVM_HOME names the GraalVM:
@@ -765,33 +872,36 @@ $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19330/actuator/health/readiness
   {"status":"UP"} 200
-  Tomcat's own line: Tomcat started on port 19330 (http) with context path '/'
+  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19330 (http) with context path '/'
 $ $CURLSET 19330 .harness/after/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 1 · md5 571faaea42e87e85add8c9548c64c961
   its log: the demo token 0 times · X-Shutdown-Token 0 times
+  Boot's graceful-shutdown lines in its log: 2
 2 the AOT jar - .harness/nat (the profile native's jar), the README's AOT line, port 19334:
 $ cd .harness/nat && java -Dspring.aot.enabled=true -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19334
   listens on: 127.0.0.1:19334 · loopback only: yes
   Boot's first line: Starting AOT-processed TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19334/actuator/health/readiness
   {"status":"UP"} 200
-  Tomcat's own line: Tomcat started on port 19334 (http) with context path '/'
+  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19334 (http) with context path '/'
 $ $CURLSET 19334 .harness/nat/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 1 · md5 571faaea42e87e85add8c9548c64c961
   its log: the demo token 0 times · X-Shutdown-Token 0 times
+  Boot's graceful-shutdown lines in its log: 2
 3 the binary - .harness/nat, the README's line, port 19338:
 $ cd .harness/nat && tiffinbox-web/target/tiffinbox-web --tiffinbox.port=19338
   listens on: 127.0.0.1:19338 · loopback only: yes
   Boot's first line: Starting AOT-processed TiffinBoxServer using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19338/actuator/health/readiness
   {"status":"UP"} 200
-  Tomcat's own line: Tomcat started on port 19338 (http) with context path '/'
+  Boot's started line - logger: message: o.s.boot.tomcat.TomcatWebServer: Tomcat started on port 19338 (http) with context path '/'
 $ $CURLSET 19338 .harness/nat/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 1 · md5 571faaea42e87e85add8c9548c64c961
   its log: the demo token 0 times · X-Shutdown-Token 0 times
+  Boot's graceful-shutdown lines in its log: 2
   the binary at DEBUG - the README's line with Boot's web group and the kitchen at DEBUG, each line its thread's whole name and the message, port 19338:
 $ cd .harness/nat && tiffinbox-web/target/tiffinbox-web --tiffinbox.port=19338 --logging.level.web=debug --logging.level.kitchen=debug --logging.pattern.console='%thread %msg%n'
   listens on: 127.0.0.1:19338 · loopback only: yes
@@ -800,7 +910,7 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19338/actuator/health/readiness
   {"status":"UP"} 200
 $ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:19338/customers
   200 application/json
-  its lines for GET /customers that name a handler, and TiffinBox's own: tomcat-handler-N Mapped to TiffinBox route /customers|tomcat-handler-N GET /customers -> 200
+  its lines for GET /customers that name a handler, and TiffinBox's own: tomcat-handler-N Mapped to TiffinBox route /customers|tomcat-handler-N GET /customers -> 200 · its other lines - the start, the readiness polls (their number moves), the rest of this request: more than 40, not shown
   its WARN lines: 1 (JvmGcMetrics: GC notifications will not be available - the native binary's known line)
 $ harness/shutdown.sh 19338 .harness/nat/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 · curl exit 0
@@ -819,17 +929,19 @@ $ docker wait tiffinbox-tomcat
   0
   exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 1 · md5 571faaea42e87e85add8c9548c64c961
   its log (docker logs): Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1 · the demo token 0 times · X-Shutdown-Token 0 times
-four forms, one tree: the seven (masked) 4 of 4 times 571faaea42e87e85add8c9548c64c961 · listening on this Mac, loopback only: 4 of 4 runs · the image published on 127.0.0.1 alone: 1
+  Boot's graceful-shutdown lines in its log: 2
+four forms, one tree: the seven (masked) 4 of 4 times 571faaea42e87e85add8c9548c64c961 · Boot's two graceful-shutdown lines 4 of 4 times
+  loopback, form by form: the jar yes · the AOT jar yes · the binary yes (its DEBUG run among them) · the image, published on 127.0.0.1 alone yes
 ```
 
 ## Exercise
 
 **Your turn:** start TiffinBox with virtual threads off and two pool threads, send eight slow requests, and count the threads that
 answered. `exercise/README.md` has the commands (copy `after/` with a token of its own, build and extract the jar offline, compile
-the harness); its last line starts TiffinBox with `--server.tomcat.threads.max=2` and — as shipped — prints `threads that answered: 8`:
-virtual threads are still on, and the pool is never used. Done is `threads that answered: 2`. Measured answer:
-`exercise/solution/SOLUTION.md` (the same line with `--spring.threads.virtual.enabled=false`). Run `./receipts.sh` once first on a
-fresh clone.
+the harness); its last line, in a subshell, starts TiffinBox with `--server.tomcat.threads.max=2` and — as shipped — prints `threads
+that answered: 8`: virtual threads are still on, and the pool is never used. Done is `threads that answered: 2`. Measured answer:
+`exercise/solution/SOLUTION.md` (the README's two `export` lines, then the same line with `--spring.threads.virtual.enabled=false`),
+run in the same shell. Run `./receipts.sh` once first on a fresh clone.
 
 ## RE-MEASURE — the brief's items this unit settles
 
@@ -838,10 +950,34 @@ fresh clone.
 | 5 | the named handler in the binary; the analyzer's `spring.factories` key removed | a lambda in the probe's binary; the analyzer kept in the sketch | **`tomcat-handler-N Mapped to TiffinBox route /customers`** in the binary (`forms`); **Boot's two sentences, exit 1, 0 frames**, the factories file naming `BareArgumentAnalyzer` alone (`taken`) |
 | 6 | Boot's task executor with virtual threads on; the README's "eight platform threads" sentence | not measured | **`SimpleAsyncTaskExecutor`, its task on a virtual thread**; off: `ThreadPoolTaskExecutor` (`threads` A/B); the anchor README's unit-19 note amended |
 | 7 | the masked md5 of the seven on this unit's tree | `571faaea…` on the probe's sketch | **`571faaea42e87e85add8c9548c64c961`** — the jar, the AOT jar, the binary and the image, 3/3 each (`seven`, `forms`) |
-| 8 | graceful shutdown with a slow request in flight | not measured | not spoken, not measured here |
+| 8 | graceful shutdown with a slow request in flight | not measured | **A: a three-second request in flight answers 200 after POST /shutdown, the two graceful lines; B `--server.shutdown=immediate`: no answer (000, curl exit 52); A′ = A** (`stop`) |
 
 ## Found on the way
 
+- **Every new check fails on a planted fault first** (R.65; BLUE, 2026-10-13, the checks block run on copies of the captures, each
+  copy restored byte for byte): the YAML's `spring:` shown as `server:`; 2 connector lines at Boot's levels; B's copy with one line
+  more than the alias's three; `level="INFO"` in Boot's defaults; Tomcat's status line read as `200 OK`; a 404 on TiffinBox's timer;
+  `container-0` counted Tomcat's; B's slow request answered, A's dropped; Boot's sentences said to name the address; 21 analyzers;
+  no analyzer class; the README's commands leaving the shell in the copy; the image off loopback; 3 of 4 forms with graceful lines —
+  15 plants, 15 stops, each naming its check. SOLUTION.md without its `JAVA_HOME` line, and with another JDK's: both refused. The
+  image's token counter, on a planted gzip blob holding the token: 1.
+- **README, then SOLUTION, in one shell broke both** (RED part B #41). The old last line `cd`-ed into the copy and stayed there, so
+  SOLUTION's `cd .harness/mine/after` failed (`No such file or directory`, exit 1); and SOLUTION had no `export JAVA_HOME`, so in a
+  new shell on this Mac `java` was 23.0.1 — `UnsupportedClassVersionError` in the copy's log, and the line still printed
+  `threads that answered: 0`, exit 0: a silent wrong answer (BLUE re-ran both in one `env -i` shell, 2026-10-13). Now the JVM runs in
+  a subshell, SOLUTION.md starts with the README's two exports, `wait $!` ends the line with a failed JVM's own exit code, and
+  `exercise` runs both blocks in one `env -i` shell and prints where each left it.
+- **`tr -dc … < /dev/urandom | head -c 26` hangs when SIGPIPE is ignored** (a launcher that ignores it: RED's Python one): `tr`
+  never sees `head` leave, spins at 100% CPU, and the old trap stopped only the exercise's subshell. The token now comes from
+  `openssl rand -hex 13` (26 hexadecimal digits), and the trap stops the exercise's shell with every process under it (`killtree`).
+- **The line that names the port is Boot's.** `Tomcat started on port …` is logged by `o.s.boot.tomcat.TomcatWebServer`; Tomcat's
+  own connector (`o.a.coyote.http11.Http11NioProtocol`) logs `Initializing ProtocolHandler ["http-nio-127.0.0.1-19330"]` — the
+  address — at INFO, and Boot's `org/springframework/boot/logging/logback/defaults.xml` (in `spring-boot-4.1.1.jar`) sets that logger
+  to WARN (`bind` F). The pool's `container-0` is Boot's too: its class is `TomcatWebServer$1` (`pool`).
+- **Graceful shutdown, measured** (RE-MEASURE 8): a three-second request in flight answers 200 after POST /shutdown; with
+  `--server.shutdown=immediate` it gets no answer (`000`, curl exit 52) and Boot logs no graceful line (`stop`).
+- **A missing image is a pull.** A run of `forms` without `bind` (a partial run) found no `tiffinbox-tomcat:1.0.0`, and `docker run`
+  asked Docker Hub for it (`pull access denied`). `forms` now checks the image is there first, and dies naming the cause.
 - **The default log pattern cuts a thread's name.** Logback prints the last 15 characters (`[omcat-handler-2]`, `[mcat-handler-10]`):
   a mask would have to rebuild the name. `threads` C and the binary's DEBUG run use `--logging.pattern.console='%thread %msg%n'`
   (the README's lines), which prints the whole name.
@@ -861,6 +997,8 @@ fresh clone.
 
 ## For unit 05 — and RED
 
+- **RED part B (2026-10-13)** found 28 rows on units 04-05 (2 HIGH, 7 MEDIUM, 18 LOW, 1 OK); BLUE's adjudication, one line per row, is
+  appended to `spring-web-mvc/_briefs/RED-C6-S1-2026-10-13.md` (outside this repository). Every fix above is in this commit.
 - **Start from `../c6-unit04/after`** (= `../c6-tiffinbox`): TiffinBox on Tomcat, its five paths in one `SimpleUrlHandlerMapping`
   bean named `tiffinBoxRoutes`, each handler a `RouteHandler` whose `toString()` is `TiffinBox route /<path>` (named, never a lambda —
   measured in the JVM's and the binary's DEBUG lines); the exposure list is still `health,prometheus` (expose `mappings` by a flag,
@@ -868,12 +1006,16 @@ fresh clone.
 - **The seven's comparison set is now `571faaea42e87e85add8c9548c64c961`, masked** (`tsmask`: the timestamp → `…`, both forms);
   `115c36ba…` is TiffinBox's own server's. `GET /nowhere` is Spring's JSON 404 (Jackson 3, ISO-8601 timestamp).
 - **Threads:** virtual threads are on in `application.yaml` (`tomcat-handler-N`); a run-time `=false` works on the JVM only.
-  Idle with virtual threads: 5 Tomcat platform threads, 3 not daemons. Thread names carry the port.
+  Idle with virtual threads: 5 server platform threads — 4 Tomcat's, and `container-0`, whose class is Boot's — 3 not daemons.
+  Thread names carry the port.
 - **Bind:** every JVM listens on `127.0.0.1:<--tiffinbox.port>` through the alias in the YAML's first document (lines 19-21, the
   first `---` at 77); `--server.port` beats `--tiffinbox.port`. Receipts pass `--tiffinbox.port=` from their own range.
 - **Jackson:** two in one jar — Jackson 2 (`com.fasterxml`, 2.22.2) writes TiffinBox's five answers through its own `ObjectMapper`,
   Jackson 3 (`tools.jackson`, 3.1.5) Spring's: Spring MVC's one JSON converter is `JacksonJsonHttpMessageConverter` on Jackson 3's
   `JsonMapper` (`seven`, the harness's `Converters`). Health's keys come out in Jackson 3's order (sort before comparing). The jar:
   58 libraries.
-- **Two timers:** `http_server_requests` beside `tiffinbox_requests` (CARRIED to Section 2).
+- **Two timers:** Boot's `http_server_requests` counts every answer, `tiffinbox_requests` only TiffinBox's handler's (CARRIED to
+  Section 2).
+- **Boot's started line** (`o.s.boot.tomcat.TomcatWebServer`) names the port only; Tomcat's own connector line names the address, at
+  INFO, which Boot's logging defaults hold at WARN (`bind` F). Captures label it "Boot's started line", never "Tomcat's own line".
 - **Not done here:** `Route` and `scanRoutes()` (Section 2's first lesson); the probe-era Jetty swap (unit 02's).
