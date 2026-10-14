@@ -13,7 +13,9 @@ frozen from here on, so every Course 5 unit keeps pointing at what it measured. 
 amended in place, in a note that starts *Course 6, unit NN*, and the unit sections keep their history. *(Course 6, unit
 04: three of the four files' jobs have moved — `TiffinBoxServer` no longer names the JDK's server, and `ActuatorRoutes` and
 `PortTakenFailureAnalyzer` are deleted; Tomcat, Boot's Actuator adapter and Boot's port analyzer do their jobs. `Route`
-stays until Course 6's request-mapping lesson.)*
+stays until Course 6's request-mapping lesson.)* *(Course 6, unit 06: and the fourth's — `Route` is deleted, with
+`RouteMapping`: `TiffinBoxServer` is a `@RestController`, its routes Spring MVC's own request mappings. All four files' jobs have
+moved.)*
 
 ## Course 6 · unit 04 — embedded Tomcat: TiffinBox's own server handed over (2026-10-12)
 
@@ -26,7 +28,8 @@ goes through) hands each request to TiffinBox's handler for its path. Six files 
   `<exclude>`s and the native plugin's two `<exclusion>`s are gone; the Compose module's stay. Course 5 needed them because the
   Compose module's Jackson 3 reached Spring's AOT step but not the jar; the starter puts Jackson 3 in the jar, so the step, the jar
   and the binary agree. Until Course 6's Jackson lessons, one jar holds two Jacksons: Jackson 2 writes TiffinBox's five answers,
-  Jackson 3 writes Spring's (an error body, Actuator's answers).
+  Jackson 3 writes Spring's (an error body, Actuator's answers). *(Course 6, unit 06: Spring MVC's JSON converter writes TiffinBox's five answers too, with
+  Jackson 3; Jackson 2 stays in the jar until Course 6's Jackson lessons, and writes none of them — `../c6-unit06/`, `json`.)*
 - `TiffinBoxServer.java` — the server half is out: no `HttpServer`, no executor, no contexts, no `stop()`. `handle()`, `respond()`
   and `holdsToken()` work on the servlet API (`HttpServletRequest`, `HttpServletResponse`); `handlers()` builds one **handler** per
   path (the object a request is handed to), each named — its `toString()` reads `TiffinBox route /customers` — and the verb is still
@@ -34,11 +37,13 @@ goes through) hands each request to TiffinBox's handler for its path. Six files 
   `TiffinBox listening on http://…` line is gone: Boot's `TomcatWebServer` logs `Tomcat started on port 18431 (http) with context
   path '/'`, which names the port, never the address (Tomcat's own connector line names it, at a level Boot's logging defaults
   hide). The Javadoc's "jdk.httpserver on a virtual-thread executor" and "One server, one stop" sentences are
-  rewritten.
+  rewritten. *(Course 6, unit 06: `handle()`, `respond()`, `handlers()` and the named handlers are deleted: the routes are
+  Spring MVC's request mappings, and POST /shutdown is a controller method that starts the close on a platform thread of its own
+  and returns its answer.)*
 - `RouteMapping.java` (new) — one **handler mapping** (what the `DispatcherServlet` asks "which handler takes this request?"):
   Spring's own `SimpleUrlHandlerMapping`, a table of paths, here TiffinBox's five, each with its handler. Spring's
   `HttpRequestHandlerAdapter` calls the handler. `@Route` and `scanRoutes()` stay TiffinBox's until Course 6's request-mapping
-  lesson.
+  lesson. *(Course 6, unit 06: deleted, with `Route.java` and `scanRoutes()`.)*
 - `ActuatorRoutes.java` — **deleted** (196 lines): a JDK `HttpHandler` cannot outlive the JDK's server. Boot's own Actuator adapter
   answers `/actuator` on Tomcat, with the same content types (Course 6's mappings lesson lists its routes).
 - `PortTakenFailureAnalyzer.java` — **deleted** (51 lines), and its name taken out of `META-INF/spring.factories`, which keeps the
@@ -53,7 +58,7 @@ goes through) hands each request to TiffinBox's handler for its path. Six files 
 - `BareArgumentAnalyzer.java` — one Javadoc line, which named the deleted analyzer. Its code is unchanged.
 
 The Dockerfile, `compose.yaml`, `Route.java`, the indicator, the meters, `TiffinBoxApp.java`, the guard and `tiffinbox-core` are
-not touched.
+not touched. *(Course 6, unit 06: `Route.java` is deleted.)*
 
 **The address the log hides.** Boot's started line names a port, never an address. Tomcat's own connector line names the
 address — `Initializing ProtocolHandler ["http-nio-127.0.0.1-18431"]` — but Boot's logging defaults hold its logger
@@ -101,7 +106,9 @@ JSON with Jackson 3: Spring MVC's one JSON converter is `JacksonJsonHttpMessageC
 `web` log group at DEBUG shows each step; `../c6-unit04/`, `seven`). The timestamp moves every run, so the set is compared
 **masked**: the timestamp's value becomes `…` (both forms: an ISO-8601 string, which Jackson 3 writes here, and epoch milliseconds),
 and the masked set hashes to `571faaea42e87e85add8c9548c64c961` — the comparison set from here on. `GET /shutdown` is still
-TiffinBox's own `405 {"error":"method not allowed"}`: its handler still matches the verb.
+TiffinBox's own `405 {"error":"method not allowed"}`: its handler still matches the verb. *(Course 6, unit 06: it is Spring MVC's 405 now —
+`{"timestamp":"…","status":405,"error":"Method Not Allowed","path":"/shutdown"}`, `Allow: POST` — and the masked set hashes to
+`87ca7efc8584dcccd40e6b956db1de9b`, the comparison set from there on; `../c6-unit06/`, `seven`.)*
 
 ```bash
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.web=debug
@@ -111,7 +118,9 @@ java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --
 handler mapping matches whole paths, and they answer 404. `/actuator` answers 200, Boot's list of links, where the bridge said 404.
 HEAD, `Accept: application/xml` and DELETE answer as before (TiffinBox's handler decides them). **Two timers** from here on: Boot's
 `http_server_requests` times every answer (it tags every 404 here `uri="/**"`), TiffinBox's own `tiffinbox_requests` only the
-answers TiffinBox's handler gives — the three 404s are on Boot's timer alone. **A `static/` folder is served:** `/**`'s locations
+answers TiffinBox's handler gives — the three 404s are on Boot's timer alone. *(Course 6, unit 06: Spring MVC decides those three now — HEAD 200 with
+`Content-Length: 282`, `Accept: application/xml` 406, DELETE 405 with `Allow: GET`, the 405 and the 406 one WARN line each; and
+TiffinBox's own timer is retired: Boot's alone times every answer — `../c6-unit06/`, `verbs`, `timers`.)* **A `static/` folder is served:** `/**`'s locations
 end with `ServletContext [/]`, Tomcat's document root, which Boot takes from the folder TiffinBox starts in (its `static/`,
 `public/` or `src/main/webapp/`): a file in `static/` there answers 200, while that folder's own files and the config tree,
 `secrets/`, answer 404 (`../c6-unit05/`, `catchall` D).
@@ -121,13 +130,100 @@ default is `graceful`; `spring.lifecycle.timeout-per-shutdown-phase` 30s) stops 
 active requests to complete`, `Graceful shutdown complete` — and the JVM exits **0**. A request in flight finishes first: a slow
 request of three seconds, sent before POST /shutdown, answers 200; with `--server.shutdown=immediate` it gets no answer
 (`../c6-unit04/`, `stop`). Tomcat is TiffinBox's only server: with two servers in one JVM, Boot's `container-0` kept it alive
-after TiffinBox's own server stopped (Course 6's servlet-container lesson).
+after TiffinBox's own server stopped (Course 6's servlet-container lesson). *(Course 6, unit 06: POST /shutdown is a controller method — it starts the close
+on a platform thread of its own and returns its answer. The answer arrived with Boot's graceful shutdown and with
+`--server.shutdown=immediate` alike, so graceful shutdown is not what lets it out; `../c6-unit06/`, `stop`.)*
 
 **Every form still serves:** the jar, the AOT jar, the native binary (a build of under 20 minutes; the binary's DEBUG says `Mapped to
 TiffinBox route /customers`), and the image — each listening on `127.0.0.1` (the image: published there), each answering the seven
-`571faaea…` (masked), each exit 0 after POST /shutdown.
+`571faaea…` (masked), each exit 0 after POST /shutdown. *(Course 6, unit 06: the binary's DEBUG says `Mapped to
+com.tiffinbox.web.TiffinBoxServer#customers()`, and the four forms answer `87ca7efc…`; `../c6-unit06/`, `forms`.)*
 
 Evidence for every sentence in this section: `../c6-unit04/` (`receipts.sh`, ten captures).
+
+## Course 6 · unit 06 — @RestController: TiffinBox's routes become Spring MVC's (2026-10-14)
+
+TiffinBox's five routes, their bodies, its token and its kitchen are unchanged; what finds them is not. Since Core Java II TiffinBox
+found its routes itself — an annotation of its own (`Route`), a scan by reflection into a `TreeMap` keyed "VERB path", the verb
+checked inside its handler — and wrote each answer with a Jackson 2 mapper of its own. From this unit on they are **Spring MVC's own
+request mappings**: `TiffinBoxServer` is a **`@RestController`** — Spring MVC's `@Controller`, itself a `@Component`, plus
+`@ResponseBody`, as Spring reads the class (`../c6-unit06/`, `change`) — and each route a **`@GetMapping`** or **`@PostMapping`**.
+One Java file changed and two deleted, besides this README:
+- `TiffinBoxServer.java` — `@Component` → `@RestController`; `@Route(path = "/customers")` → `@GetMapping("/customers")`, and so for
+  `/revenue`, `/dashboard` and `/kitchen`; `@Route(path = "/shutdown", method = "POST")` → `@PostMapping("/shutdown")`. Each route
+  returns its type — `List<Customer>`, `Map<String, Object>` — never `Object`, and `@RegisterReflectionForBinding(Customer.class)`
+  is gone (below). Deleted with the router: `scanRoutes()`, `handlers()`, the named `RouteHandler`, `handle()`, `respond()`,
+  `paths()`, the Jackson 2 `ObjectMapper` field, TiffinBox's own timer (`tiffinbox.requests`, and the `MeterRegistry` parameter) and
+  its line per answer at DEBUG: 285 lines → 176. POST /shutdown is a controller method: without the token,
+  `response.setStatus(403)` and `{"error":"forbidden"}`; with it, a platform thread of its own closes the application context, and
+  the method returns `{"stopping":true}`. The Javadoc is rewritten where it described the router, the hint, the timer, the line per
+  answer and the catch.
+- `Route.java` (24 lines) and `RouteMapping.java` (20) — **deleted**.
+
+The POMs, `application.yaml`, `spring.factories`, the Dockerfile, `compose.yaml`, `KitchenMetrics`, the indicator, the guard and
+its analyzer, `TiffinBoxApp.java` and `tiffinbox-core` are not touched; the executable jar holds the same 58 libraries — Jackson 2
+among them, until Course 6's Jackson lessons.
+
+**Registered at start.** Spring MVC's `RequestMappingHandlerMapping` finds the five while the context starts, before Boot's started
+line: at TRACE, `{GET [/customers]}: customers()` and four more under `c.t.w.TiffinBoxServer:`, then `7 mappings in
+'requestMappingHandlerMapping'` — TiffinBox's five and Boot's two `/error` routes. TiffinBox's own `route GET /customers ->
+customers()` and `routes mapped: […]` lines are gone (`../c6-unit06/`, `scan`). The routing table, `/actuator/mappings` exposed for
+one run, still has 14 rows, and TiffinBox's five now carry their verbs: `{GET [/customers]}` → `TiffinBoxServer#customers()`,
+`methods ["GET"]` (`rows`).
+
+```bash
+java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.kitchen=debug --logging.level.org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping=trace
+java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --management.endpoints.web.exposure.include=health,prometheus,mappings
+```
+
+**Spring MVC decides the verbs, and says so.** `HEAD /customers` answers 200 with `Content-Length: 282` (TiffinBox's own handler
+answered 405); `OPTIONS` 200 with `Allow: GET,HEAD,OPTIONS`; `DELETE` 405 with `Allow: GET`; `GET /shutdown` 405 with `Allow: POST`;
+`Accept: application/xml` 406 with an empty body (it was 200 JSON). The cost: the 405s and the 406 add one WARN line each at Boot's
+default level, Spring MVC's `DefaultHandlerExceptionResolver` — `Resolved [org.springframework.web.HttpRequestMethodNotSupportedException:
+Request method 'DELETE' is not supported]` — where TiffinBox's own 405 logged none; HEAD, OPTIONS and the 403 log none (`verbs`).
+
+**The seven, on Spring MVC's routes.** Six of `../c5-unit11/curlset.sh`'s seven lines are byte for byte the embedded-Tomcat
+lesson's: the four bodies of TiffinBox's routes and `{"stopping":true}` are written now by Spring MVC's JSON converter,
+`JacksonJsonHttpMessageConverter` on Jackson 3's `JsonMapper`, where TiffinBox's own Jackson 2 wrote them, and the record's
+components and the maps' keys come out in the same order. One line differs, `GET /shutdown`: no mapping takes GET there, so Spring
+MVC's `DefaultHandlerExceptionResolver` answers 405 with `Allow: POST`, and the error dispatch takes it to Boot's error controller —
+`405 application/json {"timestamp":"…","status":405,"error":"Method Not Allowed","path":"/shutdown"}`. Masked — two timestamps now,
+the 404's and the 405's — the seven hash to **`87ca7efc8584dcccd40e6b956db1de9b`**, the comparison set from here on. The status
+line and the header names are unchanged (`[HTTP/1.1 200 ]`, `Content-Type Content-Length Date`); the seven log one WARN line,
+GET /shutdown's (`seven`).
+
+**Who writes the answers, a class taken away.** With Jackson 2's `JDK14Util` deleted from a copy of the extracted jar (Course 5's
+missing-class lines, below), `/customers` still answers 200: Jackson 2 is no longer on its road. With Jackson 3's `RecordUtil`
+deleted instead, `/customers` is Boot's 500 body, and Tomcat logs `… threw exception [Handler dispatch failed:
+java.lang.NoClassDefFoundError: tools/jackson/databind/util/RecordUtil] with root cause` at ERROR, with the trace; `/kitchen`, a
+map, still answers (`json`).
+
+**Whole paths, by pattern.** A mapping takes a whole path or nothing: `/customersXYZ`, `/customers/`, `/customers.json` and
+`/CUSTOMERS` are 404s, and so is `POST /shutdownXYZ`, token and all — TiffinBox keeps serving (Course 5's finale measured the
+JDK's server taking it as POST /shutdown). `/customers;x=1` answers 200: a path parameter is not part of the match. A literal beats a variable
+beside it, and `{*rest}` takes the rest of a path (the harness's routes). A pattern with `**` in the middle stops the start — exit 1,
+`APPLICATION FAILED TO START`, `Invalid mapping pattern detected:` with a caret under the `**`, `{*...} or ** pattern elements should
+be placed at the start or end of the pattern`, no stack trace — and Boot's action names the legacy parser,
+`spring.mvc.pathmatch.matching-strategy` (Boot's default `path-pattern-parser`): with `ant-path-matcher` the route answers 200, and
+the log holds 0 WARN lines (`patterns`). This tree never sets it.
+
+**Who times and logs each answer.** TiffinBox's own timer and its line per answer are retired with the router's handler. Boot's
+`http.server.requests` times every answer, tagged with the mapping's pattern, never the URL a client typed: `/customers` and
+`/customers?mealType=VEG` are one series, `uri="/customers"`; a 404 is `uri="/**"`; a verb no mapping takes — and OPTIONS —
+`uri="UNKNOWN"` (`timers`). Per request, the `kitchen` group is quiet; Boot's `web` group at DEBUG prints Spring MVC's lines, and
+they show the request as the client typed it: `GET "/customers?mealType=VEG", parameters={masked}`. Course 5's line per answer
+never held what the client typed; Spring MVC's DEBUG line does.
+
+**What stops it.** POST /shutdown with the token answers `{"stopping":true}`, `Content-Length: 17`, and the JVM exits 0 — with
+Boot's graceful shutdown and its two lines, and with `--server.shutdown=immediate` and none: the answer arrived both ways, so
+graceful shutdown is not what lets it out (`stop`).
+
+**Every form still serves:** the jar, the AOT jar, the native binary — with no hint in the tree, Spring's AOT step registers
+`com.tiffinbox.Customer` from the routes' signatures (all its declared fields and constructors, its four accessors), where a copy
+whose `customers()` returns `Object` registers none — and the image: each listening on `127.0.0.1` (the image: published there),
+each answering the seven `87ca7efc…` (masked), each exit 0 after POST /shutdown (`forms`).
+
+Evidence for every sentence in this section: `../c6-unit06/` (`receipts.sh`, eleven captures).
 
 ---
 
@@ -640,7 +736,10 @@ Each hint taken out on its own, the other two in (`../c5-unit20/`, capture `brea
   included: only a signal stops it. GraalVM's refusal is an `Error` (a `LinkageError`), and the handler catches only `Exception`,
   so no 500 is sent;
 - without `@RegisterReflectionForBinding(Customer.class)` on `TiffinBoxServer`, `/customers` answers
-  `500 {"error":"InvalidDefinitionException"}` (Jackson's), and the other six answers are the same.
+  `500 {"error":"InvalidDefinitionException"}` (Jackson's), and the other six answers are the same. *(Course 6, unit 06: both the router's hint and
+  this one are gone — `Route` is deleted, and each route names its return type, `List<Customer>` or `Map<String, Object>`: Spring's
+  AOT step registers `Customer` from the routes' signatures, its fields, constructors and four accessors, and the binary serves
+  `/customers`; a copy whose `customers()` returns `Object` registers none — `../c6-unit06/`, `forms`.)*
 
 **The hints, where the need is** — Spring's own annotations, from `spring-core`:
 
@@ -750,7 +849,8 @@ curl -s -w ' %{http_code}\n' http://127.0.0.1:18431/actuator/env/tiffinbox.shutd
 - `beans` lists every bean (153 with every endpoint exposed) and where each was read from — for TiffinBox's own, the jar's absolute
   path. `conditions` is the condition report. `mappings` is empty: TiffinBox's routes are not Spring MVC's (Course 6 lists them).
   *(Course 6, unit 04: they are Spring MVC's now — five paths in one `SimpleUrlHandlerMapping`, `tiffinBoxRoutes`; Course 6's
-  mappings lesson lists them.)*
+  mappings lesson lists them.)* *(Course 6, unit 06: five of `requestMappingHandlerMapping`'s rows, each with its verb — `{GET [/customers]}` →
+  `TiffinBoxServer#customers()` — `../c6-unit06/`, `rows`.)*
 - `heapdump` has access NONE by default: exposed, it still answers 404. Switched on for one run, it hands over a copy of the JVM's
   memory, over 20 MB, with 3 copies of the shutdown token in it — `rm heap.hprof` at once (`.gitignore` keeps it out of a
   commit):
@@ -868,7 +968,9 @@ One file is new and four changed. The seven responses are the same before and af
   when the registry is read, so the kitchen keeps its own count and `tiffinbox-core` gains no dependency. Its one hint,
   `@RegisterReflection` of `com.sun.management.OperatingSystemMXBean`'s public methods, is for the native binary (below).
 - `TiffinBoxServer.java` — a `MeterRegistry` constructor parameter, and a timer around `handle()`: **`tiffinbox.requests`**, tagged
-  `route` — the route TiffinBox declares (`GET /customers`), or `UNKNOWN` for a verb no route declares — and `status`.
+  `route` — the route TiffinBox declares (`GET /customers`), or `UNKNOWN` for a verb no route declares — and `status`. *(Course 6, unit 06:
+  retired, with `handle()`. Boot's `http.server.requests` times every answer, its `uri` tag the mapping's pattern — `UNKNOWN` for a
+  verb no mapping takes, and for OPTIONS; the scrape holds no `tiffinbox_requests` line — `../c6-unit06/`, `timers`.)*
 - `ActuatorRoutes.java` — one line: a `byte[]` answer is written as it is. Boot hands the scrape over as bytes, and the bridge
   wrote them as JSON — a quoted base64 string, with Prometheus's content type.
 - `application.yaml` — **`management.endpoints.web.exposure.include: health,prometheus`**.
@@ -912,7 +1014,9 @@ curl -s -w ' %{http_code}\n' -X POST http://127.0.0.1:18431/shutdown
 
 **The route tag holds a route, never a URL.** The JDK server matches a context by prefix: `/customers/7`, `/customers/8` and
 `/customersXYZ` all reach the `/customers` route (and answer the customer list — a router quirk, path patterns are Course 6's),
-and all four count under one series, `route="GET /customers"`, `4`. A copy whose tag holds the raw path keeps one series per
+and all four count under one series, `route="GET /customers"`, `4`. *(Course 6, unit 06: path patterns are Spring MVC's now — a mapping takes a whole
+path, so `/customersXYZ` is a 404, which Boot's timer files under `uri="/**"`; `/customers?mealType=VEG` counts under
+`uri="/customers"`: Boot's tag keeps the rule, a pattern, never a URL — `../c6-unit06/`, `patterns`, `timers`.)* A copy whose tag holds the raw path keeps one series per
 URL a client types — every one of them kept, and scraped, from then on.
 
 **Actuator's other metrics endpoints, by flag** — the registry's class and the meters' names:
@@ -926,6 +1030,7 @@ curl -s -o metrics.json -w '%{http_code}\n' 'http://127.0.0.1:18431/actuator/met
 
 `prometheusMeterRegistry`, a `PrometheusMeterRegistry`. **A query string reaches the operation** — the bridge merges it as Spring
 MVC's adapter does (the Actuator lesson's fix): `?tag=status:405` answers `COUNT 1.0`, with `route` the one tag left to filter by.
+*(Course 6, unit 06: `tiffinbox.requests` is retired — the scrape holds no `tiffinbox_requests` line; `../c6-unit06/`, `timers`.)*
 
 **The native binary needs one hint.** Micrometer's processor meters call the JDK's operating-system bean through
 `com.sun.management.OperatingSystemMXBean`, by reflection, and Micrometer's own native-image metadata lists three of that
@@ -950,7 +1055,10 @@ are deleted (below):
 - `TiffinBoxServer.java` — `handle()`'s `finally` logs **one line per answer at DEBUG**, through TiffinBox's own `System.Logger`
   (`tiffinbox`): the route and the status, `GET /customers -> 200` — the two values the timer tags (`UNKNOWN -> 405` for a verb no
   route declares). Never a header, never the token, never what the client typed. Silent at INFO, Boot's default. The line is
-  written before the timer stops, so once a scrape counts an answer, that answer's line has been decided.
+  written before the timer stops, so once a scrape counts an answer, that answer's line has been decided. *(Course 6, unit 06:
+  retired, with `handle()`: the `kitchen` group logs no line per answer. Boot's `web` group at DEBUG prints Spring MVC's lines,
+  which show the request as the client typed it — `GET "/customers?mealType=VEG", parameters={masked}` — `../c6-unit06/`,
+  `timers`.)*
 - `application.yaml` — **`logging.group.kitchen: tiffinbox, com.tiffinbox`**: a log group, one name for TiffinBox's own logger
   and the loggers under `com.tiffinbox` — Boot logs TiffinBox's startup under its main class's name,
   `com.tiffinbox.web.TiffinBoxServer`.
@@ -969,7 +1077,9 @@ java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --
 
 The group prints five `route` lines at start, Spring's `Running with Spring Boot v4.1.1, Spring v7.0.9` (logged under
 `com.tiffinbox.web.TiffinBoxServer`), and one line per answer: the seven requests add six (`/nowhere` is the JDK server's own
-404, never `handle()`'s).
+404, never `handle()`'s). *(Course 6, unit 06: no `route` line and no line per answer now: Spring MVC's `RequestMappingHandlerMapping`
+registers the routes, at TRACE — `{GET [/customers]}: customers()` and four more, `7 mappings in 'requestMappingHandlerMapping'` —
+`../c6-unit06/`, `scan`.)*
 
 **While it runs**, through Actuator's `loggers` endpoint — exposed by a flag, for one run, never in `application.yaml`: it is a
 write on the app's own port, and anyone who reaches the port can call it:
@@ -983,7 +1093,8 @@ curl -s -w ' %{http_code}\n' -X POST -H 'Content-Type: application/json' -d '{"c
 ```
 
 Measured on one process: three requests at INFO, 0 lines; the POST, `204`; three more, 3 lines; `null`, `204`; three more,
-still 3. **`null` is not a clean reset:** Logback's propagator copies the level `tiffinbox` falls back to, INFO, into
+still 3. *(Course 6, unit 06: those lines were the line per answer, which is retired: on this tree, with the kitchen group at
+DEBUG from the start, five requests print 0 lines of TiffinBox's — `../c6-unit06/`, `timers`.)* **`null` is not a clean reset:** Logback's propagator copies the level `tiffinbox` falls back to, INFO, into
 `java.util.logging`, and it stays there. A later POST to the root (`…/loggers/ROOT`, DEBUG) makes Actuator report `tiffinbox` at
 DEBUG while TiffinBox prints nothing; on a process where the group was never set, the same root POST prints the line. `loggers.json` lists every logger, Boot's groups `web` and `sql` beside `kitchen`, and the levels; it names only
 loggers, but it is long — read it through a filter. **Locked**, the way a production run would keep it:
@@ -1020,6 +1131,8 @@ java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --
 
 **Boot's own groups are silent here.** `web` (5 members) and `sql` (3) name Spring's web loggers — the bridge's endpoint
 package among them — and three SQL libraries' (Spring's JDBC, Hibernate, jOOQ); each at DEBUG prints 0 DEBUG lines over the seven:
+*(Course 6, unit 06: not since TiffinBox moved onto Spring MVC — `web` at DEBUG prints Spring MVC's lines for a request,
+`GET "/customers?mealType=VEG", parameters={masked}` and the rest; `../c6-unit06/`, `timers` C, and `seven` C.)*
 
 ```bash
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.web=debug
@@ -1027,7 +1140,8 @@ java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --
 ```
 
 **At TRACE, still no token.** With every logger at TRACE, the seven requests — the last one carrying `X-Shutdown-Token` —
-print their six lines, and the log holds the token 0 times and the header's name 0 times:
+print their six lines, and the log holds the token 0 times and the header's name 0 times: *(Course 6, unit 06: TiffinBox prints no line per
+answer now, so the six lines are gone; this run is not re-measured on this tree.)*
 
 ```bash
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.root=trace
@@ -1076,7 +1190,9 @@ the POMs are not touched:
   at ERROR, with its trace, under the route's name (`GET /customers failed`): a route that needs a class the class path or the
   native binary does not hold answers `500`, and the answer is logged and timed like any other. Caught as an `Exception` only, the
   error left `handle()`, the request's thread died and the client never got an answer — the hints lesson's hang — and at INFO the
-  log said nothing. An `OutOfMemoryError` or a `StackOverflowError` is still not caught.
+  log said nothing. An `OutOfMemoryError` or a `StackOverflowError` is still not caught. *(Course 6, unit 06: `handle()` and its catch are gone
+  with the router: a route that throws is Spring MVC's — Tomcat logs `Handler dispatch failed` at ERROR, with the trace, and the
+  answer is Boot's 500 body; `../c6-unit06/`, `json` C.)*
 - `ActuatorRoutes.java` — its catch, already `Exception | LinkageError`, logs at ERROR too: a `LinkageError` with its trace, any
   other failure by its class alone (`an actuator request failed: ` and the class's name) — an exception's message can quote what
   the client sent, and the log never holds what a client typed. A client's own mistake never reaches it: since the Actuator
@@ -1139,7 +1255,13 @@ java -jar tiffinbox-web/target/hang/tiffinbox-web-1.0.0.jar --tiffinbox.port=184
 curl -s -m 5 -w ' %{http_code}\n' http://127.0.0.1:18431/customers
 ```
 
-`/customers` answers `{"error":"ClassNotFoundException"} 500`, and the log's line says `GET /customers -> 500`. Before this
+`/customers` answers `{"error":"ClassNotFoundException"} 500`, and the log's line says `GET /customers -> 500`. *(Course 6, unit 06: not
+on this tree — Jackson 2 no longer writes TiffinBox's answers, so with its `JDK14Util` deleted `/customers` answers 200. Spring MVC's
+converter writes them with Jackson 3: delete Jackson 3's `RecordUtil` instead —
+`zip -q -d tiffinbox-web/target/hang/lib/jackson-databind-3.1.5.jar 'tools/jackson/databind/util/RecordUtil*'` — and `/customers`
+answers Boot's `500` body, while Tomcat logs `Servlet.service() … threw exception [Handler dispatch failed:
+java.lang.NoClassDefFoundError: tools/jackson/databind/util/RecordUtil] with root cause` at ERROR, with the trace; `/kitchen`, a
+map, still answers 200 — `../c6-unit06/`, `json`.)* Before this
 change curl gave up after 5 seconds, while the log said `GET /customers -> -1` and the timer counted an answer no client received.
 **At INFO, Boot's default, the error is in the log:** `GET /customers failed`, at ERROR, then
 `java.lang.NoClassDefFoundError: com/fasterxml/jackson/databind/jdk14/JDK14Util` and its trace (before this change: nothing at
@@ -1154,7 +1276,7 @@ curl -s -X GET -d 'oops, not json' -w ' %{http_code}\n' http://127.0.0.1:18431/a
 ```
 
 In the native binary, the hints lesson's break (the route annotation's `@Reflective` deleted) answers
-`{"error":"MissingReflectionRegistrationError"} 500` instead of nothing. Evidence in `../c5-unit26/`.
+`{"error":"MissingReflectionRegistrationError"} 500` instead of nothing. *(Course 6, unit 06: the route annotation is deleted.)* Evidence in `../c5-unit26/`.
 
 ## Course 5 · unit 27 — a bare argument refused before anything starts (2026-10-08)
 
@@ -1238,6 +1360,7 @@ c3-tiffinbox/
   tiffinbox-core/         com.tiffinbox        Customer · Database · CustomerRepository · OrderQueue · Dashboard
   tiffinbox-web/          com.tiffinbox.web    Route · TiffinBoxServer · logging.properties
 ```
+*(Course 6, unit 06: `Route` is deleted; TiffinBox's routes are Spring MVC's request mappings.)*
 
 **The rule that decides which class goes where: core knows nothing about HTTP, web knows
 nothing about SQL.** Not a claim — `grep` it:
@@ -1420,6 +1543,8 @@ curl -s -w ' %{http_code}\n' http://127.0.0.1:18425/shutdown              # 405 
 404
 {"error":"method not allowed"} 405
 ```
+*(Course 6, unit 06: GET /shutdown is Spring MVC's 405 now — `{"timestamp":"…","status":405,"error":"Method Not Allowed","path":"/shutdown"}`
+— with `Allow: POST`; `../c6-unit06/`, `seven`.)*
 
 ## Stopping it
 
