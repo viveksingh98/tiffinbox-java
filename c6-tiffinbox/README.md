@@ -42,7 +42,8 @@ goes through) hands each request to TiffinBox's handler for its path. Six files 
   rewritten. *(Course 6, unit 06: `handle()`, `respond()`, `handlers()` and the named handlers are deleted: the routes are
   Spring MVC's request mappings, and POST /shutdown is a controller method that starts the close on a platform thread of its own
   and returns its answer.)* *(Course 6, unit 07: `holdsToken()` takes the header's value, which Spring MVC hands POST /shutdown as a
-  parameter, `@RequestHeader`; `../c6-unit07/`, `token`.)*
+  parameter, `@RequestHeader`; `../c6-unit07/`, `token`.)* *(Course 6, unit 10: no route takes the servlet response any more — POST /shutdown's 403 is a return value, a `ResponseEntity`;
+  `../c6-unit10/`, `entity`.)*
 - `RouteMapping.java` (new) — one **handler mapping** (what the `DispatcherServlet` asks "which handler takes this request?"):
   Spring's own `SimpleUrlHandlerMapping`, a table of paths, here TiffinBox's five, each with its handler. Spring's
   `HttpRequestHandlerAdapter` calls the handler. `@Route` and `scanRoutes()` stay TiffinBox's until Course 6's request-mapping
@@ -135,7 +136,9 @@ request of three seconds, sent before POST /shutdown, answers 200; with `--serve
 (`../c6-unit04/`, `stop`). Tomcat is TiffinBox's only server: with two servers in one JVM, Boot's `container-0` kept it alive
 after TiffinBox's own server stopped (Course 6's servlet-container lesson). *(Course 6, unit 06: POST /shutdown is a controller method — it starts the close
 on a platform thread of its own and returns its answer. The answer arrived with Boot's graceful shutdown and with
-`--server.shutdown=immediate` alike, so graceful shutdown is not what lets it out; `../c6-unit06/`, `stop`.)*
+`--server.shutdown=immediate` alike, so graceful shutdown is not what lets it out; `../c6-unit06/`, `stop`.)* *(Course 6, unit 10:
+not so — `../c6-unit06/`'s `stop`, made again with the answer held in flight two seconds after the method returned: with graceful
+shutdown it arrived in every run, with immediate shutdown in none. Graceful shutdown is what guarantees the reply.)*
 
 **Every form still serves:** the jar, the AOT jar, the native binary (a build of under 20 minutes; the binary's DEBUG says `Mapped to
 TiffinBox route /customers`), and the image — each listening on `127.0.0.1` (the image: published there), each answering the seven
@@ -159,7 +162,8 @@ One Java file changed and two deleted, besides this README:
   `paths()`, the Jackson 2 `ObjectMapper` field, TiffinBox's own timer (`tiffinbox.requests`, and the `MeterRegistry` parameter) and
   its line per answer at DEBUG: 285 lines → 176. POST /shutdown is a controller method: without the token,
   `response.setStatus(403)` and `{"error":"forbidden"}`; with it, a platform thread of its own closes the application context, and
-  the method returns `{"stopping":true}`. The Javadoc is rewritten where it described the router, the hint, the timer, the line per
+  the method returns `{"stopping":true}`. *(Course 6, unit 10: both answers are a `ResponseEntity` since —
+  `status(HttpStatus.FORBIDDEN)` and `ok(…)` — the servlet response parameter gone; `../c6-unit10/`, `entity`.)* The Javadoc is rewritten where it described the router, the hint, the timer, the line per
   answer and the catch.
 - `Route.java` (24 lines) and `RouteMapping.java` (20) — **deleted**.
 
@@ -222,7 +226,10 @@ never held what the client typed; Spring MVC's DEBUG line does.
 
 **What stops it.** POST /shutdown with the token answers `{"stopping":true}`, `Content-Length: 17`, and the JVM exits 0 — with
 Boot's graceful shutdown and its two lines, and with `--server.shutdown=immediate` and none: the answer arrived both ways, so
-graceful shutdown is not what lets it out (`stop`).
+graceful shutdown is not what lets it out (`stop`). *(Course 6, unit 10: two corrections. That `stop`, made again with the answer
+held in flight two seconds after the method returned, answered in every run with graceful shutdown and in none with immediate
+shutdown: graceful shutdown is what guarantees the reply. And the answer is a `ResponseEntity` now, flushed as it is written: it goes out
+chunked, with no `Content-Length`; `../c6-unit10/`, `entity`.)*
 
 **Every form still serves:** the jar, the AOT jar, the native binary — with no hint in the tree, Spring's AOT step registers
 `com.tiffinbox.Customer` from the routes' signatures (all its declared fields and constructors, its four accessors), where a copy
@@ -243,7 +250,8 @@ objects that fill one kind of parameter each — fills it before the method runs
   **request parameter**, from the query string — and keeps the customers of that meal type; without it, or with an empty value, all
   four. **POST /shutdown** takes its token as `@RequestHeader(name = "X-Shutdown-Token", required = false) String token`, where it read
   the servlet request's header itself: `holdsToken()` takes the header's value (`null` when there is none), and the 403 is still the
-  method's own (`response.setStatus(403)`). The Javadoc gains the paragraph that says so: 176 lines → 197.
+  method's own (`response.setStatus(403)`). The Javadoc gains the paragraph that says so: 176 lines → 197. *(Course 6, unit 10: the
+  403 is the method's return value since, `ResponseEntity.status(HttpStatus.FORBIDDEN)`; `../c6-unit10/`, `entity`.)*
 - `tiffinbox-core`'s `CustomerRepository.java` — **`findByName(String)`**, new: one row by exact name, the name a parameter of the SQL,
   never part of it — an `Optional<Customer>`: 50 lines → 64.
 
@@ -261,14 +269,16 @@ curl -s -w ' %{http_code}\n' 'http://127.0.0.1:18431/customers?mealType=VEGAN'
 
 **Registered with their types, filled by name.** At TRACE, Spring MVC's `RequestMappingHandlerMapping` lists six of TiffinBox's
 routes now, each with its parameter types — `{GET [/customers/{name}]}: customer(String)`, `{GET [/customers]}: customers(MealType)`,
-`{POST [/shutdown]}: shutdown(String,HttpServletResponse)` — and `8 mappings in 'requestMappingHandlerMapping'`; the routing table
+`{POST [/shutdown]}: shutdown(String,HttpServletResponse)` *(Course 6, unit 10: `shutdown(String)` since — the servlet response
+parameter is gone; `../c6-unit10/`, `entity`)* — and `8 mappings in 'requestMappingHandlerMapping'`; the routing table
 (`/actuator/mappings`, exposed for one run) has 15 rows, TiffinBox's six each naming a verb, and the `/customers` row's
 `requestMappingConditions.params` is `[]`: the meal type is no part of the match (`change`). *(Course 6, unit 08: seven routes —
 `{POST [/customers]}: add(Customer)` the seventh — 9 mappings and 16 rows; `../c6-unit08/`, `change`.)* The first time it meets a parameter,
 Spring MVC's `RequestMappingHandlerAdapter` asks its 28 argument resolvers in order — the first that takes it fills it, and that
 choice is cached for the parameter:
 `@PathVariable` → `PathVariableMethodArgumentResolver`, `@RequestParam` → `RequestParamMethodArgumentResolver`, `@RequestHeader` →
-`RequestHeaderMethodArgumentResolver`, the `HttpServletResponse` → `ServletResponseMethodArgumentResolver` (the course's harness
+`RequestHeaderMethodArgumentResolver`, the `HttpServletResponse` → `ServletResponseMethodArgumentResolver` *(Course 6, unit 10: no
+route takes it since)* (the course's harness
 reads them off the running adapter: `../c6-unit07/`, `resolvers`). The path variable and the request parameter give no name of
 their own, so each is found by the **parameter's name** (the header names its own, `X-Shutdown-Token`) — and Spring reads a parameter's
 name only where javac's `-parameters` writes it: Boot's parent POM turns it on (`spring-boot-starter-parent-4.1.1.pom`, its compiler
@@ -320,7 +330,8 @@ no mapping took POST there (`../c6-unit08/`, `change`). From this unit on, **`PO
 request's **body**, in JSON, stores it and answers with it. Four files changed, besides this README:
 - `TiffinBoxServer.java` — **`POST /customers`**, new: `Customer add(@RequestBody Customer customer)`. `@RequestBody` hands the method
   the request's body, read into the Course 1 record before the method runs; the method stores it (`repo.add`) and returns it — 200
-  and the record (statuses on purpose are Course 6's *Responses: ResponseEntity and Status Codes*). The Javadoc gains the paragraph
+  and the record (statuses on purpose are Course 6's *Responses: ResponseEntity and Status Codes*). *(Course 6, unit 10: 201, the
+  record and a Location since — a `ResponseEntity`; a name that is taken, 409; `../c6-unit10/`, `created`, `conflict`.)* The Javadoc gains the paragraph
   that says how: 197 lines → 215.
 - `tiffinbox-core`'s `CustomerRepository.java` — **`add(Customer)`**, new: one `INSERT`, the record's four values parameters of the
   SQL, never part of it: 64 lines → 80.
@@ -369,11 +380,14 @@ day is stored as 2**. *(Course 6, unit 09: refused since — a 400 and one WARN 
 `spring.jackson.deserialization.accept-float-as-int: false`; `"2"`, an unknown property and a misspelt key are read as before;
 `../c6-unit09/`, `float`.)*
 
-**What nothing checks yet** (`unchecked`): `{"name":"","mealsPerDay":0,"pricePerMeal":-5,"mealType":"LUNCH"}` → 200, stored, and
+**What nothing checks yet** (`unchecked`): `{"name":"","mealsPerDay":0,"pricePerMeal":-5,"mealType":"LUNCH"}` → 200 *(Course 6, unit
+10: 201 since, its Location `…/customers/` a 404; `../c6-unit10/`, `created`)*, stored, and
 `/customers` lists it first. A misspelt key (`"mealTyp"`) is ignored, so the meal type arrives as `null`, and H2 refuses the row —
 `NULL not allowed for column "MEAL_TYPE"`, H2's code 23502 — in Tomcat's ERROR line, with a trace of over 50 frames, and Boot's 500;
 a name already taken is H2's `Unique index or primary key violation`, 23505 — the same exception class — another 500 and trace.
-Course 6's *Validation on the Way In* and *Responses: ResponseEntity and Status Codes* take these on.
+Course 6's *Validation on the Way In* and *Responses: ResponseEntity and Status Codes* take these on. *(Course 6, unit 10: a name
+already taken is 409 since, decided by its SQLSTATE, no trace; the misspelt key is still H2's 23502 and a 500; `../c6-unit10/`,
+`conflict`.)*
 
 **One Jackson left** (`jackson`). Jackson 2's databind and core are out of the jar's libraries, and out of the class path Maven lists
 for `tiffinbox-web`, the one the native build reads; `jackson-annotations` stays — Jackson 3's `jackson-databind-3.1.5.jar` imports
@@ -384,7 +398,8 @@ parent's pin was what kept it at 2.22 (Boot 4.1.1's `<jackson-2-bom.version>2.21
 'com.fasterxml.jackson.databind.ObjectMapper'` — Actuator builds no Jackson 2 mapper. The seven are unchanged, `87ca7efc…` (masked).
 
 **Every form still serves:** the jar, the AOT jar, the native binary and the image: each on `127.0.0.1` (the image: published there),
-each answering the seven `87ca7efc…` (masked), and, on a second start of each, the new customer 200 and read back by name, the
+each answering the seven `87ca7efc…` (masked), and, on a second start of each, the new customer 200 *(Course 6, unit 10: 201 since,
+with a Location; `../c6-unit10/`, `forms`)* and read back by name, the
 form's 415, and `2.7` meals stored as 2 (`forms`). *(Course 6, unit 09: refused, 400, in all four forms since;
 `../c6-unit09/`, `forms`.)*
 
@@ -441,11 +456,81 @@ strings with no module registered, and Core Java II's `new ObjectMapper().config
 setting goes on the builder.
 
 **Every form follows the key:** the jar, the AOT jar, the native binary and the image — each on `127.0.0.1` (the image: published
-there), each answering the seven `87ca7efc…` (masked), and, on a second start of each, the new customer 200 and two point seven meals
+there), each answering the seven `87ca7efc…` (masked), and, on a second start of each, the new customer 200 *(Course 6, unit 10: 201
+since, with a Location; `../c6-unit10/`, `forms`)* and two point seven meals
 refused, 400, then not found. Boot reads the key when TiffinBox starts, under Spring's AOT step and in the binary too: on a third start
 of the AOT jar and of the binary, the flag above turns it back on (`forms`).
 
 Evidence for every sentence in this section: `../c6-unit09/` (`receipts.sh`, ten captures).
+
+## Course 6 · unit 10 — ResponseEntity: 201 and a Location, 409 for a name that is taken (2026-10-14)
+
+Until this unit a new customer was answered 200, the status Spring MVC gives a route that returns its body alone; a name already
+taken was H2's refusal, Boot's 500 and an ERROR line with a trace of over 50 frames; and POST /shutdown set its 403 on the servlet
+response itself (`../c6-unit10/`, `conflict` and `entity`, before). From this unit on, TiffinBox's two POST routes return a
+**`ResponseEntity`** — Spring's type for a whole answer: its status code, its headers and its body, as one return value. One Java file
+changed, besides this README:
+- `TiffinBoxServer.java` — **`POST /customers`** is `ResponseEntity<Customer> add(@RequestBody Customer customer)`. Stored, it answers
+  **201 Created**, the record, and a **`Location`** header, the new customer's own URL:
+  `ServletUriComponentsBuilder.fromCurrentRequestUri().path("/{name}").buildAndExpand(customer.name()).toUri()` — this request's URL
+  without its query string, the name appended and encoded — handed to `ResponseEntity.created(location).body(customer)`. A name that
+  is taken: **409 Conflict**, no body, `ResponseEntity.status(HttpStatus.CONFLICT).build()`. The method decides by H2's **SQLSTATE** —
+  the five-character code a database reports with a refusal — `23505`, the unique index's (`NAME_TAKEN.equals(e.getSQLState())`);
+  every other refusal is thrown on and stays Spring MVC's 500, a misspelt key's missing meal type, `23502`, among them, though H2
+  throws both with one exception class. **`POST /shutdown`** is `ResponseEntity<Map<String, Object>> shutdown(@RequestHeader(…) String
+  token)`: the 403 is its return value, `ResponseEntity.status(HttpStatus.FORBIDDEN).body(…)`, the 200 `ResponseEntity.ok(…)`; the
+  `HttpServletResponse` parameter, its `setStatus(403)` and their import are gone. The Javadoc gains the paragraph that says how: 215
+  lines → 241.
+
+The POMs, `application.yaml`, `CustomerRepository`, the Dockerfile and `compose.yaml` are not touched — 23 of the tree's 25 files byte
+for byte — and the executable jar holds the same 56 libraries (`entity`).
+
+```bash
+curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'Content-Type: application/json' --data '{"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}' http://127.0.0.1:18431/customers
+```
+
+**201, and a Location you can follow.** That POST — the request-body lesson's, its answer's Location printed — answers the record,
+`201` and `Location: [http://127.0.0.1:18431/customers/Asha]`; the binding lesson's one-customer line with that URL answers 200 and the
+record. A name with a space, `Sunil K`, comes back `…/customers/Sunil%20K`, and that URL answers 200 too; typed by hand with a raw
+space, curl refuses to send it (the exercise). OPTIONS on `/customers` lists `GET,HEAD,OPTIONS,POST`, on a Location `GET,HEAD,OPTIONS`
+(`created`; the verbs sorted: Spring MVC's order moves between runs). Nothing checks a body's values yet: the request-body lesson's
+empty name is created too, `201`, and its Location, `…/customers/`, is Spring's 404 — no mapping takes that path. Course 6's
+*Validation on the Way In* refuses that body.
+
+**The Location is the request's host.** Spring builds it from the URL the request came to, and that URL's host and port are the ones
+the request's `Host` header names: curl names `127.0.0.1` and the port it dialled; a client that sends `Host: kitchen.localhost` gets
+`Location: [http://kitchen.localhost/customers/Asha]` — no port, a name TiffinBox was never given (`host` B). `X-Forwarded-Host` and
+`X-Forwarded-Proto`, the headers a proxy adds, are ignored (`host` C): Boot's `server.forward-headers-strategy` has no default (its
+metadata). In the image, TiffinBox listens on 18425 inside its container, and the Location names the port the Mac published —
+`127.0.0.1:19397` in `forms`: the request's, again. Spring's `fromCurrentRequest()` would carry the request's query string into the
+Location too — `?via=app`, measured on the course's harness (`statuses`); `fromCurrentRequestUri()` leaves it out.
+
+**409 by the database's code.** The same name POSTed twice: `201`, then `409`, no body, no WARN or ERROR line; a name the seed already
+holds, `Ravi`, `409`, and Ravi's row unchanged. A misspelt key (`"mealTyp"`) is still H2's 23502, Tomcat's ERROR line with a trace of
+over 50 frames, and Boot's 500 (`conflict` A). A copy that tests the exception's class instead of the code —
+`SQLIntegrityConstraintViolationException`, which both refusals are — answers the misspelt key 409 too, with nothing in its log
+(`conflict` C, labelled). Two POSTs of one name at the same moment are not measured here.
+
+**Who writes the answers.** At DEBUG (Boot's `web` group, the embedded-Tomcat lesson's line) the routes are mapped as before —
+`TiffinBoxServer#add(Customer)`, and `#shutdown(String)` where it was `#shutdown(String, HttpServletResponse)` — and Spring MVC's
+`HttpEntityMethodProcessor` writes their answers, where `RequestResponseBodyMethodProcessor` did: `Writing [Customer[…]]`, then the
+`DispatcherServlet`'s `Completed 201 CREATED` (`entity`). The 403's bytes are the same — `{"error":"forbidden"} 403` — but not its
+headers: `HttpEntityMethodProcessor` flushes the answer it writes (javap: 2 calls to `ServletServerHttpResponse.flush` in its
+`handleReturnValue`, none in the other's), so the answer goes out `Transfer-Encoding: chunked`, where it went out with `Content-Length:
+21`; POST /shutdown's `{"stopping":true}` lost its `Content-Length: 17` the same way. The seven are unchanged, `87ca7efc…` (masked):
+they print status, type and body, never a length.
+
+**Statuses by accident** (the course's harness, `statuses`): a name nobody has, answered four ways — TiffinBox's own route, Spring's
+`ResponseStatusException`: 404 and Boot's body; `ResponseEntity.of(…)` with an empty `Optional`: 404, no body; `null`: 200, no body;
+the `Optional` itself: 200 and the word `null`. None of them logs a WARN line. `@ResponseStatus(HttpStatus.CREATED)` on a route answers
+201 with no Location.
+
+**Every form still serves:** the jar, the AOT jar, the native binary — Spring's AOT step's metadata names `com.tiffinbox.Customer` —
+and the image: each on `127.0.0.1` (the image: published there), each answering the seven `87ca7efc…` (masked), and, on a second start
+of each, a new customer 201 with a Location on 127.0.0.1 and that form's own port, the Location followed 200, the same name again 409
+and POST /shutdown without the token 403 (`forms`).
+
+Evidence for every sentence in this section: `../c6-unit10/` (`receipts.sh`, seven captures).
 
 ---
 

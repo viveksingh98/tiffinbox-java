@@ -1,10 +1,10 @@
 package com.tiffinbox.web;
 
 import jakarta.annotation.PostConstruct;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import com.tiffinbox.Customer;
 import com.tiffinbox.CustomerRepository;
 import com.tiffinbox.Dashboard;
@@ -20,8 +21,10 @@ import com.tiffinbox.MealType;
 import com.tiffinbox.OrderQueue;
 import com.tiffinbox.TiffinBoxProperties;
 
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,12 +75,22 @@ import static java.lang.System.Logger.Level.INFO;
  * application/json the JSON one does - Jackson 3, which builds the record through its canonical constructor. A body it
  * cannot read is Spring MVC's 400; a Content-Type no converter reads, its 415. Nothing checks the values yet. Jackson 2,
  * TiffinBox's own JSON library since Core Java II, is out of the build: Spring's Jackson 3 reads and writes every body.
+ *
+ * <p>Course 6: a route can answer with a ResponseEntity - the answer's status, its headers and its body as one return value -
+ * where a route that returns its body alone is answered 200. POST /customers answers 201 Created, with a Location header - the
+ * new customer's own URL - and the record, or 409 Conflict, with no body, for a name that is taken; POST /shutdown answers its
+ * 403 the same way, where it set the servlet response's status itself. Spring MVC's HttpEntityMethodProcessor writes such an
+ * answer - the status and the headers, then the body through the same message converters - and flushes it as it goes, so it
+ * leaves chunked, with no Content-Length; a plain return value is written by RequestResponseBodyMethodProcessor, which does not.
  */
 @RestController
 public final class TiffinBoxServer {
 
     /** System.Logger: the JDK's own logging facade. No dependency, and no println in this file. */
     private static final System.Logger LOG = System.getLogger("tiffinbox");
+
+    /** H2's SQLSTATE for a row whose name is already in the table: the unique index on customer.name refused it. */
+    private static final String NAME_TAKEN = "23505";
 
     private final CustomerRepository repo;
     private final Dashboard dashboard;
@@ -116,13 +129,28 @@ public final class TiffinBoxServer {
 
     /**
      * A new customer, from the request's body: Spring MVC's JSON message converter reads the JSON into the record - through
-     * its canonical constructor - before this method runs, and the method stores it and returns it. Nothing checks its
-     * values yet: the database's own constraints are the only refusal, and theirs is a 500.
+     * its canonical constructor - before this method runs, and the method stores it. Nothing checks its values yet: the
+     * database's own constraints are the only refusal. The answer says what happened. Stored: 201 Created, the record, and a
+     * Location header, the new customer's URL - this request's URL without its query string, the name appended to its path,
+     * encoded (a space is %20). Its scheme, host and port are the ones the request names: the host and port come from the
+     * request's Host header, so the Location points wherever the client said it was talking to. A name that is taken: 409
+     * Conflict, with no body. H2 refuses that row with the SQLSTATE 23505 - the five-character code a database reports with a
+     * refusal - and refuses a row with a column left empty, 23502, with the same exception class: so this method reads the
+     * code, never the class, and every other refusal stays Spring MVC's 500.
      */
     @PostMapping("/customers")
-    Customer add(@RequestBody Customer customer) throws Exception {
-        repo.add(customer);
-        return customer;
+    ResponseEntity<Customer> add(@RequestBody Customer customer) throws SQLException {
+        try {
+            repo.add(customer);
+        } catch (SQLException e) {
+            if (NAME_TAKEN.equals(e.getSQLState())) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).build();
+            }
+            throw e;
+        }
+        URI location = ServletUriComponentsBuilder.fromCurrentRequestUri().path("/{name}")
+                .buildAndExpand(customer.name()).toUri();
+        return ResponseEntity.created(location).body(customer);
     }
 
     @GetMapping("/revenue")
@@ -153,19 +181,17 @@ public final class TiffinBoxServer {
      * Stopping a server is not a GET — a crawler must not be able to prefetch it: GET /shutdown is Spring MVC's 405, its
      * Allow header naming POST. And it is not for anyone who can reach the port: 403 unless the request carries the token
      * in its X-Shutdown-Token header (see {@link #holdsToken}) - a header Spring MVC hands this method as a parameter, null
-     * when the request has none: required = false, so the 403 is this method's own (required = true would make it Spring
-     * MVC's 400). With it, a platform thread of its own closes the application context, and this method returns the answer:
-     * the closing context stops Tomcat, and the JVM exits.
+     * when the request has none: required = false, so the 403 is this method's own return value (required = true would make
+     * it Spring MVC's 400). With it, a platform thread of its own closes the application context, and this method returns the
+     * answer, 200: the closing context stops Tomcat, and the JVM exits.
      */
     @PostMapping("/shutdown")
-    Map<String, Object> shutdown(@RequestHeader(name = "X-Shutdown-Token", required = false) String token,
-                                 HttpServletResponse response) {
+    ResponseEntity<Map<String, Object>> shutdown(@RequestHeader(name = "X-Shutdown-Token", required = false) String token) {
         if (!holdsToken(token)) {                    // the server keeps running
-            response.setStatus(403);
-            return ordered("error", "forbidden");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ordered("error", "forbidden"));
         }
         Thread.ofPlatform().start(context::close);
-        return ordered("stopping", true);
+        return ResponseEntity.ok(ordered("stopping", true));
     }
 
     /** Map.of has a randomised iteration order, so the JSON key order would change every run. */
