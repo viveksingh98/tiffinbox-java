@@ -1,13 +1,17 @@
 package com.tiffinbox.web;
 
 import jakarta.annotation.PostConstruct;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import com.tiffinbox.Customer;
 import com.tiffinbox.CustomerRepository;
 import com.tiffinbox.Dashboard;
@@ -55,6 +59,12 @@ import static java.lang.System.Logger.Level.INFO;
  * <p>Course 6: a route that throws - an exception, or a class the answer needs that the class path does not hold - is Spring
  * MVC's to answer: "Handler dispatch failed", which Tomcat logs at ERROR with its trace, and Boot's 500 body.
  * Course 5's catch of its own (Exception | LinkageError) left with the router's handler.
+ *
+ * <p>Course 6: a route takes values from the request as method parameters, each named by an annotation - a path variable
+ * ({@code @PathVariable}: a segment of the path), a request parameter ({@code @RequestParam}: the query string) and a header
+ * ({@code @RequestHeader}) - and one of Spring MVC's argument resolvers fills each: by the name the annotation gives, or else by
+ * the parameter's own, which the class file keeps (Boot's parent compiles with -parameters). A value that cannot become its type
+ * is Spring MVC's 400. A name nobody has is a ResponseStatusException: Spring MVC's 404, whose body, Boot's, names no reason.
  */
 @RestController
 public final class TiffinBoxServer {
@@ -83,9 +93,18 @@ public final class TiffinBoxServer {
 
     // ---- the routes: Spring MVC's request mappings -------------------------
 
+    /** Every customer, or - with ?mealType=VEG, NON_VEG or VEGAN - those of one meal type. An empty value is no filter. */
     @GetMapping("/customers")
-    List<Customer> customers() throws Exception {
-        return repo.findAll();
+    List<Customer> customers(@RequestParam(required = false) MealType mealType) throws Exception {
+        List<Customer> all = repo.findAll();
+        return mealType == null ? all : all.stream().filter(c -> c.mealType().equals(mealType.name())).toList();
+    }
+
+    /** One customer, by the exact name in the path; a name nobody has is a 404. */
+    @GetMapping("/customers/{name}")
+    Customer customer(@PathVariable String name) throws Exception {
+        return repo.findByName(name)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "no customer named " + name));
     }
 
     @GetMapping("/revenue")
@@ -115,12 +134,15 @@ public final class TiffinBoxServer {
     /**
      * Stopping a server is not a GET — a crawler must not be able to prefetch it: GET /shutdown is Spring MVC's 405, its
      * Allow header naming POST. And it is not for anyone who can reach the port: 403 unless the request carries the token
-     * (see {@link #holdsToken}). With it, a platform thread of its own closes the application context, and this method
-     * returns the answer: the closing context stops Tomcat, and the JVM exits.
+     * in its X-Shutdown-Token header (see {@link #holdsToken}) - a header Spring MVC hands this method as a parameter, null
+     * when the request has none: required = false, so the 403 is this method's own (required = true would make it Spring
+     * MVC's 400). With it, a platform thread of its own closes the application context, and this method returns the answer:
+     * the closing context stops Tomcat, and the JVM exits.
      */
     @PostMapping("/shutdown")
-    Map<String, Object> shutdown(HttpServletRequest request, HttpServletResponse response) {
-        if (!holdsToken(request)) {                  // the server keeps running
+    Map<String, Object> shutdown(@RequestHeader(name = "X-Shutdown-Token", required = false) String token,
+                                 HttpServletResponse response) {
+        if (!holdsToken(token)) {                    // the server keeps running
             response.setStatus(403);
             return ordered("error", "forbidden");
         }
@@ -136,12 +158,11 @@ public final class TiffinBoxServer {
     }
 
     /**
-     * Does the request carry tiffinbox.shutdown-token in its X-Shutdown-Token header? MessageDigest.isEqual compares every
-     * byte whatever it finds, so the time a wrong guess takes does not tell how much of it was right. Nothing is logged:
-     * neither the header nor the token.
+     * Is the header's value - null when the request carried none - tiffinbox.shutdown-token? MessageDigest.isEqual compares
+     * every byte whatever it finds, so the time a wrong guess takes does not tell how much of it was right. TiffinBox logs
+     * neither the header nor the token; at TRACE, Spring MVC prints a route's arguments - this one's among them.
      */
-    private boolean holdsToken(HttpServletRequest request) {
-        String sent = request.getHeader("X-Shutdown-Token");
+    private boolean holdsToken(String sent) {
         return sent != null && MessageDigest.isEqual(sent.getBytes(StandardCharsets.UTF_8), shutdownToken);
     }
 
