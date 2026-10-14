@@ -47,6 +47,13 @@ spring:
   docker:
     compose:
       enabled: false
+  # Course 6: Jackson, the library Spring MVC reads a request's JSON body with, as Boot builds it (its bean jacksonJsonMapper).
+  # Jackson's own default reads a number with a decimal point into a whole-number field by dropping the fraction, without a
+  # word: "mealsPerDay": 2.7 is stored as 2. Off, such a number - 2.0 too - is refused: Spring MVC answers 400. Boot reads it
+  # when TiffinBox starts, in the AOT jar and the binary too. Above the "---": below it, a run without the rush profile skips it.
+  jackson:
+    deserialization:
+      accept-float-as-int: false
 # Logging. Boot's logging system is Logback, and TiffinBox's System.Logger reaches it through java.util.logging. A log
 # group is one name for several loggers: "kitchen" is TiffinBox's own logger (System.getLogger("tiffinbox")) and the loggers
 # under com.tiffinbox - Boot logs TiffinBox's startup under its main class's name. --logging.level.kitchen=debug sets them

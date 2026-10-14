@@ -359,7 +359,9 @@ converters', not the route's.
 an array, a missing `mealsPerDay` (``Cannot map `null` into type `int` ``), trailing text after the object. **Stored, with no word in
 the log:** an unknown property is ignored (`"loyaltyPoints":5`, Core Java II's own unknown field — that lesson's Jackson 2 refused
 one by default; Jackson 3 does not, Boot's mapper and a plain `JsonMapper` alike: `chain`), `"2"` is read as 2 — and **`2.7` meals a
-day is stored as 2**.
+day is stored as 2**. *(Course 6, unit 09: refused since — a 400 and one WARN line, Jackson's reason in it: `application.yaml`'s
+`spring.jackson.deserialization.accept-float-as-int: false`; `"2"`, an unknown property and a misspelt key are read as before;
+`../c6-unit09/`, `float`.)*
 
 **What nothing checks yet** (`unchecked`): `{"name":"","mealsPerDay":0,"pricePerMeal":-5,"mealType":"LUNCH"}` → 200, stored, and
 `/customers` lists it first. A misspelt key (`"mealTyp"`) is ignored, so the meal type arrives as `null`, and H2 refuses the row —
@@ -377,9 +379,67 @@ parent's pin was what kept it at 2.22 (Boot 4.1.1's `<jackson-2-bom.version>2.21
 
 **Every form still serves:** the jar, the AOT jar, the native binary and the image: each on `127.0.0.1` (the image: published there),
 each answering the seven `87ca7efc…` (masked), and, on a second start of each, the new customer 200 and read back by name, the
-form's 415, and `2.7` meals stored as 2 (`forms`).
+form's 415, and `2.7` meals stored as 2 (`forms`). *(Course 6, unit 09: refused, 400, in all four forms since;
+`../c6-unit09/`, `forms`.)*
 
 Evidence for every sentence in this section: `../c6-unit08/` (`receipts.sh`, nine captures).
+
+## Course 6 · unit 09 — spring.jackson: one key, and two point seven meals is refused (2026-10-14)
+
+Until this unit a number with a decimal point, sent for one of the record's whole-number fields, was read by dropping the
+fraction: `"mealsPerDay":2.7` was stored as 2 — 200, and not a word in the log (`../c6-unit09/`, `float`, before). From this unit
+on it is refused. One file changed, besides this README:
+- `tiffinbox-web/src/main/resources/application.yaml` — three lines in its **first document**, under `spring:`, above the `---`
+  (moved below it, under the second document's `spring:`, a run without the profile `rush` never reads them: `float`, C), and the
+  four comment lines above them:
+  `spring.jackson.deserialization.accept-float-as-int: false`. `spring.jackson.*` is Boot's family of keys for the JSON mapper it
+  builds — the bean `jacksonJsonMapper`, Jackson 3's `JsonMapper`, the one Spring MVC's JSON converter reads request bodies and
+  writes answers with — and `deserialization` takes Jackson's own feature names, here `ACCEPT_FLOAT_AS_INT`.
+
+The POMs, the Java sources, `spring.factories`, the Dockerfile and `compose.yaml` are not touched — 23 of the tree's 25 files byte
+for byte — and the executable jar holds the same 56 libraries.
+
+```bash
+curl -s -w ' %{http_code}\n' -H 'Content-Type: application/json' --data '{"name":"Mohan","mealsPerDay":2.7,"pricePerMeal":110,"mealType":"VEG"}' http://127.0.0.1:18431/customers
+```
+
+**Refused, and logged once.** That POST is now Spring MVC's 400, Boot's body, with one WARN line of Spring MVC's
+`DefaultHandlerExceptionResolver` holding Jackson's reason: ``Cannot coerce Floating-point value (2.7) to `int` value (but could if
+coercion was enabled using `CoercionConfig`)``; nothing is stored (`/customers/Mohan` → 404). The key looks at how a number is
+written, not at its value: `2.0` is refused too, and so is a price of `110.5` (`pricePerMeal` is a whole number as well).
+**What it leaves alone:** `"2"`, a number sent as text, is still read as 2; an unknown property (`"loyaltyPoints":5`) is still
+ignored, and so is a misspelt key — `"mealTyp"` still reaches H2 as a missing meal type, H2's 23502 refusal and Boot's 500; a
+missing `mealsPerDay` is still a 400 (`float`, A). Unknown properties stay ignored on purpose: refusing them — `custom` B does it in
+code — turns the misspelt key into an opaque 400 whose reason is only in the log; Course 6's *Validation on the Way In* takes the typo
+on. The run line with `--spring.jackson.deserialization.accept-float-as-int=true` turns Jackson's default back on: stored as 2 again
+(`float`, B).
+
+**Boot's mapper, read off the running application** (`bean`: the course's harness, joined by `--spring.main.sources`). One bean of
+type `JsonMapper`, `jacksonJsonMapper` — the JSON converter's own mapper; Actuator's endpoints write with another, their own
+`EndpointJsonMapper`; two modules registered (Boot's `JacksonComponentModule` and `JacksonMixinModule`; a plain
+`JsonMapper.builder().build()` has none); no naming strategy. Of the 120 features of eight kinds it reads (every constant of
+`MapperFeature`, `DeserializationFeature`, `SerializationFeature`, `DateTimeFeature`, `EnumFeature`, `JsonNodeFeature`,
+`StreamReadFeature` and `StreamWriteFeature`), on the previous tree **all 120** are a plain mapper's — Boot's defaults are Jackson 3's
+own — and here **one** differs: `ACCEPT_FLOAT_AS_INT`, false. Records keep the order they declare their components in, a class's
+properties are sorted, a `LinkedHashMap` keeps its keys' order (`order`): TiffinBox answers with records and such maps, which is why
+its JSON bytes never moved when Jackson 3 began writing them.
+
+**Boot's other knobs, measured on this tree** (`defaults`, `naming`, `rename`, `custom`, `three` — none of them in the anchor):
+`--spring.jackson.use-jackson2-defaults=true` ("the same defaults as Spring Boot previously used for Jackson 2", Boot's metadata) flips
+13 of the 120 features — a missing `int` becomes 0 and is stored, text after the JSON is accepted, a class keeps its declared order, an
+error's timestamp ends `+00:00` instead of `Z` — and leaves `2.7` refused: the key above wins. `--spring.jackson.property-naming-strategy=SNAKE_CASE`
+changes one of the seven's lines, `/customers`' keys (`meals_per_day`; the maps keep theirs, Actuator's mapper is not touched, and a
+`@JsonProperty` name wins); `snake_case` stops the start — exit 1, no failure analysis, the last cause `Constant named 'snake_case' not
+found`. A `JsonMapperBuilderCustomizer` bean changes Boot's mapper and not Actuator's. `java.time` values are written as ISO-8601
+strings with no module registered, and Core Java II's `new ObjectMapper().configure(…)` does not compile against Jackson 3: its
+setting goes on the builder.
+
+**Every form follows the key:** the jar, the AOT jar, the native binary and the image — each on `127.0.0.1` (the image: published
+there), each answering the seven `87ca7efc…` (masked), and, on a second start of each, the new customer 200 and two point seven meals
+refused, 400, then not found. Boot reads the key when TiffinBox starts, under Spring's AOT step and in the binary too: on a third start
+of the AOT jar and of the binary, the flag above turns it back on (`forms`).
+
+Evidence for every sentence in this section: `../c6-unit09/` (`receipts.sh`, ten captures).
 
 ---
 
