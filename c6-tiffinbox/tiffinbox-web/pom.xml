@@ -12,7 +12,7 @@
 
   <artifactId>tiffinbox-web</artifactId>
   <name>TiffinBox Web</name>
-  <description>The HTTP server, the router and the JSON. No SQL in here.</description>
+  <description>Spring MVC's routes over TiffinBox's core. No SQL in here.</description>
 
   <dependencies>
     <!-- No version: the parent manages it. Course 6: Jackson 2's jackson-databind, beside it since Core Java II, is gone -

@@ -243,8 +243,11 @@ objects that fill one kind of parameter each — fills it before the method runs
 - `tiffinbox-core`'s `CustomerRepository.java` — **`findByName(String)`**, new: one row by exact name, the name a parameter of the SQL,
   never part of it — an `Optional<Customer>`: 50 lines → 64.
 
-The POMs, `application.yaml`, the Dockerfile, `compose.yaml`, the meters, the indicator, the guard and the rest of `tiffinbox-core`
-are not touched — 19 files byte for byte — and the executable jar holds the same 58 libraries.
+- `application.yaml` — its first document holds two loggers at INFO, Boot's default, whatever level the rest is given: Tomcat's
+  `Http11InputBuffer` and Spring MVC's `HandlerMethod`, the two that print the token at TRACE (below).
+
+The POMs, the Dockerfile, `compose.yaml`, the meters, the indicator, the guard and the rest of `tiffinbox-core` are not touched — 18
+files byte for byte — and the executable jar holds the same 58 libraries.
 
 ```bash
 curl -s -w ' %{http_code}\n' http://127.0.0.1:18431/customers/Ravi
@@ -254,14 +257,15 @@ curl -s -w ' %{http_code}\n' 'http://127.0.0.1:18431/customers?mealType=VEGAN'
 **Registered with their types, filled by name.** At TRACE, Spring MVC's `RequestMappingHandlerMapping` lists six of TiffinBox's
 routes now, each with its parameter types — `{GET [/customers/{name}]}: customer(String)`, `{GET [/customers]}: customers(MealType)`,
 `{POST [/shutdown]}: shutdown(String,HttpServletResponse)` — and `8 mappings in 'requestMappingHandlerMapping'`; the routing table
-(`/actuator/mappings`, exposed for one run) has 15 rows, TiffinBox's six each naming a verb, and the new row's
-`requestMappingConditions.params` is `[]`: the meal type is no part of the match (`change`). Per request, Spring MVC's
-`RequestMappingHandlerAdapter` asks its 28 argument resolvers, in order — the first that takes a parameter fills it:
+(`/actuator/mappings`, exposed for one run) has 15 rows, TiffinBox's six each naming a verb, and the `/customers` row's
+`requestMappingConditions.params` is `[]`: the meal type is no part of the match (`change`). The first time it meets a parameter,
+Spring MVC's `RequestMappingHandlerAdapter` asks its 28 argument resolvers in order — the first that takes it fills it, and that
+choice is cached for the parameter:
 `@PathVariable` → `PathVariableMethodArgumentResolver`, `@RequestParam` → `RequestParamMethodArgumentResolver`, `@RequestHeader` →
 `RequestHeaderMethodArgumentResolver`, the `HttpServletResponse` → `ServletResponseMethodArgumentResolver` (the course's harness
 reads them off the running adapter: `../c6-unit07/`, `resolvers`). The path variable and the request parameter give no name of
-their own, so each is found by the **parameter's name** (the header names its own, `X-Shutdown-Token`) — and a parameter's name
-survives compiling only with javac's `-parameters`: Boot's parent POM turns it on (`spring-boot-starter-parent-4.1.1.pom`, its compiler
+their own, so each is found by the **parameter's name** (the header names its own, `X-Shutdown-Token`) — and Spring reads a parameter's
+name only where javac's `-parameters` writes it: Boot's parent POM turns it on (`spring-boot-starter-parent-4.1.1.pom`, its compiler
 plugin, `<parameters>true</parameters>`), and `javap -v -p` reads the names in `TiffinBoxServer.class`. A route compiled without the
 flag starts cleanly and answers its first request with a 500: `Ensure that the compiler uses the '-parameters' flag.` (`resolvers` C).
 
@@ -282,11 +286,13 @@ flag starts cleanly and answers its first request with a 500: `Ensure that the c
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.root=trace
 ```
 
-**A parameter is something TRACE prints.** With every logger at TRACE (the line above, Course 5's logging lesson's), Spring MVC's
-`HandlerMethod` prints the arguments it bound — `Arguments: [<the token>, …]` — so the token, a parameter now, is in that log; and
-Tomcat's `Http11InputBuffer` prints each request it received, its headers among the lines, at DEBUG — the token there too, since
-TiffinBox moved onto Tomcat. Measured with a fake token of its own, through the seven: the previous tree's log held it once
-(Tomcat's), this tree's twice (`../c6-unit07/`, `trace`). TiffinBox itself still logs neither the header nor the token. Never run
+**A parameter is something TRACE prints — so two loggers are held at INFO.** At TRACE, Spring MVC's `HandlerMethod` prints the
+arguments it bound — `Arguments: [<the token>, …]` — so the token, a parameter now, would be in that log, and Boot's `web` group at
+TRACE is enough; Tomcat's `Http11InputBuffer` prints each request it received, its headers among the lines, when its logger is at
+TRACE (Boot's log labels the record DEBUG) — the token there too, since TiffinBox moved onto Tomcat. `application.yaml`'s first
+document holds both at INFO, Boot's default level. Measured with a fake token of its own, through the seven (`../c6-unit07/`, `trace`): this tree, 0
+copies with every logger at TRACE (the line above, Course 5's logging lesson's) and 0 with the web group at TRACE; a copy without
+those lines, 2 and 1; the previous tree, 1 (Tomcat's). TiffinBox itself still logs neither the header nor the token. Never run
 TRACE with a real token in the config tree.
 
 **One series per route.** Boot's timer files `/customers/Ravi` and `/customers/Meera` under one series, `uri="/customers/{name}"`
@@ -498,9 +504,10 @@ and nothing else:
   component, the token included, and a settings object is the first thing anyone logs.
 - `TiffinBoxServer` answers POST /shutdown with `403 {"error":"forbidden"}` — and keeps running — unless the request's
   `X-Shutdown-Token` header holds the token (compared with `MessageDigest.isEqual`). Nothing logs the header or the token.
-  *(Course 6, unit 07: TiffinBox still logs neither; with every logger at TRACE, Spring MVC's `HandlerMethod` prints a route's
-  arguments — the token among them, since the header is a parameter — and Tomcat's `Http11InputBuffer` prints each request it
-  received, headers too, at DEBUG; `../c6-unit07/`, `trace`.)*
+  *(Course 6, unit 07: TiffinBox still logs neither; at TRACE, Spring MVC's `HandlerMethod` prints a route's arguments — the token
+  among them, since the header is a parameter — and Tomcat's `Http11InputBuffer` prints each request it received, headers too (a
+  TRACE record, labelled DEBUG); `application.yaml` holds both loggers at INFO, so the log holds the token 0 times at
+  `root=trace` and at `web=trace`; `../c6-unit07/`, `trace`.)*
 - `application.yaml`'s `spring.config.import` becomes a list: `optional:file:./tiffinbox-local.yaml`, then
   `optional:configtree:./secrets/` — a config tree: one file per key, in the folder TiffinBox starts in. Both rank below
   the profiles' sources, and the later import ranks higher: with a token in both, the tree's answers.
@@ -1223,10 +1230,11 @@ java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --
 
 **At TRACE, still no token.** With every logger at TRACE, the seven requests — the last one carrying `X-Shutdown-Token` —
 print their six lines, and the log holds the token 0 times and the header's name 0 times: *(Course 6, unit 06: TiffinBox prints no line per
-answer now, so the six lines are gone; this run is not re-measured on this tree.)* *(Course 6, unit 07: re-measured, and no longer true —
-with every logger at TRACE the seven's log holds the token twice: Tomcat's `Http11InputBuffer` prints the request it received, the
-header among its lines, at DEBUG (since TiffinBox moved onto Tomcat: the request-mapping lesson's tree, the previous one, holds it
-once), and Spring MVC's `HandlerMethod` prints the arguments it bound, the token among them, at TRACE; `../c6-unit07/`, `trace`.)*
+answer now, so the six lines are gone; this run is not re-measured on this tree.)* *(Course 6, unit 07: re-measured — false
+from the embedded-Tomcat lesson to this unit, true again from it: Tomcat's `Http11InputBuffer` prints the request it received, the
+header among its lines, when its logger is at TRACE (labelled DEBUG; the request-mapping lesson's tree holds the token once), and
+Spring MVC's `HandlerMethod` prints the arguments it bound, the token among them; `application.yaml` holds both at INFO, and the
+seven's log holds the token 0 times — 2 on a copy without those lines; `../c6-unit07/`, `trace`.)*
 
 ```bash
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.root=trace

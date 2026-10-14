@@ -12,7 +12,7 @@
 
   <artifactId>tiffinbox-web</artifactId>
   <name>TiffinBox Web</name>
-  <description>The HTTP server, the router and the JSON. No SQL in here.</description>
+  <description>Spring MVC's routes over TiffinBox's core. No SQL in here.</description>
 
   <dependencies>
     <!-- Neither of these names a version: both are managed by the parent. -->
@@ -60,8 +60,8 @@
       <artifactId>micrometer-registry-prometheus</artifactId>
     </dependency>
     <!-- Course 6: Spring MVC and the server it runs on - embedded Tomcat, Spring's DispatcherServlet, and Jackson 3,
-         which writes Spring's own JSON (an error body, Actuator's answers). TiffinBox's routes sit behind the
-         DispatcherServlet (RouteMapping), and their answers keep the Jackson 2 above. Boot's parent manages its version. -->
+         which writes Spring's own JSON (an error body, Actuator's answers) and TiffinBox's: its routes are Spring MVC's
+         request mappings, and Spring MVC's converter writes their answers. Boot's parent manages its version. -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webmvc</artifactId>

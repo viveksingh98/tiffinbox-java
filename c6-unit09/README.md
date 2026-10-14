@@ -8,11 +8,12 @@ reads the JSON mapper Boot built off the running application — one bean, `jack
 plain `JsonMapper`'s — then flips its defaults one at a time (Boot's defaults for Jackson 2, a naming strategy, `@JsonProperty`, a
 customizer bean), measures the three differences Core Java II's posted correction names, and changes the one that dropped the fraction.
 
-**The anchor changes (brief ⚑2, ⚑10).** `after/` is this unit's frozen copy of `../c6-tiffinbox` after the change, and
-`diff -rq -x target ../c6-tiffinbox after/` is empty. "Before" is `../c6-unit08/after` — the request-body lesson's frozen tree, which
+**The anchor changes (brief ⚑2, ⚑10).** `after/` is this unit's frozen copy of `../c6-tiffinbox` after the change:
+`diff -rq -x target ../c6-tiffinbox after/` was empty at this unit's commit (b416d07) and at BLUE A's, which carried the earlier trees'
+fixes into it (brief S2.21) — the next chain unit moves the anchor on. "Before" is `../c6-unit08/after` — the request-body lesson's frozen tree, which
 `c6-tiffinbox` equalled at 3ff5e21. Both trees are read and copied under `.harness/`, never built in place. The change: one key in
 `tiffinbox-web/src/main/resources/application.yaml`'s **first document**, under `spring:`, above the `---` (lines 54-56; the first
-`---` is line 84), with four comment lines above it —
+`---` is line 91 — 84 until BLUE A put the binding lesson's two held loggers under `logging:`), with four comment lines above it —
 
 ```yaml
   jackson:
@@ -36,19 +37,26 @@ export GRAALVM_HOME=/path/to/a/graalvm-jdk-25      # GraalVM CE 25.3.4.1 for the
 (`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) **Docker must
 answer** (`docker info`; on OrbStack `orb start` is tried once if it does not), with `eclipse-temurin:25-jre` already on it: the
 script never pulls. It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first). One native
-build per `forms` run (three per receipt), judged against a bound (under 20 minutes); its seconds go to the terminal only. **Start it
+build per `forms` run (three per receipt); its seconds, and the 20-minute bound, go to the terminal only — a hashed line must not move
+with the machine's load (RED S2 #46). **Start it
 in a process group of its own** (a terminal's foreground job is one): two receipts started as background jobs of one shell share a
 group, and one run's clean-up would stop the other's JVMs (Section 1's finding, brief S2.4).
 
-**Runs of record (2026-10-14, this script as committed):** **927 s under `./receipts.sh`** (/bin/bash 3.2.57, this folder, its own
-process group, exit 0, all 10 = published, every check passed; the three native builds 145, 154 and 148 s) and **1,129 s under `bash
-receipts.sh`** (Homebrew bash 5.3.9, the same; 190, 213 and 206 s). The hashes were made by one pass of each capture of a development
-copy of this script (since deleted), and both runs of record reproduced every one of them 3/3. And **1,087 s from a sealed fresh clone under `./receipts.sh`** (/bin/bash 3.2.57): `git clone` of the local repository (HEAD 3ff5e21) with `c6-unit09` and `c6-tiffinbox` put in from the working tree as git would take them (63 files, 0 differences; the clone's status the same three lines as the repository's) — nothing git ignores: no `.m2-demo`, no `.harness/`, no `.r-*` — run under `env -i`, with a `HOME` whose `.mavenrc` points Maven's `user.home` there and every Java proxy property at a port that refuses (127.0.0.1:9), and whose Maven settings send every repository to a `file://` copy of Central's files made from `.m2-demo` (4,372 files: TiffinBox's own installs, `_remote.repositories`, `*.lastUpdated`, `resolver-status.properties` and `.DS_Store` left out, `maven-metadata-central.xml` served as `maven-metadata.xml`); `http_proxy`, `https_proxy`, their capitals and `ALL_PROXY` at the same refusing port; `GRAALVM_HOME` set; `DOCKER_CONFIG=~/.docker`; `PATH` Homebrew's and the system's — the exercise's `env -i` shell got the same; its own process group. Exit 0, all 10 = published, every check passed (native builds 178, 198 and 193 s). One pre-capture build said `offline: no` — after/'s native install, the empty `.m2-demo` holding nothing yet — and every capture's build said `offline: yes`. The clone's `.m2-demo` ended with 526 artifact files (jars, POMs and the metadata zip; TiffinBox's own installs left out), and its `_remote.repositories` entries name one repository, 526 of 526 `sealed` — the `file://` copy — 0 another; the native plugin's metadata download lines: 0; `github` in the run's logs: 15 lines — 14 artifact paths under `com/github/` fetched from the `file://` copy, and native-image's printed link to its own build-output documentation, never fetched. **Interrupted** (below): exit
-130, nothing left. **The exercise as viewers run it** is the `exercise` capture itself — `exercise/README.md`, then `SOLUTION.md`, in one
-`env -i` `/bin/bash --noprofile --norc` shell, the shell in `c6-unit09/` after each — and, by hand, the same two blocks pasted into one
-`env -i` `zsh -f` shell: `exit 1 · its last cause: java.lang.IllegalStateException: Constant named 'snake_case' not found · Ravi's keys: none`, then `exit 0 · its last cause: none · Ravi's keys: name meals_per_day price_per_meal meal_type`, the shell in `c6-unit09/` after each, 19389 free; and `SOLUTION.md` alone in a new `env -i` bash shell, whose bare `java` is 23.0.1: the same Done line (its two `export` lines first).
+**Runs of record (2026-10-14, BLUE A — this script as committed, after RED S2):** **1,448 s under `bash receipts.sh`** (Homebrew bash
+5.3.9, this folder, its own process group; every capture 3/3, every check passed; it made the three changed hashes — `float`, the YAML
+seven lines longer above the `---` with the binding lesson's two held loggers; `defaults`, its timestamp's zone kept and asserted; `forms`,
+with no duration in it — and stopped on "no published hash", as designed; the other seven = published; the native builds 328, 251 and
+183 s) and **1,010 s under `./receipts.sh`** (/bin/bash 3.2.57: exit 0, all 10 = published — the bytes bash 5.3 made — every check
+passed; 155, 178 and 180 s; load averages 8-15). Before both, `.m2-demo` was re-seeded from `_research/m2-seed-s2/` alone (RED S2 #57):
+every build said `offline: yes`. **The exercise as viewers run it**, beyond the capture: README then SOLUTION in one `env -i`
+`/bin/bash --noprofile --norc` shell, its `java` 23.0.1 before the exports → `exit 1 · its last cause: java.lang.IllegalStateException:
+Constant named 'snake_case' not found · Ravi's keys: none`, then `exit 0 · its last cause: none · Ravi's keys: name meals_per_day
+price_per_meal meal_type`, the shell in `c6-unit09/` after each, 19389 free after. **The first runs** (b416d07, before RED): 927 s under
+`./receipts.sh`, 1,129 s under `bash receipts.sh`, 1,087 s from a sealed fresh clone (526 artifacts, every one from the `file://` copy).
+BLUE A's sealed fresh clone ran on the binding lesson's unit (`../c6-unit07/`, its README), with this unit's tree and the anchor put in
+as git would take them.
 
-Published hashes: float `f08cf638c7c4659a2781b9d64d5a9fd9` · bean `f7e490c5d39662adaa3e85ec20f24ad3` · order `7a542be0166a3bdaf9024bec02c45c3b` · defaults `6f3fe38967ed820d36cf5db0b06ce6f7` · naming `d5dffbb22565e401cb71c868f9d91cb9` · rename `611fdf960fb0247dab3e12236435d27a` · custom `9ac43e337e896ffda8dc500144714368` · three `23abe156f9977545f3c37ab1fcde63ef` · exercise `eda8a8107ea9104461c29a8f44e30446` · forms `189197547757f0df221c0ec1583a5d11`.
+Published hashes: float `5c88bc77adc5e50c29adb0adf03cf192` · bean `f7e490c5d39662adaa3e85ec20f24ad3` · order `7a542be0166a3bdaf9024bec02c45c3b` · defaults `4f96ab578b3f3b3d97ef1e9f67856c25` · naming `d5dffbb22565e401cb71c868f9d91cb9` · rename `611fdf960fb0247dab3e12236435d27a` · custom `9ac43e337e896ffda8dc500144714368` · three `23abe156f9977545f3c37ab1fcde63ef` · exercise `eda8a8107ea9104461c29a8f44e30446` · forms `3ffc0f70a9f5d3c9b162b1724871fd2b`.
 
 ## The commands this unit adds
 
@@ -81,10 +89,10 @@ then stops where the native build would start (exit 1).
 
 ## The repository, Docker, and what was downloaded
 
-Every Maven build runs `mvn -o` against this unit's own `.m2-demo` (`$M2` on screen), seeded from the previous unit's `.m2-demo`
-(`../c6-unit08/.m2-demo`, its `com/tiffinbox` left out: a stale install would satisfy `-pl tiffinbox-web native:compile-no-fork`)
-and `../../spring-web-mvc/_research/m2-seed-s2/` — together exactly the S2 seed: 5,837 files, `diff -rq` against it 0 differences,
-no `com/tiffinbox`. **Nothing was downloaded** for this unit: every build said `offline: yes`, the native plugin read its metadata
+Every Maven build runs `mvn -o` against this unit's own `.m2-demo` (`$M2` on screen), seeded from
+`../../spring-web-mvc/_research/m2-seed-s2/` alone — 5,837 files, no `com/tiffinbox` (a stale install would satisfy `-pl tiffinbox-web
+native:compile-no-fork`). The first seeding added the previous unit's `.m2-demo` to the seed — the same files, `diff -rq` 0 — which the
+brief forbids (RED S2 #57); BLUE re-seeded it from the seed alone on 2026-10-14, before the runs of record. **Nothing was downloaded** for this unit: every build said `offline: yes`, the native plugin read its metadata
 repository from `.m2-demo` (`file:`), and every native build log holds 0 lines of the plugin's own download (`Downloaded GraalVM
 reachability metadata repository from http`, `Failed to download from http`). A fresh clone's `.m2-demo` is empty (git ignores it):
 the first build — `after/`'s `mvn -B -Pnative install`, before any capture — fills it from Maven Central and says `offline: no`; every
@@ -140,8 +148,9 @@ exercise makes a token of its own (`openssl rand -hex 13`: 26 hexadecimal digits
    frame, a `sha256:` ID other than the base image's digest, `:8080` or a carriage return.
 2. **Spring's error timestamp** (`tsmask`, `gsub`): `"timestamp":"<anything>"` → `"timestamp":"…"` and `"timestamp":<digits>` →
    `"timestamp":…` — both forms — in every answer printed and in the seven, which are hashed after it (two lines changed: `/nowhere`'s
-   and GET /shutdown's). **Its form** (`tsform`), where a capture names it: every digit of the unmasked timestamp → `d`, each distinct form
-   with its count (`"timestamp":"dddd-dd-ddTdd:dd:dd.dddZ" ×2`) — the time itself never reaches a capture.
+   and GET /shutdown's). **Its form** (`tsform`), where a capture names it: the unmasked timestamp's date and time, every digit → `d`, its zone
+   kept — `Z`, or an offset such as `+00:00`, so the offset is asserted, never any offset (RED S2 #48) — each distinct form with its
+   count (`"timestamp":"dddd-dd-ddTdd:dd:dd.dddZ" ×2`); the time itself never reaches a capture.
 3. **WARN and ERROR lines** (`logl`, `erec`, `fails`): from their level and logger on, as the log prints the logger
    (`.w.s.m.s.DefaultHandlerExceptionResolver` is Spring MVC's; `o.a.c.c.C.[.[.[/].[dispatcherServlet]` Tomcat's; `o.s.boot.*` Boot's —
    read off the log, never typed); an identity hash after `@` → `@…`; in an ERROR record, H2's constraint and index names — the quoted
@@ -185,8 +194,8 @@ and removes `.r-lock`. The published captures are untouched.
 
 Both trees copied under `.harness/`, built with the README's line (offline) and extracted; the harness compiled against after/'s jar.
 **Two files differ** — `README.md` and `application.yaml` — and 23 of the tree's 25 are byte for byte the previous tree's; the YAML's
-code lines go 47 → 50, **three in, none out**, right after Compose's `enabled: false` and before `logging:`; four comment lines above
-them. **Where the key sits** (`kplace`): `jackson:` line 54, under `spring:` (line 23), the first `---` line 84 — **in the first document:
+code lines go 50 → 53, **three in, none out**, right after Compose's `enabled: false` and before `logging:`; four comment lines above
+them. **Where the key sits** (`kplace`): `jackson:` line 54, under `spring:` (line 23), the first `---` line 91 — **in the first document:
 yes**; a planted copy, the three lines moved under the second document's `spring:` (the profile `rush`'s): **no**. Boot's metadata for
 `spring.jackson.deserialization`: a map of Jackson's `DeserializationFeature` to a boolean, no default. The jar: 56 libraries, the same
 names. **Before** — the previous tree — `"mealsPerDay":2.7` → **200, stored as 2**, 0 WARN, read back with 2. **A** — after/ — **400**,
@@ -199,7 +208,7 @@ trace of over 50 frames (not shown). 4 WARN lines (one per 400), 1 ERROR. **B** 
 stored as 2 again. **C** (labelled) — the planted copy, built and run with the README's line: its key below the `---`, **a plain run
 stores 2** — S1-R.87's fault, measured. **A′** — A again on a fresh JVM: **line for line A** (`asame`).
 
-`.r-float.out` · md5 `f08cf638c7c4659a2781b9d64d5a9fd9` · 3 of 3
+`.r-float.out` · md5 `5c88bc77adc5e50c29adb0adf03cf192` · 3 of 3
 
 ```
 the previous tree and after/, both copied under .harness/ with a config tree, each built with the README's line (offline):
@@ -220,18 +229,18 @@ $ diff -rq -x target -x secrets .harness/before .harness/after
   Files .harness/before/README.md and .harness/after/README.md differ
   Files .harness/before/tiffinbox-web/src/main/resources/application.yaml and .harness/after/tiffinbox-web/src/main/resources/application.yaml differ
   after/'s files: 25 · byte for byte the previous tree's: 23 · those above differ: 2
-  application.yaml - its lines that are neither comment nor blank: 47 -> 50 · their diff (diff -U1, its file names cut) - hunks: 1 · lines out: 0 · in: 3 - whole:
+  application.yaml - its lines that are neither comment nor blank: 50 -> 53 · their diff (diff -U1, its file names cut) - hunks: 1 · lines out: 0 · in: 3 - whole:
     @@ -27,2 +27,5 @@
            enabled: false
     +  jackson:
     +    deserialization:
     +      accept-float-as-int: false
      logging:
-  its comment lines: 37 -> 41 · those right above the key: 4 (not shown)
+  its comment lines: 41 -> 45 · those right above the key: 4 (not shown)
   README.md - the anchor's README: lines added 62, removed 2 - its new section and the history notes the change made false (not shown)
 where the key sits - after/'s application.yaml:
-  jackson: line 54, under spring: (line 23) · deserialization: line 55 · accept-float-as-int: false line 56 · the first "---" line 84 · in the first document: yes
-  a planted copy, the three lines moved under the second document's spring: (the profile rush's): jackson: line 84, under spring: (line 83) · deserialization: line 85 · accept-float-as-int: false line 86 · the first "---" line 81 · in the first document: no
+  jackson: line 54, under spring: (line 23) · deserialization: line 55 · accept-float-as-int: false line 56 · the first "---" line 91 · in the first document: yes
+  a planted copy, the three lines moved under the second document's spring: (the profile rush's): jackson: line 91, under spring: (line 90) · deserialization: line 92 · accept-float-as-int: false line 93 · the first "---" line 88 · in the first document: no
   Boot's metadata (spring-boot-jackson-4.1.1.jar) - spring.jackson.deserialization · its type: java.util.Map<tools.jackson.databind.DeserializationFeature,java.lang.Boolean> · its default: none · its description: Jackson on/off features that affect the way Java objects are deserialized.
 the executable jar's BOOT-INF/lib: 56 jars -> 56 · the same names: yes
 before - the previous tree, the README's run line, port 19381 - two point seven meals a day (this unit's line in the anchor's README):
@@ -298,7 +307,7 @@ $ harness/shutdown.sh 19380 .harness/after/secrets/tiffinbox/shutdown-token
   exit 0 · listening on 19380 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 C (labelled) - a copy of after/ with the key's three lines under the second document's spring: (the planted copy above: the profile rush's), built the same way, the README's run line, port 19380:
-  its application.yaml: jackson: line 84, under spring: (line 83) · deserialization: line 85 · accept-float-as-int: false line 86 · the first "---" line 81 · in the first document: no
+  its application.yaml: jackson: line 91, under spring: (line 90) · deserialization: line 92 · accept-float-as-int: false line 93 · the first "---" line 88 · in the first document: no
 $ cd .harness/plant && mvn -o -B -Dmaven.repo.local="$M2" -DskipTests clean package
   built the planted copy · offline: yes · exit 0
 $ cd .harness/plant && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19380
@@ -473,12 +482,13 @@ defaults as Spring Boot previously used for Jackson 2." **A** — after/ with th
 JSON → 400 (``Unrecognized token 'extra'``). **B** — the same with this unit's flag: **13 of the 120 features differ from A's**, each
 listed — sorting off, null for primitives allowed, trailing tokens allowed, UTC written as an offset, and nine more; unknown properties,
 the key's own feature and dates as numbers do not move. The class keeps its **declared order**; no `mealsPerDay` → **200, stored as 0**,
-read back; text after the JSON → **200**; `2.7` → **still 400** — the key in `application.yaml` wins over the flag's defaults; that answer's
-timestamp ends **`+dd:dd`**. Then **the seven** under the flag, on a fresh JVM (the README's run line with it): **`87ca7efc…` — the same,
-under the timestamp mask**, whose two hidden timestamps end `+dd:dd`: unmasked, the flag changes what TiffinBox's errors say. **A′** —
+read back; text after the JSON → **200**; `2.7` → **still 400** — the flag leaves the key's feature alone (`ACCEPT_FLOAT_AS_INT` is not
+among the features it sets: RED S2 #49, `MapperBuilder.configureForJackson2()`); that answer's timestamp ends **`+00:00`** (asserted:
+RED S2 #48). Then **the seven** under the flag, on a fresh JVM (the README's run line with it): **`87ca7efc…` — the same, under the
+timestamp mask**, whose two hidden timestamps end `+00:00`: unmasked, the flag changes what TiffinBox's errors say. **A′** —
 line for line A, its features 0 of 120 apart from A's.
 
-`.r-defaults.out` · md5 `6f3fe38967ed820d36cf5db0b06ce6f7` · 3 of 3
+`.r-defaults.out` · md5 `4f96ab578b3f3b3d97ef1e9f67856c25` · 3 of 3
 
 ```
   Boot's metadata (spring-boot-jackson-4.1.1.jar) - spring.jackson.use-jackson2-defaults · its type: java.lang.Boolean · its default: false · its description: Whether to configure Jackson 3 with the same defaults as Spring Boot previously used for Jackson 2.
@@ -536,7 +546,7 @@ $ curl -s -w ' %{http_code}\n' -H 'Content-Type: application/json' --data '{"nam
 $ curl -s -w ' %{http_code}\n' -H 'Content-Type: application/json' --data '{"name":"Mohan","mealsPerDay":2.7,"pricePerMeal":110,"mealType":"VEG"}' http://127.0.0.1:19382/customers
   {"timestamp":"…","status":400,"error":"Bad Request","path":"/customers"} 400 · WARN lines it added: 1
     WARN .w.s.m.s.DefaultHandlerExceptionResolver: Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot coerce Floating-point value (2.7) to `int` value (but could if coercion was enabled using `CoercionConfig`)]
-  that answer's timestamp, its form: "timestamp":"dddd-dd-ddTdd:dd:dd.ddd+dd:dd" ×1
+  that answer's timestamp, its form: "timestamp":"dddd-dd-ddTdd:dd:dd.ddd+00:00" ×1
 $ harness/shutdown.sh 19382 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: 17 · {"stopping":true} · curl exit 0
   exit 0 · listening on 19382 now: 0
@@ -550,7 +560,7 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19380/actuator/health/readiness
 $ $CURLSET 19380 .harness/after/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 2 · md5 87ca7efc8584dcccd40e6b956db1de9b
-  the timestamps the mask hid, their form: "timestamp":"dddd-dd-ddTdd:dd:dd.ddd+dd:dd" ×2
+  the timestamps the mask hid, their form: "timestamp":"dddd-dd-ddTdd:dd:dd.ddd+00:00" ×2
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 A' - A again, on a fresh JVM:
 $ cd .harness/after && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19382 --spring.main.sources=probe.json.Mapper,probe.json.Order
@@ -874,7 +884,7 @@ alone, `[::]:18425` inside) — the seven, `docker wait` 0. On a second start of
 meals → 400, then 404 — refused in all four**. On a third start of the AOT jar and of the binary, this unit's flag: **stored as 2** —
 Boot reads `spring.jackson.*` when TiffinBox starts, under Spring's AOT step too.
 
-`.r-forms.out` · md5 `189197547757f0df221c0ec1583a5d11` · 3 of 3
+`.r-forms.out` · md5 `3ffc0f70a9f5d3c9b162b1724871fd2b` · 3 of 3
 
 ```
 the native build - after/ copied to .harness/nat with a config tree; the README's two Maven lines, offline; $GRAALVM_HOME names the GraalVM:
@@ -900,7 +910,7 @@ $ cd .harness/nat && mvn -o -B -Dmaven.repo.local="$M2" -Pnative -pl tiffinbox-w
     [8/8] Creating image...
     The build process encountered 5 warnings.
     BUILD SUCCESS
-  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: under 20 minutes · its lines that say the metadata repository was downloaded over http, or failed to: 0 · offline: yes
+  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its lines that say the metadata repository was downloaded over http, or failed to: 0 · offline: yes
   file: Mach-O 64-bit executable · the demo token in its bytes: 0
 what Spring's AOT step registered for the native build - the record a route reads and the routes return:
   Spring's generated metadata (spring-aot/main/resources/META-INF/native-image/com.tiffinbox/tiffinbox-web/reachability-metadata.json): reflection entries naming com.tiffinbox.Customer: 1 - all declared fields · all declared constructors · 4 methods (mealType mealsPerDay name pricePerMeal)
@@ -1082,7 +1092,7 @@ changed keys named (`mealsPerDay`, `pricePerMeal`, `mealType`). Measured answer:
 
 | # | Item (brief) | Before | This unit (receipts, 2026-10-14) |
 |---|---|---|---|
-| 9 | 09's key **in YAML**, its line number against the `---`, in all four forms | as a flag, on the JVM jar, the AOT jar and the binary | **in the first document, line 56 against the `---` at 84** (`float`; two planted copies caught, one run: C stores 2); **`2.7` → 400 in the jar, the AOT jar, the binary and the image** (`forms`), and the flag turns it back on in the AOT jar and the binary (read at start) |
+| 9 | 09's key **in YAML**, its line number against the `---`, in all four forms | as a flag, on the JVM jar, the AOT jar and the binary | **in the first document, line 56 against the `---` at 91 (84 before BLUE A's two held loggers)** (`float`; two planted copies caught, one run: C stores 2); **`2.7` → 400 in the jar, the AOT jar, the binary and the image** (`forms`), and the flag turns it back on in the AOT jar and the binary (read at start) |
 | 15 | the image of every chain unit | once, on the chain end | **built from after/'s Dockerfile, 0 pulls, its layers 0 tokens, `127.0.0.1:19387` alone, the seven `87ca7efc…`, a new customer, `2.7` refused, `docker wait` 0** (`forms`) |
 | 16 | the exercise as viewers run it | end state on a sketch | **one `env -i` shell: exit 1 and the last cause, then `meals_per_day price_per_meal meal_type`** (`exercise`) |
 
@@ -1110,7 +1120,9 @@ changed keys named (`mealsPerDay`, `pricePerMeal`, `mealType`). Measured answer:
   changed per plant (`plants.py`, this unit's scratch folder) — **77 plants, 77 stops**, each naming its check; the unplanted copies pass. The YAML's place
   check is shown failing inside the run itself: on a planted copy before any capture (the key under `tiffinbox:`) and in `float` (under the
   second document's `spring:`, which C also runs). The exercise's `SOLUTION.md` export checks are the request-mapping lesson's, verbatim
-  (shown failing there).
+  (shown failing there). **BLUE A's checks, the same way** (2026-10-14): the YAML's code lines without the held loggers (47 → 50); its
+  comment lines the same way; the `---` back at 84; `defaults` B's timestamp at another offset; the seven's offset unasserted
+  (`+dd:dd`); a duration back in `forms`' hashed line — **6 plants, 6 stops**.
 - **`use-jackson2-defaults` flips 13 features, not 3.** The brief, from the probe's seven features, said three and asked for those three
   alone; reading all 120 of eight kinds (`/probe/mapper/all`, A against B) finds thirteen. Boot's own code (its
   `JacksonAutoConfiguration`) calls Jackson's `MapperBuilder.configureForJackson2()` and then switches four features back off (javap,
@@ -1142,7 +1154,7 @@ changed keys named (`mealsPerDay`, `pricePerMeal`, `mealType`). Measured answer:
   (`Map<String, Object>`, `LinkedHashMap`s), `POST /shutdown` (`@RequestHeader(name = "X-Shutdown-Token", required = false)`, the 403 by
   `response.setStatus(403)`). `TiffinBoxServer.java` 215 lines, `CustomerRepository.java` 80; the jar's 56 libraries.
 - **`application.yaml`'s first document holds `spring.jackson.deserialization.accept-float-as-int: false`** — lines 54-56, under
-  `spring:`, the first `---` at line 84, four comment lines above it. A unit that edits the YAML above line 84 re-checks where the key
+  `spring:`, the first `---` at line 91, four comment lines above it. A unit that edits the YAML above line 91 re-checks where the key
   sits (`kplace` here; S1-R.87): a copy with the key under the second document's `spring:` stores 2.7 as 2 on a plain run (`float` C).
 - **What a POST does on this tree, measured:** the request-body lesson's Asha → 200 and the record; `2.7`, `2.0`, a price of `110.5` → 400
   + 1 WARN each (``Cannot coerce Floating-point value (…) to `int` value``), nothing stored; `"2"` → 2; an unknown property → ignored;
@@ -1170,5 +1182,12 @@ changed keys named (`mealsPerDay`, `pricePerMeal`, `mealType`). Measured answer:
 - **Ports 19380-19389 are this unit's;** 10 has 19390-19399. Per the brief, **RED part A (units 06-09) runs now**, on 19660-19679, and
   10 starts from BLUE A's frozen `09/after`.
 - **Not done here (for RED):** the brief's hazard "use-jackson2-defaults flips three features … say only those three" is overturned —
-  thirteen, measured (`defaults`; "LINES OVERTURNED"); the brief is not edited by this unit. The parent POM's `<description>` still says
-  "the router" (stale since the request-mapping lesson; carried from 08's hand-off, not this unit's change).
+  thirteen, measured (`defaults`; "LINES OVERTURNED"); BLUE A's amendment to the brief now says so. The web POM's `<description>` named
+  the router until BLUE A amended it in 06-09 and `c6-tiffinbox` (RED S2 #21, #55); the parent POM has none.
+- **Two loggers are held at INFO** in `application.yaml`'s first document, under `logging:` (BLUE A, RED S2 #3): Tomcat's
+  `org.apache.coyote.http11.Http11InputBuffer` and Spring MVC's `org.springframework.web.method.HandlerMethod`. Keep both lines: at TRACE —
+  every logger, or Boot's `web` group — they print the shutdown token (`../c6-unit07/`, `trace`: 2 and 1 without them, 0 with them); held
+  at DEBUG instead, `HandlerMethod` prints its own DEBUG lines in a default run (07's README, "Found on the way"). A capture at TRACE uses
+  a token of its own. A new parameter that carries a secret re-measures them.
+- **`forms` prints no duration:** the native build's seconds and the 20-minute bound go to the terminal only (RED S2 #11, #46). And
+  `tsform` keeps a timestamp's zone — assert `Z` or `+00:00`, never "an offset" (RED S2 #48).

@@ -30,8 +30,9 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #             POST /shutdownXYZ with the token (the harness's Patterns)
 #   timers    who times and logs each answer: the previous tree (TiffinBox's timer and its line per answer) against after/
 #             (Boot's timer alone, by pattern; the kitchen quiet); C (labelled) Boot's web group at DEBUG - the request as typed
-#   stop      POST /shutdown, a controller method now, A/B/A': A Boot's default, B --server.shutdown=immediate, A' = A - the
-#             reply, the exit, Boot's graceful lines
+#   stop      POST /shutdown, a controller method now: the README's run line first; then A/B/A' with the answer held in flight
+#             (the harness's SlowAfter): A Boot's default, graceful; B --server.shutdown=immediate; A' = A - the reply, the exit,
+#             Boot's graceful lines
 #   exercise  exercise/README.md's commands, then exercise/solution/SOLUTION.md's, read from the files and run as written, one after
 #             the other in ONE shell a viewer could have: env -i, /bin/bash, started in this folder
 #   forms     the native build of after/ and what Spring's AOT step registered (C, labelled: a route returning Object), then four
@@ -42,8 +43,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # .harness/ that holds a config tree with the demo token (secrets/), as the README asks - the container's too, mounted read-only.
 # Commands are printed exactly as they run: each goes through eval. "$CURLSET" is the comparison set since the secrets lesson
 # (../c5-unit11/curlset.sh: the seven requests, POST /shutdown with the token's header read from the file). "$M2" is this unit's
-# own repository, .m2-demo. The harness - harness/probe/web/Stereotype.java, Converters.java, Patterns.java and MidPattern.java
-# (the course's, never TiffinBox's: outside com.tiffinbox; Stereotype runs alone, the others join by --spring.main.sources, all on
+# own repository, .m2-demo. The harness - harness/probe/web/Stereotype.java, Converters.java, Patterns.java, MidPattern.java and
+# SlowAfter.java (the course's, never TiffinBox's: outside com.tiffinbox; Stereotype runs alone, the others join by --spring.main.sources, all on
 # the extracted jar's class path), harness/table.py (reads one Actuator answer) and harness/shutdown.sh (POST /shutdown, the
 # token read from its file) - is named on every capture that uses it. Every run passes options only.
 # The network: every Maven build runs offline (-o) against .m2-demo and says so ("offline: yes"); a build that cannot resolve an
@@ -65,7 +66,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # after it exited, never printed whole (frames counted, the analysis shown). A run's log lines are printed from their logger on
 # (no time, no process id); Boot's first line is cut before " with PID". Long logs go through a declared filter, and what it cuts
 # is counted or bounded. No image, container or ID is printed but the base image's digest. No duration is captured: the native
-# build is judged against a bound; seconds go to the terminal.
+# build's seconds, and the 20-minute bound, go to the terminal only.
 # Ports (brief ⚑1, 19350-19359): after/'s jar 19350 · the previous tree 19351 · after/ with the harness joined 19352 · the
 # mid-path pattern's A/B/A' 19353 · the AOT jar 19354 · the missing-class copies of after/ 19355 · stop 19356 · the image 19357 ·
 # the binary 19358 · the exercise 19359. 18425 (TiffinBox's default) and 8080 (Tomcat's) are checked free too, and never bound on
@@ -167,7 +168,7 @@ TOKEN=not-a-real-token-demo-only
 [ ${#TOKEN} = 26 ] || die "the demo token must be 26 characters: the published captures name its length"
 CURLSET=../c5-unit11/curlset.sh                      # the comparison set: the seven requests, POST /shutdown with the header
 [ -f "$CURLSET" ] || die "$CURLSET is missing"
-for f in harness/shutdown.sh harness/table.py harness/probe/web/Stereotype.java harness/probe/web/Converters.java harness/probe/web/Patterns.java harness/probe/web/MidPattern.java exercise/README.md exercise/solution/SOLUTION.md README.md; do [ -f "$f" ] || die "$f is missing"; done
+for f in harness/shutdown.sh harness/table.py harness/probe/web/Stereotype.java harness/probe/web/Converters.java harness/probe/web/Patterns.java harness/probe/web/MidPattern.java harness/probe/web/SlowAfter.java exercise/README.md exercise/solution/SOLUTION.md README.md; do [ -f "$f" ] || die "$f is missing"; done
 
 # The ports and the Docker names, BEFORE anything is wiped (a survivor of an interrupted run answers POST /shutdown only with its
 # token, which lives in .harness/ - so the message names the process to kill).
@@ -448,6 +449,13 @@ cap() { local nm=$1 h pub i; shift
 copy() { rm -rf "$2" "$2".*; rsync -a --exclude target --exclude secrets "$1/" "$2/"; tree "$2"; }
 pbuild() { local c; c=$(off "$1" "${3:-$R_PLAIN}" package); echo "\$ $c"; mbuild "$c" "$1.build.log" "$2"; }
 code() { grep -vE '^[[:space:]]*(\*|/\*\*|\*/|//|#|<!--|$)' "$1"; }
+# xcode FILE: an XML file's lines that are not comments (a comment may span lines), blank lines dropped
+xcode() { python3 - "$1" <<'PY'
+import re, sys
+s = re.sub(r"<!--.*?-->", "", open(sys.argv[1]).read(), flags=re.S)
+print("\n".join(l for l in s.splitlines() if l.strip()))
+PY
+}
 lines() { if [ -f "$1" ]; then wc -l < "$1" | tr -d ' '; else echo deleted; fi; }
 libs() { unzip -Z1 "$1" | grep -E '^BOOT-INF/lib/.*\.jar$' | sed 's#^BOOT-INF/lib/##' | sort; }
 extract() { local c="cd $1 && $R_EXTRACT"; echo "\$ $c"; (eval "$c") > .harness/extract.log 2>&1 < /dev/null || die "the README's extract line failed in $1"; echo "  exit 0"; }
@@ -511,7 +519,11 @@ change() { local f
   diff .harness/before/README.md .harness/after/README.md > .harness/file.diff || true
   echo "  README.md - the anchor's README: lines added $(grep -c '^> ' .harness/file.diff || true), removed $(grep -c '^< ' .harness/file.diff || true) - its new section and the history notes the change made false (not shown)"
   echo "  tiffinbox-core against the previous tree's (diff -rq -x target): $(diff -rq -x target .harness/before/tiffinbox-core .harness/after/tiffinbox-core | wc -l | tr -d ' ') files differ"
-  for f in $W/TiffinBoxApp.java $W/BareArgumentGuard.java $W/BareArgumentAnalyzer.java $W/KitchenHealthIndicator.java $W/KitchenMetrics.java $YAML $FAC tiffinbox-web/pom.xml pom.xml Dockerfile compose.yaml .dockerignore; do
+  xcode .harness/before/tiffinbox-web/pom.xml > .harness/xb.txt; xcode .harness/after/tiffinbox-web/pom.xml > .harness/xa.txt
+  diff .harness/xb.txt .harness/xa.txt | grep -E '^[<>] ' > .harness/x.diff || true
+  echo "  tiffinbox-web/pom.xml - the text that named the router, amended: its lines that name RouteMapping or a router $(grep -cE 'RouteMapping|[Rr]outer' .harness/before/tiffinbox-web/pom.xml || true) -> $(grep -cE 'RouteMapping|[Rr]outer' .harness/after/tiffinbox-web/pom.xml || true) · its lines that are not comments: $(grep -c '^< ' .harness/x.diff || true) out, $(grep -c '^> ' .harness/x.diff || true) in - the description:"
+  sed 's/^< /    -/; s/^> /    +/' .harness/x.diff
+  for f in $W/TiffinBoxApp.java $W/BareArgumentGuard.java $W/BareArgumentAnalyzer.java $W/KitchenHealthIndicator.java $W/KitchenMetrics.java $YAML $FAC pom.xml Dockerfile compose.yaml .dockerignore; do
     echo "  $f against the previous tree's, byte for byte: $(cmp -s ".harness/before/$f" ".harness/after/$f" && echo the same || echo different)"; done; }
 
 # ---- scan: what registers the routes at start ---------------------------------------------------------------------------------
@@ -647,10 +659,11 @@ patterns() { local c n0 p
   stop 19352 .harness/after; }
 
 # ---- timers: who times and logs each answer, before and after ----------------------------------------------------------------------
-# t PORT PATH ['CURL OPTIONS']: the README's status-and-type line, printed and run; SENT counts the requests
+# t PORT PATH ['CURL OPTIONS']: the README's status-and-type line, printed and run; SENT counts the requests - treq PORT DIR: five
+# GETs (one with a query, one a near path), a DELETE, an OPTIONS, and POST /shutdownXYZ with DIR's token
 SENT=0
 t() { local c; c=$(qc "$@"); echo "\$ $c"; (eval "$c") 2>&1 < /dev/null | sed 's/^/  /'; SENT=$((SENT + 1)); }
-treq() { SENT=0; t "$1" /customers; t "$1" '/customers?mealType=VEG'; t "$1" /customersXYZ; t "$1" /customers '-X DELETE'; t "$1" /customers '-X OPTIONS'; }
+treq() { SENT=0; t "$1" /customers; t "$1" '/customers?mealType=VEG'; t "$1" /customersXYZ; t "$1" /customers '-X DELETE'; t "$1" /customers '-X OPTIONS'; post "$1" "$2" /shutdownXYZ; SENT=$((SENT + 1)); }
 # tread PORT: the scrape's count lines for both timers - Boot's http_server_requests, TiffinBox's tiffinbox_requests - read until
 # two reads half a second apart agree (up to 15 s); Actuator's own series left out and bounded (the readiness polls and these
 # reads move their counts)
@@ -662,11 +675,11 @@ timers1() { local i=0 a b=x all
   echo "  requests sent: $SENT · counted by Boot's timer: $(printf '%s\n' "$a" | grep '^http_server_requests' | awk '{ s += $NF } END { print s + 0 }') · by TiffinBox's: $(printf '%s\n' "$a" | grep '^tiffinbox_requests' | awk '{ s += $NF } END { print s + 0 }') · Boot's series: $(printf '%s\n' "$a" | grep -c '^http_server_requests' || true) · TiffinBox's: $(printf '%s\n' "$a" | grep -c '^tiffinbox_requests' || true)"; }
 timers() { local n0
   echo "before - the previous tree, the README's line with the kitchen at DEBUG, port 19351:"
-  start "$(at .harness/before 19351 "$R_KDBG")"; up; ready 19351; n0=$(mark); treq 19351; settle
+  start "$(at .harness/before 19351 "$R_KDBG")"; up; ready 19351; n0=$(mark); treq 19351 .harness/before; settle
   echo "  TiffinBox's own lines for these answers (logger tiffinbox, at DEBUG): $(logl "$n0" DEBUG | grep -c ' tiffinbox: ' || true)"; logl "$n0" DEBUG | grep ' tiffinbox: ' || true
   timers1 19351; stop 19351 .harness/before
   echo "after - after/, the same line, port 19350:"
-  start "$(at .harness/after 19350 "$R_KDBG")"; up; ready 19350; n0=$(mark); treq 19350; settle
+  start "$(at .harness/after 19350 "$R_KDBG")"; up; ready 19350; n0=$(mark); treq 19350 .harness/after; settle
   echo "  TiffinBox's own lines for these answers (logger tiffinbox, at DEBUG): $(logl "$n0" DEBUG | grep -c ' tiffinbox: ' || true) · any DEBUG line of the kitchen group's loggers (tiffinbox, com.tiffinbox…): $(logl "$n0" DEBUG | grep -cE ' (tiffinbox|com\.tiffinbox[A-Za-z0-9_.]*|c\.t\.[A-Za-z0-9_.]*): ' || true)"
   timers1 19350; stop 19350 .harness/after
   echo "C (labelled) - after/, Boot's web log group at DEBUG (the README's line), port 19350 - one request with a query string:"
@@ -676,15 +689,21 @@ timers() { local n0
   echo "  its other DEBUG lines: $(logl "$n0" DEBUG | grep -vc 'DispatcherServlet: GET ' || true), not shown"
   stop 19350 .harness/after; }
 
-# ---- stop: POST /shutdown, a controller method - A/B/A' ---------------------------------------------------------------------------
+# ---- stop: POST /shutdown, a controller method - then A/B/A': who lets the answer out ---------------------------------------------
+# A/B/A' hold the answer in flight: the harness's SlowAfter keeps POST /shutdown's own thread 2 s after TiffinBox's method returned
+# (its platform thread is closing the context by then), so the server is told to stop while the answer is still on its way, every
+# time. Without the hold, an immediate shutdown answers or not by a race - RED S2 #2 saw it lose the reply on a busy machine - and
+# no hash may rest on a race.
 stop_() {
   echo "Boot's own metadata, in after/'s jar: $(meta .harness/after/$JARP server.shutdown)"
-  echo "A - Boot's default: after/, the README's run line, port 19356 - one request, then POST /shutdown:"
+  echo "the README's run line, Boot's default, port 19356 - one request, then POST /shutdown:"
   start "$(at .harness/after 19356 "$R_RUN")"; up; ready 19356; t 19356 /customers; stop 19356 .harness/after; glines
+  echo "A - the answer held in flight, Boot's default: after/ on the README's class-path line with the harness's SlowAfter joined (POST /shutdown's thread waits 2 s after the method returned), port 19356:"
+  start "$(hcp .harness/after 19356 probe.web.SlowAfter)"; up; ready 19356; stop 19356 .harness/after; glines
   echo "B - the same, Boot's shutdown made immediate (this unit's option):"
-  start "$(at .harness/after 19356 "$L_IMM")"; up; ready 19356; t 19356 /customers; stop 19356 .harness/after; glines
+  start "$(hcp .harness/after 19356 probe.web.SlowAfter "$IMM")"; up; ready 19356; stop 19356 .harness/after; glines
   echo "A' - A again:"
-  start "$(at .harness/after 19356 "$R_RUN")"; up; ready 19356; t 19356 /customers; stop 19356 .harness/after; glines; }
+  start "$(hcp .harness/after 19356 probe.web.SlowAfter)"; up; ready 19356; stop 19356 .harness/after; glines; }
 
 # ---- exercise: the README's commands, exactly as written, then the solution's - in ONE shell --------------------------------------
 block() { awk '/^```bash$/ { if (!d) { f = 1 }; next } f && /^```$/ { f = 0; d = 1 } f' "$1"; }
@@ -736,7 +755,7 @@ nbuild() { local ci cn s0 s1
   echo "\$ $ci"; mbuild "$ci" "$1.install.log" "$1 (both modules, into \$M2)"
   echo "\$ $cn"
   NB_E=0; s0=$(date +%s); (eval "$cn") > "$1.native.log" 2>&1 < /dev/null || NB_E=$?; s1=$(date +%s); NB_S=$((s1 - s0))
-  echo "  (terminal only) the native build in $1 took $NB_S s" >&3
+  echo "  (terminal only) the native build in $1 took $NB_S s - $( [ $NB_S -lt 1200 ] && echo under || echo OVER ) the 20-minute bound" >&3
   if ghub "$1.native.log"; then echo "  offline: no - GraalVM's native plugin went to GitHub for its metadata repository"; die "the native build in $1: GraalVM's native plugin went over the network - README.md, The repository"; fi; }
 nlines() {
   echo "  its lines, in order (the rest - $(grep -cvE '^\[INFO\] --- |^\[INFO\] Found GraalVM|^ - Java version: |^Warning: |^\[[1-8]/8\] |^\[INFO\] BUILD |^The build process encountered ' "$1" || true) lines - not shown):"
@@ -745,7 +764,7 @@ nlines() {
   grep -E '^Warning: ' "$1" | sed -E "s/ in '(file:[^']*|null)'/ in '…'/" | sed 's/^/    /'
   grep -E '^\[[1-8]/8\] ' "$1" | sed 's/\.\.\..*$/.../' | sed 's/^/    /'
   grep -E '^The build process encountered |^\[INFO\] BUILD ' "$1" | sed 's/^\[INFO\] //' | sed 's/^/    /'; }
-nresult() { echo "  exit $NB_E · $(grep -m1 -oE 'BUILD (SUCCESS|FAILURE)' "$1" || echo 'no BUILD line') · stages it printed: $(grep -cE '^\[[1-8]/8\] ' "$1" || true) of the $(grep -m1 -oE '^\[1/[0-9]+\]' "$1" | sed 's/.*\///; s/]//') it announces · its duration, against the bound: $( [ $NB_S -lt 1200 ] && echo 'under 20 minutes' || echo '20 minutes or more' ) · its lines that say the metadata repository was downloaded over http, or failed to: $(grep -cE 'Downloaded GraalVM reachability metadata repository from http|Failed to download from http' "$1" || true) · offline: yes"; }
+nresult() { echo "  exit $NB_E · $(grep -m1 -oE 'BUILD (SUCCESS|FAILURE)' "$1" || echo 'no BUILD line') · stages it printed: $(grep -cE '^\[[1-8]/8\] ' "$1" || true) of the $(grep -m1 -oE '^\[1/[0-9]+\]' "$1" | sed 's/.*\///; s/]//') it announces · its lines that say the metadata repository was downloaded over http, or failed to: $(grep -cE 'Downloaded GraalVM reachability metadata repository from http|Failed to download from http' "$1" || true) · offline: yes"; }
 # aotmeta DIR: Spring's generated reachability metadata in DIR's web module (its AOT step's own file) - the reflection entries,
 # and the entry for TiffinBox's Customer record: what it registers
 AOTF=tiffinbox-web/target/spring-aot/main/resources/META-INF/native-image/com.tiffinbox/tiffinbox-web/reachability-metadata.json
@@ -894,6 +913,8 @@ for f in .r-*.out README.md exercise/README.md exercise/solution/SOLUTION.md rec
 [ "$NBIN" = 1 ] || die "one binary was built, $NBIN were checked"
 for f in .r-*.out; do ! grep -qE '/Users/|/private/|/home/|/var/folders/' "$f" || die "$f holds an absolute path"; [ -z "${GRAALVM_HOME:-}" ] || ! grep -qF "$GRAALVM_HOME" "$f" || die "$f holds the GraalVM's folder"; ! grep -qE 'c[0-9]-unit[0-9]|unit ?[0-9]' "$f" || die "$f holds a unit number"; ! grep -qE ' (with PID|started by) ' "$f" || die "$f holds Boot's process line"; ! grep -qE '^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T|"timestamp":"?[0-9]|timestamp=[A-Z0-9]|(exec|handler|task|utility)-[0-9]' "$f" || die "$f holds a log line's time, a timestamp or a thread's number"; ! grep -q "^$(printf '\t')at " "$f" || die "$f shows a stack frame"; ! grep -qE 'sha256:[0-9a-f]{64}' "$f" || [ "$(grep -cE 'sha256:[0-9a-f]{64}' "$f")" = "$(grep -cE 'eclipse-temurin(:25-jre)?@sha256:[0-9a-f]{64}' "$f")" ] || die "$f holds an ID other than the base image's digest"; ! grep -qE ':8080([^0-9]|$)' "$f" || die "$f shows a bind on 8080"; done
 for f in receipts.sh README.md exercise/README.md exercise/solution/SOLUTION.md harness/shutdown.sh; do [ -f "$f" ] || continue; ! grep -qE "exposure\.include='?\*" "$f" || die "$f exposes every endpoint (R.42)"; ! grep -E 'server\.error\.' "$f" | grep -vE '^ *#' > /dev/null || die "$f names one of Boot 3's error keys (server, then error) - Boot 4.1 reads only spring.web.error.* (S2.13)"; done
+# S2.22, widened to the POMs (RED S2 #21): after/'s POMs - comments and description too - name none of the parts this change deleted
+for f in after/pom.xml after/tiffinbox-core/pom.xml after/tiffinbox-web/pom.xml; do ! grep -qE 'RouteMapping|[Rr]outer|scanRoutes|tiffinbox\.requests' "$f" || die "$f names a part this change deleted - the router, RouteMapping, the scan or TiffinBox's timer (S2.22, the POMs too)"; done
 for f in receipts.sh README.md exercise/README.md exercise/solution/SOLUTION.md; do [ -f "$f" ] || continue; ! grep -E 'docker run ' "$f" | grep -vE '^#' | grep -E ' -p "?[0-9]+:' > /dev/null || die "$f publishes a port on every address (-p without 127.0.0.1:)"; done
 NL=$(cat .r-*.out | grep -cxF "  its log: the demo token 0 times · X-Shutdown-Token 0 times" || true)
 echo "  token: 0 raw copies in $(ls .harness/raw-* | wc -l | tr -d ' ') raw capture runs, in $(ls .r-*.out | wc -l | tr -d ' ') captures, in the logs of every start that ended by itself ($FLOGS here), every JVM that served ($LOGS here; the published captures' $NL), every container ($CLOGS here), the image's layers (forms), the READMEs, the harness, the exercise, receipts.md5 and the binary; no absolute path, no GraalVM folder, no unit number, no process line, no log time, no timestamp, no thread number, no stack frame, no ID but the base image's digest, no 8080 in any capture; every docker run publishes on 127.0.0.1 only"
@@ -909,7 +930,11 @@ RES="DefaultHandlerExceptionResolver: Resolved [org.springframework.web."
 # "At Component becomes at Rest Controller; each at Route becomes at Get Mapping or at Post Mapping ... Each method names its return
 #  type. The router's two files are deleted, and its ten lines drop to zero ... a controller ... whatever they return is the answer."
 x change '^  built the previous tree · offline: yes · exit 0$'; x change '^  built after/ · offline: yes · exit 0$'
-[ "$(n change '^  (Files|Only in) ')" = 4 ] || die "change: four paths differ"
+[ "$(n change '^  (Files|Only in) ')" = 5 ] || die "change: five paths differ"
+x change '^  Files \.harness/before/tiffinbox-web/pom\.xml and \.harness/after/tiffinbox-web/pom\.xml differ$'
+x change '^  tiffinbox-web/pom\.xml - the text that named the router, amended: its lines that name RouteMapping or a router 2 -> 0 · its lines that are not comments: 1 out, 1 in - the description:$'
+x change "^    -  <description>The HTTP server, the router and the JSON\. No SQL in here\.</description>\$"
+x change "^    \+  <description>Spring MVC's routes over TiffinBox's core\. No SQL in here\.</description>\$"
 x change '^  Only in \.harness/before/tiffinbox-web/src/main/java/com/tiffinbox/web: Route\.java$'; x change '^  Only in \.harness/before/tiffinbox-web/src/main/java/com/tiffinbox/web: RouteMapping\.java$'
 x change '^  Route\.java: 24 -> deleted$'; x change '^  RouteMapping\.java: 20 -> deleted$'; x change '^  TiffinBoxServer\.java: 285 -> 176$'
 x change '^    the router.s parts \(@Route, scanRoutes, its TreeMap, invoke\): 10 -> 0$'
@@ -928,8 +953,8 @@ has "$CA" '  @RestController - the annotations it carries (java.lang.annotation'
 has "$CA" '  @Controller - the annotations it carries (java.lang.annotation'"'"'s left out): @Component' "change: @Controller's own"
 x change '^the executable jar.s BOOT-INF/lib: 58 jars -> 58 · removed 0 · added 0 · Jackson 2 \(jackson-databind 2\.x\) 1 -> 1 · Jackson 3 \(jackson-databind 3\.x\) 1 -> 1$'
 x change '^  tiffinbox-core against the previous tree.s \(diff -rq -x target\): 0 files differ$'
-[ "$(n change "^  [A-Za-z0-9_./-]+ against the previous tree's, byte for byte: the same\$")" = 12 ] || die "change: twelve files the same"
-echo "  change: 4 paths; Route 24 and RouteMapping 20 deleted; TiffinBoxServer 285 -> 176, the router's lines 10 -> 0, the hint, the timer, the DEBUG line and Jackson 2's mapper out, 6 mapping annotations in; 6 annotation hunks; the class: @RestController = @Controller (@Component) + @ResponseBody; lib 58 -> 58; 12 files the same"
+[ "$(n change "^  [A-Za-z0-9_./-]+ against the previous tree's, byte for byte: the same\$")" = 11 ] || die "change: eleven files the same"
+echo "  change: 5 paths; Route 24 and RouteMapping 20 deleted; TiffinBoxServer 285 -> 176, the router's lines 10 -> 0, the hint, the timer, the DEBUG line and Jackson 2's mapper out, 6 mapping annotations in; 6 annotation hunks; the class: @RestController = @Controller (@Component) + @ResponseBody; the web POM's router text amended (its description the one non-comment line); lib 58 -> 58; 11 files the same"
 
 # "Before, TiffinBox logged its own route lines at start. Now Spring MVC's handler mapping ... lists TiffinBox's five, seven mappings
 #  in all, before Tomcat starts ... The routing table still has fourteen rows ... a verb, a pattern and the method."
@@ -1032,26 +1057,31 @@ echo "  patterns: default path-pattern-parser; A/A' exit 1, the caret, 0 frames,
 TB=$(blk timers 'before - ' 'after - '); TA=$(blk timers 'after - ' 'C (labelled)'); TC=$(blk timers 'C (labelled)' '')
 has "$TB" "  TiffinBox's own lines for these answers (logger tiffinbox, at DEBUG): 4" "timers before: 4 lines of TiffinBox's"
 has "$TB" '    tiffinbox_requests_seconds_count{route="GET /customers",status="200"} 2' "timers before: TiffinBox's timer"
-has "$TB" "  requests sent: 5 · counted by Boot's timer: 5 · by TiffinBox's: 4 · Boot's series: 4 · TiffinBox's: 2" "timers before: the sums"
+has "$TB" "  requests sent: 6 · counted by Boot's timer: 6 · by TiffinBox's: 4 · Boot's series: 5 · TiffinBox's: 2" "timers before: the sums"
+for b in "$TB" "$TA"; do has "$b" '  POST /shutdownXYZ -> 404 application/json · Content-Length: none · {"timestamp":"…","status":404,"error":"Not Found","path":"/shutdownXYZ"} · curl exit 0' "timers: POST /shutdownXYZ 404"
+  has "$b" '    http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="404",uri="/**"} 1' "timers: POST /shutdownXYZ's 404 under /**"; done
 has "$TA" "  TiffinBox's own lines for these answers (logger tiffinbox, at DEBUG): 0 · any DEBUG line of the kitchen group's loggers (tiffinbox, com.tiffinbox…): 0" "timers after: the kitchen quiet"
 has "$TA" '    http_server_requests_seconds_count{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/customers"} 2' "timers after: one series for /customers, with and without a query"
 has "$TA" '    http_server_requests_seconds_count{error="none",exception="none",method="GET",outcome="CLIENT_ERROR",status="404",uri="/**"} 1' "timers after: the 404 under /**"
 has "$TA" '    http_server_requests_seconds_count{error="none",exception="none",method="DELETE",outcome="CLIENT_ERROR",status="405",uri="UNKNOWN"} 1' "timers after: the 405 UNKNOWN"
 has "$TA" '    http_server_requests_seconds_count{error="none",exception="none",method="OPTIONS",outcome="SUCCESS",status="200",uri="UNKNOWN"} 1' "timers after: OPTIONS UNKNOWN"
-has "$TA" "  requests sent: 5 · counted by Boot's timer: 5 · by TiffinBox's: 0 · Boot's series: 4 · TiffinBox's: 0" "timers after: TiffinBox's timer gone"
+has "$TA" "  requests sent: 6 · counted by Boot's timer: 6 · by TiffinBox's: 0 · Boot's series: 5 · TiffinBox's: 0" "timers after: TiffinBox's timer gone"
 ! printf '%s\n' "$TA" | grep -q 'tiffinbox_requests' || die "timers after: a tiffinbox_requests line"
 has "$TC" '  the DispatcherServlet'"'"'s line for it (level logger: message): DEBUG o.s.web.servlet.DispatcherServlet: GET "/customers?mealType=VEG", parameters={masked}' "timers C: the request as typed, parameters masked"
-echo "  timers: before TiffinBox's 4 lines, its timer 2 series; after 0 lines, no tiffinbox_requests; Boot's: /customers x2 (one with a query) one series, /** 404, UNKNOWN for DELETE 405 and OPTIONS 200; C GET \"/customers?mealType=VEG\", parameters={masked}"
+echo "  timers: before TiffinBox's 4 lines, its timer 2 series; after 0 lines, no tiffinbox_requests; Boot's: /customers x2 (one with a query) one series, /** for GET /customersXYZ's 404 and POST /shutdownXYZ's (both trees), UNKNOWN for DELETE 405 and OPTIONS 200; C GET \"/customers?mealType=VEG\", parameters={masked}"
 
-# "Shutdown is a controller method now: it starts a thread that closes the context, and returns its answer. That answer arrived with
-#  graceful shutdown, and with immediate shutdown too."
+# "Shutdown is a controller method now: it starts a thread that closes the application context, and returns its answer. Graceful
+#  shutdown, Boot's default, waits for requests in flight, this one too ... B: immediate ... no answer at all. A again: the answer."
 x stop "^Boot's own metadata, in after/'s jar: server\.shutdown default graceful \(spring-boot-web-server-4\.1\.1\.jar\)\$"
-QA=$(blk stop 'A - ' 'B - '); QB=$(blk stop 'B - ' "A' - A again"); QA2=$(blk stop "A' - A again" '')
-for b in "$QA" "$QB" "$QA2"; do has "$b" "$SHUT" "stop: the answer arrived"; has "$b" "$(STOPPED 19356)" "stop: exit 0"; done
-for b in "$QA" "$QA2"; do has "$b" "  Boot's graceful-shutdown lines in its log: 2" "stop A/A': graceful"; done
-has "$QB" "  Boot's graceful-shutdown lines in its log: 0" "stop B: immediate"; printf '%s\n' "$QB" | grep -q -- ' --server\.shutdown=immediate$' || die "stop B: the option"
+Q0=$(blk stop "the README's run line" 'A - '); QA=$(blk stop 'A - ' 'B - '); QB=$(blk stop 'B - ' "A' - A again"); QA2=$(blk stop "A' - A again" '')
+for b in "$Q0" "$QA" "$QA2"; do has "$b" "$SHUT" "stop: the answer arrived"; has "$b" "  Boot's graceful-shutdown lines in its log: 2" "stop: graceful"; done
+for b in "$Q0" "$QA" "$QB" "$QA2"; do has "$b" "$(STOPPED 19356)" "stop: exit 0"; done
+has "$QB" '  POST /shutdown -> 000 (no type) · Content-Length: none ·  · curl exit 52' "stop B: no answer at all (curl: an empty reply)"
+has "$QB" "  Boot's graceful-shutdown lines in its log: 0" "stop B: immediate"
+for b in "$QA" "$QA2"; do printf '%s\n' "$b" | grep -q -- ' --spring\.main\.sources=probe\.web\.SlowAfter$' || die "stop A/A': the harness's SlowAfter joined"; done
+printf '%s\n' "$QB" | grep -q -- ' --spring\.main\.sources=probe\.web\.SlowAfter --server\.shutdown=immediate$' || die "stop B: the harness and the option"
 [ "$(printf '%s\n' "$QA" | grep -v '^  its log: ')" = "$(printf '%s\n' "$QA2" | grep -v '^  its log: ')" ] || die "stop: A' differs from A"
-echo "  stop: graceful by default; A, B (immediate) and A' - the answer {\"stopping\":true} (17 bytes), exit 0; graceful lines 2 / 0 / 2"
+echo "  stop: graceful by default; the README's line -> the answer {\"stopping\":true} (17 bytes); the answer held in flight 2 s: A graceful -> the answer, 2 graceful lines; B immediate -> no answer (curl exit 52), 0 lines; A' = A; exit 0 each"
 
 # the exercise's end state: the README's commands, then the solution's, in ONE env -i shell - each leaves the shell in this folder;
 # the line exercise/README.md calls "Done" is a line of this capture, after the solution's lines, and of SOLUTION.md's measured run;
@@ -1070,7 +1100,7 @@ echo "  exercise: one env -i shell - the README as written -> 405, Allow: GET, 0
 
 # "The record's hint is gone: Spring's AOT step ... registers the record itself. Return a plain object, and nothing's registered. The
 #  jar, the AOT jar, the native binary and the image all answer the same masked seven, on loopback."
-x forms '^  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: under 20 minutes · its lines that say the metadata repository was downloaded over http, or failed to: 0 · offline: yes$'
+x forms '^  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its lines that say the metadata repository was downloaded over http, or failed to: 0 · offline: yes$'
 x forms '^  file: Mach-O 64-bit executable · the demo token in its bytes: 0$'
 x forms '^what Spring.s AOT step registered for the native build - the record the routes return, with no hint in the tree \(code lines naming @RegisterReflectionForBinding in its Java sources: 0\):$'
 x forms '^  Spring.s generated metadata \(spring-aot/main/resources/META-INF/native-image/com\.tiffinbox/tiffinbox-web/reachability-metadata\.json\): reflection entries naming com\.tiffinbox\.Customer: 1 - all declared fields · all declared constructors · 4 methods \(mealType mealsPerDay name pricePerMeal\)$'

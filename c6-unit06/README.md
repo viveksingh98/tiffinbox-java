@@ -8,16 +8,19 @@ jobs for Spring MVC's own — `TiffinBoxServer` becomes a **`@RestController`**,
 — and measures what Spring MVC now decides that TiffinBox used to: which verbs, which paths, which patterns, who writes the answers,
 who times them, and which of the seven change.
 
-**The anchor changes (brief ⚑2-⚑6, ⚑15-⚑16).** `after/` is this unit's frozen copy of `../c6-tiffinbox` after the change, and
-`diff -rq -x target ../c6-tiffinbox after/` is empty. "Before" is `../c6-unit04/after` — the embedded-Tomcat lesson's frozen tree,
+**The anchor changes (brief ⚑2-⚑6, ⚑15-⚑16).** `after/` is this unit's frozen copy of `../c6-tiffinbox` after the change:
+`diff -rq -x target ../c6-tiffinbox after/` was empty at this unit's commit (997c0c8), and the later chain units have moved the anchor
+on since (RED S2 #24); a fix to this tree goes into every later one (brief S2.21). "Before" is `../c6-unit04/after` — the embedded-Tomcat lesson's frozen tree,
 which `c6-tiffinbox` equalled at 79887fd. Both trees are read and copied under `.harness/`, never built in place. The change:
 `TiffinBoxServer.java` (`@Component` → `@RestController`; `@Route` → `@GetMapping` ×4 and `@PostMapping`; each route returns its
 type, `List<Customer>` or `Map<String, Object>`; `@RegisterReflectionForBinding(Customer.class)` out; deleted with the router:
 `scanRoutes()`, `handlers()`, `RouteHandler`, `handle()`, `respond()`, `paths()`, the Jackson 2 `ObjectMapper` field, TiffinBox's own
 timer `tiffinbox.requests` and its line per answer at DEBUG; POST /shutdown a controller method — 285 lines → 176), `Route.java` (24
 lines) and `RouteMapping.java` (20) **deleted**, and the anchor's `README.md` (the unit section, and the history notes the change made
-false, each amended in place). The POMs, `application.yaml`, `spring.factories`, the Dockerfile, `compose.yaml`, the meters, the
-indicator, the guard, `TiffinBoxApp.java` and `tiffinbox-core` are unchanged — byte for byte (`change`).
+false, each amended in place), and the web POM's two lines that named the router — its description, and the comment above Spring
+MVC's starter (`RouteMapping`, "the Jackson 2 above") — amended (RED S2 #21: every dependency and plugin line the same). The parent POM,
+`application.yaml`, `spring.factories`, the Dockerfile, `compose.yaml`, the meters, the indicator, the guard, `TiffinBoxApp.java` and
+`tiffinbox-core` are unchanged — byte for byte (`change`).
 
 ```
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
@@ -29,33 +32,24 @@ export GRAALVM_HOME=/path/to/a/graalvm-jdk-25      # GraalVM CE 25.3.4.1 for the
 (`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) **Docker must
 answer** (`docker info`; on OrbStack `orb start` is tried once if it does not), with `eclipse-temurin:25-jre` already on it: the
 script never pulls. It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first). One native
-build per `forms` run (three per receipt), judged against a bound (under 20 minutes); its seconds go to the terminal only. **Start it
+build per `forms` run (three per receipt); its seconds, and the 20-minute bound, go to the terminal only — a hashed line must not move
+with the machine's load (RED S2 #11). **Start it
 in a process group of its own** (a terminal's foreground job is one): two receipts started as background jobs of one shell share a
 group, and one run's clean-up would stop the other's JVMs (Section 1's finding, brief S2.4).
 
-**Runs of record (2026-10-14, this script as committed):** **1,384 s under `./receipts.sh`** (/bin/bash 3.2.57, this folder, its
-own process group, exit 0, all 11 = published, every check passed; the three native builds 216, 231 and 335 s, load averages 20-58:
-other work ran on this Mac) and **1,079 s under `bash receipts.sh`** (Homebrew bash 5.3.9, the same; 194, 198 and 222 s). The first
-run under `./receipts.sh` (926 s; 161, 165 and 160 s) made the hashes: every capture 3/3, every check passed, and it stopped on "no
-published hash", as designed — its md5s are `receipts.md5`. And **1,118 s from a sealed fresh clone under `./receipts.sh`** (/bin/bash
-3.2.57): `git clone` of the local repository (HEAD 8d096a6) with `c6-unit06` and `c6-tiffinbox` put in from the working tree as git
-would take them (62 files, 0 differences — one of them a stray `harness/__pycache__/table.cpython-314.pyc`, which a `py_compile`
-left and which was deleted before the commit; `Route.java` and `RouteMapping.java` left out, deleted) — nothing git ignores: no
-`.m2-demo`, no `.harness/`, no `.r-*` — run under `env -i`, with a `HOME` whose `.mavenrc` points Maven's `user.home` there (Java reads
-`user.home` from the account, not from `$HOME`) and every Java proxy property at a port that refuses (127.0.0.1:9), and whose Maven
-settings send every repository to a `file://` copy of Central's files made from `.m2-demo` (4,372 files: TiffinBox's own installs,
-`_remote.repositories`, `*.lastUpdated`, `resolver-status.properties` and `.DS_Store` left out, `maven-metadata-central.xml` served as
-`maven-metadata.xml`); `http_proxy`, `https_proxy`, their capitals and `ALL_PROXY` at the same refusing port; `GRAALVM_HOME` set;
-`DOCKER_CONFIG=~/.docker` (a sealed `HOME` hides Docker's CLI plugins and context: the embedded-Tomcat lesson's finding); `PATH` the
-system's and Homebrew's — the exercise's `env -i` shell got the same; its own process group. Exit 0, all 11 = published, every check
-passed (native builds 201, 201 and 226 s). The first pre-capture build said `offline: no` (GraalVM's metadata repository was not in
-the empty `.m2-demo`) and took **536 artifacts, every one from the `file://` copy, 0 from anywhere else** (`github` in the run's log:
-0); every capture's build said `offline: yes`; `.m2-demo` ended with 1,451 files. **The exercise as viewers run it**, beyond the
-capture: `SOLUTION.md` alone in a new `env -i` bash, whose `java` is 23.0.1 → `status: 200 · Allow: none · customers: 4`, the shell in
-`c6-unit06/`; README then SOLUTION in one `zsh -f` shell → `status: 405 · Allow: GET · customers: 0`, then `status: 200 · Allow: none
-· customers: 4`, the shell in `c6-unit06/` after each.
+**Runs of record (2026-10-14, BLUE A — this script as committed, after RED S2):** **865 s under `./receipts.sh`** (/bin/bash 3.2.57,
+this folder, its own process group; every capture 3/3, every check passed; it made the four changed hashes — `change`, `timers`, `stop`,
+`forms` — and stopped on "no published hash", as designed; the other seven = published; the native builds 143, 142 and 144 s) and
+**990 s under `bash receipts.sh`** (Homebrew bash 5.3.9: exit 0, all 11 = published — the bytes bash 3.2 made — every check passed; 165,
+178 and 182 s; load averages 5-12). Before both, `.m2-demo` was re-seeded from `_research/m2-seed-s2/` alone (RED S2 #25): every build
+said `offline: yes`. **The exercise as viewers run it**, beyond the capture: README then SOLUTION in one `env -i` `/bin/bash --noprofile
+--norc` shell, its `java` 23.0.1 before the exports → `status: 405 · Allow: GET · customers: 0`, then `status: 200 · Allow: none ·
+customers: 4`, the shell in `c6-unit06/` after each, 19359 free after. **The first runs** (997c0c8, before RED): 1,384 s under
+`./receipts.sh`, 1,079 s under `bash receipts.sh`, 1,118 s from a sealed fresh clone — RED S2 #1 found this README then tripped its own
+S2.13 check (fixed above), and RED S2 #2 found `stop` B a race (now held: A/B/A′ above); BLUE's sealed fresh clone ran on the binding
+lesson's unit (`../c6-unit07/`, its README).
 
-Published hashes: change `163dacb80e1bb7189f0dbcdff7975b7b` · scan `bac026c989e99fe1efea1ce07eb5cd7f` · rows `bebbe2fc12ea6d4320a3e993fe348ab6` · verbs `f291e5a20f56e8ad67365606b5481040` · seven `a85e6e5b349bcddc50bf6caba79b35fb` · json `f4b6186bf543ce5e90bd6cd11a5f9c68` · patterns `572218725a798f5fa9c2ff5be7c889b8` · timers `017c54c33d30caec0d4a74392d36e84e` · stop `f59d74a8871a80e09ff15178d931bf5d` · exercise `31ed311e266aebcca69f6c746241937b` · forms `5511ebdd1038a4dc91405a7bee9c1763`.
+Published hashes: change `79f5e9033e0213c0f188227ec0b89a95` · scan `bac026c989e99fe1efea1ce07eb5cd7f` · rows `bebbe2fc12ea6d4320a3e993fe348ab6` · verbs `f291e5a20f56e8ad67365606b5481040` · seven `a85e6e5b349bcddc50bf6caba79b35fb` · json `f4b6186bf543ce5e90bd6cd11a5f9c68` · patterns `572218725a798f5fa9c2ff5be7c889b8` · timers `0983a966052639867fe09f913850fcfe` · stop `ab0b487fedc21a6a6f9110e8a97f5e2b` · exercise `31ed311e266aebcca69f6c746241937b` · forms `db1de714de65d90e821c93f54aeecc2a`.
 
 ## The commands this unit adds
 
@@ -79,7 +73,7 @@ The first starts TiffinBox with its own log group at DEBUG and Spring MVC's mapp
 `mappings` for one run, on the plain JVM — under Spring's AOT step a run-time exposure flag adds nothing (the mappings lesson) — and
 the next two read its answer with `harness/table.py` (`rows`). The fifth prints one answer's status, type, `Allow` and
 `Content-Length` (`verbs`); the sixth one answer's status line and header names (`seven`). The seventh switches Spring MVC to the
-legacy parser, by flag, for one run (`patterns` B). The eighth makes Boot's shutdown immediate (`stop` B). The ninth deletes one class
+legacy parser, by flag, for one run (`patterns` B). The eighth makes Boot's shutdown immediate (`stop` B, with the harness's `SlowAfter` joined). The ninth deletes one class
 Jackson 3 needs for a record from the hang copy that the anchor README's missing-class lines make (`json` C). The last reads a class's
 annotations the way Spring does (`change`), run from a tree's folder, with the harness's classes in `../hc`.
 
@@ -92,10 +86,10 @@ then stops where the native build would start (exit 1).
 
 ## The repository, Docker, and what was downloaded
 
-Every Maven build runs `mvn -o` against this unit's own `.m2-demo` (`$M2` on screen), seeded from the previous unit's `.m2-demo`
-(`../c6-unit05/.m2-demo`, its `com/tiffinbox` left out: a stale install would satisfy `-pl tiffinbox-web native:compile-no-fork`)
-and `../../spring-web-mvc/_research/m2-seed-s2/` — together exactly the S2 seed: 5,837 files, `diff -rq` against it 0 differences,
-no `com/tiffinbox`. **Nothing was downloaded** for this unit: every build said `offline: yes`, the native plugin read its metadata
+Every Maven build runs `mvn -o` against this unit's own `.m2-demo` (`$M2` on screen), seeded from
+`../../spring-web-mvc/_research/m2-seed-s2/` alone — 5,837 files, no `com/tiffinbox` (a stale install would satisfy `-pl tiffinbox-web
+native:compile-no-fork`). The first seeding added the previous unit's `.m2-demo` to the seed — the same files, `diff -rq` 0 — which the
+brief forbids (RED S2 #25); BLUE re-seeded it from the seed alone on 2026-10-14, before the runs of record. **Nothing was downloaded** for this unit: every build said `offline: yes`, the native plugin read its metadata
 repository from `.m2-demo` (`file:`), and every native build log holds 0 lines of the plugin's own download (`Downloaded GraalVM
 reachability metadata repository from http`, `Failed to download from http`). A fresh clone's `.m2-demo` is empty (git ignores it):
 the first build — `after/`'s `mvn -B -Pnative install`, before any capture — fills it from Maven Central and says `offline: no`; every
@@ -127,7 +121,9 @@ makes a token of its own (`openssl rand -hex 13`: 26 hexadecimal digits), counte
   `@Controller` carry); `Converters.java` (`--spring.main.sources=probe.web.Converters`: `/probe/converters`, the message converters
   Spring MVC's `RequestMappingHandlerAdapter` holds, and each JSON one's class and mapper — the embedded-Tomcat lesson's, copied);
   `Patterns.java` (`/probe/menu/{day}`, the literal `/probe/menu/today` beside it, `/probe/files/{*rest}`); `MidPattern.java` (one route
-  on `/probe/kitchen/**/today`); `harness/table.py` (the mappings lesson's reader of `/actuator/mappings`, its one change: TiffinBox's
+  on `/probe/kitchen/**/today`); `SlowAfter.java` (`--spring.main.sources=probe.web.SlowAfter`: an interceptor on POST `/shutdown` alone
+  that holds the request's own thread 2 s after TiffinBox's method returned, so the answer is still in flight when the server is told
+  to stop — `stop`); `harness/table.py` (the mappings lesson's reader of `/actuator/mappings`, its one change: TiffinBox's
   rows are the ones whose handler is TiffinBox's — its own named handler, or a `TiffinBoxServer` method — and their verbs are counted);
   `harness/shutdown.sh` (POST `/shutdown`, or the path named, with the token read from its file: the status, type, `Content-Length`,
   body and curl's exit).
@@ -187,17 +183,18 @@ AOT-jar form ("Found on the way"): the group emptied, the lock removed, every po
 
 ## 1 · change — the previous tree against after/
 
-Both trees built offline and extracted; the harness compiled against `after/`'s jar with `-parameters`; `diff -rq`: four paths —
-`Route.java` and `RouteMapping.java` only in the previous tree, `TiffinBoxServer.java` and the anchor README different. The server's
+Both trees built offline and extracted; the harness compiled against `after/`'s jar with `-parameters`; `diff -rq`: five paths —
+`Route.java` and `RouteMapping.java` only in the previous tree, `TiffinBoxServer.java`, the anchor README and the web POM different. The server's
 code lines (neither comment nor blank) naming each job the change moves: the router's parts (`@Route`, `scanRoutes`, its `TreeMap`,
 `invoke`) 10 → 0, the hint 2 → 0, TiffinBox's own timer → 0, a DEBUG line of TiffinBox's 2 → 0, its own Jackson 2 mapper 3 → 0, Spring
 MVC's mapping annotations 0 → 6; of the code diff's 21 hunks, the 6 that change a class or route annotation, whole (the other 15 delete
 the router: the big one is printed whole too, in the capture). The harness's `Stereotype`, on each tree's extracted jar: before
 `@Component` alone; after `@RestController yes · @Controller yes · @Component yes · @ResponseBody yes`, `@RestController` carrying
-`@Controller @ResponseBody` and `@Controller` carrying `@Component` (C6-24). The jar's 58 libraries, unchanged (Jackson 2 among them,
-until Course 6's Jackson lessons); twelve files byte for byte the same; `tiffinbox-core` 0 differences.
+`@Controller @ResponseBody` and `@Controller` carrying `@Component` (C6-24). The web POM: its lines that name `RouteMapping` or a router
+2 → 0, its one non-comment line changed the description (RED S2 #21). The jar's 58 libraries, unchanged (Jackson 2 among them, until
+Course 6's Jackson lessons); eleven files byte for byte the same; `tiffinbox-core` 0 differences.
 
-`.r-change.out` · md5 `163dacb80e1bb7189f0dbcdff7975b7b` · 3 of 3
+`.r-change.out` · md5 `79f5e9033e0213c0f188227ec0b89a95` · 3 of 3
 
 ```
 the previous tree and after/, both copied under .harness/ with a config tree, each built with the README's line (offline):
@@ -216,6 +213,7 @@ $ javac -parameters -d .harness/hc -cp ".harness/after/tiffinbox-web/target/extr
 the files that differ:
 $ diff -rq -x target -x secrets .harness/before .harness/after
   Files .harness/before/README.md and .harness/after/README.md differ
+  Files .harness/before/tiffinbox-web/pom.xml and .harness/after/tiffinbox-web/pom.xml differ
   Only in .harness/before/tiffinbox-web/src/main/java/com/tiffinbox/web: Route.java
   Only in .harness/before/tiffinbox-web/src/main/java/com/tiffinbox/web: RouteMapping.java
   Files .harness/before/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java and .harness/after/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java differ
@@ -278,6 +276,9 @@ $ cd .harness/after && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.
 the executable jar's BOOT-INF/lib: 58 jars -> 58 · removed 0 · added 0 · Jackson 2 (jackson-databind 2.x) 1 -> 1 · Jackson 3 (jackson-databind 3.x) 1 -> 1
   README.md - the anchor's README: lines added 145, removed 20 - its new section and the history notes the change made false (not shown)
   tiffinbox-core against the previous tree's (diff -rq -x target): 0 files differ
+  tiffinbox-web/pom.xml - the text that named the router, amended: its lines that name RouteMapping or a router 2 -> 0 · its lines that are not comments: 1 out, 1 in - the description:
+    -  <description>The HTTP server, the router and the JSON. No SQL in here.</description>
+    +  <description>Spring MVC's routes over TiffinBox's core. No SQL in here.</description>
   tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxApp.java against the previous tree's, byte for byte: the same
   tiffinbox-web/src/main/java/com/tiffinbox/web/BareArgumentGuard.java against the previous tree's, byte for byte: the same
   tiffinbox-web/src/main/java/com/tiffinbox/web/BareArgumentAnalyzer.java against the previous tree's, byte for byte: the same
@@ -285,7 +286,6 @@ the executable jar's BOOT-INF/lib: 58 jars -> 58 · removed 0 · added 0 · Jack
   tiffinbox-web/src/main/java/com/tiffinbox/web/KitchenMetrics.java against the previous tree's, byte for byte: the same
   tiffinbox-web/src/main/resources/application.yaml against the previous tree's, byte for byte: the same
   tiffinbox-web/src/main/resources/META-INF/spring.factories against the previous tree's, byte for byte: the same
-  tiffinbox-web/pom.xml against the previous tree's, byte for byte: the same
   pom.xml against the previous tree's, byte for byte: the same
   Dockerfile against the previous tree's, byte for byte: the same
   compose.yaml against the previous tree's, byte for byte: the same
@@ -825,15 +825,16 @@ $ harness/shutdown.sh 19352 .harness/after/secrets/tiffinbox/shutdown-token
 
 ## 8 · timers — who times and logs each answer (⚑5, H6)
 
-The README's line with the kitchen at DEBUG, five requests on each tree (GET /customers, the same with `?mealType=VEG`,
-`/customersXYZ`, DELETE, OPTIONS). Before: TiffinBox's own four lines (`GET /customers -> 200` ×2, `UNKNOWN -> 405` ×2) and its timer's
-two series; Boot's timer files the 405s under `uri="/customers"` (the path mapping matched). After: 0 lines of the kitchen group's, no
-`tiffinbox_requests` at all; Boot's `uri="/customers"` 2 — with and without the query string, one series — `uri="/**"` for the 404, and
-`uri="UNKNOWN"` for the DELETE 405 and for OPTIONS 200: never "every series names a route". C (labelled): Boot's `web` group at DEBUG
+The README's line with the kitchen at DEBUG, six requests on each tree (GET /customers, the same with `?mealType=VEG`,
+`/customersXYZ`, DELETE, OPTIONS, and POST /shutdownXYZ with the token). Before: TiffinBox's own four lines (`GET /customers -> 200` ×2,
+`UNKNOWN -> 405` ×2) and its timer's two series; Boot's timer files the 405s under `uri="/customers"` (the path mapping matched). After:
+0 lines of the kitchen group's, no `tiffinbox_requests` at all; Boot's `uri="/customers"` 2 — with and without the query string, one
+series — `uri="/**"` for both 404s, GET's and POST's (the ledger's C6-9, both trees: RED S2 #30), and `uri="UNKNOWN"` for the DELETE 405
+and for OPTIONS 200: never "every series names a route". C (labelled): Boot's `web` group at DEBUG
 prints the request line as the client typed it, `GET "/customers?mealType=VEG", parameters={masked}` — Course 5's "never what the client
 typed" no longer holds at DEBUG.
 
-`.r-timers.out` · md5 `017c54c33d30caec0d4a74392d36e84e` · 3 of 3
+`.r-timers.out` · md5 `0983a966052639867fe09f913850fcfe` · 3 of 3
 
 ```
 before - the previous tree, the README's line with the kitchen at DEBUG, port 19351:
@@ -852,6 +853,8 @@ $ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' -X DELETE http://127.
   405 application/json
 $ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' -X OPTIONS http://127.0.0.1:19351/customers
   405 application/json
+$ harness/shutdown.sh 19351 .harness/before/secrets/tiffinbox/shutdown-token /shutdownXYZ
+  POST /shutdownXYZ -> 404 application/json · Content-Length: none · {"timestamp":"…","status":404,"error":"Not Found","path":"/shutdownXYZ"} · curl exit 0
   TiffinBox's own lines for these answers (logger tiffinbox, at DEBUG): 4
     DEBUG tiffinbox: GET /customers -> 200
     DEBUG tiffinbox: GET /customers -> 200
@@ -862,10 +865,11 @@ $ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' -X OPTIONS http://127
     http_server_requests_seconds_count{error="none",exception="none",method="GET",outcome="CLIENT_ERROR",status="404",uri="/**"} 1
     http_server_requests_seconds_count{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/customers"} 2
     http_server_requests_seconds_count{error="none",exception="none",method="OPTIONS",outcome="CLIENT_ERROR",status="405",uri="/customers"} 1
+    http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="404",uri="/**"} 1
     tiffinbox_requests_seconds_count{route="GET /customers",status="200"} 2
     tiffinbox_requests_seconds_count{route="UNKNOWN",status="405"} 2
   Actuator's own series, left out: fewer than 10 (the readiness polls and these reads move their counts)
-  requests sent: 5 · counted by Boot's timer: 5 · by TiffinBox's: 4 · Boot's series: 4 · TiffinBox's: 2
+  requests sent: 6 · counted by Boot's timer: 6 · by TiffinBox's: 4 · Boot's series: 5 · TiffinBox's: 2
 $ harness/shutdown.sh 19351 .harness/before/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: 17 · {"stopping":true} · curl exit 0
   exit 0 · listening on 19351 now: 0
@@ -886,14 +890,17 @@ $ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' -X DELETE http://127.
   405 application/json
 $ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' -X OPTIONS http://127.0.0.1:19350/customers
   200 
+$ harness/shutdown.sh 19350 .harness/after/secrets/tiffinbox/shutdown-token /shutdownXYZ
+  POST /shutdownXYZ -> 404 application/json · Content-Length: none · {"timestamp":"…","status":404,"error":"Not Found","path":"/shutdownXYZ"} · curl exit 0
   TiffinBox's own lines for these answers (logger tiffinbox, at DEBUG): 0 · any DEBUG line of the kitchen group's loggers (tiffinbox, com.tiffinbox…): 0
   the scrape's count lines for both timers (Actuator's own series left out):
     http_server_requests_seconds_count{error="none",exception="none",method="DELETE",outcome="CLIENT_ERROR",status="405",uri="UNKNOWN"} 1
     http_server_requests_seconds_count{error="none",exception="none",method="GET",outcome="CLIENT_ERROR",status="404",uri="/**"} 1
     http_server_requests_seconds_count{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/customers"} 2
     http_server_requests_seconds_count{error="none",exception="none",method="OPTIONS",outcome="SUCCESS",status="200",uri="UNKNOWN"} 1
+    http_server_requests_seconds_count{error="none",exception="none",method="POST",outcome="CLIENT_ERROR",status="404",uri="/**"} 1
   Actuator's own series, left out: fewer than 10 (the readiness polls and these reads move their counts)
-  requests sent: 5 · counted by Boot's timer: 5 · by TiffinBox's: 0 · Boot's series: 4 · TiffinBox's: 0
+  requests sent: 6 · counted by Boot's timer: 6 · by TiffinBox's: 0 · Boot's series: 5 · TiffinBox's: 0
 $ harness/shutdown.sh 19350 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: 17 · {"stopping":true} · curl exit 0
   exit 0 · listening on 19350 now: 0
@@ -916,17 +923,20 @@ $ harness/shutdown.sh 19350 .harness/after/secrets/tiffinbox/shutdown-token
 
 ## 9 · stop — POST /shutdown, a controller method (⚑6; A/B/A′)
 
-Boot's metadata: `server.shutdown` default `graceful`. A — one request, then POST /shutdown with the token: `200 application/json ·
-Content-Length: 17 · {"stopping":true}`, exit 0, Boot's two graceful lines. B — `--server.shutdown=immediate`: the same answer, exit 0,
-0 graceful lines. A′ = A. The answer arrived both ways, so no line here credits graceful shutdown for it: the method starts a platform
-thread that closes the application context, and returns the answer (the embedded-Tomcat lesson's `stop` measured graceful shutdown for
-a request in flight).
+Boot's metadata: `server.shutdown` default `graceful`. The README's run line — one request, then POST /shutdown with the token:
+`200 application/json · Content-Length: 17 · {"stopping":true}`, exit 0, Boot's two graceful lines: the method starts a platform thread
+that closes the application context, and returns the answer. Then A/B/A′ with the answer **held in flight** — the harness's `SlowAfter`
+keeps POST /shutdown's own thread 2 s after the method returned, so the server is told to stop while the answer is still on its way:
+A, Boot's default (graceful: Tomcat waits for requests in flight, this one too) → the answer, 2 graceful lines; B,
+`--server.shutdown=immediate` → **no answer at all** (`000`, curl exit 52: an empty reply), 0 graceful lines; A′ = A; exit 0 each time.
+**Graceful shutdown is what guarantees the reply** (RED S2 #2): without the hold, an immediate shutdown answers only when the answer
+is faster than the close — a race, which RED's run lost once on a busy machine, so no capture rests on it (brief ⚑6, amended).
 
-`.r-stop.out` · md5 `f59d74a8871a80e09ff15178d931bf5d` · 3 of 3
+`.r-stop.out` · md5 `ab0b487fedc21a6a6f9110e8a97f5e2b` · 3 of 3
 
 ```
 Boot's own metadata, in after/'s jar: server.shutdown default graceful (spring-boot-web-server-4.1.1.jar)
-A - Boot's default: after/, the README's run line, port 19356 - one request, then POST /shutdown:
+the README's run line, Boot's default, port 19356 - one request, then POST /shutdown:
 $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19356
   listens on: 127.0.0.1:19356 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
@@ -939,27 +949,34 @@ $ harness/shutdown.sh 19356 .harness/after/secrets/tiffinbox/shutdown-token
   exit 0 · listening on 19356 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
   Boot's graceful-shutdown lines in its log: 2
-B - the same, Boot's shutdown made immediate (this unit's option):
-$ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19356 --server.shutdown=immediate
+A - the answer held in flight, Boot's default: after/ on the README's class-path line with the harness's SlowAfter joined (POST /shutdown's thread waits 2 s after the method returned), port 19356:
+$ cd .harness/after && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19356 --spring.main.sources=probe.web.SlowAfter
   listens on: 127.0.0.1:19356 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19356/actuator/health/readiness
   {"status":"UP"} 200
-$ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:19356/customers
-  200 application/json
 $ harness/shutdown.sh 19356 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: 17 · {"stopping":true} · curl exit 0
   exit 0 · listening on 19356 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
-  Boot's graceful-shutdown lines in its log: 0
-A' - A again:
-$ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19356
+  Boot's graceful-shutdown lines in its log: 2
+B - the same, Boot's shutdown made immediate (this unit's option):
+$ cd .harness/after && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19356 --spring.main.sources=probe.web.SlowAfter --server.shutdown=immediate
   listens on: 127.0.0.1:19356 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19356/actuator/health/readiness
   {"status":"UP"} 200
-$ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:19356/customers
-  200 application/json
+$ harness/shutdown.sh 19356 .harness/after/secrets/tiffinbox/shutdown-token
+  POST /shutdown -> 000 (no type) · Content-Length: none ·  · curl exit 52
+  exit 0 · listening on 19356 now: 0
+  its log: the demo token 0 times · X-Shutdown-Token 0 times
+  Boot's graceful-shutdown lines in its log: 0
+A' - A again:
+$ cd .harness/after && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19356 --spring.main.sources=probe.web.SlowAfter
+  listens on: 127.0.0.1:19356 · loopback only: yes
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19356/actuator/health/readiness
+  {"status":"UP"} 200
 $ harness/shutdown.sh 19356 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: 17 · {"stopping":true} · curl exit 0
   exit 0 · listening on 19356 now: 0
@@ -1007,7 +1024,7 @@ whose `customers()` returns `Object`: 0 entries. Then **1** the jar, **2** the A
 `tomcat-handler-N Mapped to com.tiffinbox.web.TiffinBoxServer#customers()` — **4** the image (built here from after/'s Dockerfile, its
 layers searched: 0 tokens; published on `127.0.0.1:19357` alone): each the seven `87ca7efc…`, each exit 0; loopback counted form by form.
 
-`.r-forms.out` · md5 `5511ebdd1038a4dc91405a7bee9c1763` · 3 of 3
+`.r-forms.out` · md5 `db1de714de65d90e821c93f54aeecc2a` · 3 of 3
 
 ```
 the native build - after/ copied to .harness/nat with a config tree; the README's two Maven lines, offline; $GRAALVM_HOME names the GraalVM:
@@ -1033,7 +1050,7 @@ $ cd .harness/nat && mvn -o -B -Dmaven.repo.local="$M2" -Pnative -pl tiffinbox-w
     [8/8] Creating image...
     The build process encountered 5 warnings.
     BUILD SUCCESS
-  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: under 20 minutes · its lines that say the metadata repository was downloaded over http, or failed to: 0 · offline: yes
+  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its lines that say the metadata repository was downloaded over http, or failed to: 0 · offline: yes
   file: Mach-O 64-bit executable · the demo token in its bytes: 0
 what Spring's AOT step registered for the native build - the record the routes return, with no hint in the tree (code lines naming @RegisterReflectionForBinding in its Java sources: 0):
   Spring's generated metadata (spring-aot/main/resources/META-INF/native-image/com.tiffinbox/tiffinbox-web/reachability-metadata.json): reflection entries naming com.tiffinbox.Customer: 1 - all declared fields · all declared constructors · 4 methods (mealType mealsPerDay name pricePerMeal)
@@ -1133,7 +1150,7 @@ then the same line without `-X DELETE`), run in the same shell. Run `./receipts.
 |---|---|---|---|
 | 1 | the seven's masked md5 on 06's own tree | `87ca7efc…` on the probe's sketches | **`87ca7efc8584dcccd40e6b956db1de9b`** — the jar, the AOT jar, the binary and the image (`seven`, `forms`) |
 | 2 | the binary without `@RegisterReflectionForBinding`, precise types | the chain-end binary only | **the seven in this tree's binary, `/customers` 200**; the generated metadata names `Customer` (1), a copy returning `Object` none (0) (`forms`) |
-| 3 | the shutdown reply from a controller method; the seven's WARN count | the probe's 6/6 (+3/3 immediate); 1 WARN | **A, B (immediate), A′: the answer, `Content-Length: 17`, exit 0** (`stop`, 3 runs × 3); **the seven log 1 WARN**, GET /shutdown's (`seven`) |
+| 3 | the shutdown reply from a controller method; the seven's WARN count | the probe's 6/6 (+3/3 immediate); 1 WARN | **the README's line: the answer, `Content-Length: 17`, exit 0; the answer held in flight: A graceful → the answer, B immediate → none (curl exit 52), A′ = A** (`stop`, 3 runs × 4; BLUE, after RED S2 #2); **the seven log 1 WARN**, GET /shutdown's (`seven`) |
 | 4 | the legacy-parser break's lines on 06's tree | a harness on the chain end | **A/A′ exit 1, 0 frames, the caret under `**`, the rule, Boot's action; B 200, 0 WARN** (`patterns`) |
 | 15 | the image of every chain unit | once, on the chain end | **built from after/'s Dockerfile, 0 pulls, its layers 0 tokens, `127.0.0.1:19357` alone, the seven `87ca7efc…`, `docker wait` 0** (`forms`) |
 | 16 | the exercise as viewers run it | end state on a sketch | **one `env -i` shell: `status: 405 · Allow: GET · customers: 0`, then `status: 200 · Allow: none · customers: 4`** (`exercise`) |
@@ -1145,7 +1162,10 @@ then the same line without `-X DELETE`), run in the same shell. Run `./receipts.
   altered; `naming a verb: 4`; HEAD answering 405 after; the 406 with 0 WARN lines; `5c5`; the seven with 2 WARN lines; Jackson 2's
   class out answering 500; B with a WARN line; POST /shutdownXYZ answering 200; OPTIONS under `uri="/customers"`; B (immediate) with
   graceful lines; the exercise's 3 customers; the `Object` copy with Customer registered; 3 of 4 forms — **18 plants, 18 stops**, each
-  naming its check. SOLUTION.md without its `JAVA_HOME` line, and with another JDK's: both refused.
+  naming its check. SOLUTION.md without its `JAVA_HOME` line, and with another JDK's: both refused. **BLUE A's checks, the same way**
+  (2026-10-14): the web POM no longer differing; a router line left in it; the old description; ten files the same; `after/`'s web POM
+  naming the router (S2.22, the POMs too); POST /shutdownXYZ timed under `UNKNOWN`; one request uncounted; `stop` B answering; A without
+  the harness's hold; the README's line without its graceful lines; a duration back in `forms`' hashed line — **11 plants, 11 stops**.
 - **A semicolon in an `eval`'d URL ends the command.** The first `patterns` run printed `/customers;x=1 → 200` while curl had asked for
   `/customers` alone — the shell ran `x=1` as a second command. Every URL holding `;` or `?` is single-quoted now (`qurl`), and the
   printed command is the one that ran: `'http://127.0.0.1:19352/customers;x=1'`, still 200.
@@ -1162,10 +1182,12 @@ then the same line without `-X DELETE`), run in the same shell. Run `./receipts.
   the verb); after/'s are `uri="UNKNOWN"`, with OPTIONS (`timers`).
 - **The order of the routes Spring MVC registers moves between runs** — the probe's run listed `revenue` first, this tree's
   `dashboard` — so each TRACE block's routes are sorted, and said to be; TiffinBox's own `route …` lines likewise.
-- **The checks' own text matched the check.** The `server.error.*` refusal (S2.13) found its own message in `receipts.sh`; it now
-  names the keys without spelling them.
+- **The checks' own text matched the check.** S2.13's refusal of Boot 3's error keys found its own message in `receipts.sh`; it now
+  names the keys without spelling them. Then this very note, which spelled them, tripped it in `README.md` (RED S2 #1): it spells them
+  no more.
 - **The seed**: the previous unit's `.m2-demo`, its `com/tiffinbox` left out, adds nothing to `_research/m2-seed-s2/` (`diff -rq`
-  of the union against the seed: 0 differences, 5,837 files).
+  of the union against the seed: 0 differences, 5,837 files) — and the brief seeds from the seed alone, so BLUE re-seeded it that way
+  (RED S2 #25).
 - **The image is built in `forms`** (this unit has no `bind`): its presence is never assumed, so a partial run cannot ask Docker Hub
   for it.
 - **The image builder is named by its argument file.** The first interrupt test waited for `NativeImageGeneratorRunner` on a command
@@ -1196,10 +1218,26 @@ then the same line without `-X DELETE`), run in the same shell. Run `./receipts.
   The `kitchen` group logs nothing per request; Boot's `web` group at DEBUG prints `GET "/customers?mealType=VEG", parameters={masked}`.
 - **Native:** no hint in the tree; Spring's AOT step registers `Customer` from the signatures (`reachability-metadata.json` under
   `tiffinbox-web/target/spring-aot/main/resources/META-INF/native-image/com.tiffinbox/tiffinbox-web/`). 160-335 s a build in this unit's runs (load averages up to 58),
-  under the 20-minute bound. The image: `tiffinbox-mvc:1.0.0` is this unit's name — take your own.
+  under the 20-minute bound — the seconds and the bound go to the terminal, never into a hashed line (RED S2 #11). The image: `tiffinbox-mvc:1.0.0` is this unit's name — take your own.
 - **Jackson:** two in the jar still (58 libraries): Spring MVC's converter writes every TiffinBox answer with Jackson 3; Jackson 2 writes
   none (`json`) — unit 08 takes it out (⚑7).
 - **Harness on the class path:** `javac -parameters` (S2.16); a URL with `;` or `?` is single-quoted in `eval`'d commands (it ran
   `/customers` alone before the quoting: "Found on the way").
 - **Not done here:** `@PathVariable`, `@RequestParam`, `@RequestHeader` (07); request bodies (08); Jackson's configuration (09);
   `ResponseEntity` (10).
+
+## Dated note — 2026-10-14, after RED S2 (BLUE A)
+
+- **The token at TRACE (RED S2 #3).** `after/README.md`'s Course 5 note "At TRACE, still no token", with this unit's addition "this run
+  is not re-measured on this tree", is false here: Tomcat's `org.apache.coyote.http11.Http11InputBuffer` prints each request it received,
+  the `X-Shutdown-Token` header and its value among the lines, when its logger is at TRACE (Boot's log labels the record DEBUG) — since
+  the embedded-Tomcat lesson. RED measured the token once in such a log on this tree (`--logging.level.root=trace`, a fake token of its
+  own, the seven; the seven still `87ca7efc…`). This tree's `POST /shutdown` reads the header off the servlet request, so Spring MVC's
+  `HandlerMethod` prints no token here; the binding lesson's `@RequestHeader` adds that second copy, and the same lesson holds both
+  loggers at INFO in `application.yaml`'s first document (`../c6-unit07/`, `trace`: 0 copies at `root=trace` and at `web=trace`).
+  `after/` stays frozen — its line counts feed hashed captures — so the correction lives here. Never run this tree at TRACE with a real
+  token.
+- **Every endpoint exposed at once (RED S2 #22, #54).** `after/README.md`'s Course 5 note that exposing every endpoint stops the start on
+  Jackson 2's `JavaTimeModule` (for `configprops`) has been false since the embedded-Tomcat lesson put Jackson 3 in the jar: with Jackson 3
+  present configprops answers 200 (RED's measurement, on that lesson's tree and on the last course's with Jackson 3 added). The
+  request-body lesson's anchor README carries the corrected note.

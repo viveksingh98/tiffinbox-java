@@ -15,9 +15,9 @@ parentheses), so your shell stays in `c6-unit06/` for the next run: it starts Ti
 `../head.txt`, its body to `../body.txt`), stops TiffinBox with POST /shutdown (`harness/shutdown.sh`, the token read from the
 copy's own file), waits for that JVM to exit (`wait $!`: a JVM that failed — another JDK's `java`, say — ends the line with its own
 exit code, never with a count), and prints the request's status, its `Allow` header (`none` when there is none) and how many
-customers its body holds. On a fresh clone `.m2-demo` is empty: run `./receipts.sh` once first (no GraalVM is needed for that:
-without `GRAALVM_HOME` it fills `.m2-demo`, makes every capture that needs none — this exercise's among them — and stops before
-the native build).
+customers its body holds. On a fresh clone `.m2-demo` is empty: run `./receipts.sh` once first (no GraalVM is needed for that, but Docker must answer, with `eclipse-temurin:25-jre` on it: the
+script checks both before its first build; without `GRAALVM_HOME` it fills `.m2-demo`, makes every capture that needs none — this
+exercise's among them — and stops before the native build).
 
 ```bash
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25

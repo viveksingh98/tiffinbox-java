@@ -10,8 +10,9 @@ happens to JSON that doesn't fit (Spring's 400 and one WARN line, or nothing at 
 what the request's `Content-Type` decides (A/B/A′: 200, then 415), and what is left of TiffinBox's own Jackson 2 (nothing but the
 annotations jar both Jacksons read).
 
-**The anchor changes (brief ⚑2, ⚑7, ⚑9).** `after/` is this unit's frozen copy of `../c6-tiffinbox` after the change, and
-`diff -rq -x target ../c6-tiffinbox after/` is empty. "Before" is `../c6-unit07/after` — the binding lesson's frozen tree, which
+**The anchor changes (brief ⚑2, ⚑7, ⚑9).** `after/` is this unit's frozen copy of `../c6-tiffinbox` after the change:
+`diff -rq -x target ../c6-tiffinbox after/` was empty at this unit's commit (3ff5e21); the next chain unit moved the anchor on (RED S2
+#24, #61), and BLUE's fixes to the earlier trees came into this one with them (brief S2.21). "Before" is `../c6-unit07/after` — the binding lesson's frozen tree, which
 `c6-tiffinbox` equalled at c9a2d97. Both trees are read and copied under `.harness/`, never built in place. The change:
 `TiffinBoxServer.java` — **`POST /customers`**, new (`Customer add(@RequestBody Customer customer)`: stores the record and returns it,
 200; 197 lines → 215); `tiffinbox-core`'s `CustomerRepository.java` — **`add(Customer)`**, new (one `INSERT`, the four values parameters
@@ -32,35 +33,25 @@ export GRAALVM_HOME=/path/to/a/graalvm-jdk-25      # GraalVM CE 25.3.4.1 for the
 (`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) **Docker must
 answer** (`docker info`; on OrbStack `orb start` is tried once if it does not), with `eclipse-temurin:25-jre` already on it: the
 script never pulls. It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first). One native
-build per `forms` run (three per receipt), judged against a bound (under 20 minutes); its seconds go to the terminal only. **Start it
+build per `forms` run (three per receipt); its seconds, and the 20-minute bound, go to the terminal only — a hashed line must not move
+with the machine's load (RED S2 #46). **Start it
 in a process group of its own** (a terminal's foreground job is one): two receipts started as background jobs of one shell share a
 group, and one run's clean-up would stop the other's JVMs (Section 1's finding, brief S2.4).
 
-**Runs of record (2026-10-14, this script as committed):** **1,016 s under `./receipts.sh`** (/bin/bash 3.2.57, this folder, its own
-process group, exit 0, all 9 = published, every check passed; the three native builds 193, 200 and 195 s) and **962 s under `bash receipts.sh`**
-(Homebrew bash 5.3.9, the same; 175, 188 and 207 s). The hashes were made by earlier runs of this script, every capture 3/3 each time:
-a first run under `bash receipts.sh` made seven of them and stopped, as it must, at "no published hash"; `unchecked`'s and `jackson`'s
-were made again, by a run without a GraalVM under `./receipts.sh`, once their cuts were counted; `change`'s moved when the anchor README
-gained five more amended notes — its new value, computed from the old capture, was reproduced 3/3 by both runs of record. Two more full
-runs, one under each bash, passed before the sealed clone found a drift ("Found on the way"); the runs of record are of the fixed script.
-And **1,071 s from a sealed fresh clone under `./receipts.sh`** (/bin/bash 3.2.57): `git clone` of the local repository (HEAD c9a2d97)
-with `c6-unit08` and `c6-tiffinbox` put in from the working tree as git would take them (59 files, 0 differences; the clone's status
-the same six lines as the repository's) — nothing git ignores: no `.m2-demo`, no `.harness/`, no `.r-*` — run under `env -i`, with a
-`HOME` whose `.mavenrc` points Maven's `user.home` there and every Java proxy property at a port that refuses (127.0.0.1:9), and whose
-Maven settings send every repository to a `file://` copy of Central's files made from `.m2-demo` (4,372 files: TiffinBox's own installs,
-`_remote.repositories`, `*.lastUpdated`, `resolver-status.properties` and `.DS_Store` left out, `maven-metadata-central.xml` served as
-`maven-metadata.xml`); `http_proxy`, `https_proxy`, their capitals and `ALL_PROXY` at the same refusing port; `GRAALVM_HOME` set;
-`DOCKER_CONFIG=~/.docker`; `PATH` Homebrew's and the system's — the exercise's `env -i` shell got the same; its own process group. Exit
-0, all 9 = published, every check passed (native builds 206, 203 and 200 s). Three pre-capture builds said `offline: no` — after/'s native install
-(GraalVM's metadata repository was not in the empty `.m2-demo`), the previous tree's package (Jackson 2, which after/ no longer needs)
-and the previous tree's class path (the dependency plugin's own dependencies) — and every capture's build said `offline: yes`. The clone's
-`.m2-demo` ended with 707 artifact files (jars, POMs and the metadata zip; TiffinBox's own installs left out), and its
-`_remote.repositories` entries name one repository, 707 of 707 `sealed` — the `file://` copy — 0 another; the native plugin's metadata
-download lines: 0; `github` in the run's logs: 15 lines — 14 artifact paths under `com/github/` fetched from the `file://` copy, and native-image's printed link to its own build-output documentation, never fetched. **Interrupted** (below): exit 130, nothing left. **The exercise as viewers run it**
-is the `exercise` capture itself — `exercise/README.md`, then `SOLUTION.md`, in one `env -i` `/bin/bash --noprofile --norc` shell, the
-shell in `c6-unit08/` after each — and, by hand, the same two blocks in one `env -i` `zsh -f` shell: `status: 415 · its Accept header: application/json, application/*+json · customers now: 4`, then `status: 200 · its Accept header: none · customers now: 5`, the shell in `c6-unit08/` after each, 19379 free.
+**Runs of record (2026-10-14, BLUE A — this script as committed, after RED S2):** **1,337 s under `bash receipts.sh`** (Homebrew bash
+5.3.9, this folder, its own process group; every capture 3/3, every check passed; it made the two changed hashes — `chain`, with the
+`String` case, and `forms`, with no duration in it — and stopped on "no published hash", as designed; the other seven = published, `change`
+among them: BLUE's cascade into this tree moved none of its counts; the native builds 330, 231 and 178 s) and **1,336 s under
+`./receipts.sh`** (/bin/bash 3.2.57: exit 0, all 9 = published — the bytes bash 5.3 made — every check passed; 247, 324 and 326 s; load
+averages 6-19). Before both, `.m2-demo` was re-seeded from `_research/m2-seed-s2/` alone (RED S2 #57): every build said `offline: yes`.
+**The exercise as viewers run it**, beyond the capture: README then SOLUTION in one `env -i` `/bin/bash --noprofile --norc` shell, its
+`java` 23.0.1 before the exports → `status: 415 · its Accept header: application/json, application/*+json · customers now: 4`, then
+`status: 200 · its Accept header: none · customers now: 5`, the shell in `c6-unit08/` after each, 19379 free after. **The first runs**
+(3ff5e21, before RED): 1,016 s under `./receipts.sh`, 962 s under `bash receipts.sh`, 1,071 s from a sealed fresh clone (707 artifacts,
+every one from the `file://` copy). BLUE A's sealed fresh clone ran on the binding lesson's unit (`../c6-unit07/`, its README), with
+this unit's tree and the anchor put in as git would take them.
 
-Published hashes: change `67b91bdc076302552d0de44eaf129264` · chain `453d3ef7d3eb4f7ad291b1bfc2770801` · body `2e750fe2fe0d2cff2d1b675c4ec217bd` · misfit `1c4196c88ebc7d89f971e827346d3de8` · unchecked `25068b5bb4f1ed581e97a2082984d75e` · ctype `d9b635fd220eda36bd63409379df9186` · jackson `b8159a1bdf46a54fa926f5d470aa45ab` · exercise `fd145077ff74d3a64fab7580e0867459` · forms `2bf8eda170a8732b3e5a39a8103bb472`.
+Published hashes: change `67b91bdc076302552d0de44eaf129264` · chain `7bdfffea7744669922c3608e11ede97b` · body `2e750fe2fe0d2cff2d1b675c4ec217bd` · misfit `1c4196c88ebc7d89f971e827346d3de8` · unchecked `25068b5bb4f1ed581e97a2082984d75e` · ctype `d9b635fd220eda36bd63409379df9186` · jackson `b8159a1bdf46a54fa926f5d470aa45ab` · exercise `fd145077ff74d3a64fab7580e0867459` · forms `9d7f813766dc82123979bf7b9ca169ef`.
 
 ## The commands this unit adds
 
@@ -97,10 +88,10 @@ then stops where the native build would start (exit 1).
 
 ## The repository, Docker, and what was downloaded
 
-Every Maven build runs `mvn -o` against this unit's own `.m2-demo` (`$M2` on screen), seeded from the previous unit's `.m2-demo`
-(`../c6-unit07/.m2-demo`, its `com/tiffinbox` left out: a stale install would satisfy `-pl tiffinbox-web native:compile-no-fork`)
-and `../../spring-web-mvc/_research/m2-seed-s2/` — together exactly the S2 seed: 5,837 files, `diff -rq` against it 0 differences,
-no `com/tiffinbox`. **Nothing was downloaded** for this unit: every build said `offline: yes` — the seed already held everything after/
+Every Maven build runs `mvn -o` against this unit's own `.m2-demo` (`$M2` on screen), seeded from
+`../../spring-web-mvc/_research/m2-seed-s2/` alone — 5,837 files, no `com/tiffinbox` (a stale install would satisfy `-pl tiffinbox-web
+native:compile-no-fork`). The first seeding added the previous unit's `.m2-demo` to the seed — the same files, `diff -rq` 0 — which the
+brief forbids (RED S2 #57); BLUE re-seeded it from the seed alone on 2026-10-14, before the runs of record. **Nothing was downloaded** for this unit: every build said `offline: yes` — the seed already held everything after/
 needs once Jackson 2 is out, `jackson-annotations-2.21.jar` included (Jackson 3's) — the native plugin read its metadata repository from
 `.m2-demo` (`file:`), and every native build log holds 0 lines of the plugin's own download (`Downloaded GraalVM reachability metadata
 repository from http`, `Failed to download from http`). A fresh clone's `.m2-demo` is empty (git ignores it): the first build —
@@ -118,7 +109,8 @@ git-ignored) when the script runs, mounted read-only into the container (`:ro`),
 `harness/shutdown.sh` on curl's standard input. Every capture's raw output is searched for it before masking (0 in all of them), and so
 are the log of every JVM that served (the `--debug` runs' and the DEBUG run's among them), the container's log (`docker logs`), every file
 this unit ships, the binary's bytes, and every blob of the image (`docker save`, each gzip layer unpacked; `forms`): 0 everywhere. A
-request body is printed whole at DEBUG (`body`) — so no body here carries the token, and none should carry a secret. The exercise makes a
+request body's values are in Spring's DEBUG line (`body`: this body's every value; RED S2 #51 measured a long one cut at its first
+hundred characters) — so no body here carries the token, and none should carry a secret. The exercise makes a
 token of its own (`openssl rand -hex 13`: 26 hexadecimal digits), counted 0 times in its own log and never printed.
 
 ## The folders, the names and the ports
@@ -370,12 +362,15 @@ $ harness/shutdown.sh 19370 .harness/after/secrets/tiffinbox/shutdown-token
 after/ with the harness's `Converters` joined. The `RequestMappingHandlerAdapter` holds **six message converters**, in the order it asks
 them, each with its media types; asked for a `com.tiffinbox.Customer`, `application/json` gets **one yes of six** — the sixth,
 `JacksonJsonHttpMessageConverter`, which can read one and write one — and a form (`application/x-www-form-urlencoded`) and `text/plain`
-none. The JSON converter's mapper is `tools.jackson.databind.json.JsonMapper`, Boot's bean `jacksonJsonMapper` itself. And
+none. **In order, the first that can read it:** asked for a `java.lang.String` from `application/json`, two say yes — the second,
+`StringHttpMessageConverter`, and the sixth, Jackson's — and a harness route whose `@RequestBody String` is posted
+`{"name":"Asha","mealsPerDay":2}` gets that text, unparsed: the converter asked first read it (RED S2 #42; the String case is this
+capture's, ≤ 3 lines). The JSON converter's mapper is `tools.jackson.databind.json.JsonMapper`, Boot's bean `jacksonJsonMapper` itself. And
 `FAIL_ON_UNKNOWN_PROPERTIES`, read back from that mapper and from a plain `JsonMapper` built with no setting at all: **false, both** —
 Jackson 3's own default ignores a property it does not know. Core Java II's Jackson lesson measured Jackson 2's default the other way:
 "the default is strict — an unknown field is an error, not a shrug" (its deck, read by the builder).
 
-`.r-chain.out` · md5 `453d3ef7d3eb4f7ad291b1bfc2770801` · 3 of 3
+`.r-chain.out` · md5 `7bdfffea7744669922c3608e11ede97b` · 3 of 3
 
 ```
 after/ on the README's class-path line with the harness's Converters joined, port 19372:
@@ -396,9 +391,13 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19372/probe/converters
     application/json: 1 of 6 - 6 JacksonJsonHttpMessageConverter (read yes, write yes)
     application/x-www-form-urlencoded: 0 of 6
     text/plain: 0 of 6
+  asked of each, for a java.lang.String from application/json - canRead - those that say yes: 2 of 6 - 2 StringHttpMessageConverter · 6 JacksonJsonHttpMessageConverter
   the JSON converter's mapper (6 JacksonJsonHttpMessageConverter): tools.jackson.databind.json.JsonMapper · Boot's bean jacksonJsonMapper itself: yes
   FAIL_ON_UNKNOWN_PROPERTIES - Boot's mapper: false · a plain JsonMapper (JsonMapper.builder().build()): false
    200
+  a String parameter, JSON posted to it (the harness's /probe/converters/text answers with what its parameter got):
+$ curl -s -w ' %{http_code}\n' -H 'Content-Type: application/json' --data '{"name":"Asha","mealsPerDay":2}' http://127.0.0.1:19372/probe/converters/text
+  the String parameter got: {"name":"Asha","mealsPerDay":2} 200
 $ harness/shutdown.sh 19372 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: 17 · {"stopping":true} · curl exit 0
   exit 0 · listening on 19372 now: 0
@@ -758,7 +757,7 @@ then, on a second start of each, the new route — the anchor's POST 200 and the
 `Content-Type` 415 with its `Accept` header, and `2.7` meals stored as 2, read back — 4 of 4 each (RE-MEASURE 15); loopback counted form
 by form.
 
-`.r-forms.out` · md5 `2bf8eda170a8732b3e5a39a8103bb472` · 3 of 3
+`.r-forms.out` · md5 `9d7f813766dc82123979bf7b9ca169ef` · 3 of 3
 
 ```
 the native build - after/ copied to .harness/nat with a config tree; the README's two Maven lines, offline; $GRAALVM_HOME names the GraalVM:
@@ -784,7 +783,7 @@ $ cd .harness/nat && mvn -o -B -Dmaven.repo.local="$M2" -Pnative -pl tiffinbox-w
     [8/8] Creating image...
     The build process encountered 5 warnings.
     BUILD SUCCESS
-  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: under 20 minutes · its lines that say the metadata repository was downloaded over http, or failed to: 0 · offline: yes
+  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its lines that say the metadata repository was downloaded over http, or failed to: 0 · offline: yes
   file: Mach-O 64-bit executable · the demo token in its bytes: 0
 what Spring's AOT step registered for the native build - the record a route reads and the routes return, and the enum a route's parameter is:
   Spring's generated metadata (spring-aot/main/resources/META-INF/native-image/com.tiffinbox/tiffinbox-web/reachability-metadata.json): reflection entries naming com.tiffinbox.Customer: 1 - all declared fields · all declared constructors · 4 methods (mealType mealsPerDay name pricePerMeal)
@@ -951,7 +950,9 @@ one header added), run in the same shell. Run `./receipts.sh` once first on a fr
 
 - **Every new check fails on a planted fault first** (R.65): the checks block run alone on copies of the published captures, one line
   changed per plant — a file that differs taken out; 197 → 216 lines; `@RequestBody` 0 → 2; a hunk line changed; a code line out; 57 jars; 19 files the same; the POST before as 404; the POST after as 201; the new mapping gone; 8 mappings; 15 rows; `consumes` naming a type; 7 converters; the sixth not writing; a form read by one; a plain mapper strict; 7 DEBUG lines; 3 meals read; 3 constructor calls; a 400 without its WARN; another reason; 2.7 stored as 3; 4 WARN lines; the stored body refused; not listed first; 23503; a trace of 48 frames; the report's cut as 99; the misspelt customer found; B as 400; B's Accept header cut; A′ unlike A; B's customer stored; 57 jars in `jackson`; one Jackson 2 class left; no import; Boot's version as 2.22.2; Actuator's Jackson 2 configuration matching after; `zip` exit 0; configprops 500; 6 customers done; a second header in the solution; 3 of 4 forms; the binary not loopback; a raw token in one capture run; a carriage return in a capture — **47 plants, 47 stops**, each naming its check; the unplanted copies pass. The
-  exercise's `SOLUTION.md` export checks are the request-mapping lesson's, verbatim (shown failing there).
+  exercise's `SOLUTION.md` export checks are the request-mapping lesson's, verbatim (shown failing there). **BLUE A's checks, the same
+  way** (2026-10-14): one converter for a `String`; Jackson reading the `String` parameter; a duration back in `forms`' hashed line — **3
+  plants, 3 stops**.
 - **Jackson 3 ignores an unknown property by its own default.** The brief and the correction comment speak of "the unknown-properties
   default"; read off two mappers, `FAIL_ON_UNKNOWN_PROPERTIES` is false on Boot's `jacksonJsonMapper` **and on a plain
   `JsonMapper.builder().build()`** (`chain`). So the difference from Core Java II's lesson — whose Jackson 2 refused one by default, "the
@@ -969,7 +970,9 @@ one header added), run in the same shell. Run `./receipts.sh` once first on a fr
 - **Course 5's configprops note was false already.** The anchor README's "every endpoint at once stops the start — `JavaTimeModule`, for
   `configprops`" (Course 5's actuator lesson, on TiffinBox's own server and its bridge) does not hold on Spring MVC's Actuator: configprops,
   exposed alone, answers 200 on the previous tree too (`jackson` C). Amended here because it names Jackson 2; the line itself exposes every
-  endpoint (R.42), so it is not run. For RED: which Section 1 change made it false is not measured.
+  endpoint (R.42), so it is not run. RED S2 #54 measured which change made it false: the embedded-Tomcat lesson's, which put Jackson 3 in
+  the jar (`c5-unit27/after` exit 1 on `JavaTimeModule`; the same tree with Jackson 3's two jars added, still on TiffinBox's own
+  server, 200; `c6-unit04/after` 200) — the anchor's note now says so (BLUE).
 - **The anchor README's history notes** — sixteen, each amended in place (*Course 6, unit 08*). Eleven about Jackson 2: the
   embedded-Tomcat section's "one jar holds two Jacksons", the request-mapping section's 58 libraries and its `JDK14Util` paragraph,
   Course 5's pin (unit 03), the Compose module's "beside Jackson 2" (unit 17), the binary's class path (unit 20), configprops (unit
@@ -1011,8 +1014,9 @@ one header added), run in the same shell. Run `./receipts.sh` once first on a fr
   application/*+json` + 1 WARN; malformed, empty, an array, a missing `int`, trailing text → 400 + 1 WARN each; an unknown property,
   `"2"`, **`2.7` → stored, 200, 0 WARN (2.7 stored as 2: 09's key ends it)**; `""`/0/−5/`LUNCH` → 200, stored; a misspelt key → 500 (H2
   23502, Tomcat's ERROR line, over 50 frames); a taken name → 500 (23505). 09's `float` A′ must start a fresh JVM (or post a fresh name).
-- **At DEBUG, a body is in the log whole:** `RequestResponseBodyMethodProcessor : Read "application/json;charset=UTF-8" to [Customer[…]]`.
-  No capture may POST anything secret with the web group at DEBUG (and TRACE still prints POST /shutdown's token: the binding lesson's
+- **At DEBUG, a body's values are in the log:** `RequestResponseBodyMethodProcessor : Read "application/json;charset=UTF-8" to
+  [Customer[…]]` — this body whole; a longer one cut at its first hundred characters (RED S2 #51).
+  No capture may POST anything secret with the web group at DEBUG (TRACE printed POST /shutdown's token until the binding lesson held its two loggers at INFO: its
   `trace`).
 - **The anchor README's history notes about Jackson 2** are amended (11, "Course 6, unit 08"); 09 adds `application.yaml`'s first-document
   key — check its line number against the `---` (S1-R.87) and grep the README for `accept-float-as-int`, `2.7`, `stored as 2`.
@@ -1023,5 +1027,5 @@ one header added), run in the same shell. Run `./receipts.sh` once first on a fr
 - **The interrupt test** starts the receipts as a terminal starts its foreground job (SIGINT at its default, a process group of its own) —
   the binding lesson's `python3 -c '… os.setpgrp(); os.execvp(…)'` line; a plain background job ignores SIGINT.
 - **Ports 19370-19379 are this unit's;** 09 has 19380-19389.
-- **Not done here:** Jackson's configuration (09); `ResponseEntity`, 201 and 409 (10); validation (12); converters (13); the POM's
-  `<description>` still says "the router" (stale since the request-mapping lesson; not this unit's change — for RED).
+- **Not done here:** Jackson's configuration (09); `ResponseEntity`, 201 and 409 (10); validation (12); converters (13). The web POM's
+  `<description>` said "the router" until BLUE A amended it in 06-09 and `c6-tiffinbox` (RED S2 #55).

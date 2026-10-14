@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 import tools.jackson.databind.DeserializationFeature;
@@ -17,7 +19,8 @@ import tools.jackson.databind.json.JsonMapper;
  * extracted jar's class path. One question, answered by the running application: which of Spring MVC's message converters -
  * the objects that turn a request's body into a parameter, and a return value into an answer's bytes - can read a
  * com.tiffinbox.Customer, and write one. Read off the RequestMappingHandlerAdapter, which asks its converters in its own order,
- * the first that can read the type from the request's Content-Type reading it (Spring's AbstractMessageConverterMethodArgumentResolver).
+ * the first that can read the type from the request's Content-Type reading it (Spring's AbstractMessageConverterMethodArgumentResolver)
+ * - which /probe/converters/text shows: a String from application/json is readable by two, and the one asked first reads it.
  * Then the JSON converter's mapper: its class, whether it is Boot's bean jacksonJsonMapper, and one setting of it read back
  * (isEnabled) beside the same setting of a plain JsonMapper, built with no configuration at all.
  */
@@ -61,6 +64,14 @@ public class Converters {
             out.append("  ").append(t).append(": ").append(yes.size()).append(" of ").append(all.size())
                .append(yes.isEmpty() ? "" : " - " + String.join(" · ", yes)).append('\n');
         }
+        List<String> text = new ArrayList<>();
+        for (int i = 0; i < all.size(); i++) {
+            if (all.get(i).canRead(String.class, MediaType.APPLICATION_JSON)) {
+                text.add((i + 1) + " " + all.get(i).getClass().getSimpleName());
+            }
+        }
+        out.append("asked of each, for a java.lang.String from application/json - canRead - those that say yes: ").append(text.size())
+           .append(" of ").append(all.size()).append(text.isEmpty() ? "" : " - " + String.join(" · ", text)).append('\n');
         for (int i = 0; i < all.size(); i++) {
             HttpMessageConverter<?> c = all.get(i);
             if (!c.getSupportedMediaTypes().contains(MediaType.APPLICATION_JSON)) {
@@ -78,5 +89,11 @@ public class Converters {
            .append(" · a plain JsonMapper (JsonMapper.builder().build()): ")
            .append(plain.isEnabled(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)).append('\n');
         return out.toString();
+    }
+
+    /** A String parameter, read from a JSON body: two converters can read it - the one asked first reads it. */
+    @PostMapping("/probe/converters/text")
+    public String text(@RequestBody String body) {
+        return "the String parameter got: " + body;
     }
 }

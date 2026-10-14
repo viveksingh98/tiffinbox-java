@@ -2,22 +2,27 @@
 
 Course 6 · Spring Web MVC · Section 2 (Controllers and Binding), its second unit · Verified on **JDK 25.0.4.1, Apache Maven 3.9.16,
 Spring Boot 4.1.1** (Spring Framework 7.0.9, Tomcat 11.0.24, Jackson 3.1.5 for Spring), **GraalVM CE 25.3.4.1** (native-image
-25.0.4.1), **Docker on OrbStack**, 2026-10-14. Until this unit TiffinBox's routes took nothing from a request but its path:
-`/customers?mealType=VEGAN` answered all four customers, and `/customers/Ravi` was Spring's 404. This unit gives the routes values
-from the request as **method parameters**, each named by an annotation — a path variable, a request parameter, a header — and
+25.0.4.1), **Docker on OrbStack**, 2026-10-14. Until this unit only POST /shutdown read more of a request than its path — its token's
+header, straight off the servlet request: `/customers?mealType=VEGAN` answered all four customers, and `/customers/Ravi` matched none
+of TiffinBox's routes — the static row took it and found no file: Spring's 404. This unit gives the routes values from the request as
+**method parameters**, each marked by an annotation — a path variable, a request parameter, a header — and
 measures who fills them (Spring MVC's argument resolvers, by name), what a missing or malformed value gets (Spring's 400 and a WARN
 line, or TiffinBox's own answer), what the defaults do, what a parameter costs at TRACE, and which forms still serve.
 
-**The anchor changes (brief ⚑2, ⚑6, ⚑8).** `after/` is this unit's frozen copy of `../c6-tiffinbox` after the change, and
-`diff -rq -x target ../c6-tiffinbox after/` is empty. "Before" is `../c6-unit06/after` — the request-mapping lesson's frozen tree,
+**The anchor changes (brief ⚑2, ⚑6, ⚑8; and RED S2 #3's ruling).** `after/` is this unit's frozen copy of `../c6-tiffinbox` after
+the change: `diff -rq -x target ../c6-tiffinbox after/` was empty at this unit's commit (c9a2d97) and again at BLUE's, before the
+later chain units moved the anchor on (RED S2 #24). "Before" is `../c6-unit06/after` — the request-mapping lesson's frozen tree,
 which `c6-tiffinbox` equalled at 997c0c8. Both trees are read and copied under `.harness/`, never built in place. The change:
 `TiffinBoxServer.java` — **`GET /customers/{name}`**, new (`Customer customer(@PathVariable String name)`; a name nobody has throws
 `ResponseStatusException` with 404), **`GET /customers`** takes `@RequestParam(required = false) MealType mealType` and keeps that meal
 type's customers, and **POST /shutdown** takes its token as `@RequestHeader(name = "X-Shutdown-Token", required = false) String
 token` where it read the servlet request's header itself (176 lines → 197); `tiffinbox-core`'s `CustomerRepository.java` —
-**`findByName(String)`**, new (50 → 64); and the anchor's `README.md` (the unit section, and the six history notes the change made
-false, each amended in place). The POMs, `application.yaml`, `spring.factories`, the Dockerfile, `compose.yaml`, the other five web
-classes and the other six core classes are unchanged — 19 files byte for byte — and the jar holds the same 58 libraries (`change`).
+**`findByName(String)`**, new (50 → 64); `application.yaml`'s first document — **two loggers held at INFO**, Boot's default level, Tomcat's
+`org.apache.coyote.http11.Http11InputBuffer` and Spring MVC's `org.springframework.web.method.HandlerMethod`, the two that print the
+token at TRACE (three lines under `logging:`, four comment lines above them: BLUE, on RED S2 #3's ruling — `trace`); and the anchor's
+`README.md` (the unit section, and the six history notes the change made false, each amended in place). The POMs, `spring.factories`,
+the Dockerfile, `compose.yaml`, the other five web classes and the other six core classes are unchanged — 18 files byte for byte —
+and the jar holds the same 58 libraries (`change`).
 
 ```
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
@@ -33,47 +38,58 @@ build per `forms` run (three per receipt), judged against a bound (under 20 minu
 in a process group of its own** (a terminal's foreground job is one): two receipts started as background jobs of one shell share a
 group, and one run's clean-up would stop the other's JVMs (Section 1's finding, brief S2.4).
 
-**Runs of record (2026-10-14, this script as committed):** **1,226 s under `./receipts.sh`** (/bin/bash 3.2.57, this folder, its own
-process group, exit 0, all 10 = published, every check passed; the three native builds 204, 220 and 231 s) and **1,093 s under `bash
-receipts.sh`** (Homebrew bash 5.3.9, the same; 187, 186 and 180 s). The first run under `./receipts.sh` (1,461 s; 232, 272 and 228 s) made
-nine of the hashes — every capture 3/3 — and stopped at a check: `trace`'s Tomcat record held a carriage return ("Found on the way");
-`trace`'s hash was made after the fix by a run of `change` and `trace` alone, the same script under /bin/bash 3.2, and every hash is
-reproduced by each run of record. And **943 s from a sealed fresh clone under `./receipts.sh`** (/bin/bash 3.2.57): `git clone` of the
-local repository (HEAD 997c0c8) with `c6-unit07` and `c6-tiffinbox` put in from the working tree as git would take them (60 files, 0
-differences; the clone's status the same four lines as the repository's) — nothing git ignores: no `.m2-demo`, no `.harness/`, no `.r-*`
-— run under `env -i`, with a `HOME` whose `.mavenrc` points Maven's `user.home` there and every Java proxy property at a port that refuses
-(127.0.0.1:9), and whose Maven settings send every repository to a `file://` copy of Central's files made from `.m2-demo` (4,385 files:
-TiffinBox's own installs, `_remote.repositories`, `*.lastUpdated`, `resolver-status.properties` and `.DS_Store` left out,
-`maven-metadata-central.xml` served as `maven-metadata.xml`); `http_proxy`, `https_proxy`, their capitals and `ALL_PROXY` at the same
-refusing port; `GRAALVM_HOME` set; `DOCKER_CONFIG=~/.docker`; `PATH` Homebrew's and the system's — the exercise's `env -i` shell got the
-same; its own process group. Exit 0, all 10 = published, every check passed (native builds 157, 173 and 181 s). The first pre-capture
-build said `offline: no` (GraalVM's metadata repository was not in the empty `.m2-demo`) and took **536 artifacts, every one from the
-`file://` copy, 0 from anywhere else**; every capture's build said `offline: yes`; the native plugin's metadata download lines: 0;
-`github` in the run's logs: 1 line, native-image's printed link to its own build-output documentation, never fetched; `.m2-demo` ended
-with 1,451 files. **Interrupted** (below): exit 130, nothing left. **The exercise as viewers run it** is the `exercise` capture itself —
-`exercise/README.md`, then `SOLUTION.md`, in one `env -i` `/bin/bash --noprofile --norc` shell, the shell in `c6-unit07/` after each.
+**Runs of record (2026-10-14, BLUE A — this script as committed, after RED S2):** **932 s under `./receipts.sh`** (/bin/bash 3.2.57,
+this folder, its own process group; every capture 3/3, every check passed; it made the five changed hashes — `change` and `trace` with
+the two held loggers, `others` with `@Value`, `exercise` with its label, `forms` with no duration in it — and stopped on "no published
+hash", as designed; the other five = published; the native builds 144, 145 and 160 s) and **1,632 s under `bash receipts.sh`** (Homebrew
+bash 5.3.9: exit 0, all 10 = published — the bytes bash 3.2 made — every check passed; 376, 329 and 318 s; load averages 5-18). A first
+BLUE run, with the loggers held at `debug` as the ruling said, stopped in `token`: B's log named the header 4 times, not 2 — "Found on
+the way". And **1,978 s from a sealed fresh clone under `./receipts.sh`** (/bin/bash 3.2.57): `git clone` of the local repository (HEAD
+b416d07) with `c6-unit06`, `c6-unit07`, `c6-unit08`, `c6-unit09` and `c6-tiffinbox` put in from the working tree as git would take them
+(169 files; `c6-unit07`, `c6-unit06/after` and `c6-tiffinbox` the same as the working tree's; the clone's status the repository's 33 lines)
+— nothing git ignores: no `.m2-demo`, no `.harness/`, no `.r-*` — run under `env -i`, with a `HOME` whose `.mavenrc` points Maven's
+`user.home` there and every Java proxy property at a port that refuses (127.0.0.1:9), and whose Maven settings send every repository to a
+`file://` copy of Central's files made from `.m2-demo` (4,385 files: TiffinBox's own installs, `_remote.repositories`, `*.lastUpdated`,
+`resolver-status.properties` and `.DS_Store` left out, `maven-metadata-central.xml` served as `maven-metadata.xml`); `http_proxy`,
+`https_proxy`, their capitals and `ALL_PROXY` at the same refusing port; `GRAALVM_HOME` set; `DOCKER_CONFIG=~/.docker`; `PATH` Homebrew's
+and the system's — the exercise's `env -i` shell got the same; its own process group. Exit 0, all 10 = published, every check passed
+(native builds 443, 439 and 331 s, load averages 17-21). The first pre-capture build said `offline: no` (GraalVM's metadata repository
+was not in the empty `.m2-demo`) and took **536 artifacts, every one from the `file://` copy, 0 from anywhere else** (`_remote.repositories`:
+536 `sealed`, 0 another); every capture's build said `offline: yes`; `github` in the run's logs: 15 lines, each an artifact path under
+`com/github/` read from the `file://` copy; `.m2-demo` ended with 1,451 files. **Interrupted** (below): exit 130, nothing left. **The
+exercise as viewers run it**, beyond the capture: README then SOLUTION in one `env -i` `/bin/bash --noprofile --norc` shell, its `java`
+23.0.1 before the exports → `status: 400 · customers: 0 · conversion failure: Failed to convert value of type 'java.lang.String' to
+required type 'com.tiffinbox.MealType'`, then `status: 200 · customers: 1 (Priya) · conversion failure: none`, the shell in `c6-unit07/`
+after each, 19369 free after. **The first runs** (c9a2d97, before RED): 1,226 s under `./receipts.sh`, 1,093 s under `bash
+receipts.sh`, 943 s from a sealed fresh clone.
 
-Published hashes: change `9d8e3d77e03103117762fc11a2d92cda` · resolvers `b0391d36eaf5f1c34274190cb39aff16` · path `eaa12d4c41c09f6ba51e694ccea2b5e2` · params `22453ca352f857ff76d740af069933e4` · others `ac58b372b50be69d94d44055d8597016` · token `72c7f88edf946de5d668e5bbb9fa282b` · trace `145e4e58497d9a3d7fe3dd996a148678` · timer `085d5198692800ed8a8ce5578183a755` · exercise `b1c7d11b9fcbe6dad84e29b15c06bfbb` · forms `9e6522ab8c94722fa93ac074b24ab9f8`.
+Published hashes: change `f0fd154736c4ed3cddc97f1035bb0eab` · resolvers `b0391d36eaf5f1c34274190cb39aff16` · path `eaa12d4c41c09f6ba51e694ccea2b5e2` · params `22453ca352f857ff76d740af069933e4` · others `8e1a2eb3f15fe933899356ee41e4cb7a` · token `72c7f88edf946de5d668e5bbb9fa282b` · trace `7e3dcf356adb2c17864eff76650a279b` · timer `085d5198692800ed8a8ce5578183a755` · exercise `50b64e8cdd41aac00dde4af7b07c0f58` · forms `1936c4afa4cf1f0ae0f689dd29da9377`.
 
 ## The commands this unit adds
 
-`after/README.md` — the anchor's own — gives every line `receipts.sh` runs or derives from but six, which are this unit's, each read
+`after/README.md` — the anchor's own — gives every line `receipts.sh` runs or derives from but nine, which are this unit's, each read
 from the block below and asserted to be exactly this (on the anchor's port 18431; each capture swaps in its own port):
 
 ```bash
 javap -v -p -cp tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar com.tiffinbox.web.TiffinBoxServer
+javac -d .harness/hc0 -cp ".harness/after/tiffinbox-web/target/extracted/lib/*" harness/bare/probe/bare/NoParams.java
 javap -v -p -cp ../hc0 probe.bare.NoParams
 java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc0" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=18431 --spring.main.sources=probe.bare.NoParams
 curl -s http://127.0.0.1:18431/actuator/mappings | python3 harness/table.py
 curl -s http://127.0.0.1:18431/actuator/mappings | python3 harness/table.py row '/customers/{name}'
+curl -s http://127.0.0.1:18431/actuator/mappings | python3 harness/table.py row /customers
 curl -s http://127.0.0.1:18431/customers/a%2Fb | grep -o '<title>[^<]*</title>'
+java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.web=trace
 ```
 
-The first reads, with `javap -v -p`, the parameter names javac wrote into `TiffinBoxServer.class` (`resolvers`); the second the same of
-the harness's `NoParams`, compiled without `-parameters` on purpose (`resolvers` C); the third starts after/'s class path with that
-class joined (`resolvers` C) — each run from a tree's folder, the harness's no-names classes in `../hc0`. The fourth and fifth read the
-routing table, `/actuator/mappings` exposed for one run by the request-mapping lesson's line (`change`): whole, and the new route's row
-with every key. The last prints the title of Tomcat's own 400 page for an encoded slash (`path`). The anchor README's own new lines —
+The first reads, with `javap -v -p`, the parameter names javac wrote into `TiffinBoxServer.class` (`resolvers`); the second compiles
+the harness's `NoParams` without `-parameters`, on purpose, from this unit's folder against after/'s extracted libraries (`resolvers`
+C — on screen, so it is here: RED S2 #27); the third reads that class with `javap`; the fourth starts after/'s class path with it
+joined (`resolvers` C) — each `javap` and `java` run from a tree's folder, the harness's no-names classes in `../hc0`. The next three
+read the routing table, `/actuator/mappings` exposed for one run by the request-mapping lesson's line (`change`): whole, the new
+route's row with every key, and the `/customers` row's (its `params = []`: RED S2 #14). The eighth prints the title of Tomcat's own
+400 page for an encoded slash (`path`). The last puts Boot's `web` log group at TRACE — enough, without the two held loggers, for
+Spring MVC's `HandlerMethod` to print a route's arguments (`trace`, RED S2 #5). The anchor README's own new lines —
 `curl -s -w ' %{http_code}\n' http://127.0.0.1:18431/customers/Ravi` and the same for `?mealType=VEGAN` — are the shape of every
 request a capture sends to TiffinBox's routes and the harness's (`ask`: its port, path and options swapped in); Course 5's lines still
 in that README give POST /shutdown with no header, `/customers/7`, and every logger at TRACE.
@@ -87,10 +103,10 @@ then stops where the native build would start (exit 1).
 
 ## The repository, Docker, and what was downloaded
 
-Every Maven build runs `mvn -o` against this unit's own `.m2-demo` (`$M2` on screen), seeded from the previous unit's `.m2-demo`
-(`../c6-unit06/.m2-demo`, its `com/tiffinbox` left out: a stale install would satisfy `-pl tiffinbox-web native:compile-no-fork`)
-and `../../spring-web-mvc/_research/m2-seed-s2/` — together exactly the S2 seed: 5,837 files, `diff -rq` against it 0 differences,
-no `com/tiffinbox`. **Nothing was downloaded** for this unit: every build said `offline: yes`, the native plugin read its metadata
+Every Maven build runs `mvn -o` against this unit's own `.m2-demo` (`$M2` on screen), seeded from
+`../../spring-web-mvc/_research/m2-seed-s2/` alone — 5,837 files, no `com/tiffinbox` (a stale install would satisfy `-pl tiffinbox-web
+native:compile-no-fork`). The first seeding added the previous unit's `.m2-demo` to the seed — the same files, `diff -rq` 0 — which the
+brief forbids (RED S2 #25); BLUE re-seeded it from the seed alone on 2026-10-14, before the runs of record. **Nothing was downloaded** for this unit: every build said `offline: yes`, the native plugin read its metadata
 repository from `.m2-demo` (`file:`), and every native build log holds 0 lines of the plugin's own download (`Downloaded GraalVM
 reachability metadata repository from http`, `Failed to download from http`). A fresh clone's `.m2-demo` is empty (git ignores it):
 the first build — `after/`'s `mvn -B -Pnative install`, before any capture — fills it from Maven Central and says `offline: no`; every
@@ -109,8 +125,8 @@ git-ignored) when the script runs, mounted read-only into the container (`:ro`),
 are the log of every JVM that served, the container's log (`docker logs`), every file this unit ships, the binary's bytes, and every
 blob of the image (`docker save`, each gzip layer unpacked; `forms`): 0 everywhere. **`trace` is the one capture whose log is meant to
 hold a token** — it measures which loggers write one at TRACE — so it never uses the demo token: `TTOK=` (26 characters, as fake) sits
-in two config trees of its own, beside a copy of each tree's jar; each log is counted (the trace token 1 and 2 times, the demo token 0)
-and emptied at once, the copies deleted, and the trace token is searched for in every capture's raw output, in every file this unit
+in config trees of its own, beside a copy of each jar — the previous tree's, after/'s, and a copy without the two held loggers; each
+log is counted (the trace token 1; 0 and 0; 2 and 1; the demo token 0) and emptied at once, the copies deleted, and the trace token is searched for in every capture's raw output, in every file this unit
 ships and in the binary: 0. Spring MVC's WARN line for a missing required header names the header (`X-Shutdown-Token`), never a
 value: `token` B's log holds the name 2 times — its two requests without the header — and the token 0, both asserted. The exercise
 makes a token of its own (`openssl rand -hex 13`: 26 hexadecimal digits), counted 0 times in its own log and never printed.
@@ -119,8 +135,9 @@ makes a token of its own (`openssl rand -hex 13`: 26 hexadecimal digits), counte
 
 - `after/` — the anchor after this change (= `../c6-tiffinbox`). `.harness/before`, `.harness/after` — the two trees, copied, each
   with a config tree, built and extracted (`change`); `.harness/req` — after/ with the header required, one attribute changed, built
-  (`token` B); `.harness/trb`, `.harness/tra` — each tree's jar, copied beside a config tree that holds the trace token (`trace`;
-  deleted after each run); `.harness/nat` — after/'s native build (`forms`); `.harness/hc` — the harness's classes, compiled against
+  (`token` B); `.harness/unpin` — after/ without application.yaml's three lines that hold the two loggers at INFO, built (`trace` B);
+  `.harness/trb`, `.harness/tra`, `.harness/trc` — the previous tree's, after/'s and that copy's jar, each beside a config tree that
+  holds the trace token (`trace`; deleted after each run); `.harness/nat` — after/'s native build (`forms`); `.harness/hc` — the harness's classes, compiled against
   after/'s own jar with `-parameters`; `.harness/hc0` — the harness's `NoParams`, compiled without it; `.harness/mine` — the exercise's copy.
 - **The harness** — the course's, never TiffinBox's (packages `probe.web` and `probe.bare`, outside `com.tiffinbox`), each joined by
   `--spring.main.sources` on the extracted jar's class path: `harness/probe/web/Resolvers.java` (`/probe/resolvers`: the argument
@@ -133,8 +150,8 @@ makes a token of its own (`openssl rand -hex 13`: 26 hexadecimal digits), counte
   `/actuator/mappings`, copied unchanged); `harness/shutdown.sh` (POST `/shutdown`, or the path named, with the token read from its file
   — the request-mapping lesson's, with one addition: a fourth argument names the header, which is how the misspelt one is sent).
 - **Ports** (brief ⚑1, 19360-19369): after/'s jar 19360 · the previous tree 19361 · after/ with the harness joined 19362 · the harness
-  compiled without `-parameters` 19363 · the AOT jar 19364 · the copy whose header is required 19365 · the image 19367 · the binary
-  19368 · the exercise 19369; 19366 is never bound. 18425 (TiffinBox's default) and 8080 (Tomcat's) are checked free and never bound on
+  compiled without `-parameters` 19363 · the AOT jar 19364 · the copy whose header is required 19365 · the copy without the two held
+  loggers 19366 · the image 19367 · the binary 19368 · the exercise 19369. 18425 (TiffinBox's default) and 8080 (Tomcat's) are checked free and never bound on
   this Mac (18425 only inside the container); a run that listens on 8080 is killed and the script dies.
 
 ## Masks, filters and hygiene — every one, declared
@@ -178,23 +195,28 @@ the exercise's shell `$xpid` with every process under it — `killtree`, by pare
 JVM, binary or `native-image` left, removes the container and the image, deletes the capture runs it had not finished (`.r-NAME.1-3`),
 and removes `.r-lock`. The published captures are untouched.
 
-**Measured** on this script (2026-10-14), started as a terminal starts its foreground job (SIGINT at its default, a process group of
-its own): SIGINT to its process group during the native build (362 s in, native-image's builder running — 5 processes in the group, 2
-of them java): **exit 130** 0.3 s later; 5 s later 0 processes in the group and 0 anywhere naming this folder, no image builder left;
-19360-19369, 8080 and 18425 free; no container, no image, no `.r-lock`, no unfinished capture run; the published captures unchanged.
+**Measured** on this script (2026-10-14, BLUE A's, as committed), started as a terminal starts its foreground job (SIGINT at its
+default, a process group of its own): SIGINT to its process group during the native build (471 s in, native-image's builder running — 5
+processes in the group, 2 of them java): **exit 130** 0.3 s later; 5 s later 0 processes in the group and 0 anywhere naming this folder,
+no image builder left; 19360-19369, 8080 and 18425 free; no container, no image, no `.r-lock`, no unfinished capture run; the published
+captures unchanged — every capture before `forms` re-made 3/3 on the way, each = published. (The first script, before RED: 362 s in, the
+same.)
 
 ## 1 · change — the previous tree against after/, and what a request can ask
 
-Both trees built offline and extracted; the harness compiled against `after/`'s jar with `-parameters`; `diff -rq`: three files —
-`TiffinBoxServer.java`, `CustomerRepository.java` and the anchor README. The server's code lines (neither comment nor blank, imports
+Both trees built offline and extracted; the harness compiled against `after/`'s jar with `-parameters`; `diff -rq`: four files —
+`TiffinBoxServer.java`, `CustomerRepository.java`, `application.yaml` and the anchor README. The server's code lines (neither comment nor blank, imports
 left out) naming a binding annotation 0 → 3, the servlet request 3 → 0, `ResponseStatusException` 0 → 1, a route 5 → 6; both Java
-files' code diffs, whole. The jar's 58 libraries, unchanged; 19 other files byte for byte the same. Then the problem and its fix, by
+files' code diffs, whole; `application.yaml`'s code lines 47 → 50, the three new ones under `logging:` (`level:` and the two
+loggers), placed in the first document — before the first `---` — and so read by every profile (`pplace`; a planted copy with them
+below the `---` fails the check). The jar's 58 libraries, unchanged; 18 other files byte for byte the same. Then the problem and its fix, by
 this unit's two lines in the anchor README: on the previous tree `/customers/Ravi` is Spring's 404 and `?mealType=VEGAN` answers all
 four; on after/ the record, and Priya alone. At TRACE (the request-mapping lesson's line) TiffinBox's six routes with their parameter
 types, Boot's two, `8 mappings`, before Boot's started line; the routing table 15 rows, TiffinBox's six each naming a verb, the new
-row's `params = []`, and the five servlet filters (Boot's timer among them: `webMvcObservationFilter`).
+row whole, the `/customers` row's `params = []` — the meal type is no part of the match — and the five servlet filters (Boot's timer
+among them: `webMvcObservationFilter`).
 
-`.r-change.out` · md5 `9d8e3d77e03103117762fc11a2d92cda` · 3 of 3
+`.r-change.out` · md5 `f0fd154736c4ed3cddc97f1035bb0eab` · 3 of 3
 
 ```
 the previous tree and after/, both copied under .harness/ with a config tree, each built with the README's line (offline):
@@ -215,6 +237,7 @@ $ diff -rq -x target -x secrets .harness/before .harness/after
   Files .harness/before/README.md and .harness/after/README.md differ
   Files .harness/before/tiffinbox-core/src/main/java/com/tiffinbox/CustomerRepository.java and .harness/after/tiffinbox-core/src/main/java/com/tiffinbox/CustomerRepository.java differ
   Files .harness/before/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java and .harness/after/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java differ
+  Files .harness/before/tiffinbox-web/src/main/resources/application.yaml and .harness/after/tiffinbox-web/src/main/resources/application.yaml differ
 the two Java files, their lines (wc -l), before -> after:
   TiffinBoxServer.java: 176 -> 197
   CustomerRepository.java: 50 -> 64
@@ -270,9 +293,17 @@ the two Java files, their lines (wc -l), before -> after:
     +            }
     +        }
     +    }
+  application.yaml - its lines that are neither comment nor blank: 47 -> 50 · their diff (diff -U1, its file names cut) - hunks: 1 · lines out: 0 · in: 3 - whole:
+    @@ -30,2 +30,5 @@
+         kitchen: tiffinbox, com.tiffinbox
+    +  level:
+    +    org.apache.coyote.http11.Http11InputBuffer: info
+    +    org.springframework.web.method.HandlerMethod: info
+     management:
+  its comment lines: 37 -> 41 · where the two loggers sit: level: line 62, under logging: (line 55) · org.apache.coyote.http11.Http11InputBuffer: info line 63 · org.springframework.web.method.HandlerMethod: info line 64 · the first "---" line 84 · in the first document: yes
 the executable jar's BOOT-INF/lib: 58 jars -> 58 · removed 0 · added 0
-  README.md - the anchor's README: lines added 90, removed 5 - its new section and the history notes the change made false (not shown)
-  the other files, against the previous tree's, byte for byte the same: 19 of 19 (the POMs, the Dockerfile, compose.yaml, .dockerignore, application.yaml, spring.factories, the other five web classes, the other six core classes)
+  README.md - the anchor's README: lines added 98, removed 5 - its new section and the history notes the change made false (not shown)
+  the other files, against the previous tree's, byte for byte the same: 18 of 18 (the POMs, the Dockerfile, compose.yaml, .dockerignore, spring.factories, the other five web classes, the other six core classes)
 what a request can ask - one customer by name, the vegan ones (this unit's two lines in the anchor's README) - before: the previous tree, the README's run line, port 19361:
 $ cd .harness/before && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19361
   listens on: 127.0.0.1:19361 · loopback only: yes
@@ -358,6 +389,20 @@ $ curl -s http://127.0.0.1:19360/actuator/mappings | python3 harness/table.py ro
     details.requestMappingConditions.produces = []
     handler = com.tiffinbox.web.TiffinBoxServer#customer(String)
     predicate = {GET [/customers/{name}]}
+$ curl -s http://127.0.0.1:19360/actuator/mappings | python3 harness/table.py row /customers
+  the row for /customers: 1
+  /customers - 3 keys: details handler predicate
+    details.handlerMethod.className = com.tiffinbox.web.TiffinBoxServer
+    details.handlerMethod.descriptor = (Lcom/tiffinbox/MealType;)Ljava/util/List;
+    details.handlerMethod.name = customers
+    details.requestMappingConditions.consumes = []
+    details.requestMappingConditions.headers = []
+    details.requestMappingConditions.methods = ["GET"]
+    details.requestMappingConditions.params = []
+    details.requestMappingConditions.patterns = ["/customers"]
+    details.requestMappingConditions.produces = []
+    handler = com.tiffinbox.web.TiffinBoxServer#customers(MealType)
+    predicate = {GET [/customers]}
 $ harness/shutdown.sh 19360 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: 17 · {"stopping":true} · curl exit 0
   exit 0 · listening on 19360 now: 0
@@ -568,7 +613,7 @@ carry**; **6** of them sit on a route this unit's captures ask (TiffinBox's and 
 `@RequestPart` *File Upload and Download*, `@SessionAttribute` *Sessions, Cookies and Flash Attributes* (C6-31's pointers; the
 roadmap's "every binding annotation with a curl", counted). Three WARN lines in the run.
 
-`.r-others.out` · md5 `ac58b372b50be69d94d44055d8597016` · 3 of 3
+`.r-others.out` · md5 `8e1a2eb3f15fe933899356ee41e4cb7a` · 3 of 3
 
 ```
 after/ on the README's class-path line with the harness's Bind and Resolvers joined, port 19362:
@@ -600,6 +645,9 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19362/probe/annotations
    200
   of them on a route this unit's captures ask (the code lines of TiffinBoxServer.java and the harness's Bind.java): 6 - @CookieValue @MatrixVariable @PathVariable @RequestAttribute @RequestHeader @RequestParam
   the others: 5 - @BindParam @ModelAttribute @RequestBody @RequestPart @SessionAttribute
+and one that is not spring-web's: Spring's @Value (spring-beans) binds a parameter too - the harness's /probe/bind/value, @Value("${tiffinbox.port}") String port:
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19362/probe/bind/value
+  port=[19362] 200 · WARN lines it added: 0
   WARN lines in this run's log, at Boot's default level: 3
 $ harness/shutdown.sh 19362 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: 17 · {"stopping":true} · curl exit 0
@@ -671,21 +719,28 @@ $ harness/shutdown.sh 19360 .harness/after/secrets/tiffinbox/shutdown-token
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 ```
 
-## 7 · trace — C (labelled): what TRACE prints
+## 7 · trace — the two loggers that print the token, held at INFO (A/B/A′)
 
 Course 5's logging lesson measured "At TRACE, still no token" on TiffinBox's own server; this re-measures it, with the anchor README's
-own line (`--logging.level.root=trace`) and the seven, on each tree's jar beside a config tree that holds the trace token. Before (the
-previous tree): the seven `87ca7efc…`, the trace token **1** time in the log — Tomcat's `o.a.coyote.http11.Http11InputBuffer` at DEBUG,
-`Received [POST /shutdown HTTP/1.1`, the token on the record's line 5, `X-Shutdown-Token: …`: Tomcat prints the request it received,
-headers and all, since TiffinBox moved onto Tomcat. After (after/): the same seven, the token **2** times — Tomcat's record, and Spring
-MVC's `o.s.web.method.HandlerMethod` at TRACE, `Arguments: [<the token>, …LifecycleHttpServletResponse@…]`: the header is a parameter
-now, and Spring prints the arguments it bound. The demo token 0 in both logs. The anchor README's Course 5 note is amended in place.
+own line (`--logging.level.root=trace`), this unit's line for Boot's `web` group at TRACE, and the seven, each jar beside a config tree
+that holds the trace token. **Before** (the previous tree, every logger at TRACE): the seven `87ca7efc…`, the trace token **1** time —
+Tomcat's `o.a.coyote.http11.Http11InputBuffer`, `Received [POST /shutdown HTTP/1.1`, the token on the record's line 5,
+`X-Shutdown-Token: …`: Tomcat prints the request it received, headers and all, since TiffinBox moved onto Tomcat. The record is
+labelled DEBUG, but its logger must be at TRACE — `--logging.level.root=debug` or the logger itself at `debug` print nothing; Tomcat
+writes it at JUL's FINER, which Boot's bridge labels DEBUG (RED S2 #4: `javap -c` of `Http11InputBuffer.fill`, `isTraceEnabled`).
+**A** (after/: `application.yaml` holds both loggers at INFO): every logger at TRACE — **0**; the web group at TRACE — **0**. **B** (a
+copy of after/ without those three lines, built offline): every logger at TRACE — **2**, Tomcat's record and Spring MVC's
+`o.s.web.method.HandlerMethod`, `Arguments: [<the token>, …LifecycleHttpServletResponse@…]` (the header is a parameter now, and Spring
+prints the arguments it bound); the web group at TRACE — **1**, `HandlerMethod`'s alone (Tomcat's logger is not in Boot's `web` group:
+RED S2 #5). **A′** = A, line for line. The seven `87ca7efc…` in every run, the demo token 0 in every log. The anchor README's Course 5
+note is amended in place. (RED S2 #3 ruled: keep `@RequestHeader`, the lesson; hold the two loggers.)
 
-`.r-trace.out` · md5 `145e4e58497d9a3d7fe3dd996a148678` · 3 of 3
+`.r-trace.out` · md5 `7e3dcf356adb2c17864eff76650a279b` · 3 of 3
 
 ```
-C (labelled) - the README's line with every logger at TRACE (Course 5's logging lesson: "At TRACE, still no token"), then the seven; each tree's jar, copied to a folder whose config tree holds a second fake token, the trace run's own (26 characters):
-before - the previous tree's jar, port 19361:
+the two loggers that print the token at TRACE: the README's line with every logger at TRACE (Course 5's logging lesson: "At TRACE, still no token"), then this unit's line with Boot's web group at TRACE, each followed by the seven; each tree's jar copied to a folder whose config tree holds a second fake token, the trace run's own (26 characters):
+after/'s application.yaml, its first document: level: line 62, under logging: (line 55) · org.apache.coyote.http11.Http11InputBuffer: info line 63 · org.springframework.web.method.HandlerMethod: info line 64 · the first "---" line 84 · in the first document: yes
+before - the previous tree's jar (no such lines), every logger at TRACE, port 19361:
 $ cd .harness/trb && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19361 --logging.level.root=trace
   listens on: 127.0.0.1:19361 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
@@ -696,7 +751,7 @@ $ $CURLSET 19361 .harness/trb/secrets/tiffinbox/shutdown-token
   exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 2 · md5 87ca7efc8584dcccd40e6b956db1de9b
   its log, the trace run's token in it: 1 · the demo token: 0 · the records that hold the trace run's token (level logger: first line):
     DEBUG o.a.coyote.http11.Http11InputBuffer: Received [POST /shutdown HTTP/1.1  - the token on the record's line 5: X-Shutdown-Token: [masked: the trace run's token]
-after - after/'s jar, port 19360:
+A - after/'s jar (both loggers held at INFO), port 19360:
 $ cd .harness/tra && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19360 --logging.level.root=trace
   listens on: 127.0.0.1:19360 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
@@ -705,9 +760,64 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19360/actuator/health/readiness
 $ $CURLSET 19360 .harness/tra/secrets/tiffinbox/shutdown-token
   POST  /shutdown   -> 200 application/json  {"stopping":true}
   exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 2 · md5 87ca7efc8584dcccd40e6b956db1de9b
+  its log, the trace run's token in it: 0 · the demo token: 0 · the records that hold the trace run's token (level logger: first line):
+$ cd .harness/tra && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19360 --logging.level.web=trace
+  listens on: 127.0.0.1:19360 · loopback only: yes
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19360/actuator/health/readiness
+  {"status":"UP"} 200
+$ $CURLSET 19360 .harness/tra/secrets/tiffinbox/shutdown-token
+  POST  /shutdown   -> 200 application/json  {"stopping":true}
+  exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 2 · md5 87ca7efc8584dcccd40e6b956db1de9b
+  its log, the trace run's token in it: 0 · the demo token: 0 · the records that hold the trace run's token (level logger: first line):
+B - a copy of after/ without the two loggers' lines (application.yaml's three lines deleted), built with the README's line, port 19366:
+  $ diff -U0 after/tiffinbox-web/src/main/resources/application.yaml .harness/unpin/tiffinbox-web/src/main/resources/application.yaml
+    @@ -62,3 +61,0 @@
+    -  level:
+    -    org.apache.coyote.http11.Http11InputBuffer: info
+    -    org.springframework.web.method.HandlerMethod: info
+  $ cd .harness/unpin && mvn -o -B -Dmaven.repo.local="$M2" -DskipTests clean package
+    built the copy · offline: yes · exit 0
+$ cd .harness/trc && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19366 --logging.level.root=trace
+  listens on: 127.0.0.1:19366 · loopback only: yes
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19366/actuator/health/readiness
+  {"status":"UP"} 200
+$ $CURLSET 19366 .harness/trc/secrets/tiffinbox/shutdown-token
+  POST  /shutdown   -> 200 application/json  {"stopping":true}
+  exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 2 · md5 87ca7efc8584dcccd40e6b956db1de9b
   its log, the trace run's token in it: 2 · the demo token: 0 · the records that hold the trace run's token (level logger: first line):
     DEBUG o.a.coyote.http11.Http11InputBuffer: Received [POST /shutdown HTTP/1.1  - the token on the record's line 5: X-Shutdown-Token: [masked: the trace run's token]
     TRACE o.s.web.method.HandlerMethod: Arguments: [[masked: the trace run's token], org.springframework.web.context.request.async.StandardServletAsyncWebRequest$LifecycleHttpServletResponse@…]
+$ cd .harness/trc && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19366 --logging.level.web=trace
+  listens on: 127.0.0.1:19366 · loopback only: yes
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19366/actuator/health/readiness
+  {"status":"UP"} 200
+$ $CURLSET 19366 .harness/trc/secrets/tiffinbox/shutdown-token
+  POST  /shutdown   -> 200 application/json  {"stopping":true}
+  exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 2 · md5 87ca7efc8584dcccd40e6b956db1de9b
+  its log, the trace run's token in it: 1 · the demo token: 0 · the records that hold the trace run's token (level logger: first line):
+    TRACE o.s.web.method.HandlerMethod: Arguments: [[masked: the trace run's token], org.springframework.web.context.request.async.StandardServletAsyncWebRequest$LifecycleHttpServletResponse@…]
+A' - A again:
+$ cd .harness/tra && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19360 --logging.level.root=trace
+  listens on: 127.0.0.1:19360 · loopback only: yes
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19360/actuator/health/readiness
+  {"status":"UP"} 200
+$ $CURLSET 19360 .harness/tra/secrets/tiffinbox/shutdown-token
+  POST  /shutdown   -> 200 application/json  {"stopping":true}
+  exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 2 · md5 87ca7efc8584dcccd40e6b956db1de9b
+  its log, the trace run's token in it: 0 · the demo token: 0 · the records that hold the trace run's token (level logger: first line):
+$ cd .harness/tra && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19360 --logging.level.web=trace
+  listens on: 127.0.0.1:19360 · loopback only: yes
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19360/actuator/health/readiness
+  {"status":"UP"} 200
+$ $CURLSET 19360 .harness/tra/secrets/tiffinbox/shutdown-token
+  POST  /shutdown   -> 200 application/json  {"stopping":true}
+  exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 2 · md5 87ca7efc8584dcccd40e6b956db1de9b
+  its log, the trace run's token in it: 0 · the demo token: 0 · the records that hold the trace run's token (level logger: first line):
 ```
 
 ## 8 · timer — one series per route
@@ -758,11 +868,11 @@ $ harness/shutdown.sh 19360 .harness/after/secrets/tiffinbox/shutdown-token
 
 `exercise/README.md`'s commands, then `exercise/solution/SOLUTION.md`'s, read from the files and run as written, one after the other in
 ONE shell a viewer could have — `env -i` (HOME, and the PATH the script was started with), `/bin/bash --noprofile --norc`, started in
-this folder: as shipped `status: 400 · customers: 0 · WARN: Failed to convert value of type 'java.lang.String' to required type
-'com.tiffinbox.MealType'`, then the solution `status: 200 · customers: 1 (Priya) · WARN: none`, the shell in this unit's folder after
+this folder: as shipped `status: 400 · customers: 0 · conversion failure: Failed to convert value of type 'java.lang.String' to
+required type 'com.tiffinbox.MealType'`, then the solution `status: 200 · customers: 1 (Priya) · conversion failure: none`, the shell in this unit's folder after
 each, the copy's own token 0 times in its log.
 
-`.r-exercise.out` · md5 `b1c7d11b9fcbe6dad84e29b15c06bfbb` · 3 of 3
+`.r-exercise.out` · md5 `50b64e8cdd41aac00dde4af7b07c0f58` · 3 of 3
 
 ```
 exercise/README.md's commands, then the solution's lines (exercise/solution/SOLUTION.md), exactly as written, one after the other in ONE shell - env -i (HOME, and the PATH this script was started with), /bin/bash --noprofile --norc, started in this folder:
@@ -773,16 +883,16 @@ the README's 7 lines:
   $ mkdir -p .harness/mine/after/secrets/tiffinbox && chmod 700 .harness/mine/after/secrets .harness/mine/after/secrets/tiffinbox
   $ (umask 077 && openssl rand -hex 13 > .harness/mine/after/secrets/tiffinbox/shutdown-token)
   $ M="$PWD/.m2-demo" && (cd .harness/mine/after && mvn -o -B -q -Dmaven.repo.local="$M" -DskipTests package)
-  $ (cd .harness/mine/after && { java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19369 > ../run.log 2>&1 & } && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19369/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && curl -s -D ../head.txt -o ../body.txt 'http://127.0.0.1:19369/customers?mealType=vegan'; ../../../harness/shutdown.sh 19369 secrets/tiffinbox/shutdown-token > /dev/null && wait $! && n=$(grep -o '"name":"[^"]*"' ../body.txt | sed 's/^"name":"//; s/"$//' | paste -sd' ' -) && w=$(grep -m1 -o "Failed to convert value of type [^;]*" ../run.log || true) && echo "status: $(sed -n '1s/^HTTP\/1\.1 \([0-9]*\).*/\1/p' ../head.txt) · customers: $(grep -o '"name":"' ../body.txt | wc -l | tr -d ' ')${n:+ ($n)} · WARN: ${w:-none}")
+  $ (cd .harness/mine/after && { java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19369 > ../run.log 2>&1 & } && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19369/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && curl -s -D ../head.txt -o ../body.txt 'http://127.0.0.1:19369/customers?mealType=vegan'; ../../../harness/shutdown.sh 19369 secrets/tiffinbox/shutdown-token > /dev/null && wait $! && n=$(grep -o '"name":"[^"]*"' ../body.txt | sed 's/^"name":"//; s/"$//' | paste -sd' ' -) && w=$(grep -m1 -o "Failed to convert value of type [^;]*" ../run.log || true) && echo "status: $(sed -n '1s/^HTTP\/1\.1 \([0-9]*\).*/\1/p' ../head.txt) · customers: $(grep -o '"name":"' ../body.txt | wc -l | tr -d ' ')${n:+ ($n)} · conversion failure: ${w:-none}")
   exit 0 · what they printed:
-    status: 400 · customers: 0 · WARN: Failed to convert value of type 'java.lang.String' to required type 'com.tiffinbox.MealType'
+    status: 400 · customers: 0 · conversion failure: Failed to convert value of type 'java.lang.String' to required type 'com.tiffinbox.MealType'
   the shell is now in: this unit's folder · the copy's own token in its log: 0 times · WARN lines in its log: 1
 the solution's 3 lines, next, in the same shell:
   $ export JAVA_HOME=/opt/homebrew/opt/openjdk@25
   $ export PATH="$JAVA_HOME/bin:$PATH"
-  $ (cd .harness/mine/after && { java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19369 > ../run.log 2>&1 & } && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19369/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && curl -s -D ../head.txt -o ../body.txt 'http://127.0.0.1:19369/customers?mealType=VEGAN'; ../../../harness/shutdown.sh 19369 secrets/tiffinbox/shutdown-token > /dev/null && wait $! && n=$(grep -o '"name":"[^"]*"' ../body.txt | sed 's/^"name":"//; s/"$//' | paste -sd' ' -) && w=$(grep -m1 -o "Failed to convert value of type [^;]*" ../run.log || true) && echo "status: $(sed -n '1s/^HTTP\/1\.1 \([0-9]*\).*/\1/p' ../head.txt) · customers: $(grep -o '"name":"' ../body.txt | wc -l | tr -d ' ')${n:+ ($n)} · WARN: ${w:-none}")
+  $ (cd .harness/mine/after && { java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19369 > ../run.log 2>&1 & } && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19369/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && curl -s -D ../head.txt -o ../body.txt 'http://127.0.0.1:19369/customers?mealType=VEGAN'; ../../../harness/shutdown.sh 19369 secrets/tiffinbox/shutdown-token > /dev/null && wait $! && n=$(grep -o '"name":"[^"]*"' ../body.txt | sed 's/^"name":"//; s/"$//' | paste -sd' ' -) && w=$(grep -m1 -o "Failed to convert value of type [^;]*" ../run.log || true) && echo "status: $(sed -n '1s/^HTTP\/1\.1 \([0-9]*\).*/\1/p' ../head.txt) · customers: $(grep -o '"name":"' ../body.txt | wc -l | tr -d ' ')${n:+ ($n)} · conversion failure: ${w:-none}")
   exit 0 · what they printed:
-    status: 200 · customers: 1 (Priya) · WARN: none
+    status: 200 · customers: 1 (Priya) · conversion failure: none
   the shell is now in: this unit's folder · the copy's own token in its log: 0 times · WARN lines in its log: 0 · listening on 19369 now: 0
 ```
 
@@ -796,7 +906,7 @@ second start of each, the new routes — `/customers/Ravi` 200, `/customers/Nobo
 400, POST /shutdown with no header 403 — 4 of 4 each (RE-MEASURE 15; the brief's "every new route in a native binary of its own
 unit's tree"); loopback counted form by form.
 
-`.r-forms.out` · md5 `9e6522ab8c94722fa93ac074b24ab9f8` · 3 of 3
+`.r-forms.out` · md5 `1936c4afa4cf1f0ae0f689dd29da9377` · 3 of 3
 
 ```
 the native build - after/ copied to .harness/nat with a config tree; the README's two Maven lines, offline; $GRAALVM_HOME names the GraalVM:
@@ -822,7 +932,7 @@ $ cd .harness/nat && mvn -o -B -Dmaven.repo.local="$M2" -Pnative -pl tiffinbox-w
     [8/8] Creating image...
     The build process encountered 5 warnings.
     BUILD SUCCESS
-  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: under 20 minutes · its lines that say the metadata repository was downloaded over http, or failed to: 0 · offline: yes
+  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its lines that say the metadata repository was downloaded over http, or failed to: 0 · offline: yes
   file: Mach-O 64-bit executable · the demo token in its bytes: 0 · the trace run's: 0
 what Spring's AOT step registered for the native build - the record the routes return, and the enum a route's parameter is:
   Spring's generated metadata (spring-aot/main/resources/META-INF/native-image/com.tiffinbox/tiffinbox-web/reachability-metadata.json): reflection entries naming com.tiffinbox.Customer: 1 - all declared fields · all declared constructors · 4 methods (mealType mealsPerDay name pricePerMeal)
@@ -971,8 +1081,8 @@ four forms, one tree: the seven (masked) 4 of 4 times 87ca7efc8584dcccd40e6b956d
 **Your turn:** ask for the vegan customers. The README's request answers 400. Find why in the log, fix the URL, and count them.
 `exercise/README.md` has the commands (copy `after/` with a token of its own, build the jar offline); its last line, in a subshell,
 starts TiffinBox on 19369, asks `/customers?mealType=vegan`, stops TiffinBox and prints — as shipped — `status: 400 · customers: 0 ·
-WARN: Failed to convert value of type 'java.lang.String' to required type 'com.tiffinbox.MealType'`. Done is `status: 200 · customers:
-1 (Priya) · WARN: none`. Measured answer: `exercise/solution/SOLUTION.md` (the README's two `export` lines, then the same line with
+conversion failure: Failed to convert value of type 'java.lang.String' to required type 'com.tiffinbox.MealType'`. Done is `status:
+200 · customers: 1 (Priya) · conversion failure: none`. Measured answer: `exercise/solution/SOLUTION.md` (the README's two `export` lines, then the same line with
 `mealType=VEGAN`), run in the same shell. Run `./receipts.sh` once first on a fresh clone.
 
 ## RE-MEASURE — the brief's items this unit settles
@@ -982,7 +1092,7 @@ WARN: Failed to convert value of type 'java.lang.String' to required type 'com.t
 | 5 | `ResponseStatusException` for `/customers/{name}` in the anchor | a harness route (`Rse`) | **404 in `/nowhere`'s shape, 0 WARN, no reason in the body** — on the jar (`path`) and in all four forms (`forms`) |
 | 6 | `required = true` on the token header → 400 (B) | a required harness header | **B: no header and a misspelt one → Spring MVC's 400 + `MissingRequestHeaderException` ×2; A/A′ 403** (`token`) |
 | 15 | the image of every chain unit | once, on the chain end | **built from after/'s Dockerfile, 0 pulls, its layers 0 tokens, `127.0.0.1:19367` alone, the seven `87ca7efc…` and the new routes, `docker wait` 0** (`forms`) |
-| 16 | the exercise as viewers run it | end state on a sketch | **one `env -i` shell: `status: 400 · customers: 0 · WARN: …MealType'`, then `status: 200 · customers: 1 (Priya) · WARN: none`** (`exercise`) |
+| 16 | the exercise as viewers run it | end state on a sketch | **one `env -i` shell: `status: 400 · customers: 0 · conversion failure: …MealType'`, then `status: 200 · customers: 1 (Priya) · conversion failure: none`** (`exercise`) |
 | — | "every new route in a native binary of its own unit's tree" (Not measured) | the chain-end binary only | **the binary of this tree: Ravi 200, Nobody 404, VEGAN → Priya, vegan 400, no header 403** (`forms`) |
 
 ## Found on the way
@@ -993,10 +1103,15 @@ WARN: Failed to convert value of type 'java.lang.String' to required type 'com.t
   `%2F` as JSON; `veg` without its WARN; `?days=` → 0; `tag=[a,b]`; 10 annotations; matrix `veg=null`; 6 others; B saying forbidden; A′'s
   log with the header's name; B's attribute false; the trace token once after; `HandlerMethodX`; 7 counted; one `/customers/{name}` 200;
   the exercise's 2 customers; its README run with 0 WARN; 3 of 4 forms; `MealType` 0 in the metadata; a raw token in a capture's run; a
-  carriage return in a capture — **32 plants, 32 stops**, each naming its check. The exercise's `SOLUTION.md` export checks are
+  carriage return in a capture — **32 plants, 32 stops**, each naming its check. **BLUE A's checks, the same way** (2026-10-14):
+  `application.yaml` no longer differing; two YAML lines, not three; `HandlerMethod` held at debug; the loggers below the `---`; a file
+  left alone differing; the `/customers` row's handler; `trace` A's token once; B's twice made once; B without its web-group run; B's
+  copy naming debug; the YAML's place line; `@Value` binding nothing; no resolver 13; the exercise's old label; a duration back in
+  `forms`' hashed line; the README's `javac` line gone — **16 plants, 16 stops**. The exercise's `SOLUTION.md` export checks are
   the request-mapping lesson's, verbatim (shown failing there).
 - **Tomcat's request dump ends its lines in CR LF.** The first run's `trace` held two carriage returns — Tomcat prints the request as it
-  came — and its Tomcat-record check failed on them. `held` drops `` now, and a last check fails any capture that holds one (shown on a
+  came — and its Tomcat-record check failed on them. `held` drops `
+` now, and a last check fails any capture that holds one (shown on a
   plant). Nine of the published hashes come from that first run; `trace`'s from a run of `change` and `trace` alone, the same script,
   /bin/bash 3.2 — and every one is reproduced by the runs of record.
 - **A script's background job ignores Ctrl-C.** The first interrupt test started `./receipts.sh` from a script, in a process group of its
@@ -1007,8 +1122,16 @@ WARN: Failed to convert value of type 'java.lang.String' to required type 'com.t
 - **A parameter is something TRACE prints.** Binding the token as `@RequestHeader String token` puts it in Spring MVC's
   `o.s.web.method.HandlerMethod` TRACE line, `Arguments: [<the token>, …]` — measured in `trace`, with a fake token of its own. The same
   run found that the anchor README's Course 5 note "At TRACE, still no token" was already false on the previous tree: Tomcat's
-  `Http11InputBuffer` prints each request it received, headers and all, at DEBUG (once on the previous tree, twice here). The note is
-  amended in place; the brief's ⚑6 (`@RequestHeader`) is kept, the hazard named — for RED (see "For unit 08 — and RED").
+  `Http11InputBuffer` prints each request it received, headers and all, when its logger is at TRACE (labelled DEBUG; once on the
+  previous tree). RED S2 #3 ruled: keep `@RequestHeader`, and hold both loggers in `application.yaml`'s first document — done
+  here by BLUE: 0 copies at `root=trace` and at `web=trace`, 2 and 1 without those lines (`trace`).
+- **The two loggers are held at INFO, not DEBUG** (BLUE: the ruling said `debug`; measured otherwise). Held at `debug`, Spring MVC's
+  `HandlerMethod` prints its own DEBUG lines at Boot's default level — `Could not resolve parameter [0] in … for value [vegan]`, once for
+  every argument it fails to bind, a second copy of the WARN line's reason, the value with it — and `token` B's log named the header 4
+  times where it names it twice: BLUE's first run of this script stopped there. Held at `info`, Boot's default level, a default run
+  logs as it did without the lines (0 lines of either logger), and the token stays out: 0 at `root=trace`, 0 at `web=trace`, the seven
+  `87ca7efc…` (BLUE's probe on this unit's jar, the levels overridden on the command line; then `trace` itself, 3/3). Tomcat's
+  `Http11InputBuffer` printed no DEBUG line either way: its request dump is a TRACE record.
 - **`javap -v` names the jar's absolute path** (`Classfile jar:file:/Users/…`): `mparams` never prints it; it reads the attribute
   counts and names alone. And `javap` without `-p` shows 5 of the 7 methods with names — the private ones (`holdsToken`, `ordered`)
   need `-p`.
@@ -1040,15 +1163,25 @@ WARN: Failed to convert value of type 'java.lang.String' to required type 'com.t
   rows — measure them.
 - **WARN lines at INFO, measured here:** one per type mismatch (`MethodArgumentTypeMismatchException`), per missing required parameter,
   header, cookie or request attribute; none for `ResponseStatusException`'s 404, a static 404, Tomcat's own 400, the method's 403.
-- **The trace hazard (open, for RED):** with every logger at TRACE, the token is in the log twice now — Tomcat's DEBUG request dump
-  (since the embedded-Tomcat lesson) and Spring MVC's `HandlerMethod` TRACE `Arguments:` line (since this unit). A request body is a
-  parameter too: unit 08's `@RequestBody Customer` will be printed by the same line at TRACE — harmless for a customer, but say so.
-  Any receipt that runs TRACE with the demo token dies on `logtok` — use a token of the capture's own, as `trace` does.
+- **The trace hazard (closed by RED S2 #3's ruling):** `application.yaml`'s first document holds Tomcat's `Http11InputBuffer` (its
+  request dump: a TRACE record, labelled DEBUG — since the embedded-Tomcat lesson) and Spring MVC's `HandlerMethod` (its `Arguments:`
+  line — since this unit) at INFO: the token 0 times at `root=trace` and at `web=trace` (`trace`). Keep both lines; a later unit that
+  adds a parameter holding a secret re-measures them. A request body is a parameter too: unit 08's `@RequestBody Customer` is no longer
+  printed at TRACE either. Any receipt that runs TRACE with the demo token still dies on `logtok` — use a token of the capture's own.
 - **Harness on the class path:** `javac -parameters` (S2.16); answers on one line; a URL with `;`, `?`, `&`, `{` or `}` single-quoted.
 - **Native:** no hint in the tree; Spring's AOT step's metadata names `Customer` and `MealType`; 156-227 s a native build in this unit's
-  runs. The image: `tiffinbox-bind:1.0.0` is this unit's name — take your own.
+  first runs — the seconds, and the 20-minute bound, go to the terminal only (RED S2 #11). The image: `tiffinbox-bind:1.0.0` is this unit's name — take your own.
 - **The interrupt test** starts the receipts as a terminal starts its foreground job: SIGINT at its default, a process group of its own.
   From a script, `python3 -c 'import os, signal, sys; signal.signal(signal.SIGINT, signal.SIG_DFL); os.setpgrp(); os.execvp(…)'` does
   it; a plain background job ignores SIGINT, and the test proves nothing ("Found on the way").
 - **Ports 19360-19369 are this unit's;** 08 has 19370-19379.
 - **Not done here:** request bodies (08); Jackson's configuration (09); `ResponseEntity` (10); validation (12); converters (13).
+
+## Dated note — 2026-10-14, after RED S2 (BLUE A)
+
+- **Every endpoint exposed at once (RED S2 #22, #54).** `after/README.md`'s Course 5 note that exposing every endpoint stops the start —
+  exit 1, Jackson 2's `JavaTimeModule`, for `configprops` — is false on this tree: RED's run of that very line here started and exposed 13
+  endpoints. It has been false since the embedded-Tomcat lesson put Jackson 3 in the jar: with Jackson 3 present configprops answers 200
+  (RED: the last course's tree exits 1; the same tree with Jackson 3's two jars added, 200). `after/`'s note stays as frozen; the
+  request-body lesson's anchor README carries the corrected one. (The TRACE note in the same README *is* amended in `after/`: this unit
+  changes the anchor, and BLUE's fix — the two held loggers — is this unit's change.)

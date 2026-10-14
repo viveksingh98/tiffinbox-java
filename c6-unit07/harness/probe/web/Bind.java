@@ -2,6 +2,7 @@ package probe.web;
 
 import java.util.List;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.MatrixVariable;
@@ -62,5 +63,11 @@ public class Bind {
     @GetMapping("/probe/bind/attr")
     public String attr(@RequestAttribute("slip") String slip) {
         return "slip=" + slip;
+    }
+
+    /** Not a spring-web annotation: spring-beans' @Value binds a parameter too (the adapter's ExpressionValueMethodArgumentResolver). */
+    @GetMapping("/probe/bind/value")
+    public String value(@Value("${tiffinbox.port}") String port) {
+        return "port=[" + port + "]";
     }
 }

@@ -1019,3 +1019,18 @@ run in the same shell. Run `./receipts.sh` once first on a fresh clone.
 - **Boot's started line** (`o.s.boot.tomcat.TomcatWebServer`) names the port only; Tomcat's own connector line names the address, at
   INFO, which Boot's logging defaults hold at WARN (`bind` F). Captures label it "Boot's started line", never "Tomcat's own line".
 - **Not done here:** `Route` and `scanRoutes()` (Section 2's first lesson); the probe-era Jetty swap (unit 02's).
+
+## Dated note — 2026-10-14, after Course 6 Section 2's RED (BLUE A)
+
+- **The token at TRACE (RED S2 #3).** `after/README.md` carries Course 5's note "At TRACE, still no token" — true on TiffinBox's own
+  server (the logging lesson's tree), false on this one: this lesson moved TiffinBox onto Tomcat, and Tomcat's
+  `org.apache.coyote.http11.Http11InputBuffer` prints each request it received — the `X-Shutdown-Token` header and its value among the
+  lines — when its logger is at TRACE (`--logging.level.root=trace`; Boot's log labels the record DEBUG). RED measured the token once in
+  such a log on this tree (a fake token of its own, through the seven). No capture or spoken line of this lesson says otherwise, and
+  `after/` stays frozen — its line counts feed hashed captures — so the correction lives here. The anchor holds that logger, and Spring
+  MVC's `HandlerMethod`, at INFO from the binding lesson on (`../c6-unit07/`, `trace`: the token 0 times at `root=trace` and at
+  `web=trace`). Never run this tree at TRACE with a real token.
+- **Every endpoint exposed at once (RED S2 #22, #54).** `after/README.md`'s Course 5 note that exposing every endpoint stops the start on
+  Jackson 2's `JavaTimeModule` (for `configprops`) became false with this lesson's change: Spring MVC's starter puts Jackson 3 in the jar,
+  and with Jackson 3 present configprops answers 200 (RED: `../c5-unit27/after` exits 1; the same tree with Jackson 3's two jars added,
+  still on TiffinBox's own server, 200; this unit's `after/`, 200). The request-body lesson's anchor README carries the corrected note.

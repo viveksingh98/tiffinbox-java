@@ -55,6 +55,13 @@ spring:
 logging:
   group:
     kitchen: tiffinbox, com.tiffinbox
+  # Course 6: two loggers print the shutdown token when they are at TRACE - Tomcat's Http11InputBuffer, each request it read,
+  # headers and all (its records labelled DEBUG), and Spring MVC's HandlerMethod, the arguments a route was given, the
+  # X-Shutdown-Token header's value among them. Held at INFO, Boot's default level, in the first document: a default run logs as
+  # it did without these lines, and every logger at TRACE, or Boot's web group at TRACE, leaves the token out of the log.
+  level:
+    org.apache.coyote.http11.Http11InputBuffer: info
+    org.springframework.web.method.HandlerMethod: info
 # Boot's Actuator: the endpoints Boot's own adapter answers under /actuator (Course 6). Health, and prometheus - the meters in the
 # text a Prometheus server scrapes - and nothing else: widening it is a line someone reviews. Under Spring's AOT step,
 # and so in the native binary, this list is fixed when the jar is built: a run-time exposure flag adds nothing there,

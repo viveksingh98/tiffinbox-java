@@ -18,9 +18,9 @@ saved to `../head.txt`, its body to `../body.txt`), counts the customers `/custo
 (`harness/shutdown.sh`, the token read from the copy's own file), waits for that JVM to exit (`wait $!`: a JVM that failed —
 another JDK's `java`, say — ends the line with its own exit code, never with a count), and prints the POST's status, the
 answer's `Accept` header (`none` when it has none) and how many customers there are now. The whole log is
-`.harness/mine/run.log`. On a fresh clone `.m2-demo` is empty: run `./receipts.sh` once first (no GraalVM is needed for that:
-without `GRAALVM_HOME` it fills `.m2-demo`, makes every capture that needs none — this exercise's among them — and stops before
-the native build).
+`.harness/mine/run.log`. On a fresh clone `.m2-demo` is empty: run `./receipts.sh` once first (no GraalVM is needed for that, but Docker must answer, with `eclipse-temurin:25-jre` on it: the
+script checks both before its first build; without `GRAALVM_HOME` it fills `.m2-demo`, makes every capture that needs none — this
+exercise's among them — and stops before the native build).
 
 ```bash
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25

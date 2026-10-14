@@ -14,7 +14,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #              the jar's lib/, the files left alone; a new customer POSTed as JSON to each tree; the routes Spring MVC registers
 #              at start (TRACE), and the routing table (mappings exposed for one run)
 #   chain      Spring MVC's message converters, in the order its adapter asks them, and which can read or write a Customer for
-#              each media type; the JSON one's mapper, and one of its settings beside a plain mapper's (the harness's Converters)
+#              each media type; which can read a String from JSON, and which one does (a String parameter, posted JSON); the JSON
+#              one's mapper, and one of its settings beside a plain mapper's (the harness's Converters)
 #   body       one POST at DEBUG: the lines Spring MVC logs for it, read and written; the customer read back; then a record of
 #              the harness's own whose compact constructor counts its calls (the harness's Body)
 #   misfit     bodies that don't fit the record: malformed, empty, an array, a missing int, trailing text; an unknown property,
@@ -59,7 +60,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # so: the routes inside one of Spring MVC's registration blocks, the routing table's rows with details. A run's log lines are
 # printed from their logger on (no time, no process id); Boot's first line is cut before " with PID". Long logs go through a
 # declared filter, and what it cuts is counted or bounded. No image, container or ID is printed but the base image's digest. No
-# duration is captured: the native build is judged against a bound; seconds go to the terminal.
+# duration is captured: the native build's seconds, and the 20-minute bound, go to the terminal only.
 # Ports (brief ⚑1, 19370-19379): after/'s jar 19370 · the previous tree 19371 · after/ with the harness joined 19372 · the AOT jar
 # 19374 · the image 19377 · the binary 19378 · the exercise 19379 (19373, 19375 and 19376 are never bound). 18425 (TiffinBox's
 # default) and 8080 (Tomcat's) are checked free too, and never bound on this machine (18425 only inside a container).
@@ -534,6 +535,8 @@ chain() { local c
   echo "after/ on the README's class-path line with the harness's Converters joined, port 19372:"
   start "$(hcp .harness/after 19372 probe.web.Converters)"; up 19372; ready 19372
   c=$(bc 19372 /probe/converters); echo "\$ $c"; (eval "$c") 2>&1 < /dev/null | sed 's/^/  /'
+  echo "  a String parameter, JSON posted to it (the harness's /probe/converters/text answers with what its parameter got):"
+  c=$(bc 19372 /probe/converters/text "-H 'Content-Type: application/json' --data '{\"name\":\"Asha\",\"mealsPerDay\":2}'"); echo "\$ $c"; (eval "$c") 2>&1 < /dev/null | sed 's/^/  /'
   stop 19372 .harness/after; }
 
 # ---- body: one POST at DEBUG; a record the harness counts the constructions of ----------------------------------------------
@@ -714,7 +717,7 @@ nbuild() { local ci cn s0 s1
   echo "\$ $ci"; mbuild "$ci" "$1.install.log" "$1 (both modules, into \$M2)"
   echo "\$ $cn"
   NB_E=0; s0=$(date +%s); (eval "$cn") > "$1.native.log" 2>&1 < /dev/null || NB_E=$?; s1=$(date +%s); NB_S=$((s1 - s0))
-  echo "  (terminal only) the native build in $1 took $NB_S s" >&3
+  echo "  (terminal only) the native build in $1 took $NB_S s - $( [ $NB_S -lt 1200 ] && echo under || echo OVER ) the 20-minute bound" >&3
   if ghub "$1.native.log"; then echo "  offline: no - GraalVM's native plugin went to GitHub for its metadata repository"; die "the native build in $1: GraalVM's native plugin went over the network - README.md, The repository"; fi; }
 nlines() {
   echo "  its lines, in order (the rest - $(grep -cvE '^\[INFO\] --- |^\[INFO\] Found GraalVM|^ - Java version: |^Warning: |^\[[1-8]/8\] |^\[INFO\] BUILD |^The build process encountered ' "$1" || true) lines - not shown):"
@@ -723,7 +726,7 @@ nlines() {
   grep -E '^Warning: ' "$1" | sed -E "s/ in '(file:[^']*|null)'/ in '…'/" | sed 's/^/    /'
   grep -E '^\[[1-8]/8\] ' "$1" | sed 's/\.\.\..*$/.../' | sed 's/^/    /'
   grep -E '^The build process encountered |^\[INFO\] BUILD ' "$1" | sed 's/^\[INFO\] //' | sed 's/^/    /'; }
-nresult() { echo "  exit $NB_E · $(grep -m1 -oE 'BUILD (SUCCESS|FAILURE)' "$1" || echo 'no BUILD line') · stages it printed: $(grep -cE '^\[[1-8]/8\] ' "$1" || true) of the $(grep -m1 -oE '^\[1/[0-9]+\]' "$1" | sed 's/.*\///; s/]//') it announces · its duration, against the bound: $( [ $NB_S -lt 1200 ] && echo 'under 20 minutes' || echo '20 minutes or more' ) · its lines that say the metadata repository was downloaded over http, or failed to: $(grep -cE 'Downloaded GraalVM reachability metadata repository from http|Failed to download from http' "$1" || true) · offline: yes"; }
+nresult() { echo "  exit $NB_E · $(grep -m1 -oE 'BUILD (SUCCESS|FAILURE)' "$1" || echo 'no BUILD line') · stages it printed: $(grep -cE '^\[[1-8]/8\] ' "$1" || true) of the $(grep -m1 -oE '^\[1/[0-9]+\]' "$1" | sed 's/.*\///; s/]//') it announces · its lines that say the metadata repository was downloaded over http, or failed to: $(grep -cE 'Downloaded GraalVM reachability metadata repository from http|Failed to download from http' "$1" || true) · offline: yes"; }
 # aotmeta DIR: Spring's generated reachability metadata in DIR's web module (its AOT step's own file) - the entries for the record
 # the routes return and the enum a route's parameter is: what each registers
 AOTF=tiffinbox-web/target/spring-aot/main/resources/META-INF/native-image/com.tiffinbox/tiffinbox-web/reachability-metadata.json
@@ -934,10 +937,12 @@ has "$CN" "  message converters: 6 - RequestMappingHandlerAdapter's, in the orde
 has "$CN" '    6 JacksonJsonHttpMessageConverter [application/json, application/*+json]' "chain: the sixth, Jackson's"
 has "$CN" '    application/json: 1 of 6 - 6 JacksonJsonHttpMessageConverter (read yes, write yes)' "chain: only the sixth, read and write"
 has "$CN" '    application/x-www-form-urlencoded: 0 of 6' "chain: a form, none"; has "$CN" '    text/plain: 0 of 6' "chain: plain text, none"
+has "$CN" '  asked of each, for a java.lang.String from application/json - canRead - those that say yes: 2 of 6 - 2 StringHttpMessageConverter · 6 JacksonJsonHttpMessageConverter' "chain: two can read a String from JSON"
+has "$CN" '  the String parameter got: {"name":"Asha","mealsPerDay":2} 200' "chain: the one asked first reads it - the String converter: the JSON as text, never Jackson's"
 has "$CN" "  the JSON converter's mapper (6 JacksonJsonHttpMessageConverter): tools.jackson.databind.json.JsonMapper · Boot's bean jacksonJsonMapper itself: yes" "chain: Boot's JsonMapper"
 # "An unknown property is ignored: Core Java II's Jackson refused one, while Jackson three ignores it, in Boot's mapper ... and in a plain one."
 has "$CN" '  FAIL_ON_UNKNOWN_PROPERTIES - Boot'"'"'s mapper: false · a plain JsonMapper (JsonMapper.builder().build()): false' "chain: unknown properties allowed, both mappers"
-echo "  chain: 6 converters; for a Customer only the sixth (JacksonJsonHttpMessageConverter) reads and writes, for application/json; a form and text/plain 0 of 6; its mapper Boot's jacksonJsonMapper; unknown properties allowed in Boot's mapper and a plain one"
+echo "  chain: 6 converters; for a Customer only the sixth (JacksonJsonHttpMessageConverter) reads and writes, for application/json; a form and text/plain 0 of 6; a String from JSON 2 of 6, and the one asked first, StringHttpMessageConverter, reads it - the JSON as text; its mapper Boot's jacksonJsonMapper; unknown properties allowed in Boot's mapper and a plain one"
 
 # "At debug level ... Spring logs what it read: the body as a Customer, every value in the line ... A harness record counts the calls:
 #  one per body."
@@ -1043,7 +1048,7 @@ echo "  exercise: one env -i shell - the README as written -> 415, the Accept he
 
 # "And every form, the jar, the AOT jar, built ahead of time, the native binary and the image, serves the seven and the new route, on
 #  loopback, this computer only. Two point seven still becomes two, in all four."
-x forms '^  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: under 20 minutes · its lines that say the metadata repository was downloaded over http, or failed to: 0 · offline: yes$'
+x forms '^  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its lines that say the metadata repository was downloaded over http, or failed to: 0 · offline: yes$'
 x forms '^  file: Mach-O 64-bit executable · the demo token in its bytes: 0$'
 x forms '^  Spring.s generated metadata \(spring-aot/main/resources/META-INF/native-image/com\.tiffinbox/tiffinbox-web/reachability-metadata\.json\): reflection entries naming com\.tiffinbox\.Customer: 1 - all declared fields · all declared constructors · 4 methods \(mealType mealsPerDay name pricePerMeal\)$'
 x forms "^four forms, one tree: the seven \(masked\) 4 of 4 times $S87C · the new customer.s record \(POSTed, then read back\) 8 of 8 · no Content-Type 415 4 of 4 · two point seven meals stored as 2 8 of 8 \(POSTed, then read back\)\$"

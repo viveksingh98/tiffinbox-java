@@ -62,8 +62,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # after "violation: ", become "…"; where a native-image warning names the file it read an option from, the file's URL - or "null",
 # which it prints when the path holds a space - becomes "…". A run's log lines are printed from their logger on (no time, no process
 # id); Boot's first line is cut before " with PID". Long logs and answers go through a declared filter, and what it cuts is counted or
-# bounded. No image, container or ID is printed but the base image's digest. No duration is captured: the native build is judged
-# against a bound; seconds go to the terminal.
+# bounded. No image, container or ID is printed but the base image's digest. No duration is captured: the native build's seconds, and
+# the 20-minute bound, go to the terminal only.
 # Ports (brief ⚑1, 19380-19389): after/'s jar 19380 · the previous tree 19381 · after/ with the harness joined 19382 · the AOT jar
 # 19384 · the image 19387 · the binary 19388 · the exercise 19389 (19383, 19385 and 19386 are never bound). 18425 (TiffinBox's
 # default) and 8080 (Tomcat's) are checked free too, and never bound on this machine (18425 only inside a container).
@@ -339,7 +339,8 @@ logtok() { local t h; t=$(raw "$TOKEN" .harness/run.out .harness/run.err); h=$(c
 tsmask() { awk '{ gsub(/"timestamp":"[^"]*"/, "\"timestamp\":\"…\""); gsub(/"timestamp":[0-9]+/, "\"timestamp\":…"); print }'; }
 # tsform FILE...: the error timestamps in the files - unmasked answers - each made a form: every digit becomes d (README.md, Masks);
 # each distinct form, and how many times it appears
-tsform() { cat "$@" | grep -o '"timestamp":"[^"]*"' | sed 's/[0-9]/d/g' | sort | uniq -c | awk '{ c = $1; $1 = ""; sub(/^ /, ""); printf "%s%s ×%d", (NR > 1 ? " · " : ""), $0, c } END { if (NR == 0) printf "none" }'; }
+tsform() { cat "$@" | grep -o '"timestamp":"[^"]*"' | python3 -c 'import re, sys
+for l in sys.stdin: print(re.sub(r"^(\"timestamp\":\")([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?)", lambda m: m.group(1) + re.sub(r"[0-9]", "d", m.group(2)), l.rstrip("\n")))' | sort | uniq -c | awk '{ c = $1; $1 = ""; sub(/^ /, ""); printf "%s%s ×%d", (NR > 1 ? " · " : ""), $0, c } END { if (NR == 0) printf "none" }'; }
 # gone PORT: after a POST /shutdown - the JVM must leave within 15 s, the port must be free; its exit code
 gone() { local i=0 e=0
   while kill -0 "$pid" 2> /dev/null && [ $i -lt 60 ]; do sleep 0.25; i=$((i + 1)); done
@@ -719,7 +720,7 @@ nbuild() { local ci cn s0 s1
   echo "\$ $ci"; mbuild "$ci" "$1.install.log" "$1 (both modules, into \$M2)"
   echo "\$ $cn"
   NB_E=0; s0=$(date +%s); (eval "$cn") > "$1.native.log" 2>&1 < /dev/null || NB_E=$?; s1=$(date +%s); NB_S=$((s1 - s0))
-  echo "  (terminal only) the native build in $1 took $NB_S s" >&3
+  echo "  (terminal only) the native build in $1 took $NB_S s - $( [ $NB_S -lt 1200 ] && echo under || echo OVER ) the 20-minute bound" >&3
   if ghub "$1.native.log"; then echo "  offline: no - GraalVM's native plugin went to GitHub for its metadata repository"; die "the native build in $1: GraalVM's native plugin went over the network - README.md, The repository"; fi; }
 nlines() {
   echo "  its lines, in order (the rest - $(grep -cvE '^\[INFO\] --- |^\[INFO\] Found GraalVM|^ - Java version: |^Warning: |^\[[1-8]/8\] |^\[INFO\] BUILD |^The build process encountered ' "$1" || true) lines - not shown):"
@@ -728,7 +729,7 @@ nlines() {
   grep -E '^Warning: ' "$1" | sed -E "s/ in '(file:[^']*|null)'/ in '…'/" | sed 's/^/    /'
   grep -E '^\[[1-8]/8\] ' "$1" | sed 's/\.\.\..*$/.../' | sed 's/^/    /'
   grep -E '^The build process encountered |^\[INFO\] BUILD ' "$1" | sed 's/^\[INFO\] //' | sed 's/^/    /'; }
-nresult() { echo "  exit $NB_E · $(grep -m1 -oE 'BUILD (SUCCESS|FAILURE)' "$1" || echo 'no BUILD line') · stages it printed: $(grep -cE '^\[[1-8]/8\] ' "$1" || true) of the $(grep -m1 -oE '^\[1/[0-9]+\]' "$1" | sed 's/.*\///; s/]//') it announces · its duration, against the bound: $( [ $NB_S -lt 1200 ] && echo 'under 20 minutes' || echo '20 minutes or more' ) · its lines that say the metadata repository was downloaded over http, or failed to: $(grep -cE 'Downloaded GraalVM reachability metadata repository from http|Failed to download from http' "$1" || true) · offline: yes"; }
+nresult() { echo "  exit $NB_E · $(grep -m1 -oE 'BUILD (SUCCESS|FAILURE)' "$1" || echo 'no BUILD line') · stages it printed: $(grep -cE '^\[[1-8]/8\] ' "$1" || true) of the $(grep -m1 -oE '^\[1/[0-9]+\]' "$1" | sed 's/.*\///; s/]//') it announces · its lines that say the metadata repository was downloaded over http, or failed to: $(grep -cE 'Downloaded GraalVM reachability metadata repository from http|Failed to download from http' "$1" || true) · offline: yes"; }
 # aotmeta DIR: Spring's generated reachability metadata in DIR's web module (its AOT step's own file) - the entries for the record
 # the routes read and return: what each registers
 AOTF=tiffinbox-web/target/spring-aot/main/resources/META-INF/native-image/com.tiffinbox/tiffinbox-web/reachability-metadata.json
@@ -925,10 +926,10 @@ x float '^  built the previous tree · offline: yes · exit 0$'; x float '^  bui
 [ "$(n float '^  Files ')" = 2 ] && [ "$(n float '^  Only in ')" = 0 ] || die "float: two files differ, none added or deleted"
 for f in README.md tiffinbox-web/src/main/resources/application.yaml; do x float "^  Files \.harness/before/$f and \.harness/after/$f differ\$"; done
 x float "^  after/'s files: 25 · byte for byte the previous tree's: 23 · those above differ: 2\$"
-x float '^  application\.yaml - its lines that are neither comment nor blank: 47 -> 50 · their diff \(diff -U1, its file names cut\) - hunks: 1 · lines out: 0 · in: 3 - whole:$'
+x float '^  application\.yaml - its lines that are neither comment nor blank: 50 -> 53 · their diff \(diff -U1, its file names cut\) - hunks: 1 · lines out: 0 · in: 3 - whole:$'
 [ "$(blk float '  application.yaml - its lines' '  its comment lines' | paste -sd'|' -)" = '    @@ -27,2 +27,5 @@|           enabled: false|    +  jackson:|    +    deserialization:|    +      accept-float-as-int: false|     logging:' ] || die "float: the YAML's three new lines, after compose's enabled: false, before logging:"
-x float '^  its comment lines: 37 -> 41 · those right above the key: 4 \(not shown\)$'
-x float '^  jackson: line 54, under spring: \(line 23\) · deserialization: line 55 · accept-float-as-int: false line 56 · the first "---" line 84 · in the first document: yes$'
+x float '^  its comment lines: 41 -> 45 · those right above the key: 4 \(not shown\)$'
+x float '^  jackson: line 54, under spring: \(line 23\) · deserialization: line 55 · accept-float-as-int: false line 56 · the first "---" line 91 · in the first document: yes$'
 x float "^  a planted copy, the three lines moved under the second document's spring: \(the profile rush's\): jackson: line [0-9]+, under spring: \(line [0-9]+\) · .* · in the first document: no\$"
 x float "^  Boot's metadata \(spring-boot-jackson-4\.1\.1\.jar\) - spring\.jackson\.deserialization · its type: java\.util\.Map<tools\.jackson\.databind\.DeserializationFeature,java\.lang\.Boolean> · its default: none · "
 x float "^the executable jar's BOOT-INF/lib: 56 jars -> 56 · the same names: yes\$"
@@ -950,7 +951,7 @@ printf '%s\n' "$FC" | grep -qE '^  its application\.yaml: jackson: line [0-9]+, 
 has "$FC" '  built the planted copy · offline: yes · exit 0' "float C: built offline"
 [ "$(aft "$(PQ 19380 "$MOHAN")" "$FC")" = "$(WA "$MOHAN2" 0)" ] && [ "$(aft "$(BQ 19380 /customers/Mohan)" "$FC")" = "$(WA "$MOHAN2" 0)" ] || die "float C: the key below the --- - a plain run stores 2.7 as 2"
 x float "^A' against A, its label aside, line for line the same: yes\$"
-echo "  float: 2 files (application.yaml +3 lines, the README); the key in the first document under spring:, above the --- (a planted copy below it caught); 56 libraries, the same; before 2.7 -> 200 stored as 2; A 2.7, 2.0, 110.5 -> 400 + 1 WARN each, a missing int 400, \"2\" and an unknown property 200, a misspelt key H2's 500; B (the flag) 2.7 -> 2; C (the key below the ---) 2.7 -> 2; A' = A"
+echo "  float: 2 files (application.yaml +3 lines, 50 -> 53, the README); the key in the first document under spring:, above the --- (a planted copy below it caught); 56 libraries, the same; before 2.7 -> 200 stored as 2; A 2.7, 2.0, 110.5 -> 400 + 1 WARN each, a missing int 400, \"2\" and an unknown property 200, a misspelt key H2's 500; B (the flag) 2.7 -> 2; C (the key below the ---) 2.7 -> 2; A' = A"
 
 # "One mapper bean, Jackson three's ... Spring's JSON converter uses that very object; Actuator writes with one of its own. The harness reads
 #  a hundred and twenty features, the on-off switches of eight kinds ... On the previous tree they agree on all a hundred and twenty"
@@ -999,10 +1000,10 @@ for l in 'MapperFeature.SORT_PROPERTIES_ALPHABETICALLY: true -> false' 'Deserial
 [ "$(aft "$(PQ 19382 "$DMISS")" "$DB")" = "$(WA '  {"name":"Tara","mealsPerDay":0,"pricePerMeal":110,"mealType":"VEG"} 200' 0)" ] && [ "$(aft "$(BQ 19382 /customers/Tara)" "$DB")" = "$(WA '  {"name":"Tara","mealsPerDay":0,"pricePerMeal":110,"mealType":"VEG"} 200' 0)" ] || die "defaults B: a missing int stored as 0"
 [ "$(aft "$(PQ 19382 "$DTRAIL")" "$DB")" = "$(WA '  {"name":"Lata","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"} 200' 0)" ] || die "defaults B: trailing text accepted"
 [ "$(aft "$(PQ 19382 "$MOHAN")" "$DB")" = "$(WA "$E400" 1)" ] && has "$DB" "$(COERCE 2.7)" "defaults B: the key wins" || die "defaults B: 2.7 still 400"
-has "$DB" '  that answer'"'"'s timestamp, its form: "timestamp":"dddd-dd-ddTdd:dd:dd.ddd+dd:dd" ×1' "defaults B: the timestamp ends +00:00"
+has "$DB" '  that answer'"'"'s timestamp, its form: "timestamp":"dddd-dd-ddTdd:dd:dd.ddd+00:00" ×1' "defaults B: the timestamp ends +00:00"
 printf '%s\n' "$DB" | grep -q -- " --spring\.jackson\.use-jackson2-defaults=true\$" || die "defaults B: the flag"
 has "$DB" "  exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 2 · md5 $S87C" "defaults B: the seven, masked, the same"
-has "$DB" '  the timestamps the mask hid, their form: "timestamp":"dddd-dd-ddTdd:dd:dd.ddd+dd:dd" ×2' "defaults B: the seven's two timestamps, +00:00"
+has "$DB" '  the timestamps the mask hid, their form: "timestamp":"dddd-dd-ddTdd:dd:dd.ddd+00:00" ×2' "defaults B: the seven's two timestamps, +00:00"
 x defaults "^A' against A, its label aside, line for line the same: yes · its features against A's: 0 of 120 differ\$"
 echo "  defaults: Boot's metadata (default false); B: 13 of 120 features flip - a missing int stored as 0, trailing text 200, the class in declared order, the timestamp +00:00; 2.7 still 400; the seven $S87C masked; A' = A"
 
@@ -1082,7 +1083,7 @@ echo "  exercise: one env -i shell - the README as written -> exit 1, the last c
 
 # "And every form, the jar, the AOT jar, built ahead of time, the native binary and the image, serves the seven and refuses two point seven,
 #  on loopback, this computer only. In the AOT jar and the binary, the flag still turns it back on: Boot reads the key when TiffinBox starts."
-x forms '^  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: under 20 minutes · its lines that say the metadata repository was downloaded over http, or failed to: 0 · offline: yes$'
+x forms '^  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its lines that say the metadata repository was downloaded over http, or failed to: 0 · offline: yes$'
 x forms '^  file: Mach-O 64-bit executable · the demo token in its bytes: 0$'
 x forms '^  Spring.s generated metadata \(spring-aot/main/resources/META-INF/native-image/com\.tiffinbox/tiffinbox-web/reachability-metadata\.json\): reflection entries naming com\.tiffinbox\.Customer: 1 - all declared fields · all declared constructors · 4 methods \(mealType mealsPerDay name pricePerMeal\)$'
 x forms '^  the key, in the application\.yaml the native build read \(\.harness/nat.s\): in the first document: yes$'

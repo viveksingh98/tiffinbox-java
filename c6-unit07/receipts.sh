@@ -7,13 +7,13 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # Course 6 · @PathVariable, @RequestParam and Defaults - this unit's receipts. The anchor changes: TiffinBox's routes start taking
 # values from the request as method parameters - GET /customers/{name} (a path variable; a name nobody has is Spring's
 # ResponseStatusException, 404), GET /customers?mealType= (a request parameter, optional) and POST /shutdown's token (a header) -
-# and CustomerRepository gains findByName. Ten captures, each run three times and hashed; cap() DIES when a hash differs from
+# CustomerRepository gains findByName, and application.yaml holds at INFO, Boot's default level, the two loggers that print the token at TRACE. Ten captures, each run three times and hashed; cap() DIES when a hash differs from
 # receipts.md5; every number the video says is asserted at the bottom by a check that can fail; the demo token is masked (gsub),
 # and the checks count 0 raw copies of it in every capture, in the log of every run - every failed start's and the container's
 # included - in every file this unit ships, in the binary and in the image's layers.
-#   change     the previous tree against after/: the files that differ, the two Java files' lines, their code lines' diff, the
-#              jar's lib/, the files left alone; one customer by name and the vegan ones, asked of each tree; the routes Spring
-#              MVC registers at start (TRACE), and the routing table (mappings exposed for one run)
+#   change     the previous tree against after/: the files that differ, the two Java files' lines, their code lines' diff,
+#              application.yaml's lines and where its two new loggers sit, the jar's lib/, the files left alone; one customer by name and the vegan ones, asked of each tree; the routes Spring
+#              MVC registers at start (TRACE), and the routing table (mappings exposed for one run): whole, and two rows
 #   resolvers  who fills a route's parameters: the argument resolvers Spring MVC's adapter holds, and the one that takes each of
 #              TiffinBox's parameters (the harness's Resolvers); by name - Boot's parent compiles with -parameters, javap reads the
 #              names; C (labelled) a harness route compiled without the flag: a clean start, then a 500
@@ -21,11 +21,13 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #   params     request parameters: TiffinBox's meal type - a name, a name in the wrong case, empty, twice; then the harness's
 #              routes: required, a default value, Optional, a list
 #   others     a header, a cookie, a matrix variable, a request attribute (the harness's Bind); the annotations a parameter can
-#              carry, read off spring-web's jar, and how many this unit's routes use
+#              carry, read off spring-web's jar, and how many this unit's routes use; and spring-beans' @Value, which binds one too
 #   token      A/B/A': POST /shutdown's header, required = false (after/: the method's 403) against required = true (a copy:
 #              Spring MVC's 400) - no header, a misspelt one, the right one
-#   trace      C (labelled): the README's line with every logger at TRACE, and the seven - with a second fake token of its own,
-#              on the previous tree and on after/: how many times each log holds it, and which logger wrote it
+#   trace      A/B/A': the two loggers that print the token at TRACE, held at INFO in application.yaml's first document - every
+#              logger at TRACE (the README's line), then Boot's web group at TRACE, and the seven, with a second fake token of its
+#              own: the previous tree; A after/; B a copy of after/ without those lines; A' = A - how many times each log holds
+#              the token, and which logger wrote it
 #   timer      Boot's timer for the new route: two names, a name nobody has, the README's /customers/7, a meal type and a
 #              wrong one, an encoded slash - the series, by pattern
 #   exercise   exercise/README.md's commands, then exercise/solution/SOLUTION.md's, read from the files and run as written, one after
@@ -61,11 +63,11 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # Spring MVC's registration blocks, the routing table's rows with details. A failed start's log is read after it exited, never
 # printed whole. A run's log lines are printed from their logger on (no time, no process id); Boot's first line is cut before
 # " with PID". Long logs go through a declared filter, and what it cuts is counted or bounded. No image, container or ID is
-# printed but the base image's digest. No duration is captured: the native build is judged against a bound; seconds go to the
-# terminal.
+# printed but the base image's digest. No duration is captured: the native build's seconds, and the 20-minute bound, go to
+# the terminal only.
 # Ports (brief ⚑1, 19360-19369): after/'s jar 19360 · the previous tree 19361 · after/ with the harness joined 19362 · the harness
 # compiled without -parameters 19363 · the AOT jar 19364 · the copy whose header is required 19365 · the image 19367 · the binary
-# 19368 · the exercise 19369 (19366 is never bound). 18425 (TiffinBox's default) and 8080 (Tomcat's) are checked free too, and never
+# 19368 · the exercise 19369 · the copy without the two pinned loggers 19366. 18425 (TiffinBox's default) and 8080 (Tomcat's) are checked free too, and never
 # bound on this machine (18425 only inside a container).
 # Docker names (no unit number): the image tiffinbox-bind:1.0.0 and the container tiffinbox-bind. Each is checked absent before the
 # first run - a name already there may be yours, and this script removes only what it creates - and removed on every exit: the
@@ -212,14 +214,19 @@ R_TRACE=$(readme "$J --logging.level.root=trace")
 EXPOF=${L_EXPO#"$J "}
 [ "$EXPOF" = '--management.endpoints.web.exposure.include=health,prometheus,mappings' ] && [ "${R_TRACE#"$J "}" = '--logging.level.root=trace' ] || die "the README's options"
 # This unit's own lines (README.md, "The commands this unit adds") - each asserted to be exactly that: javap on a tree's extracted
-# jar and on the harness's no-parameters class, the class-path line with that class joined (resolvers C), the routing table read
-# whole and one row of it (change), and Tomcat's own 400 page's title (path)
+# jar and on the harness's no-parameters class, javac's line for that class (no -parameters) and the class-path line with it
+# joined (resolvers C), the routing table read whole and two rows of it (change), Tomcat's own 400 page's title (path), and
+# Boot's web group at TRACE (trace)
 mine() { grep -m1 -xF -- "$1" README.md > /dev/null || die "README.md no longer gives the line: $1"; printf '%s\n' "$1"; }
 L_JAVAP=$(mine 'javap -v -p -cp tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar com.tiffinbox.web.TiffinBoxServer')
 L_JAVAP0=$(mine 'javap -v -p -cp ../hc0 probe.bare.NoParams')
 L_BARE=$(mine 'java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc0" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=18431 --spring.main.sources=probe.bare.NoParams')
 L_TABLE=$(mine 'curl -s http://127.0.0.1:18431/actuator/mappings | python3 harness/table.py')
 L_ROW=$(mine "curl -s http://127.0.0.1:18431/actuator/mappings | python3 harness/table.py row '/customers/{name}'")
+L_ROWC=$(mine 'curl -s http://127.0.0.1:18431/actuator/mappings | python3 harness/table.py row /customers')
+L_JAVAC0=$(mine 'javac -d .harness/hc0 -cp ".harness/after/tiffinbox-web/target/extracted/lib/*" harness/bare/probe/bare/NoParams.java')
+L_WTRACE=$(mine "$J --logging.level.web=trace")
+[ "${L_WTRACE#"$J "}" = '--logging.level.web=trace' ] || die "this unit's README: the web group's option"
 L_TITLE=$(mine "curl -s http://127.0.0.1:18431/customers/a%2Fb | grep -o '<title>[^<]*</title>'")
 # off DIR 'README mvn LINE' [PHASE]: the README's Maven line as this script runs it - from DIR, offline (-o), this unit's own
 # repository, and for a build phase (package, install) clean and without tests. dev() takes those four things back out, and
@@ -258,7 +265,7 @@ for c in "$C_PRE" "$(off .harness/x "$R_PLAIN" package)" "$(off .harness/x "$R_P
 [ "$(exe "$(at .harness/x 19360 "$R_RUN")")" = 'cd .harness/x && exec java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19360' ] || die "exe()"
 [ "$(hcp .harness/x 19362 probe.web.Bind)" = 'cd .harness/x && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19362 --spring.main.sources=probe.web.Bind' ] || die "hcp()"
 [ "$(qc 19360 /customersXYZ)" = "curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://127.0.0.1:19360/customersXYZ" ] && [ "$(bc 19362 '/customers?mealType=VEG')" = "curl -s -w ' %{http_code}\n' 'http://127.0.0.1:19362/customers?mealType=VEG'" ] && [ "$(bc 19362 /probe/bind/header "-H 'X-Meal: lunch'")" = "curl -s -w ' %{http_code}\n' -H 'X-Meal: lunch' http://127.0.0.1:19362/probe/bind/header" ] && [ "$(bc 19360 /customers/Ravi)" = "$(url "$R_ONE" 19360)" ] && [ "$(bc 19360 '/customers?mealType=VEGAN')" = "$(url "$R_MEAL" 19360)" ] || die "qc(), bc()"
-echo "  the commands: after/README.md gives all 21 lines this script runs or derives from; README.md the 6 this unit adds"
+echo "  the commands: after/README.md gives all 21 lines this script runs or derives from; README.md the 9 this unit adds"
 
 # ---- build: before the captures - after/'s native install (it fills .m2-demo on a fresh clone), the previous tree's package;
 # ---- the harness compiled against after/'s own jar; what .m2-demo holds ---------------------------------------------------
@@ -501,13 +508,18 @@ change() { local f n
   diff -U0 .harness/rb.txt .harness/ra.txt | tail -n +3 > .harness/core.diff || true
   echo "  CustomerRepository.java, its code lines: $(wc -l < .harness/rb.txt | tr -d ' ') -> $(wc -l < .harness/ra.txt | tr -d ' ') - its code lines' diff, the same way: $(grep -c '^@@ ' .harness/core.diff || true) hunks, $(grep -c '^-' .harness/core.diff || true) lines out, $(grep -c '^+' .harness/core.diff || true) in - whole:"
   sed 's/^/    /' .harness/core.diff
+  code ".harness/before/$YAML" > .harness/yb.txt; code ".harness/after/$YAML" > .harness/ya.txt
+  diff -U1 .harness/yb.txt .harness/ya.txt | tail -n +3 > .harness/y.diff || true
+  echo "  application.yaml - its lines that are neither comment nor blank: $(wc -l < .harness/yb.txt | tr -d ' ') -> $(wc -l < .harness/ya.txt | tr -d ' ') · their diff (diff -U1, its file names cut) - hunks: $(grep -c '^@@ ' .harness/y.diff || true) · lines out: $(grep -c '^-' .harness/y.diff || true) · in: $(grep -c '^+' .harness/y.diff || true) - whole:"
+  sed 's/^/    /' .harness/y.diff
+  echo "  its comment lines: $(grep -cE '^[[:space:]]*#' ".harness/before/$YAML") -> $(grep -cE '^[[:space:]]*#' ".harness/after/$YAML") · where the two loggers sit: $(pplace ".harness/after/$YAML")"
   libs .harness/before/$JARP > .harness/lb.txt; libs .harness/after/$JARP > .harness/la.txt
   echo "the executable jar's BOOT-INF/lib: $(wc -l < .harness/lb.txt | tr -d ' ') jars -> $(wc -l < .harness/la.txt | tr -d ' ') · removed $(comm -23 .harness/lb.txt .harness/la.txt | wc -l | tr -d ' ') · added $(comm -13 .harness/lb.txt .harness/la.txt | wc -l | tr -d ' ')"
   diff .harness/before/README.md .harness/after/README.md > .harness/file.diff || true
   echo "  README.md - the anchor's README: lines added $(grep -c '^> ' .harness/file.diff || true), removed $(grep -c '^< ' .harness/file.diff || true) - its new section and the history notes the change made false (not shown)"
-  n=0; for f in pom.xml tiffinbox-web/pom.xml tiffinbox-core/pom.xml Dockerfile compose.yaml .dockerignore $YAML $FAC $W/TiffinBoxApp.java $W/BareArgumentGuard.java $W/BareArgumentAnalyzer.java $W/KitchenHealthIndicator.java $W/KitchenMetrics.java $CORE/Customer.java $CORE/MealType.java $CORE/Database.java $CORE/Dashboard.java $CORE/OrderQueue.java $CORE/TiffinBoxProperties.java; do
+  n=0; for f in pom.xml tiffinbox-web/pom.xml tiffinbox-core/pom.xml Dockerfile compose.yaml .dockerignore $FAC $W/TiffinBoxApp.java $W/BareArgumentGuard.java $W/BareArgumentAnalyzer.java $W/KitchenHealthIndicator.java $W/KitchenMetrics.java $CORE/Customer.java $CORE/MealType.java $CORE/Database.java $CORE/Dashboard.java $CORE/OrderQueue.java $CORE/TiffinBoxProperties.java; do
     cmp -s ".harness/before/$f" ".harness/after/$f" && n=$((n + 1)) || echo "  $f against the previous tree's: different"; done
-  echo "  the other files, against the previous tree's, byte for byte the same: $n of 19 (the POMs, the Dockerfile, compose.yaml, .dockerignore, application.yaml, spring.factories, the other five web classes, the other six core classes)"
+  echo "  the other files, against the previous tree's, byte for byte the same: $n of 18 (the POMs, the Dockerfile, compose.yaml, .dockerignore, spring.factories, the other five web classes, the other six core classes)"
   echo "what a request can ask - one customer by name, the vegan ones (this unit's two lines in the anchor's README) - before: the previous tree, the README's run line, port 19361:"
   start "$(at .harness/before 19361 "$R_RUN")"; up 19361; ready 19361
   ask 19361 /customers/Ravi; ask 19361 '/customers?mealType=VEGAN'
@@ -520,7 +532,18 @@ change() { local f n
   start "$(at .harness/after 19360 "$L_EXPO")"; up 19360; ready 19360
   c=$(url "$L_TABLE" 19360); echo "\$ $c"; (eval "$c") 2>&1 < /dev/null
   c=$(url "$L_ROW" 19360); echo "\$ $c"; (eval "$c") 2>&1 < /dev/null
+  c=$(url "$L_ROWC" 19360); echo "\$ $c"; (eval "$c") 2>&1 < /dev/null
   stop 19360 .harness/after; }
+# pplace FILE: where the two pinned loggers sit in an application.yaml - the top-level key their block is under, the lines'
+# numbers, the first "---" line, and whether both are in the first document (the one every profile reads)
+pplace() { awk '
+  /^[a-z][a-z-]*:/ && !l { top = $0; topn = NR }
+  /^  level:$/ && !l { l = NR; under = top; un = topn }
+  /^    org\.apache\.coyote\.http11\.Http11InputBuffer: info$/ && l && !a { a = NR }
+  /^    org\.springframework\.web\.method\.HandlerMethod: info$/ && l && !h { h = NR }
+  /^---$/ && !x { x = NR }
+  END { ok = (l && a == l + 1 && h == a + 1 && x && h < x && under == "logging:") ? "yes" : "no"
+        printf "level: line %d, under %s (line %d) · org.apache.coyote.http11.Http11InputBuffer: info line %d · org.springframework.web.method.HandlerMethod: info line %d · the first \"---\" line %d · in the first document: %s\n", l, under, un, a, h, x, ok }' "$1"; }
 # reg: the run's lines up to Boot's started line - Spring MVC's RequestMappingHandlerMapping lines (each block's routes sorted:
 # the order they are found in moves between runs), from the level on
 reg() { awk '/ : Tomcat started on port / { exit } { print }' .harness/run.out > .harness/pre.txt
@@ -548,7 +571,7 @@ resolvers() { local c n0
   echo "  \$M2/org/springframework/boot/spring-boot-starter-parent/4.1.1/spring-boot-starter-parent-4.1.1.pom, its compiler plugin's configuration: $(grep -n '<parameters>true</parameters>' "$PARENT" | sed 's/^\([0-9]*\): */line \1: /')"
   mparams "$L_JAVAP" .harness/after customer customers shutdown
   echo "C (labelled) - a harness route compiled WITHOUT -parameters (the harness's NoParams, /probe/bare/{name}), joined to after/ on the class-path line (this unit's), port 19363:"
-  c="javac -d .harness/hc0 -cp \".harness/after/tiffinbox-web/target/extracted/lib/*\" harness/bare/probe/bare/NoParams.java"
+  c=$L_JAVAC0
   echo "\$ $c"; rm -rf .harness/hc0; (eval "$c") > .harness/javac0.log 2>&1 < /dev/null || { cat .harness/javac0.log >&3; die "NoParams did not compile"; }
   echo "  exit 0"
   mparams "$L_JAVAP0" .harness/after name
@@ -598,6 +621,8 @@ others() { local c a u o n
   u=""; o=""; for n in $a; do if grep -qE "${n}([(]|$| )" .harness/bindcode.txt; then u="$u${u:+ }$n"; else o="$o${o:+ }$n"; fi; done
   echo "  of them on a route this unit's captures ask (the code lines of TiffinBoxServer.java and the harness's Bind.java): $(printf '%s\n' $u | grep -c .) - $u"
   echo "  the others: $(printf '%s\n' $o | grep -c .) - $o"
+  echo "and one that is not spring-web's: Spring's @Value (spring-beans) binds a parameter too - the harness's /probe/bind/value, @Value(\"\${tiffinbox.port}\") String port:"
+  ask 19362 /probe/bind/value
   echo "  WARN lines in this run's log, at Boot's default level: $(logl 0 WARN | grep -c . || true)"
   stop 19362 .harness/after; }
 
@@ -629,9 +654,11 @@ held() { awk -v tt="$TTOK" '
     i = index(s, " : "); lg = substr(s, 1, i - 1); sub(/ +$/, "", lg); head = lv " " lg ": " substr(s, i + 3); k = 1
     if (index($0, tt)) print "    " m(head); next }
   { k++; if (index($0, tt)) print "    " m(head) "  - the token on the record'"'"'s line " k ": " m($0) }' .harness/run.out; }
+# trace1 DIR SRC PORT 'README LINE': SRC's jar copied to DIR, whose config tree holds the trace run's token; the line run there,
+# then the seven; the trace run's token counted in the log, and each record that holds it
 trace1() { local d=$1 src=$2 p=$3 t h
   rm -rf "$d"; mkdir -p "$d/tiffinbox-web/target"; cp "$src/$JARP" "$d/$JARP"; tree "$d" "$TTOK"
-  start "$(at "$d" "$p" "$R_TRACE")"; up "$p"; ready "$p"
+  start "$(at "$d" "$p" "$4")"; up "$p"; ready "$p"
   sevenq "$p" "$d"
   t=$(raw "$TTOK" .harness/run.out .harness/run.err); h=$(raw "$TOKEN" .harness/run.out .harness/run.err)
   echo "  its log, the trace run's token in it: $t · the demo token: $h · the records that hold the trace run's token (level logger: first line):"
@@ -639,11 +666,20 @@ trace1() { local d=$1 src=$2 p=$3 t h
   [ "$h" = 0 ] || die "a trace log held the demo token"
   : > .harness/run.out; : > .harness/run.err; rm -rf "$d"; }
 trace() {
-  echo "C (labelled) - the README's line with every logger at TRACE (Course 5's logging lesson: \"At TRACE, still no token\"), then the seven; each tree's jar, copied to a folder whose config tree holds a second fake token, the trace run's own (26 characters):"
-  echo "before - the previous tree's jar, port 19361:"
-  trace1 .harness/trb .harness/before 19361
-  echo "after - after/'s jar, port 19360:"
-  trace1 .harness/tra .harness/after 19360; }
+  echo "the two loggers that print the token at TRACE: the README's line with every logger at TRACE (Course 5's logging lesson: \"At TRACE, still no token\"), then this unit's line with Boot's web group at TRACE, each followed by the seven; each tree's jar copied to a folder whose config tree holds a second fake token, the trace run's own (26 characters):"
+  echo "after/'s application.yaml, its first document: $(pplace "after/$YAML")"
+  echo "before - the previous tree's jar (no such lines), every logger at TRACE, port 19361:"
+  trace1 .harness/trb .harness/before 19361 "$R_TRACE"
+  echo "A - after/'s jar (both loggers held at INFO), port 19360:"
+  trace1 .harness/tra .harness/after 19360 "$R_TRACE"; trace1 .harness/tra .harness/after 19360 "$L_WTRACE"
+  echo "B - a copy of after/ without the two loggers' lines (application.yaml's three lines deleted), built with the README's line, port 19366:"
+  copy after .harness/unpin
+  awk '!/^  level:$/ && !/^    org\.apache\.coyote\.http11\.Http11InputBuffer: info$/ && !/^    org\.springframework\.web\.method\.HandlerMethod: info$/' "after/$YAML" > ".harness/unpin/$YAML"
+  echo "  \$ diff -U0 after/$YAML .harness/unpin/$YAML"; diff -U0 "after/$YAML" ".harness/unpin/$YAML" | tail -n +3 | sed 's/^/    /' || true
+  pbuild .harness/unpin "the copy" | sed 's/^/  /'
+  trace1 .harness/trc .harness/unpin 19366 "$R_TRACE"; trace1 .harness/trc .harness/unpin 19366 "$L_WTRACE"
+  echo "A' - A again:"
+  trace1 .harness/tra .harness/after 19360 "$R_TRACE"; trace1 .harness/tra .harness/after 19360 "$L_WTRACE"; }
 
 # ---- timer: one series per route -------------------------------------------------------------------------------------------------
 SENT=0
@@ -712,7 +748,7 @@ nbuild() { local ci cn s0 s1
   echo "\$ $ci"; mbuild "$ci" "$1.install.log" "$1 (both modules, into \$M2)"
   echo "\$ $cn"
   NB_E=0; s0=$(date +%s); (eval "$cn") > "$1.native.log" 2>&1 < /dev/null || NB_E=$?; s1=$(date +%s); NB_S=$((s1 - s0))
-  echo "  (terminal only) the native build in $1 took $NB_S s" >&3
+  echo "  (terminal only) the native build in $1 took $NB_S s - $( [ $NB_S -lt 1200 ] && echo under || echo OVER ) the 20-minute bound" >&3
   if ghub "$1.native.log"; then echo "  offline: no - GraalVM's native plugin went to GitHub for its metadata repository"; die "the native build in $1: GraalVM's native plugin went over the network - README.md, The repository"; fi; }
 nlines() {
   echo "  its lines, in order (the rest - $(grep -cvE '^\[INFO\] --- |^\[INFO\] Found GraalVM|^ - Java version: |^Warning: |^\[[1-8]/8\] |^\[INFO\] BUILD |^The build process encountered ' "$1" || true) lines - not shown):"
@@ -721,7 +757,7 @@ nlines() {
   grep -E '^Warning: ' "$1" | sed -E "s/ in '(file:[^']*|null)'/ in '…'/" | sed 's/^/    /'
   grep -E '^\[[1-8]/8\] ' "$1" | sed 's/\.\.\..*$/.../' | sed 's/^/    /'
   grep -E '^The build process encountered |^\[INFO\] BUILD ' "$1" | sed 's/^\[INFO\] //' | sed 's/^/    /'; }
-nresult() { echo "  exit $NB_E · $(grep -m1 -oE 'BUILD (SUCCESS|FAILURE)' "$1" || echo 'no BUILD line') · stages it printed: $(grep -cE '^\[[1-8]/8\] ' "$1" || true) of the $(grep -m1 -oE '^\[1/[0-9]+\]' "$1" | sed 's/.*\///; s/]//') it announces · its duration, against the bound: $( [ $NB_S -lt 1200 ] && echo 'under 20 minutes' || echo '20 minutes or more' ) · its lines that say the metadata repository was downloaded over http, or failed to: $(grep -cE 'Downloaded GraalVM reachability metadata repository from http|Failed to download from http' "$1" || true) · offline: yes"; }
+nresult() { echo "  exit $NB_E · $(grep -m1 -oE 'BUILD (SUCCESS|FAILURE)' "$1" || echo 'no BUILD line') · stages it printed: $(grep -cE '^\[[1-8]/8\] ' "$1" || true) of the $(grep -m1 -oE '^\[1/[0-9]+\]' "$1" | sed 's/.*\///; s/]//') it announces · its lines that say the metadata repository was downloaded over http, or failed to: $(grep -cE 'Downloaded GraalVM reachability metadata repository from http|Failed to download from http' "$1" || true) · offline: yes"; }
 # aotmeta DIR: Spring's generated reachability metadata in DIR's web module (its AOT step's own file) - the entries for the record
 # the routes return and the enum a route's parameter is: what each registers
 AOTF=tiffinbox-web/target/spring-aot/main/resources/META-INF/native-image/com.tiffinbox/tiffinbox-web/reachability-metadata.json
@@ -843,6 +879,12 @@ forms() {
   echo "four forms, one tree: the seven (masked) $(grep -cE '^  exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 2 · md5 87ca7efc8584dcccd40e6b956db1de9b$' .harness/cap.raw) of 4 times 87ca7efc8584dcccd40e6b956db1de9b · Ravi 200 $(grep -cxF '  {"name":"Ravi","mealsPerDay":2,"pricePerMeal":120,"mealType":"VEG"} 200' .harness/cap.raw) of 4 · a name nobody has 404 $(grep -cxF '  {"timestamp":"…","status":404,"error":"Not Found","path":"/customers/Nobody"} 404' .harness/cap.raw) of 4 · VEGAN -> Priya $(grep -cxF '  [{"name":"Priya","mealsPerDay":1,"pricePerMeal":120,"mealType":"VEGAN"}] 200' .harness/cap.raw) of 4 · vegan 400 $(grep -cxF '  {"timestamp":"…","status":400,"error":"Bad Request","path":"/customers"} 400' .harness/cap.raw) of 4 · no header 403 $(grep -cxF '  {"error":"forbidden"} 403' .harness/cap.raw) of 4"
   echo "  loopback, form by form: the jar $(lbk '1 the jar') · the AOT jar $(lbk '2 the AOT jar') · the binary $(lbk '3 the binary') · the image, published on 127.0.0.1 alone $(lbk '4 the image')"; }
 
+# pplace's check, shown failing once before any capture (R.65): a planted copy of after/'s application.yaml with the three lines
+# moved to the end of the file - under the second document, the profile rush's - must fail it; after/'s own must pass
+awk '/^  level:$|^    org\.apache\.coyote\.http11\.Http11InputBuffer: info$|^    org\.springframework\.web\.method\.HandlerMethod: info$/ { held = held $0 "\n"; next } { print } END { printf "logging:\n%s", held }' "after/$YAML" > .harness/planted.yaml
+case "$(pplace .harness/planted.yaml)" in *'in the first document: no') ;; *) rm -f .harness/planted.yaml; die "pplace: the planted copy, the loggers below the ---, passes the check" ;; esac; rm -f .harness/planted.yaml
+case "$(pplace "after/$YAML")" in *'under logging: '*'in the first document: yes') ;; *) die "pplace: after/'s own application.yaml fails the check" ;; esac
+echo "  pplace: a planted copy, the two loggers below the ---, fails the check; after/'s own passes"
 cap change change
 cap resolvers resolvers
 cap path path
@@ -907,15 +949,18 @@ WHDR="    WARN .w.s.m.s.${RES}bind.MissingRequestHeaderException: Required reque
 #  method parameters, each named by an annotation."
 CB=$(blk change 'what a request can ask' 'after - '); CA=$(blk change 'after - ' 'the routing table'); CT=$(blk change 'the routing table' '')
 x change '^  built the previous tree · offline: yes · exit 0$'; x change '^  built after/ · offline: yes · exit 0$'
-[ "$(n change '^  Files ')" = 3 ] && [ "$(n change '^  Only in ')" = 0 ] || die "change: three files differ, none added or deleted"
-for f in README.md tiffinbox-core/src/main/java/com/tiffinbox/CustomerRepository.java tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java; do x change "^  Files \.harness/before/$f and \.harness/after/$f differ\$"; done
+[ "$(n change '^  Files ')" = 4 ] && [ "$(n change '^  Only in ')" = 0 ] || die "change: four files differ, none added or deleted"
+for f in README.md tiffinbox-core/src/main/java/com/tiffinbox/CustomerRepository.java tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java tiffinbox-web/src/main/resources/application.yaml; do x change "^  Files \.harness/before/$f and \.harness/after/$f differ\$"; done
 x change '^  TiffinBoxServer\.java: 176 -> 197$'; x change '^  CustomerRepository\.java: 50 -> 64$'
 x change '^    a value from the request, by Spring MVC.s annotation \(@PathVariable, @RequestParam, @RequestHeader\): 0 -> 3 · the servlet request \(HttpServletRequest, getHeader\): 3 -> 0$'
 x change '^    Spring.s status exception \(ResponseStatusException\): 0 -> 1 · a route \(@GetMapping, @PostMapping\): 5 -> 6$'
 for l in '    +    List<Customer> customers(@RequestParam(required = false) MealType mealType) throws Exception {' '    +    @GetMapping("/customers/{name}")' '    +    Customer customer(@PathVariable String name) throws Exception {' '    +                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "no customer named " + name));' '    -    Map<String, Object> shutdown(HttpServletRequest request, HttpServletResponse response) {' '    +    Map<String, Object> shutdown(@RequestHeader(name = "X-Shutdown-Token", required = false) String token,' '    +    private boolean holdsToken(String sent) {' '    +    public Optional<Customer> findByName(String name) throws SQLException {' '    +                 "SELECT name, meals_per_day, price_per_meal, meal_type FROM customer WHERE name = ?")) {'; do
   grep -qxF -- "$l" .r-change.out || die "change: the hunk line $l"; done
 x change '^the executable jar.s BOOT-INF/lib: 58 jars -> 58 · removed 0 · added 0$'
-x change '^  the other files, against the previous tree.s, byte for byte the same: 19 of 19 '
+x change '^  the other files, against the previous tree.s, byte for byte the same: 18 of 18 '
+x change '^  application\.yaml - its lines that are neither comment nor blank: 47 -> 50 · their diff \(diff -U1, its file names cut\) - hunks: 1 · lines out: 0 · in: 3 - whole:$'
+[ "$(blk change '  application.yaml - its lines' '  its comment lines' | paste -sd'|' -)" = '    @@ -30,2 +30,5 @@|         kitchen: tiffinbox, com.tiffinbox|    +  level:|    +    org.apache.coyote.http11.Http11InputBuffer: info|    +    org.springframework.web.method.HandlerMethod: info|     management:' ] || die "change: application.yaml's three new lines, under logging:"
+x change '^  its comment lines: [0-9]+ -> [0-9]+ · where the two loggers sit: level: line [0-9]+, under logging: \(line [0-9]+\) · .* · in the first document: yes$'
 [ "$(n change ' against the previous tree.s: different$')" = 0 ] || die "change: a file left alone differs"
 has "$CB" "$(WA "$(E404 /customers/Ravi)" 0)" "change before: Ravi is Spring's 404"; has "$CB" "$(WA "$FOUR" 0)" "change before: ?mealType=VEGAN answers all four"
 [ "$(aft "$(BQ 19361 '/customers?mealType=VEGAN')" "$CB")" = "$(WA "$FOUR" 0)" ] || die "change before: the four answer the vegan request"
@@ -929,9 +974,11 @@ has "$CA" "    s.w.s.m.m.a.RequestMappingHandlerMapping: DEBUG 8 mappings in 're
 printf '%s\n' "$CA" | grep -qE "^  then Boot's started line - logger: message: o\.s\.boot\.tomcat\.TomcatWebServer: Tomcat started on port 19360 " || die "change: registered before Boot's started line"
 printf '%s\n' "$CT" | grep -qE '^  dispatcherServlets · dispatcherServlet: 15 rows, ' || die "change: fifteen rows"
 has "$CT" "  TiffinBox's rows (its own handler, or a TiffinBoxServer method): 6 · naming a verb: 6 (GET 5 POST 1)" "change: TiffinBox's six rows"
-has "$CT" '    details.requestMappingConditions.params = []' "change: the meal type is no part of the match"; has "$CT" '    handler = com.tiffinbox.web.TiffinBoxServer#customer(String)' "change: the new row's handler"
+CR=$(blk change "\$ curl -s http://127.0.0.1:19360/actuator/mappings | python3 harness/table.py row /customers" '')
+has "$CR" '    details.requestMappingConditions.params = []' "change: the /customers row - the meal type is no part of the match"; has "$CR" '    handler = com.tiffinbox.web.TiffinBoxServer#customers(MealType)' "change: the /customers row's handler"
+has "$CT" '    handler = com.tiffinbox.web.TiffinBoxServer#customer(String)' "change: the new row's handler"
 printf '%s\n' "$CT" | grep -qE '^  servletFilters: 5, by name: .*webMvcObservationFilter' || die "change: Boot's timer is a servlet filter"
-echo "  change: 3 files; 176 -> 197 and 50 -> 64; binding lines 0 -> 3, the servlet request 3 -> 0, ResponseStatusException 0 -> 1, routes 5 -> 6; lib 58; 19 files the same; before Ravi 404, VEGAN -> all 4; after Ravi 200, VEGAN -> Priya; 6 + 2 = 8 mappings with types; 15 rows, TiffinBox's 6 with verbs; params = []"
+echo "  change: 4 files; 176 -> 197 and 50 -> 64; binding lines 0 -> 3, the servlet request 3 -> 0, ResponseStatusException 0 -> 1, routes 5 -> 6; application.yaml 47 -> 50, the two loggers under logging:, in the first document; lib 58; 18 files the same; before Ravi 404, VEGAN -> all 4; after Ravi 200, VEGAN -> Priya; 6 + 2 = 8 mappings with types; 15 rows, TiffinBox's 6 with verbs; the /customers row's params = []"
 
 # "its adapter holds twenty-eight argument resolvers here ... path variable, resolver three; request param, one; request header, ten ...
 #  only with javac's parameters flag, which Boot's parent turns on. C: ... A clean start, then a five hundred, and Spring's own sentence"
@@ -995,7 +1042,9 @@ has "$OT" '  spring-web-7.0.9.jar · org.springframework.web.bind.annotation: an
 has "$OT" "  of them on a route this unit's captures ask (the code lines of TiffinBoxServer.java and the harness's Bind.java): 6 - @CookieValue @MatrixVariable @PathVariable @RequestAttribute @RequestHeader @RequestParam" "others: six used"
 has "$OT" '  the others: 5 - @BindParam @ModelAttribute @RequestBody @RequestPart @SessionAttribute' "others: the other five"
 has "$OT" "  WARN lines in this run's log, at Boot's default level: 3" "others: three WARN lines in all"
-echo "  others: header, cookie, request attribute missing -> 400 + WARN each; matrix veg=yes by default; 27 annotations, 11 for a parameter, 6 used, 5 others"
+[ "$(aft "$(BQ 19362 /probe/bind/value)" "$OT")" = "$(WA '  port=[19362] 200' 0)" ] || die "others: spring-beans' @Value binds a parameter too"
+has "$VR" '   13 ExpressionValueMethodArgumentResolver' "resolvers: the adapter's resolver for @Value, 13"
+echo "  others: header, cookie, request attribute missing -> 400 + WARN each; matrix veg=yes by default; 27 annotations, 11 for a parameter in spring-web's jar, 6 used, 5 others; spring-beans' @Value binds one too (resolver 13)"
 
 # "Its header is optional ... TiffinBox's own method says four oh three. B: one attribute, required true. Now Spring answers instead,
 #  four hundred, with a warning naming the header, and TiffinBox never gets to say forbidden. A again: four oh three."
@@ -1016,17 +1065,30 @@ has "$KB" '    built the copy · offline: yes · exit 0' "token B: built offline
 has "$KB" '  its log: the demo token 0 times · X-Shutdown-Token 2 times' "token B: the header's name twice, the token never"; has "$KB" "$SHUT" "token B: the right one stops it"
 echo "  token: A and A' - no header 403, misspelt 403, 0 WARN; B (required = true, one attribute) - 400 + WARN MissingRequestHeaderException x2, no forbidden; the token 0 in every log"
 
-# "With every logger at TRACE ... Spring prints each method's arguments, and the token is one of them now. Tomcat already printed the raw
-#  request there, header and all. Before this change, the token was in that log once; now, twice."
-TB0=$(blk trace 'before - ' 'after - '); TB1=$(blk trace 'after - ' '')
+# "One cost, measured: at TRACE, Spring's HandlerMethod prints a route's arguments, the token among them - Boot's web group at TRACE is
+#  enough - and Tomcat's Http11InputBuffer prints the raw request when its logger is at TRACE ... both held at INFO ... A: every logger
+#  at TRACE, then the web group: zero. B, without those lines: twice, then once. A again: zero."
+TB0=$(blk trace 'before - ' 'A - '); TA=$(blk trace 'A - ' 'B - '); TBB=$(blk trace 'B - ' "A' - A again"); TA2=$(blk trace "A' - A again" '')
 TCAT="    DEBUG o.a.coyote.http11.Http11InputBuffer: Received [POST /shutdown HTTP/1.1  - the token on the record's line 5: X-Shutdown-Token: [masked: the trace run's token]"
 THM="    TRACE o.s.web.method.HandlerMethod: Arguments: [[masked: the trace run's token], org.springframework.web.context.request.async.StandardServletAsyncWebRequest\$LifecycleHttpServletResponse@…]"
-for b in "$TB0" "$TB1"; do has "$b" "$SEVEN1" "trace: the seven, unchanged at TRACE"; printf '%s\n' "$b" | grep -q -- ' --logging\.level\.root=trace$' || die "trace: every logger at TRACE"; has "$b" "$TCAT" "trace: Tomcat's record"; done
-has "$TB0" "  its log, the trace run's token in it: 1 · the demo token: 0 · the records that hold the trace run's token (level logger: first line):" "trace before: once"
-has "$TB1" "  its log, the trace run's token in it: 2 · the demo token: 0 · the records that hold the trace run's token (level logger: first line):" "trace after: twice"
-nhas "$TB0" "$THM" "trace before: no HandlerMethod line"; has "$TB1" "$THM" "trace after: Spring MVC's HandlerMethod line"
-[ "$(printf '%s\n' "$TB0" | grep -c '^    [A-Z]* [a-z.]')" = 1 ] && [ "$(printf '%s\n' "$TB1" | grep -c '^    [A-Z]* [a-z.]')" = 2 ] || die "trace: one record before, two after"
-echo "  trace: every logger at TRACE, the seven 87ca7efc... both; the trace run's token in the log 1 (Tomcat's Http11InputBuffer, DEBUG) -> 2 (+ Spring MVC's HandlerMethod, TRACE); the demo token 0"
+TOK() { printf "  its log, the trace run's token in it: %s · the demo token: 0 · the records that hold the trace run's token (level logger: first line):" "$1"; }
+# runs BLOCK OPTION: the part of BLOCK from the command line that ends in OPTION to the next command line that starts a JVM
+runs() { printf '%s\n' "$1" | awk -v o="$2" 'index($0, "$ cd .harness/tr") == 1 { f = (substr($0, length($0) - length(o) + 1) == o) } f'; }
+x trace "^after/'s application\.yaml, its first document: level: line [0-9]+, under logging: \(line [0-9]+\) · .* · in the first document: yes\$"
+for b in "$TB0" "$TA" "$TBB" "$TA2"; do has "$b" "$SEVEN1" "trace: the seven, unchanged at TRACE"; done
+printf '%s\n' "$TB0" | grep -q -- ' --logging\.level\.root=trace$' || die "trace before: every logger at TRACE"
+has "$TB0" "$(TOK 1)" "trace before: once"; has "$TB0" "$TCAT" "trace before: Tomcat's record"; nhas "$TB0" "$THM" "trace before: no HandlerMethod line"
+for b in "$TA" "$TBB" "$TA2"; do [ -n "$(runs "$b" ' --logging.level.root=trace')" ] && [ -n "$(runs "$b" ' --logging.level.web=trace')" ] || die "trace: each of A, B, A' runs every logger at TRACE, then the web group at TRACE"; done
+for b in "$TA" "$TA2"; do for o in ' --logging.level.root=trace' ' --logging.level.web=trace'; do r=$(runs "$b" "$o")
+  has "$r" "$(TOK 0)" "trace A/A'$o: the token 0 times"; nhas "$r" "$TCAT" "trace A/A'$o: no Tomcat record"; nhas "$r" "$THM" "trace A/A'$o: no HandlerMethod line"; done; done
+BR=$(runs "$TBB" ' --logging.level.root=trace'); BW=$(runs "$TBB" ' --logging.level.web=trace')
+has "$BR" "$(TOK 2)" "trace B, every logger at TRACE: twice"; has "$BR" "$TCAT" "trace B: Tomcat's record"; has "$BR" "$THM" "trace B: Spring MVC's HandlerMethod line"
+has "$BW" "$(TOK 1)" "trace B, the web group at TRACE: once"; has "$BW" "$THM" "trace B, web: HandlerMethod's line"; nhas "$BW" "$TCAT" "trace B, web: Tomcat's logger is not in Boot's web group"
+[ "$(printf '%s\n' "$TBB" | grep -c '^    -')" = 3 ] && [ "$(printf '%s\n' "$TBB" | grep -c '^    +')" = 0 ] || die "trace B: three lines deleted from the copy's application.yaml, none added"
+for l in '    -  level:' '    -    org.apache.coyote.http11.Http11InputBuffer: info' '    -    org.springframework.web.method.HandlerMethod: info'; do has "$TBB" "$l" "trace B: the copy's diff"; done
+has "$TBB" '    built the copy · offline: yes · exit 0' "trace B: the copy built offline"
+[ "$TA" = "$TA2" ] || die "trace: A' differs from A"
+echo "  trace: the two loggers in application.yaml's first document; the seven 87ca7efc... every run; the trace run's token - the previous tree 1 (Tomcat's Http11InputBuffer); A 0 at root=trace and 0 at web=trace; B (without the three lines) 2 (+ Spring MVC's HandlerMethod) and 1 (HandlerMethod alone: Tomcat's logger is not in the web group); A' = A; the demo token 0"
 
 # "Boot's timer files Ravi and Meera under one series, one counted line: customers slash name. Nobody, and the last course's customers
 #  slash seven, land there too, as four oh fours. The encoded slash isn't counted at all"
@@ -1044,7 +1106,7 @@ echo "  timer: uri=/customers/{name} 200 x2 and 404 x2 (Nobody, /customers/7); /
 # the line exercise/README.md calls "Done" is a line of this capture, after the solution's lines, and of SOLUTION.md's measured run;
 # the README's own last line, as shipped, prints the 400
 XS=$(blk exercise "the README's" "the solution's"); XE=$(blk exercise "the solution's" '')
-l='status: 200 · customers: 1 (Priya) · WARN: none'; l0="status: 400 · customers: 0 · WARN: Failed to convert value of type 'java.lang.String' to required type 'com.tiffinbox.MealType'"
+l='status: 200 · customers: 1 (Priya) · conversion failure: none'; l0="status: 400 · customers: 0 · conversion failure: Failed to convert value of type 'java.lang.String' to required type 'com.tiffinbox.MealType'"
 has "$XE" "    $l" "exercise: the solution"; has "$XS" "    $l0" "exercise: as shipped"
 awk '/^\*\*Done\*\*/ { f = 1 } f' exercise/README.md | grep -qxF -- "$l" || die "exercise/README.md: Done names no such line"
 grep -qxF -- "$l" exercise/solution/SOLUTION.md || die "SOLUTION.md: the measured run shows no such line"
@@ -1053,11 +1115,11 @@ has "$XS" '  exit 0 · what they printed:' "exercise: the README's commands, exi
 has "$XS" "  the shell is now in: this unit's folder · the copy's own token in its log: 0 times · WARN lines in its log: 1" "exercise: the README's commands leave the shell in this unit's folder, one WARN"
 has "$XE" "  the shell is now in: this unit's folder · the copy's own token in its log: 0 times · WARN lines in its log: 0 · listening on 19369 now: 0" "exercise: the solution's lines leave the shell in this unit's folder, nothing logged, nothing listening"
 [ "$(printf '%s\n' "$XE" | grep -c '^  \$ export ')" = 2 ] || die "exercise: SOLUTION.md gives the README's two export lines"
-echo "  exercise: one env -i shell - the README as written -> 400, 0 customers, the WARN's reason; the solution's lines -> 200, 1 (Priya), no WARN; the shell in this unit's folder after each"
+echo "  exercise: one env -i shell - the README as written -> 400, 0 customers, the conversion failure its WARN names; the solution's lines -> 200, 1 (Priya), no WARN; the shell in this unit's folder after each"
 
 # "And every form, the jar, the AOT jar, built ahead of time, the native binary and the image, serves the seven and the new routes,
 #  on loopback, this computer only."
-x forms '^  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its duration, against the bound: under 20 minutes · its lines that say the metadata repository was downloaded over http, or failed to: 0 · offline: yes$'
+x forms '^  exit 0 · BUILD SUCCESS · stages it printed: 8 of the 8 it announces · its lines that say the metadata repository was downloaded over http, or failed to: 0 · offline: yes$'
 x forms '^  file: Mach-O 64-bit executable · the demo token in its bytes: 0 · the trace run.s: 0$'
 x forms '^  Spring.s generated metadata \(spring-aot/main/resources/META-INF/native-image/com\.tiffinbox/tiffinbox-web/reachability-metadata\.json\): reflection entries naming com\.tiffinbox\.Customer: 1 - all declared fields · all declared constructors · 4 methods \(mealType mealsPerDay name pricePerMeal\)$'
 x forms '^  Spring.s generated metadata \(spring-aot/main/resources/META-INF/native-image/com\.tiffinbox/tiffinbox-web/reachability-metadata\.json\): reflection entries naming com\.tiffinbox\.MealType: 1 - '
