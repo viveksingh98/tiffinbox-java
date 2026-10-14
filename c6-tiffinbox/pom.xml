@@ -22,10 +22,6 @@
 
   <properties>
     <java.version>25</java.version>
-    <!-- Course 5, unit 03: the Jackson 2 family moves as ONE version, through the property Boot's own BOM reads.
-         Pinning jackson-databind alone was right under Course 4, where nothing else managed Jackson; under Boot's BOM it
-         left jackson-core and jackson-annotations on Boot's 2.21.x while databind stayed on 2.22.2. -->
-    <jackson-2-bom.version>2.22.2</jackson-2-bom.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <h2.version>2.5.250</h2.version>
     <!-- Course 5: one fixed time for every entry of every archive this build writes - Course 3's reproducible-build

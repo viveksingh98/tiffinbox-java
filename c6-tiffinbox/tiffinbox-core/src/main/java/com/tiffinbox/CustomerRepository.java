@@ -44,6 +44,22 @@ public final class CustomerRepository {
         }
     }
 
+    /**
+     * One new row: the record's four values, each a parameter of the SQL, never part of it. Nothing here checks them: the
+     * table's own constraints - a value in every column, a name nobody else has - are the only refusal, and H2 throws for each.
+     */
+    public void add(Customer customer) throws SQLException {
+        try (var c = db.open();
+             var ps = c.prepareStatement(
+                 "INSERT INTO customer (name, meals_per_day, price_per_meal, meal_type) VALUES (?, ?, ?, ?)")) {
+            ps.setString(1, customer.name());
+            ps.setInt(2, customer.mealsPerDay());
+            ps.setInt(3, customer.pricePerMeal());
+            ps.setString(4, customer.mealType());
+            ps.executeUpdate();
+        }
+    }
+
     public int monthRevenue() throws SQLException {
         try (var c = db.open();
              var ps = c.prepareStatement("SELECT SUM(meals_per_day * price_per_meal * 30) FROM customer");

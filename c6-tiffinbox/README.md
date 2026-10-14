@@ -30,6 +30,8 @@ goes through) hands each request to TiffinBox's handler for its path. Six files 
   and the binary agree. Until Course 6's Jackson lessons, one jar holds two Jacksons: Jackson 2 writes TiffinBox's five answers,
   Jackson 3 writes Spring's (an error body, Actuator's answers). *(Course 6, unit 06: Spring MVC's JSON converter writes TiffinBox's five answers too, with
   Jackson 3; Jackson 2 stays in the jar until Course 6's Jackson lessons, and writes none of them — `../c6-unit06/`, `json`.)*
+  *(Course 6, unit 08: one Jackson from there on — Jackson 2's `jackson-databind` is out of this POM, and two of the jar's 58 jars
+  with it: 56; `../c6-unit08/`, `jackson`.)*
 - `TiffinBoxServer.java` — the server half is out: no `HttpServer`, no executor, no contexts, no `stop()`. `handle()`, `respond()`
   and `holdsToken()` work on the servlet API (`HttpServletRequest`, `HttpServletResponse`); `handlers()` builds one **handler** per
   path (the object a request is handed to), each named — its `toString()` reads `TiffinBox route /customers` — and the verb is still
@@ -163,7 +165,7 @@ One Java file changed and two deleted, besides this README:
 
 The POMs, `application.yaml`, `spring.factories`, the Dockerfile, `compose.yaml`, `KitchenMetrics`, the indicator, the guard and
 its analyzer, `TiffinBoxApp.java` and `tiffinbox-core` are not touched; the executable jar holds the same 58 libraries — Jackson 2
-among them, until Course 6's Jackson lessons.
+among them, until Course 6's Jackson lessons. *(Course 6, unit 08: 56 — Jackson 2 is out; `../c6-unit08/`, `jackson`.)*
 
 **Registered at start.** Spring MVC's `RequestMappingHandlerMapping` finds the five while the context starts, before Boot's started
 line: at TRACE, `{GET [/customers]}: customers()` and four more under `c.t.w.TiffinBoxServer:`, then `7 mappings in
@@ -171,7 +173,8 @@ line: at TRACE, `{GET [/customers]}: customers()` and four more under `c.t.w.Tif
 customers()` and `routes mapped: […]` lines are gone (`../c6-unit06/`, `scan`). The routing table, `/actuator/mappings` exposed for
 one run, still has 14 rows, and TiffinBox's five now carry their verbs: `{GET [/customers]}` → `TiffinBoxServer#customers()`,
 `methods ["GET"]` (`rows`). *(Course 6, unit 07: six routes, 8 mappings, 15 rows — `GET /customers/{name}` is the sixth, and the
-routes list their parameter types, `customers(MealType)`; `../c6-unit07/`, `change`.)*
+routes list their parameter types, `customers(MealType)`; `../c6-unit07/`, `change`.)* *(Course 6, unit 08: seven routes, 9 mappings,
+16 rows — `POST /customers`, `add(Customer)`, is the seventh; `../c6-unit08/`, `change`.)*
 
 ```bash
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.kitchen=debug --logging.level.org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping=trace
@@ -198,7 +201,8 @@ GET /shutdown's (`seven`).
 missing-class lines, below), `/customers` still answers 200: Jackson 2 is no longer on its road. With Jackson 3's `RecordUtil`
 deleted instead, `/customers` is Boot's 500 body, and Tomcat logs `… threw exception [Handler dispatch failed:
 java.lang.NoClassDefFoundError: tools/jackson/databind/util/RecordUtil] with root cause` at ERROR, with the trace; `/kitchen`, a
-map, still answers (`json`).
+map, still answers (`json`). *(Course 6, unit 08: there is no Jackson 2 jar to take `JDK14Util` from any more — the last course's
+`zip` line finds nothing to do, exit 12; `RecordUtil`'s line still shows who writes the answers; `../c6-unit08/`, `jackson`.)*
 
 **Whole paths, by pattern.** A mapping takes a whole path or nothing: `/customersXYZ`, `/customers/`, `/customers.json` and
 `/CUSTOMERS` are 404s, and so is `POST /shutdownXYZ`, token and all — TiffinBox keeps serving (Course 5's finale measured the
@@ -244,7 +248,8 @@ objects that fill one kind of parameter each — fills it before the method runs
   never part of it — an `Optional<Customer>`: 50 lines → 64.
 
 The POMs, `application.yaml`, the Dockerfile, `compose.yaml`, the meters, the indicator, the guard and the rest of `tiffinbox-core`
-are not touched — 19 files byte for byte — and the executable jar holds the same 58 libraries.
+are not touched — 19 files byte for byte — and the executable jar holds the same 58 libraries. *(Course 6, unit 08: 56 — Jackson 2 is
+out; `../c6-unit08/`, `jackson`.)*
 
 ```bash
 curl -s -w ' %{http_code}\n' http://127.0.0.1:18431/customers/Ravi
@@ -255,7 +260,8 @@ curl -s -w ' %{http_code}\n' 'http://127.0.0.1:18431/customers?mealType=VEGAN'
 routes now, each with its parameter types — `{GET [/customers/{name}]}: customer(String)`, `{GET [/customers]}: customers(MealType)`,
 `{POST [/shutdown]}: shutdown(String,HttpServletResponse)` — and `8 mappings in 'requestMappingHandlerMapping'`; the routing table
 (`/actuator/mappings`, exposed for one run) has 15 rows, TiffinBox's six each naming a verb, and the new row's
-`requestMappingConditions.params` is `[]`: the meal type is no part of the match (`change`). Per request, Spring MVC's
+`requestMappingConditions.params` is `[]`: the meal type is no part of the match (`change`). *(Course 6, unit 08: seven routes —
+`{POST [/customers]}: add(Customer)` the seventh — 9 mappings and 16 rows; `../c6-unit08/`, `change`.)* Per request, Spring MVC's
 `RequestMappingHandlerAdapter` asks its 28 argument resolvers, in order — the first that takes a parameter fills it:
 `@PathVariable` → `PathVariableMethodArgumentResolver`, `@RequestParam` → `RequestParamMethodArgumentResolver`, `@RequestHeader` →
 `RequestHeaderMethodArgumentResolver`, the `HttpServletResponse` → `ServletResponseMethodArgumentResolver` (the course's harness
@@ -301,6 +307,80 @@ the seven `87ca7efc…` (masked), and, on a second start of each, `/customers/Ra
 
 Evidence for every sentence in this section: `../c6-unit07/` (`receipts.sh`, ten captures).
 
+## Course 6 · unit 08 — @RequestBody: a new customer, as JSON; one Jackson left (2026-10-14)
+
+Until this unit TiffinBox took nothing from a request's body: a POST to `/customers` was Spring MVC's 405, with one WARN line —
+no mapping took POST there (`../c6-unit08/`, `change`). From this unit on, **`POST /customers`** takes a new customer as the
+request's **body**, in JSON, stores it and answers with it. Four files changed, besides this README:
+- `TiffinBoxServer.java` — **`POST /customers`**, new: `Customer add(@RequestBody Customer customer)`. `@RequestBody` hands the method
+  the request's body, read into the Course 1 record before the method runs; the method stores it (`repo.add`) and returns it — 200
+  and the record (statuses on purpose are Course 6's *Responses: ResponseEntity and Status Codes*). The Javadoc gains the paragraph
+  that says how: 197 lines → 215.
+- `tiffinbox-core`'s `CustomerRepository.java` — **`add(Customer)`**, new: one `INSERT`, the record's four values parameters of the
+  SQL, never part of it: 64 lines → 80.
+- `tiffinbox-web/pom.xml` — `com.fasterxml.jackson.core:jackson-databind`, **out**: TiffinBox's own JSON library since Core Java II,
+  Jackson 2, which has written none of TiffinBox's answers since Course 6's request-mapping lesson. Two comments rewritten.
+- `pom.xml` — `<jackson-2-bom.version>2.22.2</jackson-2-bom.version>` and its comment, **out**: with Jackson 2's library gone, it
+  pinned only the annotations jar both Jacksons read (below).
+
+The executable jar holds 56 libraries, where it held 58: `jackson-databind-2.22.2.jar` and `jackson-core-2.22.2.jar` are out, and
+`jackson-annotations-2.22.jar` is `jackson-annotations-2.21.jar` (`jackson`). `application.yaml`, `spring.factories`, the Dockerfile,
+`compose.yaml` and the other classes are not touched — 20 of the tree's 25 files byte for byte.
+
+```bash
+curl -s -w ' %{http_code}\n' -H 'Content-Type: application/json' --data '{"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}' http://127.0.0.1:18431/customers
+```
+
+**Registered, then read.** At TRACE (the request-mapping lesson's line), `RequestMappingHandlerMapping` lists seven of TiffinBox's
+routes now — `{POST [/customers]}: add(Customer)` the seventh — and `9 mappings in 'requestMappingHandlerMapping'`; the routing
+table has 16 rows, two of them `/customers`, one per verb, and the new row's `requestMappingConditions.consumes` is `[]`: the route
+names no media type of its own (`change`). Spring MVC's `RequestMappingHandlerAdapter` holds six **message converters** — the
+objects that turn a request's body into a parameter, and a return value into an answer's bytes — and asks them in order which can
+read the parameter's type from the body's **media type**, the type the request's `Content-Type` header names. For a `Customer`, only
+the sixth says yes, `JacksonJsonHttpMessageConverter`, for `application/json`, and it writes one too; none reads a `Customer` from a
+form (`application/x-www-form-urlencoded`) or from `text/plain` (`chain`: the course's harness, reading the running adapter). Its
+mapper is Boot's bean `jacksonJsonMapper`, Jackson 3's `JsonMapper`. A record has no setters and no constructor without arguments:
+Jackson builds it through its canonical constructor, once per body (a harness record whose compact constructor counts its calls:
+1, then 2 — `body`).
+
+**A body is in the log at DEBUG.** With Boot's `web` group at DEBUG (the embedded-Tomcat lesson's line), Spring MVC's
+`RequestResponseBodyMethodProcessor` logs the body it read — `Read "application/json;charset=UTF-8" to [Customer[name=Asha,
+mealsPerDay=2, pricePerMeal=110, mealType=VEG]]` — and the record it wrote back: six lines for the POST, every value in them
+(`body`). Harmless for a customer; never run DEBUG on a route whose body carries a secret.
+
+**The Content-Type is on the command line.** curl's `--data` names a form, `application/x-www-form-urlencoded`, unless told
+otherwise: without `-H 'Content-Type: application/json'` the same POST is Spring MVC's **415**, Boot's body, and the answer's `Accept`
+header names what it would read — `application/json, application/*+json` — with one WARN line, `HttpMediaTypeNotSupportedException:
+Content-Type 'application/x-www-form-urlencoded;charset=UTF-8' is not supported`; nothing is stored (`ctype`). The 415 is the
+converters', not the route's.
+
+**What doesn't fit** (`misfit`) is a 400, Boot's body, the reason only in one WARN line of Spring MVC's
+`DefaultHandlerExceptionResolver`, Jackson's message inside it: malformed JSON, an empty body (`Required request body is missing`),
+an array, a missing `mealsPerDay` (``Cannot map `null` into type `int` ``), trailing text after the object. **Stored, with no word in
+the log:** an unknown property is ignored (`"loyaltyPoints":5`, Core Java II's own unknown field — that lesson's Jackson 2 refused
+one by default; Jackson 3 does not, Boot's mapper and a plain `JsonMapper` alike: `chain`), `"2"` is read as 2 — and **`2.7` meals a
+day is stored as 2**.
+
+**What nothing checks yet** (`unchecked`): `{"name":"","mealsPerDay":0,"pricePerMeal":-5,"mealType":"LUNCH"}` → 200, stored, and
+`/customers` lists it first. A misspelt key (`"mealTyp"`) is ignored, so the meal type arrives as `null`, and H2 refuses the row —
+`NULL not allowed for column "MEAL_TYPE"`, H2's code 23502 — in Tomcat's ERROR line, with a trace of over 50 frames, and Boot's 500;
+a name already taken is H2's `Unique index or primary key violation`, 23505 — the same exception class — another 500 and trace.
+Course 6's *Validation on the Way In* and *Responses: ResponseEntity and Status Codes* take these on.
+
+**One Jackson left** (`jackson`). Jackson 2's databind and core are out of the jar's libraries, and out of the class path Maven lists
+for `tiffinbox-web`, the one the native build reads; `jackson-annotations` stays — Jackson 3's `jackson-databind-3.1.5.jar` imports
+the same package, `com.fasterxml.jackson.annotation` (its manifest: `version="[2.21,3)"`) — and moves 2.22 → 2.21, Boot's own: the
+parent's pin was what kept it at 2.22 (Boot 4.1.1's `<jackson-2-bom.version>2.21.5</jackson-2-bom.version>`; Jackson 3's BOM,
+`<jackson.version.annotations>2.21</jackson.version.annotations>`). Boot's condition report (`--debug`): Actuator's
+`Jackson2EndpointAutoConfiguration` matched on the previous tree, and here `did not find required class
+'com.fasterxml.jackson.databind.ObjectMapper'` — Actuator builds no Jackson 2 mapper. The seven are unchanged, `87ca7efc…` (masked).
+
+**Every form still serves:** the jar, the AOT jar, the native binary and the image: each on `127.0.0.1` (the image: published there),
+each answering the seven `87ca7efc…` (masked), and, on a second start of each, the new customer 200 and read back by name, the
+form's 415, and `2.7` meals stored as 2 (`forms`).
+
+Evidence for every sentence in this section: `../c6-unit08/` (`receipts.sh`, nine captures).
+
 ---
 
 # c5-tiffinbox — Course 5 (Spring Boot)'s long-lived project
@@ -330,7 +410,9 @@ since unit 27 it is refused: the start exits 2 before the banner. The port is `-
 `pom.xml` no longer pins `jackson-databind` alone: under Boot's parent that left `jackson-core` and
 `jackson-annotations` on Boot's 2.21.x beside databind 2.22.2. It sets `<jackson-2-bom.version>2.22.2</jackson-2-bom.version>`
 instead — the property Boot's BOM reads — and all three are 2.22.x. The seven responses are unchanged; evidence in
-`../c5-unit03/`.
+`../c5-unit03/`. *(Course 6, unit 08: the property is gone, with Jackson 2's `jackson-databind`: no Jackson 2 library is left to
+pin, and the one Jackson 2 artifact the jar still holds, `jackson-annotations` — Jackson 3 reads the same annotations — takes Boot's
+version, 2.21; `../c6-unit08/`, `jackson`.)*
 
 ## Course 5 · unit 04 — auto-configuration switched on (2026-09-27)
 
@@ -689,7 +771,9 @@ Two new files and two changed ones; the Java sources are untouched:
   brings two jars of Jackson 3 (`jackson-databind`, `jackson-core` 3.1.5) to the class path Maven lists, beside Jackson 2.
   The executable jar holds none of the three: Boot's plugin leaves optional dependencies out (`includeOptional`, off),
   and keeps this module out on its own too (`excludeDockerCompose`, on). With `includeOptional` on, that second setting
-  still keeps the module out, but not its Jackson: 33 jars, the module 0, Jackson 3's two.
+  still keeps the module out, but not its Jackson: 33 jars, the module 0, Jackson 3's two. *(Course 6, unit 08: there is no
+  Jackson 2 beside them now — of Jackson 2's three jars only `jackson-annotations` is left on that class path, which Jackson 3
+  reads too; `../c6-unit08/`, `jackson`.)*
 - `application.yaml` — `spring.docker.compose.enabled: false`: off.
 - `application-dev.yaml` — new: the profile `dev` switches it on.
 
@@ -840,7 +924,8 @@ from the Compose module and 991 from Jackson 3, 24 and 884 of them class names).
 out: 33 jars — the jar's 31 less `spring-boot-jarmode-tools`, plus three starters that hold no class — and in the binary's bytes
 0 names from the Compose module and 3 from Jackson 3 (2 of them class names) — names that classes of `spring-boot`'s own JSON
 support mention. The executable jar never held either. TiffinBox's own Jackson, version 2 (`com.fasterxml`), stays on the
-binary's class path.
+binary's class path. *(Course 6, unit 08: it is out of the build — of `com.fasterxml.jackson`, the class path Maven lists, which the
+native build reads, holds only the annotations, which Jackson 3 reads too; `../c6-unit08/`, `jackson`.)*
 
 Build and run the binary with unit 19's four lines (above). Measured on an Apple M1 (8 cores, 16 GB), from the process's start to
 the first answer, the middle of five runs after a warm-up round: the binary's warmed-up start under a tenth of a second, under a
@@ -929,7 +1014,8 @@ curl -s -w ' %{http_code}\n' http://127.0.0.1:18431/actuator/env/tiffinbox.shutd
   path. `conditions` is the condition report. `mappings` is empty: TiffinBox's routes are not Spring MVC's (Course 6 lists them).
   *(Course 6, unit 04: they are Spring MVC's now — five paths in one `SimpleUrlHandlerMapping`, `tiffinBoxRoutes`; Course 6's
   mappings lesson lists them.)* *(Course 6, unit 06: five of `requestMappingHandlerMapping`'s rows, each with its verb — `{GET [/customers]}` →
-  `TiffinBoxServer#customers()` — `../c6-unit06/`, `rows`.)*
+  `TiffinBoxServer#customers()` — `../c6-unit06/`, `rows`.)* *(Course 6, unit 08: seven, `POST /customers` among them;
+  `../c6-unit08/`, `change`.)*
 - `heapdump` has access NONE by default: exposed, it still answers 404. Switched on for one run, it hands over a copy of the JVM's
   memory, over 20 MB, with 3 copies of the shutdown token in it — `rm heap.hprof` at once (`.gitignore` keeps it out of a
   commit):
@@ -941,7 +1027,9 @@ curl -s -o heap.hprof -w '%{http_code}\n' http://127.0.0.1:18431/actuator/heapdu
 
 - Every endpoint at once stops the start — exit 1, `NoClassDefFoundError: com/fasterxml/jackson/datatype/jsr310/JavaTimeModule`,
   for the `configprops` endpoint, which needs Jackson 2's time module; TiffinBox's Jackson 2 does not carry it, and Boot has no
-  failure analysis for it:
+  failure analysis for it *(Course 6, unit 08: not on Spring MVC's Actuator — exposed alone for one run,
+  `--management.endpoints.web.exposure.include=health,configprops`, configprops answers 200, on the previous tree and on this one,
+  which holds no Jackson 2 library; `../c6-unit08/`, `jackson` C)*:
 
 ```bash
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --management.endpoints.web.exposure.include='*'
@@ -1161,7 +1249,7 @@ The group prints five `route` lines at start, Spring's `Running with Spring Boot
 404, never `handle()`'s). *(Course 6, unit 06: no `route` line and no line per answer now: Spring MVC's `RequestMappingHandlerMapping`
 registers the routes, at TRACE — `{GET [/customers]}: customers()` and four more, `7 mappings in 'requestMappingHandlerMapping'` —
 `../c6-unit06/`, `scan`.)* *(Course 6, unit 07: six, with their parameter types — `customers(MealType)` — and 8 mappings;
-`../c6-unit07/`, `change`.)*
+`../c6-unit07/`, `change`.)* *(Course 6, unit 08: seven — `add(Customer)` — and 9 mappings; `../c6-unit08/`, `change`.)*
 
 **While it runs**, through Actuator's `loggers` endpoint — exposed by a flag, for one run, never in `application.yaml`: it is a
 write on the app's own port, and anyone who reaches the port can call it:
@@ -1346,7 +1434,9 @@ converter writes them with Jackson 3: delete Jackson 3's `RecordUtil` instead �
 `zip -q -d tiffinbox-web/target/hang/lib/jackson-databind-3.1.5.jar 'tools/jackson/databind/util/RecordUtil*'` — and `/customers`
 answers Boot's `500` body, while Tomcat logs `Servlet.service() … threw exception [Handler dispatch failed:
 java.lang.NoClassDefFoundError: tools/jackson/databind/util/RecordUtil] with root cause` at ERROR, with the trace; `/kitchen`, a
-map, still answers 200 — `../c6-unit06/`, `json`.)* Before this
+map, still answers 200 — `../c6-unit06/`, `json`.)* *(Course 6, unit 08: and from Course 6's request-body lesson there is no
+`jackson-databind-2.22.2.jar` in `lib/` to delete it from: the `zip` line prints `zip error: Nothing to do!` and exits 12 —
+`../c6-unit08/`, `jackson`.)* Before this
 change curl gave up after 5 seconds, while the log said `GET /customers -> -1` and the timer counted an answer no client received.
 **At INFO, Boot's default, the error is in the log:** `GET /customers failed`, at ERROR, then
 `java.lang.NoClassDefFoundError: com/fasterxml/jackson/databind/jdk14/JDK14Util` and its trace (before this change: nothing at
@@ -1499,13 +1589,15 @@ mvn -version           # Java version: 25.0.4.1
 ```
 
 The first build downloads H2 2.5.250 and Jackson 2.22.2 from Maven Central; after that,
-nothing.
+nothing. *(Course 6, unit 08: no Jackson 2.22.2 — the build names no Jackson 2 library, and the annotations jar Jackson 3 needs
+comes at 2.21; `../c6-unit08/`, `jackson`.)*
 
 ## Build
 
 > **Stale since Course 5, unit 13.** Web's build no longer runs `copy-dependencies`, its jar's manifest has no
 > `Class-Path`, and there is no `tiffinbox-web/target/lib/`: the jar is Boot's executable jar (unit 13's section at the
-> top). The manifest and the `lib/` listing below are Course 3's, kept as they were written.
+> top). The manifest and the `lib/` listing below are Course 3's, kept as they were written. *(Course 6, unit 08: and Jackson 2's
+> `jackson-databind` and `jackson-core` are out of the build — `../c6-unit08/`, `jackson`.)*
 
 ```bash
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
@@ -1676,7 +1768,8 @@ javap -v -cp tiffinbox-core/target/classes com.tiffinbox.Dashboard | grep -E 'ma
 
 The parent's `<dependencyManagement>` decides `tiffinbox-core`, `h2` and `jackson-databind`;
 its `<pluginManagement>` decides the four plugin versions. **No child POM contains a
-`<version>` for a dependency or a plugin.** Check it:
+`<version>` for a dependency or a plugin.** *(Course 6, unit 08: `jackson-databind` is out of the build, and with it `jackson-core`
+2; `jackson-annotations` stays, at 2.21, because Jackson 3 needs it — `../c6-unit08/`, `jackson`.)* Check it:
 
 ```bash
 mvn -B dependency:tree

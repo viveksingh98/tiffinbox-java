@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -65,6 +66,12 @@ import static java.lang.System.Logger.Level.INFO;
  * ({@code @RequestHeader}) - and one of Spring MVC's argument resolvers fills each: by the name the annotation gives, or else by
  * the parameter's own, which the class file keeps (Boot's parent compiles with -parameters). A value that cannot become its type
  * is Spring MVC's 400. A name nobody has is a ResponseStatusException: Spring MVC's 404, whose body, Boot's, names no reason.
+ *
+ * <p>Course 6: a route takes the request's body too ({@code @RequestBody}). POST /customers reads a new customer from JSON:
+ * Spring MVC asks its message converters, in order, which one reads a Customer from the request's Content-Type, and for
+ * application/json the JSON one does - Jackson 3, which builds the record through its canonical constructor. A body it
+ * cannot read is Spring MVC's 400; a Content-Type no converter reads, its 415. Nothing checks the values yet. Jackson 2,
+ * TiffinBox's own JSON library since Core Java II, is out of the build: Spring's Jackson 3 reads and writes every body.
  */
 @RestController
 public final class TiffinBoxServer {
@@ -105,6 +112,17 @@ public final class TiffinBoxServer {
     Customer customer(@PathVariable String name) throws Exception {
         return repo.findByName(name)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "no customer named " + name));
+    }
+
+    /**
+     * A new customer, from the request's body: Spring MVC's JSON message converter reads the JSON into the record - through
+     * its canonical constructor - before this method runs, and the method stores it and returns it. Nothing checks its
+     * values yet: the database's own constraints are the only refusal, and theirs is a 500.
+     */
+    @PostMapping("/customers")
+    Customer add(@RequestBody Customer customer) throws Exception {
+        repo.add(customer);
+        return customer;
     }
 
     @GetMapping("/revenue")

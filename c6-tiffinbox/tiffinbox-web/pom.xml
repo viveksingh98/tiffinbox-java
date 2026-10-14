@@ -15,14 +15,11 @@
   <description>The HTTP server, the router and the JSON. No SQL in here.</description>
 
   <dependencies>
-    <!-- Neither of these names a version: both are managed by the parent. -->
+    <!-- No version: the parent manages it. Course 6: Jackson 2's jackson-databind, beside it since Core Java II, is gone -
+         Spring MVC's Jackson 3 reads and writes every JSON body TiffinBox sends or receives. -->
     <dependency>
       <groupId>com.tiffinbox</groupId>
       <artifactId>tiffinbox-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -59,9 +56,9 @@
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-registry-prometheus</artifactId>
     </dependency>
-    <!-- Course 6: Spring MVC and the server it runs on - embedded Tomcat, Spring's DispatcherServlet, and Jackson 3,
-         which writes Spring's own JSON (an error body, Actuator's answers). TiffinBox's routes sit behind the
-         DispatcherServlet (RouteMapping), and their answers keep the Jackson 2 above. Boot's parent manages its version. -->
+    <!-- Course 6: Spring MVC and the server it runs on - embedded Tomcat, Spring's DispatcherServlet, and Jackson 3, the
+         one JSON library left: it reads TiffinBox's request bodies and writes every answer (TiffinBox's routes', an error
+         body, Actuator's). Boot's parent manages its version. -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webmvc</artifactId>
