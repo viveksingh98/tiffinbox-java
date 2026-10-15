@@ -1,0 +1,10 @@
+--- a/tiffinbox-web/pom.xml
++++ b/tiffinbox-web/pom.xml
+@@ -63,6 +63,7 @@
+       <groupId>org.springframework.boot</groupId>
+       <artifactId>spring-boot-starter-webmvc</artifactId>
+     </dependency>
++    <dependency><groupId>tools.jackson.dataformat</groupId><artifactId>jackson-dataformat-xml</artifactId></dependency>
+   </dependencies>
+
+   <build>
