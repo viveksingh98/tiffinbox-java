@@ -1,10 +1,13 @@
 package com.tiffinbox.web;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.validation.Valid;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,6 +31,7 @@ import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import static java.lang.System.Logger.Level.INFO;
 
@@ -73,7 +77,7 @@ import static java.lang.System.Logger.Level.INFO;
  * <p>Course 6: a route takes the request's body too ({@code @RequestBody}). POST /customers reads a new customer from JSON:
  * Spring MVC asks its message converters, in order, which one reads a Customer from the request's Content-Type, and for
  * application/json the JSON one does - Jackson 3, which builds the record through its canonical constructor. A body it
- * cannot read is Spring MVC's 400; a Content-Type no converter reads, its 415. Nothing checks the values yet. Jackson 2,
+ * cannot read is Spring MVC's 400; a Content-Type no converter reads, its 415; the values it holds are checked next (below). Jackson 2,
  * TiffinBox's own JSON library since Core Java II, is out of the build: Spring's Jackson 3 reads and writes every body.
  *
  * <p>Course 6: a route can answer with a ResponseEntity - the answer's status, its headers and its body as one return value -
@@ -82,6 +86,14 @@ import static java.lang.System.Logger.Level.INFO;
  * 403 the same way, where it set the servlet response's status itself. Spring MVC's HttpEntityMethodProcessor writes such an
  * answer - the status and the headers, then the body through the same message converters - and flushes it as it goes, so it
  * leaves chunked, with no Content-Length; a plain return value is written by RequestResponseBodyMethodProcessor, which does not.
+ *
+ * <p>Course 6: a body is checked on its way in. Customer's components carry Bean Validation's constraints, and POST /customers
+ * marks its body {@code @Valid}: once Jackson has read the JSON into the record, Spring MVC's validator - Boot's adapter around
+ * the one Validator Boot builds, Hibernate Validator's - checks it, and every rule it breaks lands in the BindingResult the
+ * method takes beside it. The method answers those itself: 400 Bad Request, each field that broke a rule with the rule's
+ * message. A body that breaks none reaches the database as before: 201, or 409 for a name that is taken. The class carries no
+ * {@code @Validated}: that would hand a constrained parameter to Boot's method-validation post-processor, which subclasses the
+ * bean - and this class is final.
  */
 @RestController
 public final class TiffinBoxServer {
@@ -129,17 +141,25 @@ public final class TiffinBoxServer {
 
     /**
      * A new customer, from the request's body: Spring MVC's JSON message converter reads the JSON into the record - through
-     * its canonical constructor - before this method runs, and the method stores it. Nothing checks its values yet: the
-     * database's own constraints are the only refusal. The answer says what happened. Stored: 201 Created, the record, and a
-     * Location header, the new customer's URL - this request's URL without its query string, the name appended to its path,
-     * encoded (a space is %20). Its scheme, host and port are the ones the request names: the host and port come from the
-     * request's Host header, so the Location points wherever the client said it was talking to. A name that is taken: 409
-     * Conflict, with no body. H2 refuses that row with the SQLSTATE 23505 - the five-character code a database reports with a
-     * refusal - and refuses a row with a column left empty, 23502, with the same exception class: so this method reads the
-     * code, never the class, and every other refusal stays Spring MVC's 500.
+     * its canonical constructor - and, because the parameter is marked @Valid, Spring MVC's validator checks the record
+     * against its constraints (Customer), before this method runs. The rules it broke are in the BindingResult - which must
+     * come straight after the parameter it reports on - and a body that broke any is answered here: 400 Bad Request, its
+     * body each field that broke a rule and that rule's message, sorted by field name; nothing is stored. Without the
+     * BindingResult, Spring MVC would answer for the method: its own 400, whose body - Boot's - names no field. A body that
+     * keeps every rule is stored, and the answer says what happened. Stored: 201 Created, the record, and a Location header,
+     * the new customer's URL - this request's URL without its query string, the name appended to its path, encoded (a space
+     * is %20). Its scheme, host and port are the ones the request names: the host and port come from the request's Host
+     * header, so the Location points wherever the client said it was talking to. A name that is taken: 409 Conflict, with no
+     * body. H2 refuses that row with the SQLSTATE 23505 - the five-character code a database reports with a refusal - and
+     * refuses a row with a column left empty, 23502, with the same exception class: so this method reads the code, never
+     * the class, and every other refusal stays Spring MVC's 500. The return type names no body type: the 400's body is a
+     * map, the 201's the record.
      */
     @PostMapping("/customers")
-    ResponseEntity<Customer> add(@RequestBody Customer customer) throws SQLException {
+    ResponseEntity<?> add(@Valid @RequestBody Customer customer, BindingResult errors) throws SQLException {
+        if (errors.hasErrors()) {
+            return ResponseEntity.badRequest().body(fieldMessages(errors));
+        }
         try {
             repo.add(customer);
         } catch (SQLException e) {
@@ -192,6 +212,18 @@ public final class TiffinBoxServer {
         }
         Thread.ofPlatform().start(context::close);
         return ResponseEntity.ok(ordered("stopping", true));
+    }
+
+    /**
+     * Each field that broke a rule, and the rule's message, sorted by field name. A value breaks at most one rule of its
+     * component (Customer), so no field has two.
+     */
+    private static Map<String, String> fieldMessages(BindingResult errors) {
+        var out = new TreeMap<String, String>();
+        for (FieldError e : errors.getFieldErrors()) {
+            out.put(e.getField(), e.getDefaultMessage());
+        }
+        return out;
     }
 
     /** Map.of has a randomised iteration order, so the JSON key order would change every run. */

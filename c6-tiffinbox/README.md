@@ -178,7 +178,8 @@ customers()` and `routes mapped: […]` lines are gone (`../c6-unit06/`, `scan`)
 one run, still has 14 rows, and TiffinBox's five now carry their verbs: `{GET [/customers]}` → `TiffinBoxServer#customers()`,
 `methods ["GET"]` (`rows`). *(Course 6, unit 07: six routes, 8 mappings, 15 rows — `GET /customers/{name}` is the sixth, and the
 routes list their parameter types, `customers(MealType)`; `../c6-unit07/`, `change`.)* *(Course 6, unit 08: seven routes, 9 mappings,
-16 rows — `POST /customers`, `add(Customer)`, is the seventh; `../c6-unit08/`, `change`.)*
+16 rows — `POST /customers`, `add(Customer)`, is the seventh; `../c6-unit08/`, `change`.)* *(Course 6, unit 12: `add(Customer,BindingResult)`
+since, still 9 mappings; `../c6-unit12/`, `constraints`.)*
 
 ```bash
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.kitchen=debug --logging.level.org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping=trace
@@ -273,7 +274,8 @@ routes now, each with its parameter types — `{GET [/customers/{name}]}: custom
 parameter is gone; `../c6-unit10/`, `entity`)* — and `8 mappings in 'requestMappingHandlerMapping'`; the routing table
 (`/actuator/mappings`, exposed for one run) has 15 rows, TiffinBox's six each naming a verb, and the `/customers` row's
 `requestMappingConditions.params` is `[]`: the meal type is no part of the match (`change`). *(Course 6, unit 08: seven routes —
-`{POST [/customers]}: add(Customer)` the seventh — 9 mappings and 16 rows; `../c6-unit08/`, `change`.)* The first time it meets a parameter,
+`{POST [/customers]}: add(Customer)` the seventh — 9 mappings and 16 rows; `../c6-unit08/`, `change`.)* *(Course 6, unit 12:
+`add(Customer,BindingResult)` since; `../c6-unit12/`, `constraints`.)* The first time it meets a parameter,
 Spring MVC's `RequestMappingHandlerAdapter` asks its 28 argument resolvers in order — the first that takes it fills it, and that
 choice is cached for the parameter:
 `@PathVariable` → `PathVariableMethodArgumentResolver`, `@RequestParam` → `RequestParamMethodArgumentResolver`, `@RequestHeader` →
@@ -331,7 +333,9 @@ request's **body**, in JSON, stores it and answers with it. Four files changed, 
 - `TiffinBoxServer.java` — **`POST /customers`**, new: `Customer add(@RequestBody Customer customer)`. `@RequestBody` hands the method
   the request's body, read into the Course 1 record before the method runs; the method stores it (`repo.add`) and returns it — 200
   and the record (statuses on purpose are Course 6's *Responses: ResponseEntity and Status Codes*). *(Course 6, unit 10: 201, the
-  record and a Location since — a `ResponseEntity`; a name that is taken, 409; `../c6-unit10/`, `created`, `conflict`.)* The Javadoc gains the paragraph
+  record and a Location since — a `ResponseEntity`; a name that is taken, 409; `../c6-unit10/`, `created`, `conflict`.)* *(Course 6,
+unit 12: and a body that breaks one of the record's rules, 400, each broken field named — `@Valid`, and a `BindingResult` beside it;
+`../c6-unit12/`, `answer`.)* The Javadoc gains the paragraph
   that says how: 197 lines → 215.
 - `tiffinbox-core`'s `CustomerRepository.java` — **`add(Customer)`**, new: one `INSERT`, the record's four values parameters of the
   SQL, never part of it: 64 lines → 80.
@@ -349,7 +353,8 @@ curl -s -w ' %{http_code}\n' -H 'Content-Type: application/json' --data '{"name"
 ```
 
 **Registered, then read.** At TRACE (the request-mapping lesson's line), `RequestMappingHandlerMapping` lists seven of TiffinBox's
-routes now — `{POST [/customers]}: add(Customer)` the seventh — and `9 mappings in 'requestMappingHandlerMapping'`; the routing
+routes now — `{POST [/customers]}: add(Customer)` the seventh *(Course 6, unit 12: `add(Customer,BindingResult)` since;
+`../c6-unit12/`, `constraints`)* — and `9 mappings in 'requestMappingHandlerMapping'`; the routing
 table has 16 rows, two of them `/customers`, one per verb, and the new row's `requestMappingConditions.consumes` is `[]`: the route
 names no media type of its own (`change`). Spring MVC's `RequestMappingHandlerAdapter` holds six **message converters** — the
 objects that turn a request's body into a parameter, and a return value into an answer's bytes — and asks them in order which can
@@ -387,7 +392,8 @@ day is stored as 2**. *(Course 6, unit 09: refused since — a 400 and one WARN 
 a name already taken is H2's `Unique index or primary key violation`, 23505 — the same exception class — another 500 and trace.
 Course 6's *Validation on the Way In* and *Responses: ResponseEntity and Status Codes* take these on. *(Course 6, unit 10: a name
 already taken is 409 since, decided by its SQLSTATE, no trace; the misspelt key is still H2's 23502 and a 500; `../c6-unit10/`,
-`conflict`.)*
+`conflict`.)* *(Course 6, unit 12: both bodies refused since, 400, before the database is asked — the first with its four broken
+fields named, the misspelt key with `{"mealType":"must not be null"}`; nothing stored, no trace; `../c6-unit12/`, `answer`, `typo`.)*
 
 **One Jackson left** (`jackson`). Jackson 2's databind and core are out of the jar's libraries, and out of the class path Maven lists
 for `tiffinbox-web`, the one the native build reads; `jackson-annotations` stays — Jackson 3's `jackson-databind-3.1.5.jar` imports
@@ -430,7 +436,8 @@ coercion was enabled using `CoercionConfig`)``; nothing is stored (`/customers/M
 written, not at its value: `2.0` is refused too, and so is a price of `110.5` (`pricePerMeal` is a whole number as well).
 **What it leaves alone:** `"2"`, a number sent as text, is still read as 2; an unknown property (`"loyaltyPoints":5`) is still
 ignored, and so is a misspelt key — `"mealTyp"` still reaches H2 as a missing meal type, H2's 23502 refusal and Boot's 500; a
-missing `mealsPerDay` is still a 400 (`float`, A). Unknown properties stay ignored on purpose: refusing them — `custom` B does it in
+missing `mealsPerDay` is still a 400 (`float`, A). *(Course 6, unit 12: the misspelt key is refused since, before H2 is asked — 400,
+`{"mealType":"must not be null"}`; an unknown property is still ignored; `../c6-unit12/`, `typo`.)* Unknown properties stay ignored on purpose: refusing them — `custom` B does it in
 code — turns the misspelt key into an opaque 400 whose reason is only in the log; Course 6's *Validation on the Way In* takes the typo
 on. The run line with `--spring.jackson.deserialization.accept-float-as-int=true` turns Jackson's default back on: stored as 2 again
 (`float`, B).
@@ -470,7 +477,9 @@ taken was H2's refusal, Boot's 500 and an ERROR line with a trace of over 50 fra
 response itself (`../c6-unit10/`, `conflict` and `entity`, before). From this unit on, TiffinBox's two POST routes return a
 **`ResponseEntity`** — Spring's type for a whole answer: its status code, its headers and its body, as one return value. One Java file
 changed, besides this README:
-- `TiffinBoxServer.java` — **`POST /customers`** is `ResponseEntity<Customer> add(@RequestBody Customer customer)`. Stored, it answers
+- `TiffinBoxServer.java` — **`POST /customers`** is `ResponseEntity<Customer> add(@RequestBody Customer customer)` *(Course 6, unit 12:
+  `ResponseEntity<?> add(@Valid @RequestBody Customer customer, BindingResult errors)` since — a body that breaks a rule is a 400;
+  `../c6-unit12/`, `constraints`)*. Stored, it answers
   **201 Created**, the record, and a **`Location`** header, the new customer's own URL:
   `ServletUriComponentsBuilder.fromCurrentRequestUri().path("/{name}").buildAndExpand(customer.name()).toUri()` — this request's URL
   without its query string, the name appended and encoded — handed to `ResponseEntity.created(location).body(customer)`. A name that
@@ -495,7 +504,8 @@ record. A name with a space, `Sunil K`, comes back `…/customers/Sunil%20K`, an
 space, curl refuses to send it (the exercise). OPTIONS on `/customers` lists `GET,HEAD,OPTIONS,POST`, on a Location `GET,HEAD,OPTIONS`
 (`created`; the verbs sorted: Spring MVC's order moves between runs). Nothing checks a body's values yet: the request-body lesson's
 empty name is created too, `201`, and its Location, `…/customers/`, is Spring's 404 — no mapping takes that path. Course 6's
-*Validation on the Way In* refuses that body.
+*Validation on the Way In* refuses that body. *(Course 6, unit 12: refused since — 400, its four broken fields named, nothing
+stored; `../c6-unit12/`, `answer`.)*
 
 **The Location is the request's host.** Spring builds it from the URL the request came to, and that URL's host and port are the ones
 the request's `Host` header names: curl names `127.0.0.1` and the port it dialled; a client that sends `Host: kitchen.localhost` gets
@@ -507,12 +517,14 @@ Location too — `?via=app`, measured on the course's harness (`statuses`); `fro
 
 **409 by the database's code.** The same name POSTed twice: `201`, then `409`, no body, no WARN or ERROR line; a name the seed already
 holds, `Ravi`, `409`, and Ravi's row unchanged. A misspelt key (`"mealTyp"`) is still H2's 23502, Tomcat's ERROR line with a trace of
-over 50 frames, and Boot's 500 (`conflict` A). A copy that tests the exception's class instead of the code —
+over 50 frames, and Boot's 500 (`conflict` A). *(Course 6, unit 12: a 400 since, `{"mealType":"must not be null"}`, no ERROR line;
+`../c6-unit12/`, `typo`.)* A copy that tests the exception's class instead of the code —
 `SQLIntegrityConstraintViolationException`, which both refusals are — answers the misspelt key 409 too, with nothing in its log
 (`conflict` C, labelled). Two POSTs of one name at the same moment are not measured here.
 
 **Who writes the answers.** At DEBUG (Boot's `web` group, the embedded-Tomcat lesson's line) the routes are mapped as before —
-`TiffinBoxServer#add(Customer)`, and `#shutdown(String)` where it was `#shutdown(String, HttpServletResponse)` — and Spring MVC's
+`TiffinBoxServer#add(Customer)` *(Course 6, unit 12: `#add(Customer, BindingResult)` since; `../c6-unit12/`, `constraints`)*, and
+`#shutdown(String)` where it was `#shutdown(String, HttpServletResponse)` — and Spring MVC's
 `HttpEntityMethodProcessor` writes their answers, where `RequestResponseBodyMethodProcessor` did: `Writing [Customer[…]]`, then the
 `DispatcherServlet`'s `Completed 201 CREATED` (`entity`). The 403's bytes are the same — `{"error":"forbidden"} 403` — but not its
 headers: `HttpEntityMethodProcessor` flushes the answer it writes (javap: 2 calls to `ServletServerHttpResponse.flush` in its
@@ -531,6 +543,84 @@ of each, a new customer 201 with a Location on 127.0.0.1 and that form's own por
 and POST /shutdown without the token 403 (`forms`).
 
 Evidence for every sentence in this section: `../c6-unit10/` (`receipts.sh`, seven captures).
+
+## Course 6 · unit 12 — @Valid: a body checked on its way in, and a 400 that names each field (2026-10-15)
+
+Until this unit nothing checked a request body's values. The request-body lesson's empty name — `{"name":"","mealsPerDay":0,
+"pricePerMeal":-5,"mealType":"LUNCH"}` — was created: 201, its Location `…/customers/` a path no mapping takes, 404, and `/customers`
+listed it first; a misspelt key (`"mealTyp"`) left the meal type `null`, and H2 refused the row — its code 23502, Tomcat's ERROR line
+with a trace of over 50 frames, Boot's 500 (`../c6-unit12/`, `before`). From this unit on, the record carries its rules, and Spring MVC
+checks each body against them before the method runs. Two Java files changed, besides this README:
+- `tiffinbox-core`'s `Customer.java` — the record's four components carry **constraints**, Bean Validation's annotations (its API jar
+  has been the core POM's since Course 5's settings record): `@NotBlank name`, `@Min(1) @Max(3) mealsPerDay`, `@Min(1) pricePerMeal`,
+  `@NotNull @Pattern(regexp = "VEG|NON_VEG|VEGAN") mealType` — six constraints. A value breaks at most one rule of its component:
+  `@Pattern` lets a missing meal type through and `@NotNull` an empty one, so each field that fails has one message (with `@NotBlank`
+  beside `@Pattern`, an empty meal type would break both). The annotations check nothing by themselves, and a record the database or
+  the seed builds is never checked. The Javadoc says so: 8 lines → 27.
+- `TiffinBoxServer.java` — **`POST /customers`** is `ResponseEntity<?> add(@Valid @RequestBody Customer customer, BindingResult errors)`.
+  **`@Valid`** asks Spring MVC to check the body against the record's constraints once Jackson has read it; every rule it broke is in
+  the **`BindingResult`** — the parameter straight after the one it reports on — and the method answers them itself: **400 Bad
+  Request**, its body each broken field and its rule's message, sorted by field name (`fieldMessages`, a `TreeMap`); nothing is stored.
+  A body that keeps every rule goes on as before: 201 and a Location, or 409 for a name that is taken (H2's SQLSTATE 23505, the test
+  kept). The return type names no body type any more: the 400's body is a map, the 201's the record. The class carries no
+  `@Validated` (below). The class Javadoc gains the paragraph that says how, and the method's its own: 241 lines → 273.
+
+The POMs, `application.yaml`, `CustomerRepository`, the Dockerfile and `compose.yaml` are not touched — 22 of the tree's 25 files byte
+for byte — and the executable jar holds the same 56 libraries (`constraints`).
+
+```bash
+curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'Content-Type: application/json' --data '{"name":"","mealsPerDay":0,"pricePerMeal":-5,"mealType":"LUNCH"}' http://127.0.0.1:18431/customers
+```
+
+**A 400 that names each field.** That POST — the response lesson's Location line with the request-body lesson's empty name — answers
+`{"mealType":"must match \"VEG|NON_VEG|VEGAN\"","mealsPerDay":"must be greater than or equal to 1","name":"must not be
+blank","pricePerMeal":"must be greater than or equal to 1"} 400 · Location: []`: four rules broken, four fields, none twice, no WARN
+line, and `/customers` still lists the four customers TiffinBox seeds. Four meals a day: `{"mealsPerDay":"must be less than or equal
+to 3"}`. Asha's body: 201 and her Location; the same again: 409 — a body that keeps every rule still reaches the unique index
+(`answer`, A). At TRACE (the request-mapping lesson's line) the route registers as `{POST [/customers]}: add(Customer,BindingResult)`,
+still 9 mappings; at DEBUG (Boot's `web` group) Spring MVC maps the POST to `TiffinBoxServer#add(Customer, BindingResult)`, logs the
+body it read, and `HttpEntityMethodProcessor` writes the method's map: `Completed 400 BAD_REQUEST` (`constraints`). **Without the
+`BindingResult`** — a copy with that parameter, and the three lines that answer from it, deleted (`answer`, B) — Spring MVC answers for
+the method: its `MethodArgumentNotValidException`, Boot's 400 body (`timestamp`, `status`, `error`, `path`: no field), and one WARN line
+of Spring MVC's `DefaultHandlerExceptionResolver` that lists the 4 errors, each with the value it was given; their order in that line
+moves between runs — Hibernate Validator hands its violations over as a set — which is why the method's map is a `TreeMap`.
+
+**The misspelt key, caught** (`typo`). Jackson still ignores `"mealTyp"`, so the record's meal type is `null` — and that is now
+`{"mealType":"must not be null"}`, 400, before H2 is asked: no ERROR line, nothing stored (`/customers/Rohan` 404). An unknown property
+beside a full body (`"loyaltyPoints":5`) is still ignored: 201, and the customer is stored without it — validation checks the record
+Jackson built, not the JSON that was sent. `2.7` meals is still Jackson's refusal, before validation: Boot's 400, one WARN line.
+
+**Who validates** (`validator`: the course's harness, `probe.web.Who`, reading the running application). Spring MVC's handler adapter
+binds and validates with the bean `mvcValidator`, Boot's `ValidatorAdapter`; its target is the very `LocalValidatorFactoryBean` Boot
+declares as `defaultValidator` — the context's one Bean Validation `Validator`, Hibernate Validator's `ValidatorImpl` once unwrapped:
+the kind of object Course 4's validation lesson called by hand, now called by the web layer. Its messages come in the request's
+language — the same body sent with `Accept-Language: de` gets them in German — and, from a client that names none, in the JVM's locale
+(`en_US` on this Mac).
+
+**Which validation runs** (`methods`: the course's harness controllers). A constraint on a request parameter (`@RequestParam @Min(1)
+int meals`) on a class with no `@Validated` is Spring MVC's own method validation: `?meals=0` → 400, `HandlerMethodValidationException`
+(Boot's body names the exception with `--spring.web.error.include-exception=true`, a key that is false by default), no WARN line. The
+same route on a class that carries `@Validated`: Boot's `FilteredMethodValidationPostProcessor` hands the context a subclass of it
+(`…$$SpringCGLIB$$<n>`), whose check throws `jakarta.validation.ConstraintViolationException` → 500 and Tomcat's ERROR line with its
+trace. On a `final` class `@Validated` stops the start: exit 1, `Could not generate CGLIB subclass … Cannot subclass final class`.
+`TiffinBoxServer` is final, so it carries no `@Validated`. `TiffinBoxProperties` is final and carries `@Validated` too, and starts:
+Boot's one `MethodValidationExcludeFilter` keeps `@ConfigurationProperties` beans from the post-processor — on a settings record,
+`@Validated` asks Boot's binder to check it.
+
+**Boot's error keys** (`keys`). `--spring.web.error.include-binding-errors=always` changes nothing where the method answers — the
+anchor's map, the same; on the copy without the `BindingResult`, Boot's body gains `errors`: each field error whole, 8 keys apiece
+(its field, the value it was given, its message, the codes and arguments behind them, a binding flag). Boot 3's name for the same key
+(the same words, under `server` instead of `spring.web`) is in Boot 4.1.1's metadata as deprecated at level error since 4.0.0, and a run
+given it changes nothing and logs nothing about it (the exercise).
+
+**Every form validates:** the jar, the AOT jar, the native binary and the image — each on `127.0.0.1` (the image: published there),
+each answering the seven `87ca7efc…` (masked), and, on a second start of each, the refused body 400 with its four fields named, a new
+customer 201 with a Location on that form's own port, the Location followed 200, the same name again 409 and POST /shutdown without
+the token 403 (`forms`). Spring's AOT step registers the same 665 reflection entries as on the previous tree; one changed —
+`TiffinBoxServer`'s, `add`'s parameter types — and `Customer`'s entry is the same: the record is still registered by the signatures
+that name it, the `@RequestBody` parameter and `GET /customers/{name}`'s return type, though `add` no longer names it in its own.
+
+Evidence for every sentence in this section: `../c6-unit12/` (`receipts.sh`, nine captures).
 
 ---
 
@@ -1401,7 +1491,8 @@ The group prints five `route` lines at start, Spring's `Running with Spring Boot
 404, never `handle()`'s). *(Course 6, unit 06: no `route` line and no line per answer now: Spring MVC's `RequestMappingHandlerMapping`
 registers the routes, at TRACE — `{GET [/customers]}: customers()` and four more, `7 mappings in 'requestMappingHandlerMapping'` —
 `../c6-unit06/`, `scan`.)* *(Course 6, unit 07: six, with their parameter types — `customers(MealType)` — and 8 mappings;
-`../c6-unit07/`, `change`.)* *(Course 6, unit 08: seven — `add(Customer)` — and 9 mappings; `../c6-unit08/`, `change`.)*
+`../c6-unit07/`, `change`.)* *(Course 6, unit 08: seven — `add(Customer)` — and 9 mappings; `../c6-unit08/`, `change`.)* *(Course 6, unit 12:
+`add(Customer,BindingResult)` since; `../c6-unit12/`, `constraints`.)*
 
 **While it runs**, through Actuator's `loggers` endpoint — exposed by a flag, for one run, never in `application.yaml`: it is a
 write on the app's own port, and anyone who reaches the port can call it:
