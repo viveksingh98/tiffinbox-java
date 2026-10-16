@@ -71,7 +71,13 @@ without the exports — its `java` 23.0.1 — ends with `exit 1` and prints no l
 /customers?mealType=veg: 400 · customers: 0 · names: none`, then `GET /customers?mealType=veg: 200 · customers: 2 · names: Ravi Sunil`,
 exit 0, the shell in `c6-unit13/`; 19429 free after.
 
-Published hashes: default `651bfdd970e61e0bfb33db27e5f60ad8` · converter `512ea7a10ec9311ba57d8183582b8067` · format `b39dd8bc871b24026e1049e783e10013` · binder `943ea154322ce858fac654dbc51ccbbb` · record `baad567a3dd84996ffd3601262881c6b` · locale `1d9f878f49a0e26ad41a809c23ff11f8` · exercise `de0f821316619d2b9ef129492ca5a00c`.
+Published hashes: default `ce7abc8f7480468f58368979c99535bd` · converter `512ea7a10ec9311ba57d8183582b8067` · format `b39dd8bc871b24026e1049e783e10013` · binder `943ea154322ce858fac654dbc51ccbbb` · record `baad567a3dd84996ffd3601262881c6b` · locale `d5a378c77c5a0ff13516cb411f211d09` · exercise `de0f821316619d2b9ef129492ca5a00c`.
+
+**BLUE B (2026-10-16), after RED B2 rows 113, 115, 117-119:** `default` adds `?mealType=%20VEG%20` and `VEG%20` (Spring's own enum
+converter trims: Ravi, Sunil); `locale` D adds the two named-pattern routes from the U.K. client (2026-10-14 both) and E (labelled) the ISO
+key, the same client (`14/10/26` → 400, `2026-10-14` → 200). Changed: default `651bfdd9…` → `ce7abc8f…`, locale `1d9f878f…` → `d5a378c7…`;
+the other five byte for byte the same. **Runs of record:** `./receipts.sh` (3.2.57, re-seeded, `env -i`, its own group) 725 s — 7 captures
+3/3, every check passed, "no published hash" as designed; `bash receipts.sh` (5.3.9, re-seeded) 1,110 s — exit 0, all 7 = published.
 
 ## The commands this unit adds
 
@@ -192,7 +198,8 @@ The anchor, copied, built offline and extracted; the harness's six classes compi
 the executable jar: `87ca7efc…` (masked) — Section 2's set since the request-mapping lesson. Then the class-path layout, U.S. English, the
 harness's `Who` joined: `?mealType=VEG` → Ravi and Sunil; **`?mealType=veg` → 400**, Boot's error body, and one WARN line — Spring MVC's
 `DefaultHandlerExceptionResolver`, `MethodArgumentTypeMismatchException … Failed to convert from type [java.lang.String] to type
-[@…RequestParam com.tiffinbox.MealType] for value [veg]`; `?mealType=` → all four (an empty value is no filter). **Who binds it**, read off
+[@…RequestParam com.tiffinbox.MealType] for value [veg]`; `?mealType=` → all four (an empty value is no filter); `?mealType=%20VEG%20` and `VEG%20` → Ravi and Sunil — Spring's own enum converter
+trims (RED B2 #118: the harness's converter adds only the upper-casing). **Who binds it**, read off
 the running app: the parameter `@RequestParam MealType mealType`, its argument resolver 1 of 28 (`RequestParamMethodArgumentResolver`);
 from a `String` the conversion service uses **`java.lang.String -> java.lang.Enum : …StringToEnumConverterFactory`** — Spring's own
 converter for every enum, which asks for the constant's exact name; the service is the bean `mvcConversionService`, **Boot's
@@ -201,7 +208,7 @@ meal type `veg` — is not a conversion at all: the record holds its meal type a
 validation's, **`{"mealType":"must match \"VEG|NON_VEG|VEGAN\""}` 400 with 0 WARN lines**, beside the parameter's conversion failure:
 Boot's opaque body and one WARN. One WARN in all.
 
-`.r-default.out` · md5 `651bfdd970e61e0bfb33db27e5f60ad8` · 3 of 3
+`.r-default.out` · md5 `ce7abc8f7480468f58368979c99535bd` · 3 of 3
 
 ```
 the anchor - anchor/, copied under .harness/ with a config tree, built with its README's line (offline):
@@ -237,6 +244,11 @@ $ curl -s -w ' %{http_code}\n' 'http://127.0.0.1:19421/customers?mealType=veg'
     WARN .w.s.m.s.DefaultHandlerExceptionResolver: Resolved [org.springframework.web.method.annotation.MethodArgumentTypeMismatchException: Method parameter 'mealType': Failed to convert value of type 'java.lang.String' to required type 'com.tiffinbox.MealType'; Failed to convert from type [java.lang.String] to type [@org.springframework.web.bind.annotation.RequestParam com.tiffinbox.MealType] for value [veg]]
 $ curl -s -w ' %{http_code}\n' 'http://127.0.0.1:19421/customers?mealType='
   [{"name":"Meera","mealsPerDay":1,"pricePerMeal":150,"mealType":"NON_VEG"},{"name":"Priya","mealsPerDay":1,"pricePerMeal":120,"mealType":"VEGAN"},{"name":"Ravi","mealsPerDay":2,"pricePerMeal":120,"mealType":"VEG"},{"name":"Sunil","mealsPerDay":3,"pricePerMeal":100,"mealType":"VEG"}] 200 · WARN lines it added: 0
+  VEG with a space on each side (%20), then at its end - Spring's own enum converter, no converter of ours joined:
+$ curl -s -w ' %{http_code}\n' 'http://127.0.0.1:19421/customers?mealType=%20VEG%20'
+  [{"name":"Ravi","mealsPerDay":2,"pricePerMeal":120,"mealType":"VEG"},{"name":"Sunil","mealsPerDay":3,"pricePerMeal":100,"mealType":"VEG"}] 200 · WARN lines it added: 0
+$ curl -s -w ' %{http_code}\n' 'http://127.0.0.1:19421/customers?mealType=VEG%20'
+  [{"name":"Ravi","mealsPerDay":2,"pricePerMeal":120,"mealType":"VEG"},{"name":"Sunil","mealsPerDay":3,"pricePerMeal":100,"mealType":"VEG"}] 200 · WARN lines it added: 0
 $ curl -s 'http://127.0.0.1:19421/probe/who/binds?route=/customers'
   GET /customers - TiffinBoxServer#customers, 1 parameter
     @RequestParam MealType mealType - its argument resolver: 1 of 28, RequestParamMethodArgumentResolver
@@ -579,7 +591,7 @@ $ harness/shutdown.sh 19426 .harness/anchor/secrets/tiffinbox/shutdown-token
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 ```
 
-## 6 · locale — the JVM's locale, for a date with no format (A/B/A′; C and D, labelled)
+## 6 · locale — the JVM's locale, for a date with no format (A/B/A′; C, D and E, labelled)
 
 **A** — U.S. English: `Dates` prints the short date pattern this request is read with, **`M/d/yy`**; `10/14/26` → `2026-10-14`; `14/10/26`
 → 400, one WARN. **B** — U.K. English, the run line's options before `-cp`: **`dd/MM/y`** — day, month, and a one-letter year, which takes
@@ -587,9 +599,11 @@ the year as written; `10/14/26` → 400; **`14/10/26` → `on=0026-10-14`, 200, 
 line for line A. **C (labelled)** — U.K. English, `@DateTimeFormat(pattern = "dd/MM/yy")`: `14/10/26` → `2026-10-14` (`yy`, two digits).
 **D (labelled)** — a U.S. English JVM, the request naming `Accept-Language: en-GB`: this request's locale `en_GB`, `dd/MM/y`, and
 `14/10/26` → **`0026-10-14`** — the default formatter reads the request's locale (Spring MVC's, from `Accept-Language`), the JVM's only
-when the request names none, as curl's do here.
+when the request names none, as curl's do here. The same request on the routes that name their pattern (`dd/MM/yy`, `dd/MM/yyyy`) →
+**`2026-10-14`** both: a pattern ignores the client's language. **E (labelled)** — D's request on a JVM with Boot's ISO key
+(`--spring.mvc.format.date=iso`): `14/10/26` → **400**, `2026-10-14` → 200 — the defence at the trap: ISO or a pattern (RED B2 #115).
 
-`.r-locale.out` · md5 `1d9f878f49a0e26ad41a809c23ff11f8` · 3 of 3
+`.r-locale.out` · md5 `d5a378c77c5a0ff13516cb411f211d09` · 3 of 3
 
 ```
 A - the anchor on its class path, U.S. English (this unit's run line), Dates joined, port 19427 - the short date pattern, then two dates with no format:
@@ -670,7 +684,28 @@ $ curl -s -w ' %{http_code}\n' -H 'Accept-Language: en-GB' http://127.0.0.1:1942
   the JVM's locale: en_US · this request's: en_GB · its short date pattern: dd/MM/y 200 · WARN lines it added: 0
 $ curl -s -w ' %{http_code}\n' -H 'Accept-Language: en-GB' 'http://127.0.0.1:19427/probe/date?on=14/10/26'
   on=0026-10-14 · the JVM's locale: en_US 200 · WARN lines it added: 0
+  the routes that name their pattern, dd/MM/yy and dd/MM/yyyy, the same header:
+$ curl -s -w ' %{http_code}\n' -H 'Accept-Language: en-GB' 'http://127.0.0.1:19427/probe/date/yy?on=14/10/26'
+  on=2026-10-14 200 · WARN lines it added: 0
+$ curl -s -w ' %{http_code}\n' -H 'Accept-Language: en-GB' 'http://127.0.0.1:19427/probe/date/fmt?on=14/10/2026'
+  on=2026-10-14 200 · WARN lines it added: 0
   WARN lines in this run's log, at Boot's default level: 0 · ERROR lines: 0
+$ harness/shutdown.sh 19427 .harness/anchor/secrets/tiffinbox/shutdown-token
+  POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
+  exit 0 · listening on 19427 now: 0
+  its log: the demo token 0 times · X-Shutdown-Token 0 times
+E (labelled) - U.S. English with Boot's ISO key (this unit's run line), port 19427, a fresh JVM - the request in U.K. English, as D:
+$ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19427 --spring.mvc.format.date=iso --spring.main.sources=probe.web.Dates
+  listens on: 127.0.0.1:19427 · loopback only: yes
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19427/actuator/health/readiness
+  {"status":"UP"} 200
+$ curl -s -w ' %{http_code}\n' -H 'Accept-Language: en-GB' 'http://127.0.0.1:19427/probe/date?on=14/10/26'
+  {"timestamp":"…","status":400,"error":"Bad Request","path":"/probe/date"} 400 · WARN lines it added: 1
+    WARN .w.s.m.s.DefaultHandlerExceptionResolver: Resolved [org.springframework.web.method.annotation.MethodArgumentTypeMismatchException: Method parameter 'on': Failed to convert value of type 'java.lang.String' to required type 'java.time.LocalDate'; Failed to convert from type [java.lang.String] to type [@org.springframework.web.bind.annotation.RequestParam java.time.LocalDate] for value [14/10/26]]
+$ curl -s -w ' %{http_code}\n' -H 'Accept-Language: en-GB' 'http://127.0.0.1:19427/probe/date?on=2026-10-14'
+  on=2026-10-14 · the JVM's locale: en_US 200 · WARN lines it added: 0
+  WARN lines in this run's log, at Boot's default level: 1 · ERROR lines: 0
 $ harness/shutdown.sh 19427 .harness/anchor/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
   exit 0 · listening on 19427 now: 0

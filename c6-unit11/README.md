@@ -50,7 +50,13 @@ hands back the JVM's exit code; its log: `UnsupportedClassVersionError`), the sh
 application/xml;charset=UTF-8 · root element: Customer`, exit 0 each, the shell in `c6-unit11/`; 19409 free after, the copy's token 0
 times in its log.
 
-Published hashes: anchor `8c3f416bf55c4262614d846035b95019` · xml `36c9dd5ebf1b72aa4997ecd15ac82ca6` · accept `baf082d6e3c8c715da7d890a41a0a5c4` · shapes `0d52b87aa35591ced80cd5045c2dc0ea` · browser `8b99ad4ca60e0ae50594e6c04d1f7ef9` · actuator `9ed429a10eb3bf2bf2a790be9cd98691` · param `9556251ae208254375cd107188685f2d` · exercise `4aef7d7d923f3112d887343d4b63005e`.
+Published hashes: anchor `8c3f416bf55c4262614d846035b95019` · xml `36c9dd5ebf1b72aa4997ecd15ac82ca6` · accept `baf082d6e3c8c715da7d890a41a0a5c4` · shapes `0d52b87aa35591ced80cd5045c2dc0ea` · browser `8b99ad4ca60e0ae50594e6c04d1f7ef9` · actuator `2ae1cdf599581db64940e5fefa9169b1` · param `9556251ae208254375cd107188685f2d` · exercise `4aef7d7d923f3112d887343d4b63005e`.
+
+**BLUE B (2026-10-16), after RED B1 rows 81-87:** `actuator` also asks health for `application/vnd.spring-boot.actuator.v2+json` on
+both trees (200, in it); the exercise's README and solution no longer say "first format". Changed: actuator `9ed429a1…` → `2ae1cdf5…`; the
+other seven byte for byte the same — 10/after's README change reaches none of them. **Runs of record:** `./receipts.sh` (3.2.57,
+re-seeded, `env -i`, its own group) 376 s — 8 captures 3/3, every check passed, "no published hash" as designed; `bash receipts.sh` (5.3.9,
+re-seeded) 663 s — exit 0, all 8 = published.
 
 ## The commands this unit adds
 
@@ -534,16 +540,17 @@ $ harness/shutdown.sh 19402 .harness/xml/secrets/tiffinbox/shutdown-token
 
 ## 6 · actuator — health keeps its JSON
 
-Health, asked for as XML, as JSON and with a browser's `Accept` header. **As XML → 406 on both trees**: the anchor's empty, **the copy's
+Health, asked for as XML, as JSON, with a browser's `Accept` header and as Actuator's v2 JSON. **As XML → 406 on both trees**: the anchor's empty, **the copy's
 with an XML error body** (`<Map>…<status>406</status>…<path>/actuator/health</path></Map>`) — Boot's error controller can write XML now;
 Actuator's endpoint still cannot. As JSON → 200, `application/json`; a browser's header → 200,
-`application/vnd.spring-boot.actuator.v3+json`, on both: Actuator names its own types, and XML is not one of them. (The brief's ⚑2 loser
+`application/vnd.spring-boot.actuator.v3+json`, on both; asked for `application/vnd.spring-boot.actuator.v2+json` → 200 in it, on both
+(RED B1 #84): Actuator names its own types — v3, v2 and plain JSON — and XML is not one of them. (The brief's ⚑2 loser
 line, "Actuator answers 406 to it", holds for an XML `Accept`; a browser's gets health's JSON.)
 
-`.r-actuator.out` · md5 `9ed429a10eb3bf2bf2a790be9cd98691` · 3 of 3
+`.r-actuator.out` · md5 `2ae1cdf599581db64940e5fefa9169b1` · 3 of 3
 
 ```
-the anchor, the README's run line, port 19400 - health, asked for as XML, as JSON and with a browser's Accept header (this unit's GET line):
+the anchor, the README's run line, port 19400 - health, asked for as XML, as JSON, with a browser's Accept header and as Actuator's older v2 JSON (this unit's GET line):
 $ cd .harness/anchor && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19400
   listens on: 127.0.0.1:19400 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
@@ -556,11 +563,13 @@ $ curl -s -w ' · %{http_code} · Content-Type: [%header{content-type}]\n' -H 'A
   {"groups":["liveness","readiness"],"status":"UP"} · 200 · Content-Type: [application/json] · WARN lines it added: 0
 $ curl -s -w ' · %{http_code} · Content-Type: [%header{content-type}]\n' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' http://127.0.0.1:19400/actuator/health
   {"groups":["liveness","readiness"],"status":"UP"} · 200 · Content-Type: [application/vnd.spring-boot.actuator.v3+json] · WARN lines it added: 0
+$ curl -s -w ' · %{http_code} · Content-Type: [%header{content-type}]\n' -H 'Accept: application/vnd.spring-boot.actuator.v2+json' http://127.0.0.1:19400/actuator/health
+  {"groups":["liveness","readiness"],"status":"UP"} · 200 · Content-Type: [application/vnd.spring-boot.actuator.v2+json] · WARN lines it added: 0
 $ harness/shutdown.sh 19400 .harness/anchor/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
   exit 0 · listening on 19400 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
-the copy, the same three, port 19401:
+the copy, the same four, port 19401:
 $ cd .harness/xml && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19401
   listens on: 127.0.0.1:19401 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
@@ -573,6 +582,8 @@ $ curl -s -w ' · %{http_code} · Content-Type: [%header{content-type}]\n' -H 'A
   {"groups":["liveness","readiness"],"status":"UP"} · 200 · Content-Type: [application/json] · WARN lines it added: 0
 $ curl -s -w ' · %{http_code} · Content-Type: [%header{content-type}]\n' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' http://127.0.0.1:19401/actuator/health
   {"groups":["liveness","readiness"],"status":"UP"} · 200 · Content-Type: [application/vnd.spring-boot.actuator.v3+json] · WARN lines it added: 0
+$ curl -s -w ' · %{http_code} · Content-Type: [%header{content-type}]\n' -H 'Accept: application/vnd.spring-boot.actuator.v2+json' http://127.0.0.1:19401/actuator/health
+  {"groups":["liveness","readiness"],"status":"UP"} · 200 · Content-Type: [application/vnd.spring-boot.actuator.v2+json] · WARN lines it added: 0
 $ harness/shutdown.sh 19401 .harness/xml/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
   exit 0 · listening on 19401 now: 0

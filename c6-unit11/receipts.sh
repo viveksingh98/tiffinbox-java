@@ -475,13 +475,13 @@ browser() {
 
 # ---- actuator: health, asked for as XML ------------------------------------------------------------------------------------
 actuator() {
-  echo "the anchor, the README's run line, port 19400 - health, asked for as XML, as JSON and with a browser's Accept header (this unit's GET line):"
+  echo "the anchor, the README's run line, port 19400 - health, asked for as XML, as JSON, with a browser's Accept header and as Actuator's older v2 JSON (this unit's GET line):"
   start "$(at .harness/anchor 19400 "$R_RUN")"; up 19400; ready 19400
-  tql 19400 /actuator/health application/xml; tql 19400 /actuator/health application/json; tql 19400 /actuator/health "$BR"
+  tql 19400 /actuator/health application/xml; tql 19400 /actuator/health application/json; tql 19400 /actuator/health "$BR"; tql 19400 /actuator/health application/vnd.spring-boot.actuator.v2+json
   stop 19400 .harness/anchor
-  echo "the copy, the same three, port 19401:"
+  echo "the copy, the same four, port 19401:"
   start "$(at .harness/xml 19401 "$R_RUN")"; up 19401; ready 19401
-  tql 19401 /actuator/health application/xml; tql 19401 /actuator/health application/json; tql 19401 /actuator/health "$BR"
+  tql 19401 /actuator/health application/xml; tql 19401 /actuator/health application/json; tql 19401 /actuator/health "$BR"; tql 19401 /actuator/health application/vnd.spring-boot.actuator.v2+json
   stop 19401 .harness/xml; }
 
 # ---- param: A/B/A' - ?format=xml -------------------------------------------------------------------------------------------
@@ -690,14 +690,15 @@ ST2="  the content negotiation manager's strategies, in the order it asks them: 
 echo "  browser: C the anchor JSON, the copy XML as application/xhtml+xml; D default-content-types=application/json - read (a fixed default after the Accept header), still application/xhtml+xml; E the header's strategy alone, produces JSON - JSON, produces JSON or XML - XML as application/xml, JSON only asked for XML - 406"
 
 # "Ask health for XML and it's four oh six on both trees; the copy even explains, in XML. A browser gets JSON from it either way."
-AA=$(blk actuator 'the anchor' 'the copy, the same three'); AB=$(blk actuator 'the copy, the same three' '')
+AA=$(blk actuator 'the anchor' 'the copy, the same four'); AB=$(blk actuator 'the copy, the same four' '')
 HJ='{"groups":["liveness","readiness"],"status":"UP"}'
 [ "$(aft "$(TQ 19400 /actuator/health application/xml)" "$AA")" = "$(WA '   · 406 · Content-Type: []' 1)" ] || die "actuator: the anchor, XML - 406, empty"
 [ "$(aft "$(TQ 19401 /actuator/health application/xml)" "$AB")" = "$(WA "$(EX 406 'Not Acceptable' /actuator/health) · 406 · $CTXML" 1)" ] || die "actuator: the copy, XML - 406, an XML body"
 for b in "$AA:19400" "$AB:19401"; do bb=${b%:*}; p_=${b##*:}
   [ "$(aft "$(TQ "$p_" /actuator/health application/json)" "$bb")" = "$(WA "  $HJ · 200 · Content-Type: [application/json]" 0)" ] || die "actuator: JSON, 200 ($p_)"
-  [ "$(aft "$(TQ "$p_" /actuator/health "$BR")" "$bb")" = "$(WA "  $HJ · 200 · Content-Type: [application/vnd.spring-boot.actuator.v3+json]" 0)" ] || die "actuator: a browser's Accept, Actuator's JSON ($p_)"; done
-echo "  actuator: health as XML - the anchor 406 empty, the copy 406 with an XML body; as JSON 200 on both; a browser's Accept - application/vnd.spring-boot.actuator.v3+json on both"
+  [ "$(aft "$(TQ "$p_" /actuator/health "$BR")" "$bb")" = "$(WA "  $HJ · 200 · Content-Type: [application/vnd.spring-boot.actuator.v3+json]" 0)" ] || die "actuator: a browser's Accept, Actuator's JSON ($p_)"
+  [ "$(aft "$(TQ "$p_" /actuator/health application/vnd.spring-boot.actuator.v2+json)" "$bb")" = "$(WA "  $HJ · 200 · Content-Type: [application/vnd.spring-boot.actuator.v2+json]" 0)" ] || die "actuator: Actuator's v2 JSON, asked for, 200 ($p_)"; done
+echo "  actuator: health as XML - the anchor 406 empty, the copy 406 with an XML body; as JSON 200 on both; a browser's Accept - application/vnd.spring-boot.actuator.v3+json on both; v2+json asked for - 200 v2+json on both"
 
 # "A: question mark format equals xml is ignored: JSON. B: switch on favor parameter, and the same URL answers XML, even beside an
 #  Accept header that asks for JSON. A again: JSON."

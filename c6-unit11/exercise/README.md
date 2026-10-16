@@ -6,7 +6,7 @@ Since this lesson a copy of TiffinBox can write XML: Jackson's XML module is on 
 converter writes XML for any request whose `Accept` header asks for it. Two headers name a format, and they point opposite ways:
 **`Content-Type`** says what the body *you send* is; **`Accept`** says what you *want back*. A GET sends no body, so nothing reads its
 `Content-Type` — TiffinBox's route takes no body — and with no `Accept` header curl sends its own, `*/*` (anything), which TiffinBox
-answers in JSON, the first format its converters offer.
+answers in JSON here (`accept`: curl's `*/*` gets JSON, the JSON converter sixth and the XML one seventh).
 
 Run everything from `c6-unit11/`, in one shell. The commands below copy TiffinBox — `anchor/`, the tree the responses lesson froze —
 to `.harness/mine/xml` (git-ignored; `receipts.sh` wipes `.harness/` when it runs), add Jackson's XML module with this unit's patch

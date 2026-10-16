@@ -26,7 +26,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #                Jackson's refusal
 #   methods      the harness's controllers: a constraint on a request parameter with no @Validated (Spring MVC's own method validation)
 #                and with @Validated (Boot's post-processor's subclass), Boot's body naming each exception; then @Validated on a
-#                final class - the start stops
+#                final class - the start stops; then a copy of after/ whose TiffinBoxServer is not final and carries @Validated (C,
+#                labelled): the refused value 500, not the method's 400
 #   keys         Boot's error keys: their metadata; spring.web.error.include-binding-errors=always on after/ (the method answers) and
 #                on the copy without the BindingResult (Boot's body lists every field error, whole)
 #   exercise     exercise/README.md's commands, then exercise/solution/SOLUTION.md's, read from the files and run as written, one after
@@ -68,7 +69,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # duration is captured: the native build's seconds, and the 20-minute bound, go to the terminal only.
 # Ports (brief ⚑1, 19410-19419): after/'s jar 19410 · the previous tree 19411 · after/ with the harness joined 19412 · the copy
 # without the BindingResult 19413 · the AOT jar 19414 · the harness's final class 19415 (it never listens) · the image 19417 · the
-# binary 19418 · the exercise 19419 (19416 is never bound). 18425 (TiffinBox's default) and 8080 (Tomcat's) are checked free too,
+# binary 19418 · the exercise 19419 · the @Validated copy (methods C) 19416. 18425 (TiffinBox's default) and 8080 (Tomcat's) are checked free too,
 # and never bound on this machine (18425 only inside a container).
 # Docker names (no unit number): the image tiffinbox-valid:1.0.0 and the container tiffinbox-valid. Each is checked absent before
 # the first run - a name already there may be yours, and this script removes only what it creates - and removed on every exit: the
@@ -80,7 +81,10 @@ set -e
 # such option.
 shopt -u patsub_replacement 2> /dev/null || true
 # One locale for every tool, whatever yours is: sort's order, and what a program prints, follow it. The published captures were
-# made with no locale set, which is the C locale.
+# made with no locale set, which is the C locale. The JVM ignores LC_ALL on macOS - it takes the Mac's first language - and Hibernate
+# Validator writes its messages, H2 its own, in the JVM's locale: so every JVM this script starts has its locale pinned on its run
+# line (-Duser.language=en -Duser.country=US, before -jar or -cp: at() puts it there, README.md "The commands this unit adds"), and
+# validator prints it. The binary's messages were fixed when it was built (it answers English, measured), so its line has none.
 export LC_ALL=C
 cd "$(dirname "$0")"
 # One run at a time: two runs share .harness/, the ports and the Docker names, and one would corrupt the other.
@@ -218,6 +222,10 @@ L_KEYS=$(mine "$J --spring.web.error.include-binding-errors=always")
 L_EXC=$(mine "$J --spring.web.error.include-exception=true")
 L_DE=$(mine "curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'Accept-Language: de' -H 'Content-Type: application/json' --data '{\"name\":\"\",\"mealsPerDay\":0,\"pricePerMeal\":-5,\"mealType\":\"LUNCH\"}' http://127.0.0.1:18431/customers")
 L_JAVAC=$(mine 'javac -parameters -d .harness/hc -cp ".harness/after/tiffinbox-web/target/extracted/lib/*:.harness/after/tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar" harness/probe/web/MethodFinal.java harness/probe/web/MethodPlain.java harness/probe/web/MethodValidated.java harness/probe/web/Unbound.java harness/probe/web/Who.java')
+L_RUNL=$(mine 'java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431')
+L_CPL=$(mine 'java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=18431')
+P_='java '; Q_='java -Duser.language=en -Duser.country=US '; r=${R_RUN/"$P_"/$Q_}; r2=${R_CP/"$P_"/$Q_}
+[ "$r" = "$L_RUNL" ] && [ "$r2" = "$L_CPL" ] || die "the pinned lines must be the anchor's run and class-path lines with -Duser.language=en -Duser.country=US after java, and nothing else"
 [ "${L_JAVAC#* -cp \"*\" }" = "$HWS" ] || die "the harness's javac line must compile the five files in harness/probe/web, and nothing else"
 O_KEYS=${L_KEYS#"$J "}; O_EXC=${L_EXC#"$J "}
 [ "$O_KEYS" = '--spring.web.error.include-binding-errors=always' ] && [ "$O_EXC" = '--spring.web.error.include-exception=true' ] || die "the keys' lines must be the anchor's run line with one option each, and nothing else"
@@ -234,8 +242,10 @@ off() { local c=${2/mvn -B /mvn -o -B -Dmaven.repo.local=\"\$M2\" }
   [ -n "$3" ] && c=${c/ $3/ -DskipTests clean $3}
   printf 'cd %s && %s\n' "$1" "$c"; }
 dev() { local c=${1#cd * && }; c=${c/ -o -B -Dmaven.repo.local=\"\$M2\" / -B }; c=${c/ -DskipTests clean / }; printf '%s\n' "$c"; }
-# at DIR PORT 'README LINE': the README's line run from DIR, its port 18431 made PORT
-at() { printf 'cd %s && %s\n' "$1" "${3/--tiffinbox.port=18431/--tiffinbox.port=$2}"; }
+# at DIR PORT 'README LINE': the README's line run from DIR, its port 18431 made PORT - and a java line with the JVM's locale pinned
+# right after "java" (JL: this unit's two pinned lines show the form, and at() must give them back)
+JL='-Duser.language=en -Duser.country=US'
+at() { local l=${3/--tiffinbox.port=18431/--tiffinbox.port=$2}; case $l in 'java '*) l="java $JL ${l#java }" ;; esac; printf 'cd %s && %s\n' "$1" "$l"; }
 # hcp DIR PORT CLASSES ['OPTIONS']: the README's class-path line - the extracted jar, TiffinBox's own main - from DIR, its port made
 # PORT, the harness's classes added to the class path (../hc) and CLASSES joined (--spring.main.sources=); OPTIONS after
 hcp() { local c; c=$(at "$1" "$2" "$R_CP"); c=${c/lib\/\*\"/lib\/*:..\/hc\"}; printf '%s --spring.main.sources=%s%s\n' "$c" "$3" "${4:+ $4}"; }
@@ -269,11 +279,12 @@ undock() { local c=${1#cd * && }; c=${c/--progress=plain /}; c=${c/" $UARG"/}; c
 C_PRE=$(off .harness/pre "$R_INSTALL" install)
 for c in "$C_PRE" "$(off .harness/x "$R_PLAIN" package)" "$(off .harness/x "$R_PNAT" package)" "$(off .harness/x "$R_NATIVE")"; do
   r=$(dev "$c"); [ "$r" = "$R_PLAIN" ] || [ "$r" = "$R_PNAT" ] || [ "$r" = "$R_INSTALL" ] || [ "$r" = "$R_NATIVE" ] || die "not a README line with the offline changes: $c"; done
-[ "$(exe "$(at .harness/x 19410 "$R_RUN")")" = 'cd .harness/x && exec java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410' ] || die "exe()"
-[ "$(hcp .harness/x 19412 probe.web.Who "$O_EXC")" = 'cd .harness/x && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19412 --spring.main.sources=probe.web.Who --spring.web.error.include-exception=true' ] || die "hcp()"
+[ "$(exe "$(at .harness/x 19410 "$R_RUN")")" = 'cd .harness/x && exec java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410' ] || die "exe()"
+[ "$(at .harness/x 18431 "$R_RUN")" = "cd .harness/x && $L_RUNL" ] && [ "$(at .harness/x 18431 "$R_CP")" = "cd .harness/x && $L_CPL" ] && [ "$(at .harness/x 19418 "$R_BIN")" = 'cd .harness/x && tiffinbox-web/target/tiffinbox-web --tiffinbox.port=19418' ] || die "at(): the pinned lines are not README.md's, or the binary's line got the JVM's options"
+[ "$(hcp .harness/x 19412 probe.web.Who "$O_EXC")" = 'cd .harness/x && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19412 --spring.main.sources=probe.web.Who --spring.web.error.include-exception=true' ] || die "hcp()"
 [ "$(bc 19410 /customers/Asha)" = "curl -s -w ' %{http_code}\n' http://127.0.0.1:19410/customers/Asha" ] || die "bc()"
 [ "$(pc 18431 /customers "$ADATA")" = "$R_ADD" ] && [ "$(plc 18431 /customers "$ADATA")" = "$R_LOC" ] && [ "$(plc 18431 /customers "$BDATA")" = "$R_BAD" ] && [ "$(lc "$L_DE" 18431 /customers "$BDATA")" = "$L_DE" ] && [ "$ADATA" = '{"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}' ] && [ "$BDATA" = '{"name":"","mealsPerDay":0,"pricePerMeal":-5,"mealType":"LUNCH"}' ] || die "pc(), plc(), lc(): not the README's POST lines"
-echo "  the commands: after/README.md gives all 20 lines this script runs or derives from; README.md the 4 this unit adds"
+echo "  the commands: after/README.md gives all 20 lines this script runs or derives from; README.md the 6 this unit adds"
 
 # ---- build: before the captures - after/'s native install (it fills .m2-demo on a fresh clone); the harness compiled against
 # ---- after/'s own jar; what .m2-demo holds --------------------------------------------------------------------------------
@@ -687,7 +698,22 @@ methods() {
   stop 19412 .harness/after
   echo "a final class - the same route with @Validated, on a class that is final, MethodFinal joined, port 19415:"
   start "$(hcp .harness/after 19415 probe.web.MethodFinal)"
-  failed 19415; }
+  failed 19415
+  echo "C (labelled) - a copy of after/ whose TiffinBoxServer is not final and carries @Validated - its one changed line - then built the same way, port 19416: a body that breaks one rule, then a new name:"
+  copy after .harness/val; plantv "after/$W/TiffinBoxServer.java" ".harness/val/$W/TiffinBoxServer.java"
+  echo "\$ diff -U0 after/$W/TiffinBoxServer.java .harness/val/$W/TiffinBoxServer.java"
+  diff -U0 "after/$W/TiffinBoxServer.java" ".harness/val/$W/TiffinBoxServer.java" | tail -n +3 | sed 's/^/  /' || true
+  pbuild .harness/val "the @Validated copy"
+  start "$(at .harness/val 19416 "$R_RUN")"; up 19416; ready 19416
+  p5 19416 "$GITA"; pl 19416 "$ADATA"
+  WARNS
+  stop 19416 .harness/val; }
+# plantv FILE OUT: TiffinBoxServer.java with its class line made a class that is not final and carries @Validated - a planted copy for
+# methods C
+VALA='public final class TiffinBoxServer {'
+VALB='@org.springframework.validation.annotation.Validated public class TiffinBoxServer {'
+plantv() { awk -v a="$VALA" -v b="$VALB" '$0 == a { print b; n++; next } { print } END { exit (n == 1 ? 0 : 1) }' "$1" > "$2" || die "plantv: the class line is not in $1 exactly once"; }
+GITA='{"name":"Gita","mealsPerDay":1,"pricePerMeal":110,"mealType":"LUNCH"}'
 
 # ---- keys: Boot's error keys ----------------------------------------------------------------------------------------------------
 # berr: an answer of Boot's error body, as pl wrote it (.harness/ask.txt): its keys, its status - then its errors array, sorted by
@@ -1083,9 +1109,14 @@ has "$ME_" "  WARN lines in this run's log, at Boot's default level: 0 · ERROR 
 MD=$(blk methods 'who resolved the 400 - ' 'a final class - ')
 [ "$(aft "$(BQ 19412 '/probe/method/plain?meals=0')" "$MD")" = '  {"timestamp":"…","status":400,"error":"Bad Request","path":"/probe/method/plain"} 400' ] || die "methods: at DEBUG, the same 400"
 has "$MD" '    .w.s.m.a.ResponseStatusExceptionResolver: Resolved [org.springframework.web.method.annotation.HandlerMethodValidationException: 400 BAD_REQUEST "Validation failure"]' "methods: Spring MVC's ResponseStatusExceptionResolver resolved it - at DEBUG"
-MF=$(blk methods 'a final class - ' '')
+MF=$(blk methods 'a final class - ' 'C (labelled)'); MC=$(blk methods 'C (labelled)' '')
 has "$MF" '  exit 1 · Boot'"'"'s first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1 · Boot'"'"'s started line: 0 · listening on 19415 now: 0' "methods: the final class - exit 1, never started"
 for l in '    ERROR o.s.boot.SpringApplication: Application run failed' '    Caused by: org.springframework.aop.framework.AopConfigException: Could not generate CGLIB subclass of class probe.web.MethodFinal: Common causes of this problem include using a final class or a non-visible class' '    Caused by: java.lang.IllegalArgumentException: Cannot subclass final class probe.web.MethodFinal' '    its stack frames: over 40 - none shown'; do has "$MF" "$l" "methods: the final class's failure"; done
+# "TiffinBox's server is final, and even if it weren't, Validated would turn this readable four hundred into a five hundred"
+for l in '  @@ -99 +99 @@' "  -$VALA" "  +$VALB" '  built the @Validated copy · offline: yes · exit 0' "  WARN lines in this run's log, at Boot's default level: 0 · ERROR lines: 1"; do has "$MC" "$l" "methods C: the plant, built, 0 WARN, 1 ERROR"; done
+[ "$(aft "$(LQ 19416 "$GITA")" "$MC")" = '  {"timestamp":"…","status":500,"error":"Internal Server Error","path":"/customers"} 500 · Location: []' ] || die "methods C: @Validated on a class that is not final - the refused value is Boot's 500, not the method's 400"
+has "$MC" '    ERROR o.a.c.c.C.[.[.[/].[dispatcherServlet]: Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed: jakarta.validation.ConstraintViolationException: add.customer.mealType: must match "VEG|NON_VEG|VEGAN"] with root cause' "methods C: Tomcat's ERROR line, the ConstraintViolationException"
+[ "$(aft "$(LQ 19416 "$ADATA")" "$MC")" = "$(WA '  {"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"} 201 · Location: [http://127.0.0.1:19416/customers/Asha]' 0)" ] || die "methods C: a body that keeps every rule, 201"
 echo "  methods: include-exception default false; no @Validated -> HandlerMethodValidationException 400, 0 WARN; @Validated -> a generated subclass, ConstraintViolationException 500, 1 ERROR; final + @Validated -> exit 1, Cannot subclass final class; TiffinBoxServer final, no @Validated, no subclass; TiffinBoxProperties final + @Validated, no subclass (1 exclude filter)"
 
 # "Where the method answers, the key changes nothing. On the copy without the binding result, each error comes out whole: eight keys apiece"

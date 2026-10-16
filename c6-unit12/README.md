@@ -93,24 +93,48 @@ line (`wait $!` hands back the JVM's exit code), the shell left in `c6-unit12/`;
 `status: 400 · errors: 0 · fields: none`, then `status: 400 · errors: 3 · fields: mealType mealsPerDay name`, exit 0, the shell in
 `c6-unit12/`; 19419 free after.
 
-Published hashes: constraints `e24ca7b9efd11203ba642e7bd5d2c64f` · before `2ec05efc077a95ccdb3c5f45f8e399ec` · answer `3b3298b3a0c435e3dd3160f83cd6b5e3` · validator `7678c73054992da52cb3d923fd3bd814` · typo `75eb21c69268967d49e678b8658c989b` · methods `2ce5659a3858691efc5b7a5059b06867` · keys `fdebc5f054d0aff53cb65723e4d25aad` · exercise `594149d2f82aeb0ffda3dc8edea9bd97` · forms `4f0628b39f1dadd4dbe56c6a858bb946`.
+Published hashes: constraints `8e7805da2887176afca6b9e6c5741d87` · before `22bd0e1900e0c9afeb5000f7484f0ee1` · answer `1a73e0b318bd819abd5ec3a61e4f25f0` · validator `060e76f14c40c9ba09676596b4227ce5` · typo `903c3a4f3a0b8b145309cbc4ea9b1219` · methods `4d9a71a70b84e2260d13416b8b4f9454` · keys `6d0ef1e3a8ea9d5fc6ac53e70ce698d4` · exercise `594149d2f82aeb0ffda3dc8edea9bd97` · forms `4b00fb78db2650322ff4db515bec11e2`.
+
+**BLUE B (2026-10-16), after RED B2 rows 111, 112, 114, 116, 120:** every java line a capture starts pins the JVM's locale,
+`-Duser.language=en -Duser.country=US` after `java` (`at()`; README.md "The commands this unit adds"), so all nine captures but `exercise`
+changed: constraints `e24ca7b9…` → `8e7805da…`, before `2ec05efc…` → `22bd0e19…`, answer `3b3298b3…` → `1a73e0b3…`, validator `7678c730…` →
+`060e76f1…`, typo `75eb21c6…` → `903c3a4f…`, methods `2ce5659a…` → `4d9a71a7…` (with C, labelled: a copy not final, `@Validated` → 500),
+keys `fdebc5f0…` → `6d0ef1e3…`, forms `4f0628b3…` → `4b00fb78…`; exercise `594149d2…` unchanged. **Runs of record:** `./receipts.sh`
+(/bin/bash 3.2.57, `.m2-demo` re-seeded from `_research/m2-seed-s2/`, `env -i`, its own process group) 2,220 s — 9 captures 3/3, every
+check passed, "no published hash" as designed; `bash receipts.sh` (5.3.9, re-seeded) 1,089 s — exit 0, all 9 = published; **a sealed
+fresh clone** (`git clone` at 3973f94, this unit's, `c6-unit10`'s and the anchor's 93 files put in as git would take them, a `HOME` of its
+own whose `.mavenrc` points every Java proxy at a refusing port, Maven's mirror a `file://` copy of Central made from `.m2-demo` — 4,372
+files — `/bin/bash` 3.2, its own group) 964 s — exit 0, all 9 = published, its first build `offline: no` as a fresh clone's must;
+**SIGINT** to the run's process group 20 s into the native build: exit 130, 0 processes left in the group, no native-image or TiffinBox
+process, 18425, 8080 and 19410-19419 free, no `tiffinbox-valid` container or image, no `.r-lock`, no unfinished run files.
 
 ## The commands this unit adds
 
-`after/README.md` — the anchor's own — gives every line `receipts.sh` runs or derives from but four, which are this unit's, each read
+`after/README.md` — the anchor's own — gives every line `receipts.sh` runs or derives from but six, which are this unit's, each read
 from the block below and asserted to be exactly this (on the anchor's port 18431; each capture swaps in its own port):
 
 ```bash
+java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431
+java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=18431
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --spring.web.error.include-binding-errors=always
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --spring.web.error.include-exception=true
 curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'Accept-Language: de' -H 'Content-Type: application/json' --data '{"name":"","mealsPerDay":0,"pricePerMeal":-5,"mealType":"LUNCH"}' http://127.0.0.1:18431/customers
 javac -parameters -d .harness/hc -cp ".harness/after/tiffinbox-web/target/extracted/lib/*:.harness/after/tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar" harness/probe/web/MethodFinal.java harness/probe/web/MethodPlain.java harness/probe/web/MethodValidated.java harness/probe/web/Unbound.java harness/probe/web/Who.java
 ```
 
-The first two are the anchor's run line with one of Boot's error keys each (`keys`, `methods`); the script asserts each is that line with
-its one option and nothing else, and passes the option to the class-path line too (`methods`, where the harness joins). The third is the
+**The JVM's locale is pinned on every java line this unit runs** (RED B2 #111). The first two lines are the anchor's run line and its
+class-path line with `-Duser.language=en -Duser.country=US` after `java` — asserted to be exactly that — and every java line a capture
+starts takes the same two options in the same place (`at()`, which must give these two lines back): Hibernate Validator writes its
+messages in the JVM's locale when a request names none (H2 its own, in `before`), and on macOS the JVM takes the Mac's first language,
+**not** `LC_ALL` (measured: `LANG`/`LC_ALL=de_DE.UTF-8` → `en_US`; a JVM started `-Duser.language=de -Duser.country=DE` → `darf nicht
+leer sein`, `muss größer-gleich 1 sein`; `-Duser.country=IN` → `en_IN`, English; `-Duser.country=GB` → `en_GB`, English). So a Mac set to
+English (India) — this one's region — or to German makes the same captures. The binary takes no JVM options: its messages were fixed when
+it was built, and it answers English (measured on this tree's binary, from a request that asks for German, and from a build whose builder
+JVM ran German: `NATIVE_IMAGE_OPTIONS=-J-Duser.language=de -J-Duser.country=DE` → the same four English messages). The image runs the jar
+on Linux with no locale set, so it is not this Mac's. The next two are the anchor's run line with one of Boot's error keys each (`keys`, `methods`); the script asserts each is that line with
+its one option and nothing else, and passes the option to the class-path line too (`methods`, where the harness joins). The fifth is the
 anchor README's new line — the response lesson's Location line with the request-body lesson's empty name as its body — with a client's
-`Accept-Language: de` header (`validator`), asserted the same way. The fourth compiles the course's harness, the five files of
+`Accept-Language: de` header (`validator`), asserted the same way. The sixth compiles the course's harness, the five files of
 `harness/probe/web`, against after/'s extracted jar, with `-parameters` (S2.16); the script asserts it names those five and nothing else.
 Every POST a capture sends is a line of the anchor README's shapes — `plc` (the Location line), `lc` (any line of that shape), `pc` (the
 request-body lesson's) — each with its port, path and body swapped, the body single-quoted as the README writes it. Boot 3's name for the
@@ -169,7 +193,7 @@ The exercise makes a token of its own (`openssl rand -hex 13`: 26 hexadecimal di
   the token read from its file (the binding lesson's, copied unchanged).
 - **Ports** (brief ⚑1, 19410-19419): after/'s jar 19410 · the previous tree 19411 · after/ with the harness joined 19412 · the copy
   without the `BindingResult` 19413 · the AOT jar 19414 · the final class's start 19415 (it never listens) · the image 19417 · the binary
-  19418 · the exercise 19419; 19416 is never bound. 18425 (TiffinBox's default) and 8080 (Tomcat's) are checked free and never bound on
+  19418 · the exercise 19419 · the `@Validated` copy (`methods` C) 19416. 18425 (TiffinBox's default) and 8080 (Tomcat's) are checked free and never bound on
   this Mac (18425 only inside the container); a run that listens on 8080 is killed and the script dies.
 
 ## Masks, filters and hygiene — every one, declared
@@ -248,7 +272,7 @@ com.tiffinbox.web.TiffinBoxServer#add(Customer, BindingResult)`, the body read b
 written by `HttpEntityMethodProcessor` (cut at 100 characters by Spring MVC itself), `Completed 400 BAD_REQUEST`, and no exception
 resolved: the method answered; the request-body lesson's POST → 201, six lines, as on the previous tree.
 
-`.r-constraints.out` · md5 `e24ca7b9efd11203ba642e7bd5d2c64f` · 3 of 3
+`.r-constraints.out` · md5 `8e7805da2887176afca6b9e6c5741d87` · 3 of 3
 
 ```
 the previous tree and after/, both copied under .harness/ with a config tree, each built with the README's line (offline):
@@ -306,10 +330,10 @@ $ diff -rq -x target -x secrets .harness/before .harness/after
     +        }
     +        return out;
     +    }
-  README.md - the anchor's README: lines added 102, removed 11 - its new section and the history notes the change made false (not shown)
+  README.md - the anchor's README: lines added 104, removed 11 - its new section and the history notes the change made false (not shown)
 the executable jar's BOOT-INF/lib: 56 jars -> 56 · the same names: yes
 the seven - after/, the README's run line, port 19410, a fresh JVM:
-$ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410
+$ cd .harness/after && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410
   listens on: 127.0.0.1:19410 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19410/actuator/health/readiness
@@ -320,7 +344,7 @@ $ $CURLSET 19410 .harness/after/secrets/tiffinbox/shutdown-token
   the timestamps the mask hid, their form: "timestamp":"dddd-dd-ddTdd:dd:dd.dddZ" ×2
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 registered - after/, the request-mapping lesson's line - Spring MVC's mapping logger at TRACE, the kitchen at DEBUG - port 19410:
-$ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410 --logging.level.kitchen=debug --logging.level.org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping=trace
+$ cd .harness/after && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410 --logging.level.kitchen=debug --logging.level.org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping=trace
   listens on: 127.0.0.1:19410 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19410/actuator/health/readiness
@@ -345,7 +369,7 @@ $ harness/shutdown.sh 19410 .harness/after/secrets/tiffinbox/shutdown-token
   exit 0 · listening on 19410 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 read - after/, the embedded-Tomcat lesson's line - Boot's web group at DEBUG - port 19410: the anchor's refused-body line, then the request-body lesson's POST:
-$ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410 --logging.level.web=debug
+$ cd .harness/after && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410 --logging.level.web=debug
   listens on: 127.0.0.1:19410 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19410/actuator/health/readiness
@@ -383,11 +407,11 @@ name, zero meals, a price of −5, `LUNCH` — → **201**, its Location `http:/
 `[23502-250]` on the SQL statement's line, over 50 stack frames. `/customers` lists **five**, the empty name first (H2 sorts `""` before
 `Meera`). 0 WARN, 1 ERROR.
 
-`.r-before.out` · md5 `2ec05efc077a95ccdb3c5f45f8e399ec` · 3 of 3
+`.r-before.out` · md5 `22bd0e1900e0c9afeb5000f7484f0ee1` · 3 of 3
 
 ```
 the previous tree, the README's run line, port 19411 - the anchor's refused-body line (the request-body lesson's empty name, zero meals, a price of -5, LUNCH), its Location followed; a misspelt key; then every customer:
-$ cd .harness/before && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19411
+$ cd .harness/before && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19411
   listens on: 127.0.0.1:19411 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19411/actuator/health/readiness
@@ -423,11 +447,11 @@ field; **one WARN line** of Spring MVC's `DefaultHandlerExceptionResolver`: `Met
 [0] in … TiffinBoxServer.add(com.tiffinbox.Customer) … with 4 errors`, the four printed sorted (their order moves between runs: Masks, 3),
 each with the value it was given; nothing stored. **A′** — A again, on a fresh JVM: line for line A ("yes").
 
-`.r-answer.out` · md5 `3b3298b3a0c435e3dd3160f83cd6b5e3` · 3 of 3
+`.r-answer.out` · md5 `1a73e0b318bd819abd5ec3a61e4f25f0` · 3 of 3
 
 ```
 A - after/, the README's run line, port 19410 - the anchor's refused-body line, then every customer:
-$ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410
+$ cd .harness/after && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410
   listens on: 127.0.0.1:19410 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19410/actuator/health/readiness
@@ -458,7 +482,7 @@ $ diff -U0 after/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.j
   +    ResponseEntity<?> add(@Valid @RequestBody Customer customer) throws SQLException {
 $ cd .harness/plant && mvn -o -B -Dmaven.repo.local="$M2" -DskipTests clean package
   built the copy · offline: yes · exit 0
-$ cd .harness/plant && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19413
+$ cd .harness/plant && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19413
   listens on: 127.0.0.1:19413 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19413/actuator/health/readiness
@@ -479,7 +503,7 @@ $ harness/shutdown.sh 19413 .harness/plant/secrets/tiffinbox/shutdown-token
   exit 0 · listening on 19413 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 A' - A again, on a fresh JVM:
-$ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410
+$ cd .harness/after && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410
   listens on: 127.0.0.1:19410 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19410/actuator/health/readiness
@@ -515,11 +539,11 @@ no controller"; here the web layer calls Boot's. The JVM's locale: `en_US`. The 
 from a client that sends `Accept-Language: de` → the four in German** (`muss mit "VEG|NON_VEG|VEGAN" übereinstimmen`, …): Spring's
 `LocalValidatorFactoryBean` interpolates its messages in the request's locale — the JVM's when the request names none.
 
-`.r-validator.out` · md5 `7678c73054992da52cb3d923fd3bd814` · 3 of 3
+`.r-validator.out` · md5 `060e76f14c40c9ba09676596b4227ce5` · 3 of 3
 
 ```
 after/ with the harness's Who joined, port 19412 - the validator Spring MVC binds a request's body with, read off the running application:
-$ cd .harness/after && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19412 --spring.main.sources=probe.web.Who
+$ cd .harness/after && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19412 --spring.main.sources=probe.web.Who
   listens on: 127.0.0.1:19412 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19412/actuator/health/readiness
@@ -555,11 +579,11 @@ validation checks the record Jackson built, not the JSON that was sent. **Two po
 `Cannot coerce Floating-point value (2.7) to int` — the Jackson lesson's key, refused before any check; `/customers/Mohan` → 404. 1 WARN, 0
 ERROR.
 
-`.r-typo.out` · md5 `75eb21c69268967d49e678b8658c989b` · 3 of 3
+`.r-typo.out` · md5 `903c3a4f3a0b8b145309cbc4ea9b1219` · 3 of 3
 
 ```
 after/, the README's run line, port 19410 - a misspelt key; a full body with a property the record does not have; two point seven meals:
-$ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410
+$ cd .harness/after && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410
   listens on: 127.0.0.1:19410 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19410/actuator/health/readiness
@@ -603,14 +627,19 @@ exception is a `ResponseStatusException`, and that resolver writes no WARN line 
 does, for the 4xx it resolves); then the error dispatch to Boot's `BasicErrorController`. **A final class** (`MethodFinal`, `@Validated`) joined alone: **exit 1**,
 Boot's started line never logged, 19415 free — Boot's context's WARN line and `Application run failed`, the exception
 (`BeanCreationException … Could not generate CGLIB subclass of class probe.web.MethodFinal`), and its causes, the last `Cannot subclass final
-class probe.web.MethodFinal`.
+class probe.web.MethodFinal`. **C** (labelled, RED B2 #114) — so final is not the only reason TiffinBoxServer takes `@Valid` and never
+`@Validated`: a copy of after/ whose class line is `@org.springframework.validation.annotation.Validated public class TiffinBoxServer {`
+(not final; its one changed line, `diff -U0`), built the same way: a body that breaks one rule (`"mealType":"LUNCH"`) → **Boot's 500**,
+Tomcat's ERROR line `ConstraintViolationException: add.customer.mealType: must match "VEG|NON_VEG|VEGAN"` — the `BindingResult` is there,
+but the generated subclass checks the method's parameters before the method runs, so the method's readable 400 never happens; a body that
+keeps every rule → 201. 0 WARN, 1 ERROR.
 
-`.r-methods.out` · md5 `2ce5659a3858691efc5b7a5059b06867` · 3 of 3
+`.r-methods.out` · md5 `4d9a71a70b84e2260d13416b8b4f9454` · 3 of 3
 
 ```
   Boot's metadata (spring-boot-autoconfigure-4.1.1.jar) - spring.web.error.include-exception · its type: Boolean · its default: false · its description: Include the "exception" attribute.
 after/ with the harness's Who, MethodPlain and MethodValidated joined, and this unit's include-exception option, port 19412:
-$ cd .harness/after && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19412 --spring.main.sources=probe.web.Who,probe.web.MethodPlain,probe.web.MethodValidated --spring.web.error.include-exception=true
+$ cd .harness/after && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19412 --spring.main.sources=probe.web.Who,probe.web.MethodPlain,probe.web.MethodValidated --spring.web.error.include-exception=true
   listens on: 127.0.0.1:19412 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19412/actuator/health/readiness
@@ -641,7 +670,7 @@ $ harness/shutdown.sh 19412 .harness/after/secrets/tiffinbox/shutdown-token
   exit 0 · listening on 19412 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 who resolved the 400 - MethodPlain joined, Boot's web group at DEBUG (the embedded-Tomcat lesson's option), port 19412:
-$ cd .harness/after && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19412 --spring.main.sources=probe.web.MethodPlain --logging.level.web=debug
+$ cd .harness/after && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19412 --spring.main.sources=probe.web.MethodPlain --logging.level.web=debug
   listens on: 127.0.0.1:19412 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19412/actuator/health/readiness
@@ -663,7 +692,7 @@ $ harness/shutdown.sh 19412 .harness/after/secrets/tiffinbox/shutdown-token
   exit 0 · listening on 19412 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 a final class - the same route with @Validated, on a class that is final, MethodFinal joined, port 19415:
-$ cd .harness/after && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19415 --spring.main.sources=probe.web.MethodFinal
+$ cd .harness/after && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19415 --spring.main.sources=probe.web.MethodFinal
   exit 1 · Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1 · Boot's started line: 0 · listening on 19415 now: 0
   its WARN and ERROR records (logger: message), the exception under them, and every Caused by line:
     WARN ConfigServletWebServerApplicationContext: Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'methodFinal': Could not generate CGLIB subclass of class probe.web.MethodFinal: Common causes of this problem include using a final class or a non-visible class
@@ -672,6 +701,29 @@ $ cd .harness/after && java -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.
     Caused by: org.springframework.aop.framework.AopConfigException: Could not generate CGLIB subclass of class probe.web.MethodFinal: Common causes of this problem include using a final class or a non-visible class
     Caused by: java.lang.IllegalArgumentException: Cannot subclass final class probe.web.MethodFinal
     its stack frames: over 40 - none shown
+  its log: the demo token 0 times · X-Shutdown-Token 0 times
+C (labelled) - a copy of after/ whose TiffinBoxServer is not final and carries @Validated - its one changed line - then built the same way, port 19416: a body that breaks one rule, then a new name:
+$ diff -U0 after/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java .harness/val/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java
+  @@ -99 +99 @@
+  -public final class TiffinBoxServer {
+  +@org.springframework.validation.annotation.Validated public class TiffinBoxServer {
+$ cd .harness/val && mvn -o -B -Dmaven.repo.local="$M2" -DskipTests clean package
+  built the @Validated copy · offline: yes · exit 0
+$ cd .harness/val && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19416
+  listens on: 127.0.0.1:19416 · loopback only: yes
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19416/actuator/health/readiness
+  {"status":"UP"} 200
+$ curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'Content-Type: application/json' --data '{"name":"Gita","mealsPerDay":1,"pricePerMeal":110,"mealType":"LUNCH"}' http://127.0.0.1:19416/customers
+  {"timestamp":"…","status":500,"error":"Internal Server Error","path":"/customers"} 500 · Location: []
+    ERROR o.a.c.c.C.[.[.[/].[dispatcherServlet]: Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed: jakarta.validation.ConstraintViolationException: add.customer.mealType: must match "VEG|NON_VEG|VEGAN"] with root cause
+    its stack frames: 47, its other lines: 3 - none shown · WARN lines it added: 0
+$ curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'Content-Type: application/json' --data '{"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}' http://127.0.0.1:19416/customers
+  {"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"} 201 · Location: [http://127.0.0.1:19416/customers/Asha] · WARN lines it added: 0
+  WARN lines in this run's log, at Boot's default level: 0 · ERROR lines: 1
+$ harness/shutdown.sh 19416 .harness/val/secrets/tiffinbox/shutdown-token
+  POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
+  exit 0 · listening on 19416 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 ```
 
@@ -685,13 +737,13 @@ where the method answers, Boot's error body never appears. **The copy without th
 gains `errors` — **4 entries, each with the same 8 keys** (`arguments`, `bindingFailure`, `code`, `codes`, `defaultMessage`, `field`,
 `objectName`, `rejectedValue`), printed sorted by field (Masks, 3), each whole; and the same WARN line as B.
 
-`.r-keys.out` · md5 `fdebc5f054d0aff53cb65723e4d25aad` · 3 of 3
+`.r-keys.out` · md5 `6d0ef1e3a8ea9d5fc6ac53e70ce698d4` · 3 of 3
 
 ```
   Boot's metadata (spring-boot-autoconfigure-4.1.1.jar) - spring.web.error.include-binding-errors · its type: ErrorProperties$IncludeAttribute · its default: "never" · its description: When to include "errors" attribute.
   Boot's metadata (spring-boot-web-server-4.1.1.jar) - server.error.include-binding-errors · its type: none · its default: "never" · its description: When to include "errors" attribute. · deprecated: level error, since 4.0.0, replaced by spring.web.error.include-binding-errors
 the anchor - after/, this unit's line: the README's run line with Boot's include-binding-errors key, port 19410 - the anchor's refused-body line:
-$ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410 --spring.web.error.include-binding-errors=always
+$ cd .harness/after && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410 --spring.web.error.include-binding-errors=always
   listens on: 127.0.0.1:19410 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19410/actuator/health/readiness
@@ -703,7 +755,7 @@ $ harness/shutdown.sh 19410 .harness/after/secrets/tiffinbox/shutdown-token
   exit 0 · listening on 19410 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 the copy - the copy without the BindingResult (answer's B), the same line, port 19413:
-$ cd .harness/plant && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19413 --spring.web.error.include-binding-errors=always
+$ cd .harness/plant && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19413 --spring.web.error.include-binding-errors=always
   listens on: 127.0.0.1:19413 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19413/actuator/health/readiness
@@ -777,7 +829,7 @@ fields' messages**, Asha → 201 and a Location on that form's own port, the Loc
 token → 403 — 4 of 4 each. The image: built from after/'s Dockerfile, 0 lines that say pull, its layers 0 bytes of the token; `docker port`
 `18425/tcp -> 127.0.0.1:19417` alone.
 
-`.r-forms.out` · md5 `4f0628b39f1dadd4dbe56c6a858bb946` · 3 of 3
+`.r-forms.out` · md5 `4b00fb78db2650322ff4db515bec11e2` · 3 of 3
 
 ```
 the native build - after/ copied to .harness/nat with a config tree; the README's two Maven lines, offline; $GRAALVM_HOME names the GraalVM:
@@ -813,7 +865,7 @@ $ cd .harness/natb && mvn -o -B -Dmaven.repo.local="$M2" -Pnative -DskipTests cl
   reflection entries naming com.tiffinbox.Customer: 1 -> 1 · the same entry: yes - all declared fields · all declared constructors · 4 methods (mealType mealsPerDay name pricePerMeal)
   resource entries: 26 -> 26 · the same: yes
 1 the jar - .harness/after, the README's run line, port 19410:
-$ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410
+$ cd .harness/after && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410
   listens on: 127.0.0.1:19410 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19410/actuator/health/readiness
@@ -825,7 +877,7 @@ $ $CURLSET 19410 .harness/after/secrets/tiffinbox/shutdown-token
   the timestamps the mask hid, their form: "timestamp":"dddd-dd-ddTdd:dd:dd.dddZ" ×2
   its log: the demo token 0 times · X-Shutdown-Token 0 times
   then the refused body, a new customer, the same name again and POST /shutdown without the token, on a second start of the jar:
-$ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410
+$ cd .harness/after && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19410
   listens on: 127.0.0.1:19410 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19410/actuator/health/readiness
@@ -845,7 +897,7 @@ $ harness/shutdown.sh 19410 .harness/after/secrets/tiffinbox/shutdown-token
   exit 0 · listening on 19410 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 2 the AOT jar - .harness/nat (the profile native's jar), the README's AOT line, port 19414:
-$ cd .harness/nat && java -Dspring.aot.enabled=true -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19414
+$ cd .harness/nat && java -Duser.language=en -Duser.country=US -Dspring.aot.enabled=true -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19414
   listens on: 127.0.0.1:19414 · loopback only: yes
   Boot's first line: Starting AOT-processed TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19414/actuator/health/readiness
@@ -857,7 +909,7 @@ $ $CURLSET 19414 .harness/nat/secrets/tiffinbox/shutdown-token
   the timestamps the mask hid, their form: "timestamp":"dddd-dd-ddTdd:dd:dd.dddZ" ×2
   its log: the demo token 0 times · X-Shutdown-Token 0 times
   then the same four, on a second start of the AOT jar:
-$ cd .harness/nat && java -Dspring.aot.enabled=true -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19414
+$ cd .harness/nat && java -Duser.language=en -Duser.country=US -Dspring.aot.enabled=true -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19414
   listens on: 127.0.0.1:19414 · loopback only: yes
   Boot's first line: Starting AOT-processed TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19414/actuator/health/readiness
@@ -985,7 +1037,7 @@ Run `./receipts.sh` once first on a fresh clone.
   `BindingResult`, so a copy without it that compiles loses that `if` too. One hunk, shown whole in `answer`.
 - **The messages follow the request's `Accept-Language`** (not in the brief): Spring's `LocalValidatorFactoryBean` interpolates in the
   request's locale — German for `de` — and in the JVM's when the request names none (`en_US` on this Mac). The published captures send no
-  `Accept-Language` but `validator`'s labelled line; a JVM in another locale would print other words (its locale is printed in `validator`).
+  `Accept-Language` but `validator`'s labelled line; every JVM's locale is pinned on its run line, `en_US`, and printed in `validator`.
 - **`TiffinBoxProperties` is final and carries `@Validated`, and starts** (the brief: "on a final class @Validated stops the start"): Boot's
   `MethodValidationExcludeFilter` — one, registered for `@ConfigurationProperties` beans — keeps the record from the method-validation
   post-processor; on a settings record `@Validated` asks Boot's binder to check it (the last course's configuration-validation lesson). So the
@@ -1037,8 +1089,9 @@ Run `./receipts.sh` once first on a fresh clone.
   string with constraints on it would meet binding failures and validation errors in one `BindingResult` — not measured here.
 - **Field errors come in an order that moves:** sort them before hashing (Masks, 3). Hibernate Validator's messages follow the request's
   `Accept-Language` and else the JVM's locale (`validator`: German for `de`; `en_US` here). A locale of another language would print
-  other words; `en_GB`, 13's locale break, has no bundle of its own in Hibernate Validator and should fall back to the English one — not
-  measured here: if a 13 capture prints a validation message under `-Duser.country=GB`, measure it, and pin and print the locale (S2.14).
+  other words — which is why every java line here pins `-Duser.language=en -Duser.country=US`; `en_GB`, 13's locale break, has no bundle of
+  its own in Hibernate Validator and falls back to the English one — measured (RED B2 #111's probe: `-Duser.country=GB` → `en_GB`, English
+  messages).
 - **Boot's error keys** are `spring.web.error.*`; Boot 3's `server`-prefixed names are silent (S2.13); this unit's receipts allow the old
   name on the exercise's run line alone, and in this README only inside the pasted `keys` and `exercise` captures.
 - **ResponseEntity answers still go out chunked** (`harness/shutdown.sh` prints `Content-Length: none`); the seven `87ca7efc…` (masked) in all

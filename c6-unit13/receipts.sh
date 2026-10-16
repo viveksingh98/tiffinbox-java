@@ -26,7 +26,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #              be its type beside it
 #   locale     A/B/A': a date with no format - the short date pattern and two dates under U.S. English (A), U.K. English (B), U.S.
 #              English again (A'); C (labelled): U.K. English, the route that names its pattern; D (labelled): U.S. English, the
-#              request's own language U.K. English
+#              request's own language U.K. English - and the routes that name a pattern, the same request; E (labelled): D's request
+#              on a JVM with Boot's ISO key
 #   exercise   exercise/README.md's commands, then exercise/solution/SOLUTION.md's, read from the files and run as written, one after
 #              the other in ONE shell a viewer could have: env -i, /bin/bash, started in this folder
 # "The anchor" is anchor/, the link to ../c6-unit12/after, COPIED under .harness/anchor; this script never writes into another unit's
@@ -397,6 +398,8 @@ default() {
   echo "the anchor on its class path, U.S. English (this unit's run line), the harness's Who joined, port 19421, a fresh JVM - the meal type asked for as VEG, veg and empty (the anchor README's GET line, its value swapped), then who binds it (this unit's line):"
   start "$(hcp "$L_CPUS" .harness/anchor 19421 probe.web.Who)"; up 19421; ready 19421
   ask 19421 '/customers?mealType=VEG'; ask 19421 '/customers?mealType=veg'; ask 19421 '/customers?mealType='
+  echo "  VEG with a space on each side (%20), then at its end - Spring's own enum converter, no converter of ours joined:"
+  ask 19421 '/customers?mealType=%20VEG%20'; ask 19421 '/customers?mealType=VEG%20'
   who 19421 /customers
   echo "  the same word in a JSON body - TiffinBox's own POST (the anchor README's line, its meal type veg):"
   askp 19421 /customers "$BVEG"
@@ -480,7 +483,11 @@ locale() {
   echo "C (labelled) - U.K. English, port 19428, a fresh JVM - the route that names its pattern, dd/MM/yy:"
   start "$(hcp "$L_CPGB" .harness/anchor 19428 probe.web.Dates)"; up 19428; ready 19428; ask 19428 '/probe/date/yy?on=14/10/26'; warns; stop 19428 .harness/anchor
   echo "D (labelled) - U.S. English, port 19427, a fresh JVM - the request itself in U.K. English, by its Accept-Language header (this unit's line):"
-  start "$(hcp "$L_CPUS" .harness/anchor 19427 probe.web.Dates)"; up 19427; ready 19427; aska 19427 /probe/date/pattern; aska 19427 '/probe/date?on=14/10/26'; warns; stop 19427 .harness/anchor; }
+  start "$(hcp "$L_CPUS" .harness/anchor 19427 probe.web.Dates)"; up 19427; ready 19427; aska 19427 /probe/date/pattern; aska 19427 '/probe/date?on=14/10/26'
+  echo "  the routes that name their pattern, dd/MM/yy and dd/MM/yyyy, the same header:"
+  aska 19427 '/probe/date/yy?on=14/10/26'; aska 19427 '/probe/date/fmt?on=14/10/2026'; warns; stop 19427 .harness/anchor
+  echo "E (labelled) - U.S. English with Boot's ISO key (this unit's run line), port 19427, a fresh JVM - the request in U.K. English, as D:"
+  start "$(hcp "$L_ISO" .harness/anchor 19427 probe.web.Dates)"; up 19427; ready 19427; aska 19427 '/probe/date?on=14/10/26'; aska 19427 '/probe/date?on=2026-10-14'; warns; stop 19427 .harness/anchor; }
 
 # ---- exercise: the README's commands, exactly as written, then the solution's - in ONE shell --------------------------------------
 block() { awk '/^```bash$/ { if (!d) { f = 1 }; next } f && /^```$/ { f = 0; d = 1 } f' "$1"; }
@@ -589,6 +596,7 @@ has "$D7" "$SEVEN1" "default: the seven"
 [ "$(aft "$(GQ 19421 '/customers?mealType=VEG')" "$D2")" = "$(WA "  $VS 200" 0)" ] || die "default: VEG - Ravi and Sunil"
 [ "$(aft "$(GQ 19421 '/customers?mealType=veg')" "$D2")" = "$(WA "$(E400 /customers)" 1)" ] && [ "$(aft2 "$(GQ 19421 '/customers?mealType=veg')" "$D2")" = "$(WMM mealType com.tiffinbox.MealType "$(FC "$RPM" veg)")" ] || die "default: veg - 400, Boot's body, one WARN, the conversion that failed"
 [ "$(aft "$(GQ 19421 '/customers?mealType=')" "$D2")" = "$(WA "  $ALL4 200" 0)" ] || die "default: an empty meal type - no filter, all four"
+[ "$(aft "$(GQ 19421 '/customers?mealType=%20VEG%20')" "$D2")" = "$(WA "  $VS 200" 0)" ] && [ "$(aft "$(GQ 19421 '/customers?mealType=VEG%20')" "$D2")" = "$(WA "  $VS 200" 0)" ] || die "default: spaces around VEG - Spring's own converter trims them, Ravi and Sunil"
 has "$D2" '  GET /customers - TiffinBoxServer#customers, 1 parameter' "default: Who reads TiffinBox's route"
 has "$D2" '    @RequestParam MealType mealType - its argument resolver: 1 of 28, RequestParamMethodArgumentResolver' "default: the meal type's resolver"
 has "$D2" '      from a String, the conversion service uses: java.lang.String -> java.lang.Enum : org.springframework.core.convert.support.StringToEnumConverterFactory@…' "default: Spring's own converter, for every enum"
@@ -681,7 +689,7 @@ echo "  record: no annotation -> 28 of 28, @ModelAttribute -> 7 of 28, both Serv
 # "A: in U.S. English the pattern is month, day, two-digit year: ten fourteen twenty-six works, fourteen ten twenty-six doesn't. B: in
 #  U.K. English it's day, month, and a one-letter year, so fourteen ten twenty-six is the year twenty-six. Two hundred, no warning ... A
 #  again ... C ... twenty twenty-six. And D ... U.S. English server, a request in U.K. English ... the year twenty-six again"
-LA=$(blk locale 'A - the anchor' 'B - the same'); LB=$(blk locale 'B - the same' "A' - A again"); LA2=$(blk locale "A' - A again" "A' against A"); LC=$(blk locale 'C (labelled)' 'D (labelled)'); LD=$(blk locale 'D (labelled)' '')
+LA=$(blk locale 'A - the anchor' 'B - the same'); LB=$(blk locale 'B - the same' "A' - A again"); LA2=$(blk locale "A' - A again" "A' against A"); LC=$(blk locale 'C (labelled)' 'D (labelled)'); LD=$(blk locale 'D (labelled)' 'E (labelled)'); LE=$(blk locale 'E (labelled)' '')
 for b in "$LA" "$LA2"; do
   [ "$(aft "$(GQ 19427 /probe/date/pattern)" "$b")" = "$(WA "  the JVM's locale: en_US · this request's: en_US · its short date pattern: M/d/yy 200" 0)" ] || die "locale A/A': M/d/yy"
   [ "$(aft "$(GQ 19427 '/probe/date?on=10/14/26')" "$b")" = "$(WA "  on=2026-10-14 · the JVM's locale: en_US 200" 0)" ] || die "locale A/A': 10/14/26 - 2026-10-14"
@@ -694,8 +702,12 @@ has "$LB" '$ cd .harness/anchor && java -Duser.language=en -Duser.country=GB -cp
 [ "$(aft "$(GQ 19428 '/probe/date/yy?on=14/10/26')" "$LC")" = "$(WA '  on=2026-10-14 200' 0)" ] || die "locale C: dd/MM/yy - 2026-10-14"
 [ "$(aft "$(AQ 19427 /probe/date/pattern)" "$LD")" = "$(WA "  the JVM's locale: en_US · this request's: en_GB · its short date pattern: dd/MM/y 200" 0)" ] || die "locale D: the request's locale, en_GB"
 [ "$(aft "$(AQ 19427 '/probe/date?on=14/10/26')" "$LD")" = "$(WA "  on=0026-10-14 · the JVM's locale: en_US 200" 0)" ] || die "locale D: the year twenty-six on a U.S. English JVM"
+[ "$(aft "$(AQ 19427 '/probe/date/yy?on=14/10/26')" "$LD")" = "$(WA '  on=2026-10-14 200' 0)" ] && [ "$(aft "$(AQ 19427 '/probe/date/fmt?on=14/10/2026')" "$LD")" = "$(WA '  on=2026-10-14 200' 0)" ] || die "locale D: a named pattern ignores the request's language - 2026-10-14"
 for b in "$LC" "$LD"; do has "$b" "  WARN lines in this run's log, at Boot's default level: 0 · ERROR lines: 0" "locale C/D: no WARN"; done
-echo "  locale: A en_US M/d/yy, 10/14/26 -> 2026-10-14, 14/10/26 -> 400; B en_GB dd/MM/y, 10/14/26 -> 400, 14/10/26 -> 0026-10-14, 200, 0 WARN; A' = A; C dd/MM/yy -> 2026-10-14; D en_US JVM, Accept-Language en-GB -> dd/MM/y, 0026-10-14"
+has "$LE" '$ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19427 --spring.mvc.format.date=iso --spring.main.sources=probe.web.Dates' "locale E: the ISO key on its run line"
+[ "$(aft "$(AQ 19427 '/probe/date?on=14/10/26')" "$LE")" = "$(WA "$(E400 /probe/date)" 1)" ] || die "locale E: the ISO key - the U.K. client's 14/10/26 refused, 400"
+[ "$(aft "$(AQ 19427 '/probe/date?on=2026-10-14')" "$LE")" = "$(WA "  on=2026-10-14 · the JVM's locale: en_US 200" 0)" ] || die "locale E: the ISO key - 2026-10-14, 200"
+echo "  locale: A en_US M/d/yy, 10/14/26 -> 2026-10-14, 14/10/26 -> 400; B en_GB dd/MM/y, 10/14/26 -> 400, 14/10/26 -> 0026-10-14, 200, 0 WARN; A' = A; C dd/MM/yy -> 2026-10-14; D en_US JVM, Accept-Language en-GB -> dd/MM/y, 0026-10-14, the named patterns 2026-10-14; E the ISO key, the same request: 14/10/26 -> 400, 2026-10-14 -> 200"
 
 # the exercise's end state: the README's commands, then the solution's, in ONE env -i shell - each leaves the shell in this folder; the
 # line exercise/README.md calls "Done" is a line of this capture, after the solution's lines, and of SOLUTION.md's measured run

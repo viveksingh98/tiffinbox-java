@@ -20,7 +20,7 @@ GET /customers/Ravi: 200 · application/xml;charset=UTF-8 · root element: Custo
 ```
 
 `Content-Type` describes a body you send; a GET sends none, so the route never read the header, and curl's own `Accept: */*` let
-TiffinBox answer in its first format, JSON. `Accept` is the header that asks: Spring MVC compares `application/xml` with what its
+TiffinBox answer in JSON, as it does here (`accept`). `Accept` is the header that asks: Spring MVC compares `application/xml` with what its
 converters can write for a `Customer`, finds the seventh — Jackson's XML converter, there because the copy holds the XML module —
 and answers `application/xml;charset=UTF-8`, Ravi's fields as elements inside one root element, `<Customer>`, named after the
 record's class.

@@ -494,14 +494,15 @@ curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'Content-Type: 
 record. A name with a space, `Sunil K`, comes back `…/customers/Sunil%20K`, and that URL answers 200 too; typed by hand with a raw
 space, curl refuses to send it (the exercise). OPTIONS on `/customers` lists `GET,HEAD,OPTIONS,POST`, on a Location `GET,HEAD,OPTIONS`
 (`created`; the verbs sorted: Spring MVC's order moves between runs). Nothing checks a body's values yet: the request-body lesson's
-empty name is created too, `201`, and its Location, `…/customers/`, is Spring's 404 — no mapping takes that path. Course 6's
+empty name is created too, `201`, and its Location, `…/customers/`, is Spring's 404 — none of TiffinBox's routes takes that path; the static files row does, and finds no file. Course 6's
 *Validation on the Way In* refuses that body.
 
 **The Location is the request's host.** Spring builds it from the URL the request came to, and that URL's host and port are the ones
 the request's `Host` header names: curl names `127.0.0.1` and the port it dialled; a client that sends `Host: kitchen.localhost` gets
 `Location: [http://kitchen.localhost/customers/Asha]` — no port, a name TiffinBox was never given (`host` B). `X-Forwarded-Host` and
-`X-Forwarded-Proto`, the headers a proxy adds, are ignored (`host` C): Boot's `server.forward-headers-strategy` has no default (its
-metadata). In the image, TiffinBox listens on 18425 inside its container, and the Location names the port the Mac published —
+`X-Forwarded-Proto`, the headers a proxy adds, are ignored here (`host` C): Boot's `server.forward-headers-strategy` has no default
+value (its metadata), and Boot deduces the strategy from the cloud platform it detects — told it runs on Kubernetes, it reads them
+(`host` E). In the image, TiffinBox listens on 18425 inside its container, and the Location names the port the Mac published —
 `127.0.0.1:19397` in `forms`: the request's, again. Spring's `fromCurrentRequest()` would carry the request's query string into the
 Location too — `?via=app`, measured on the course's harness (`statuses`); `fromCurrentRequestUri()` leaves it out.
 
@@ -516,8 +517,8 @@ over 50 frames, and Boot's 500 (`conflict` A). A copy that tests the exception's
 `HttpEntityMethodProcessor` writes their answers, where `RequestResponseBodyMethodProcessor` did: `Writing [Customer[…]]`, then the
 `DispatcherServlet`'s `Completed 201 CREATED` (`entity`). The 403's bytes are the same — `{"error":"forbidden"} 403` — but not its
 headers: `HttpEntityMethodProcessor` flushes the answer it writes (javap: 2 calls to `ServletServerHttpResponse.flush` in its
-`handleReturnValue`, none in the other's), so the answer goes out `Transfer-Encoding: chunked`, where it went out with `Content-Length:
-21`; POST /shutdown's `{"stopping":true}` lost its `Content-Length: 17` the same way. The seven are unchanged, `87ca7efc…` (masked):
+`handleReturnValue`, none in the other's), so an answer with a body goes out `Transfer-Encoding: chunked` — the 403, where it went out
+with `Content-Length: 21`, while the bodiless 409 says `Content-Length: 0` (`conflict`); POST /shutdown's `{"stopping":true}` lost its `Content-Length: 17` the same way. The seven are unchanged, `87ca7efc…` (masked):
 they print status, type and body, never a length.
 
 **Statuses by accident** (the course's harness, `statuses`): a name nobody has, answered four ways — TiffinBox's own route, Spring's

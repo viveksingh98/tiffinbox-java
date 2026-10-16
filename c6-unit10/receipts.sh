@@ -72,7 +72,9 @@ set -e
 # such option.
 shopt -u patsub_replacement 2> /dev/null || true
 # One locale for every tool, whatever yours is: sort's order, and what a program prints, follow it. The published captures were
-# made with no locale set, which is the C locale.
+# made with no locale set, which is the C locale. The JVM ignores LC_ALL on macOS (it takes the Mac's first language), and H2 writes
+# its messages in the JVM's: so conflict, the capture that prints them, pins the JVM's locale on each of its run lines
+# (-Duser.language=en -Duser.country=US, before -jar) and prints it.
 export LC_ALL=C
 cd "$(dirname "$0")"
 # One run at a time: two runs share .harness/, the ports and the Docker names, and one would corrupt the other.
@@ -112,13 +114,14 @@ for t in python3 curl rsync lsof unzip javac javap docker openssl; do command -v
 # A variable of yours must not become a property source, a JVM flag, a build setting, a native-image option or a docker build
 # setting: every TIFFINBOX_*, SPRING_*, MANAGEMENT_*, SERVER_*, LOGGING_*, COMPOSE_*, BUILDKIT_* and BUILDX_* variable, DEBUG (Boot
 # reads it as --debug), the variables that inject JVM flags, MAVEN_OPTS, MAVEN_ARGS, NATIVE_IMAGE_OPTIONS, DOCKER_BUILDKIT,
-# DOCKER_DEFAULT_PLATFORM and SOURCE_DATE_EPOCH are removed first. GRAALVM_HOME stays: it says which GraalVM to use; so do
+# DOCKER_DEFAULT_PLATFORM, SOURCE_DATE_EPOCH, KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT are removed first. GRAALVM_HOME stays: it says which GraalVM to use; so do
 # DOCKER_HOST and DOCKER_CONTEXT: they say which Docker answers. (SERVER_FORWARD_HEADERS_STRATEGY of yours would make host C read
-# the forwarded headers; SERVER_ADDRESS or SERVER_PORT beat the alias; TIFFINBOX_SHUTDOWN_TOKEN the config tree.)
+# the forwarded headers - and so would the two KUBERNETES_SERVICE_* every pod has: Boot reads them as "on Kubernetes" and the forwarded
+# headers with it (host E); SERVER_ADDRESS or SERVER_PORT beat the alias; TIFFINBOX_SHUTDOWN_TOKEN the config tree.)
 # The list is an extended regular expression (sed -E): /usr/bin/sed's basic ones have no alternation (RED C5-S4 #63). A canary is
 # planted under every name first, and the run stops if one survives the loop.
-for v in TIFFINBOX_CANARY SPRING_CANARY MANAGEMENT_CANARY SERVER_CANARY LOGGING_CANARY COMPOSE_CANARY BUILDKIT_CANARY BUILDX_CANARY DEBUG JAVA_TOOL_OPTIONS JDK_JAVA_OPTIONS _JAVA_OPTIONS MAVEN_OPTS MAVEN_ARGS NATIVE_IMAGE_OPTIONS DOCKER_BUILDKIT DOCKER_DEFAULT_PLATFORM SOURCE_DATE_EPOCH; do export "$v=planted-canary"; done
-for v in $(env | sed -n -E 's/^(TIFFINBOX_[A-Za-z0-9_]*|SPRING_[A-Za-z0-9_]*|MANAGEMENT_[A-Za-z0-9_]*|SERVER_[A-Za-z0-9_]*|LOGGING_[A-Za-z0-9_]*|COMPOSE_[A-Za-z0-9_]*|BUILDKIT_[A-Za-z0-9_]*|BUILDX_[A-Za-z0-9_]*|DEBUG|JAVA_TOOL_OPTIONS|JDK_JAVA_OPTIONS|_JAVA_OPTIONS|MAVEN_OPTS|MAVEN_ARGS|NATIVE_IMAGE_OPTIONS|DOCKER_BUILDKIT|DOCKER_DEFAULT_PLATFORM|SOURCE_DATE_EPOCH)=.*/\1/p'); do unset "$v"; done
+for v in TIFFINBOX_CANARY SPRING_CANARY MANAGEMENT_CANARY SERVER_CANARY LOGGING_CANARY COMPOSE_CANARY BUILDKIT_CANARY BUILDX_CANARY DEBUG JAVA_TOOL_OPTIONS JDK_JAVA_OPTIONS _JAVA_OPTIONS MAVEN_OPTS MAVEN_ARGS NATIVE_IMAGE_OPTIONS DOCKER_BUILDKIT DOCKER_DEFAULT_PLATFORM SOURCE_DATE_EPOCH KUBERNETES_SERVICE_HOST KUBERNETES_SERVICE_PORT; do export "$v=planted-canary"; done
+for v in $(env | sed -n -E 's/^(TIFFINBOX_[A-Za-z0-9_]*|SPRING_[A-Za-z0-9_]*|MANAGEMENT_[A-Za-z0-9_]*|SERVER_[A-Za-z0-9_]*|LOGGING_[A-Za-z0-9_]*|COMPOSE_[A-Za-z0-9_]*|BUILDKIT_[A-Za-z0-9_]*|BUILDX_[A-Za-z0-9_]*|DEBUG|JAVA_TOOL_OPTIONS|JDK_JAVA_OPTIONS|_JAVA_OPTIONS|MAVEN_OPTS|MAVEN_ARGS|NATIVE_IMAGE_OPTIONS|DOCKER_BUILDKIT|DOCKER_DEFAULT_PLATFORM|SOURCE_DATE_EPOCH|KUBERNETES_SERVICE_HOST|KUBERNETES_SERVICE_PORT)=.*/\1/p'); do unset "$v"; done
 [ -z "$(env | grep -- '=planted-canary$')" ] || die "a variable survived the clean-up above: $(env | grep -- '=planted-canary$' | sed 's/=.*//' | paste -sd' ' -)"
 # Every request this script makes goes to 127.0.0.1: an HTTP proxy named in your environment would carry curl's requests to that
 # proxy instead - 127.0.0.1 and localhost go first in no_proxy and NO_PROXY.
@@ -199,7 +202,9 @@ r=${R_LOC/"$LW"/}; [ "$r" = "$R_ADD" ] || die "the anchor's Location line must b
 # This unit's own lines (README.md, "The commands this unit adds") - each asserted to be exactly that: the Location line with a Host
 # header of the client's (host B); with the two forwarded headers (host C); a POST and POST /shutdown without the token, each
 # printing its answer's status line and headers (entity, created); OPTIONS, the verbs a path takes (created); a GET that prints its
-# answer's status, type and length (statuses); javap on the two return-value handlers (entity)
+# answer's status, type and length (statuses); javap on the two return-value handlers (entity); the anchor's run line with the
+# JVM's locale pinned before -jar (conflict: H2 writes its messages in the JVM's locale); the anchor's run line with Boot told it
+# runs on Kubernetes (host E)
 mine() { grep -m1 -xF -- "$1" README.md > /dev/null || die "README.md no longer gives the line: $1"; printf '%s\n' "$1"; }
 L_HOST=$(mine "curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'Host: kitchen.localhost' -H 'Content-Type: application/json' --data '{\"name\":\"Asha\",\"mealsPerDay\":2,\"pricePerMeal\":110,\"mealType\":\"VEG\"}' http://127.0.0.1:18431/customers")
 L_FWD=$(mine "curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'X-Forwarded-Host: kitchen.localhost' -H 'X-Forwarded-Proto: https' -H 'Content-Type: application/json' --data '{\"name\":\"Asha\",\"mealsPerDay\":2,\"pricePerMeal\":110,\"mealType\":\"VEG\"}' http://127.0.0.1:18431/customers")
@@ -208,6 +213,10 @@ L_HEAD403=$(mine "curl -s -o /dev/null -D - -X POST http://127.0.0.1:18431/shutd
 L_OPT=$(mine "curl -s -o /dev/null -w '%{http_code} · Allow: [%header{allow}]\n' -X OPTIONS http://127.0.0.1:18431/customers")
 L_ST=$(mine "curl -s -w ' · %{http_code} · Content-Type: [%header{content-type}] · Content-Length: [%header{content-length}]\n' http://127.0.0.1:18431/customers/Nobody")
 L_JAVAP=$(mine 'javap -c -p -cp tiffinbox-web/target/extracted/lib/spring-webmvc-7.0.9.jar org.springframework.web.servlet.mvc.method.annotation.HttpEntityMethodProcessor org.springframework.web.servlet.mvc.method.annotation.RequestResponseBodyMethodProcessor')
+L_RUNL=$(mine 'java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431')
+L_K8S=$(mine "$J --spring.main.cloud-platform=kubernetes")
+P_='java -jar '; Q_='java -Duser.language=en -Duser.country=US -jar '; r=${R_RUN/"$P_"/$Q_}; [ "$r" = "$L_RUNL" ] || die "the pinned run line must be the anchor's run line with -Duser.language=en -Duser.country=US before -jar, and nothing else"
+[ "${L_K8S#"$J "}" = '--spring.main.cloud-platform=kubernetes' ] || die "host E's line must be the anchor's run line with --spring.main.cloud-platform=kubernetes, and nothing else"
 # B is the anchor's Location line with one header added, C with two, and nothing else; the header lines are the anchor's POST and its
 # 403 line with -D - in place of -w
 r=${L_HOST/" -H 'Host: kitchen.localhost'"/}; [ "$r" = "$R_LOC" ] || die "host: B must be the anchor's Location line with -H 'Host: kitchen.localhost', and nothing else"
@@ -270,7 +279,7 @@ for c in "$C_PRE" "$(off .harness/x "$R_PLAIN" package)" "$(off .harness/x "$R_P
 [ "$(bc 19390 /customers/Asha)" = "curl -s -w ' %{http_code}\n' http://127.0.0.1:19390/customers/Asha" ] || die "bc()"
 [ "$(pc 18431 /customers "$ADATA")" = "$R_ADD" ] && [ "$(plc 18431 /customers "$ADATA")" = "$R_LOC" ] && [ "$(lc "$L_HOST" 18431 /customers "$ADATA")" = "$L_HOST" ] && [ "$(lc "$L_FWD" 18431 /customers "$ADATA")" = "$L_FWD" ] && [ "$(lc "$L_HEAD" 18431 /customers "$ADATA")" = "$L_HEAD" ] && [ "$ADATA" = '{"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}' ] || die "pc(), plc(), lc(): not the README's POST lines"
 [ "$(stc 18431 /customers/Nobody)" = "$L_ST" ] && [ "$(url "$L_OPT" 19390)" = "curl -s -o /dev/null -w '%{http_code} · Allow: [%header{allow}]\n' -X OPTIONS http://127.0.0.1:19390/customers" ] || die "stc(), url(): not the README's lines"
-echo "  the commands: after/README.md gives all 18 lines this script runs or derives from; README.md the 7 this unit adds"
+echo "  the commands: after/README.md gives all 18 lines this script runs or derives from; README.md the 9 this unit adds"
 
 # ---- build: before the captures - after/'s native install (it fills .m2-demo on a fresh clone); the harness compiled against
 # ---- after/'s own jar; what .m2-demo holds --------------------------------------------------------------------------------
@@ -493,7 +502,7 @@ p = {x["name"]: x for x in d.get("properties", [])}; j = os.path.basename(sys.ar
 if not e: print("  Boot's metadata (%s): %s - in none of its entries" % (j, k))
 else:
     dv = e.get("defaultValue")
-    print("  Boot's metadata (%s) - %s · its type: %s · its default: %s · its description: %s" % (j, k, e.get("type", "none").rsplit(".", 1)[-1], "none" if dv is None else json.dumps(dv), e.get("description", "none")))
+    print("  Boot's metadata (%s) - %s · its type: %s · %s · its description: %s" % (j, k, e.get("type", "none").rsplit(".", 1)[-1], "no default value" if dv is None else "its default: " + json.dumps(dv), e.get("description", "none")))
 PY
 }
 
@@ -592,7 +601,11 @@ host() {
   echo "D (labelled) - the previous tree, the README's run line, port 19391 - the same line as A:"
   start "$(at .harness/before 19391 "$R_RUN")"; up 19391; ready 19391
   pl 19391 "$ADATA"
-  stop 19391 .harness/before; }
+  stop 19391 .harness/before
+  echo "E (labelled) - C's line on after/ with Boot told it runs on Kubernetes (the run line with --spring.main.cloud-platform=kubernetes), on a fresh JVM, port 19390 (its Location printed, never followed):"
+  start "$(at .harness/after 19390 "$L_K8S")"; up 19390; ready 19390
+  lpl "$L_FWD" 19390 "$ADATA"
+  stop 19390 .harness/after; }
 hosta() { start "$(at .harness/after 19390 "$R_RUN")"; up 19390; ready 19390
   pl 19390 "$ADATA"; fol
   stop 19390 .harness/after; }
@@ -605,29 +618,32 @@ PLANTA='            if (NAME_TAKEN.equals(e.getSQLState())) {'
 PLANTB='            if (e instanceof java.sql.SQLIntegrityConstraintViolationException) {'
 plantc() { awk -v a="$PLANTA" -v b="$PLANTB" '$0 == a { print b; n++; next } { print } END { exit (n == 1 ? 0 : 1) }' "$1" > "$2" || die "plantc: the SQLSTATE line is not in $1 exactly once"; }
 conflict() { local c
-  echo "before - the previous tree, the README's run line, port 19391 - a new name, a taken name, a misspelt key, each POSTed with its Location printed:"
-  start "$(at .harness/before 19391 "$R_RUN")"; up 19391; ready 19391
+  echo "the JVM's locale on this capture's run lines - pinned before -jar, as each line below shows (H2 writes its messages in it):"
+  c="java -Duser.language=en -Duser.country=US -XshowSettings:properties -version"; echo "\$ $c"
+  (eval "$c") 2>&1 < /dev/null | awk '$1 == "user.language" || $1 == "user.country" { print "  " $1 " = " $3 }'
+  echo "before - the previous tree, the pinned run line, port 19391 - a new name, a taken name, a misspelt key, each POSTed with its Location printed:"
+  start "$(at .harness/before 19391 "$L_RUNL")"; up 19391; ready 19391
   pl 19391 "$ADATA"; p5 19391 "$RAVI2"; p5 19391 "$ROHAN"
   echo "  WARN lines in this run's log, at Boot's default level: $(logl 0 WARN | grep -c . || true) · ERROR lines: $(logl 0 ERROR | grep -c . || true)"
   stop 19391 .harness/before
-  echo "A - after/, the README's run line, port 19390:"
+  echo "A - after/, the pinned run line, port 19390:"
   conflicta
   echo "C (labelled) - a copy of after/ whose catch tests the exception's class instead of its SQLSTATE - its one changed line, then built the same way, port 19393:"
   copy after .harness/plant; plantc "after/$W/TiffinBoxServer.java" ".harness/plant/$W/TiffinBoxServer.java"
   echo "\$ diff -U0 after/$W/TiffinBoxServer.java .harness/plant/$W/TiffinBoxServer.java"
   diff -U0 "after/$W/TiffinBoxServer.java" ".harness/plant/$W/TiffinBoxServer.java" | tail -n +3 | sed 's/^/  /' || true
   pbuild .harness/plant "the planted copy"
-  start "$(at .harness/plant 19393 "$R_RUN")"; up 19393; ready 19393
+  start "$(at .harness/plant 19393 "$L_RUNL")"; up 19393; ready 19393
   pl 19393 "$ADATA"; pl 19393 "$RAVI2"; pl 19393 "$ROHAN"; ask 19393 /customers/Rohan
   echo "  WARN lines in this run's log, at Boot's default level: $(logl 0 WARN | grep -c . || true) · ERROR lines: $(logl 0 ERROR | grep -c . || true)"
   stop 19393 .harness/plant
   echo "A' - A again, on a fresh JVM:"
   conflicta
   echo "A' against A, its label aside, line for line the same: $(asame 'A - after/' 'C (labelled)' "A' - A again" '')"; }
-conflicta() { start "$(at .harness/after 19390 "$R_RUN")"; up 19390; ready 19390
+conflicta() { start "$(at .harness/after 19390 "$L_RUNL")"; up 19390; ready 19390
   pl 19390 "$ADATA"
-  echo "  the same name again, then a name the database already had:"
-  pl 19390 "$ADATA"; pl 19390 "$RAVI2"; ask 19390 /customers/Ravi
+  echo "  the same name again, then its status line and headers (this unit's line), then a name the database already had:"
+  pl 19390 "$ADATA"; hdr "$(lc "$(url "$L_HEAD" 19390)" 19390 /customers "$ADATA")"; pl 19390 "$RAVI2"; ask 19390 /customers/Ravi
   echo "  a misspelt key:"
   p5 19390 "$ROHAN"
   echo "  WARN lines in this run's log, at Boot's default level: $(logl 0 WARN | grep -c . || true) · ERROR lines: $(logl 0 ERROR | grep -c . || true)"
@@ -943,15 +959,17 @@ echo "  created: Asha 201 + Location, followed 200; Sunil K -> Sunil%20K, follow
 # "Not from TiffinBox's settings: from the request. A: ... and so does the Location. B: send a Host header ... of kitchen dot localhost, and the
 #  Location says kitchen dot localhost. A again: the same. C: forwarded headers ... are ignored ... D: the previous tree answered two hundred,
 #  with no Location at all."
-HA=$(blk host 'A - after/' 'B - this unit'); HB=$(blk host 'B - this unit' "A' - A again"); HA2=$(blk host "A' - A again" "A' against A"); HC=$(blk host 'C (labelled)' 'D (labelled)'); HDD=$(blk host 'D (labelled)' '')
-x host "^  Boot's metadata \(spring-boot-web-server-4\.1\.1\.jar\) - server\.forward-headers-strategy · its type: ServerProperties\\\$ForwardHeadersStrategy · its default: none · its description: Strategy for handling X-Forwarded-\* headers\.\$"
+HA=$(blk host 'A - after/' 'B - this unit'); HB=$(blk host 'B - this unit' "A' - A again"); HA2=$(blk host "A' - A again" "A' against A"); HC=$(blk host 'C (labelled)' 'D (labelled)'); HDD=$(blk host 'D (labelled)' 'E (labelled)'); HE=$(blk host 'E (labelled)' '')
+x host "^  Boot's metadata \(spring-boot-web-server-4\.1\.1\.jar\) - server\.forward-headers-strategy · its type: ServerProperties\\\$ForwardHeadersStrategy · no default value · its description: Strategy for handling X-Forwarded-\* headers\.\$"
 for b in "$HA" "$HA2"; do [ "$(aft "$(LQ 19390 "$ADATA")" "$b")" = "$(WA "$(A201 http://127.0.0.1:19390/customers/Asha)" 0)" ] && [ "$(aft "$(BQ 19390 /customers/Asha)" "$b")" = "$(WA "$A200" 0)" ] || die "host A/A': the request's 127.0.0.1 and port, followed 200"; done
 [ "$(aft "$(HQ "$L_HOST" 19390)" "$HB")" = "$(WA "$(A201 http://kitchen.localhost/customers/Asha)" 0)" ] || die "host B: the Host header's name in the Location, no port"
 [ "$(aft "$(BQ 19390 /customers/Asha)" "$HB")" = "$(WA "$A200" 0)" ] || die "host B: stored all the same"
 x host "^A' against A, its label aside, line for line the same: yes\$"
 [ "$(aft "$(HQ "$L_FWD" 19390)" "$HC")" = "$(WA "$(A201 http://127.0.0.1:19390/customers/Asha)" 0)" ] || die "host C: the forwarded headers ignored"
 [ "$(aft "$(LQ 19391 "$ADATA")" "$HDD")" = "$(WA "$A200 · Location: []" 0)" ] || die "host D: the previous tree, 200 and no Location"
-echo "  host: Boot's metadata (no default); A 127.0.0.1:19390 in the Location, followed 200; B Host: kitchen.localhost -> http://kitchen.localhost/customers/Asha (never followed); A' = A; C X-Forwarded-* ignored; D the previous tree 200, no Location"
+has "$HE" "\$ $(at .harness/after 19390 "$L_K8S")" "host E: the run line, Boot told it runs on Kubernetes"
+[ "$(aft "$(HQ "$L_FWD" 19390)" "$HE")" = "$(WA "$(A201 https://kitchen.localhost/customers/Asha)" 0)" ] || die "host E: on Kubernetes, the forwarded headers read"
+echo "  host: Boot's metadata (no default); A 127.0.0.1:19390 in the Location, followed 200; B Host: kitchen.localhost -> http://kitchen.localhost/customers/Asha (never followed); A' = A; C X-Forwarded-* ignored; D the previous tree 200, no Location; E Boot told it runs on Kubernetes: C's line -> https://kitchen.localhost/customers/Asha"
 
 # "H2 refuses that row with SQLSTATE two three five oh five ... four oh nine, conflict, with no body, nothing in the log. The same name twice:
 #  two oh one, then four oh nine ... A misspelt key ... two three five oh two, the very same exception class. A: it stays a five hundred. C, a
@@ -962,10 +980,14 @@ KB=$(blk conflict 'before - the previous tree' 'A - after/'); KA=$(blk conflict 
 [ "$(aft "$(LQ 19391 "$ROHAN")" "$KB")" = "$E500L" ] && has "$KB" "$H2NULL" "conflict before" && has "$KB" "$H2SQL" "conflict before: 23502" || die "conflict before: the misspelt key, H2's 23502, a 500"
 [ "$(printf '%s\n' "$KB" | grep -cxF -- "$TRACE50")" = 2 ] || die "conflict before: two traces of over 50 frames"
 has "$KB" "  WARN lines in this run's log, at Boot's default level: 0 · ERROR lines: 2" "conflict before: 2 ERROR lines"
+x conflict '^  user\.language = en$'; x conflict '^  user\.country = US$'
+for t in "before:19391" "after:19390" "plant:19393"; do x conflict "^\\\$ cd \\.harness/${t%%:*} && java -Duser\\.language=en -Duser\\.country=US -jar tiffinbox-web/target/tiffinbox-web-1\\.0\\.0\\.jar --tiffinbox\\.port=${t#*:}\$"; done
+[ "$(n conflict '^\$ cd .* java -jar ')" = 0 ] || die "conflict: every run line pins the JVM's locale"
 for b in "$KA" "$KA2"; do
   [ "$(aftn 1 "$(LQ 19390 "$ADATA")" "$b")" = "$(WA "$(A201 http://127.0.0.1:19390/customers/Asha)" 0)" ] && [ "$(aftn 2 "$(LQ 19390 "$ADATA")" "$b")" = "$(WA "$C409" 0)" ] || die "conflict A/A': the same name twice, 201 then 409"
   [ "$(aft "$(LQ 19390 "$RAVI2")" "$b")" = "$(WA "$C409" 0)" ] && [ "$(aft "$(BQ 19390 /customers/Ravi)" "$b")" = "$(WA '  {"name":"Ravi","mealsPerDay":2,"pricePerMeal":120,"mealType":"VEG"} 200' 0)" ] || die "conflict A/A': a seed name 409, its row unchanged"
   [ "$(aft "$(LQ 19390 "$ROHAN")" "$b")" = "$E500L" ] && has "$b" "$H2NULL" "conflict A/A'" && has "$b" "$H2SQL" "conflict A/A': 23502" && has "$b" "$TRACE50" "conflict A/A': its trace" || die "conflict A/A': the misspelt key, still H2's 23502 and a 500"
+  has "$b" '  status line: [HTTP/1.1 409 ]' "conflict A/A': the 409's status line"; has "$b" '  Content-Length: 0' "conflict A/A': the bodiless 409 has its length"; nhas "$b" '  Transfer-Encoding: chunked' "conflict A/A': the 409 is not chunked"
   ! printf '%s\n' "$b" | grep -q 'Unique index' || die "conflict A/A': a taken name never reaches the log"
   has "$b" "  WARN lines in this run's log, at Boot's default level: 0 · ERROR lines: 1" "conflict A/A': 0 WARN, 1 ERROR (the misspelt key's)"; done
 for l in '  @@ -146 +146 @@' "  -$PLANTA" "  +$PLANTB" '  built the planted copy · offline: yes · exit 0'; do has "$KC" "$l" "conflict C: the plant"; done
@@ -973,7 +995,7 @@ for l in '  @@ -146 +146 @@' "  -$PLANTA" "  +$PLANTB" '  built the planted copy
 [ "$(aft "$(LQ 19393 "$ROHAN")" "$KC")" = "$(WA "$C409" 0)" ] && [ "$(aft "$(BQ 19393 /customers/Rohan)" "$KC")" = "$(WA "$(E4XX 404 'Not Found' /customers/Rohan) 404" 0)" ] || die "conflict C: the misspelt key called a conflict, nothing stored"
 has "$KC" "  WARN lines in this run's log, at Boot's default level: 0 · ERROR lines: 0" "conflict C: nothing in the log"
 x conflict "^A' against A, its label aside, line for line the same: yes\$"
-echo "  conflict: before 200, 500 (23505), 500 (23502), 2 ERROR; A 201, the same name 409, Ravi 409 (unchanged), the misspelt key 500 (23502), 0 WARN, 1 ERROR; C (the class) the misspelt key 409, 0 ERROR; A' = A"
+echo "  conflict: the JVM's locale en_US, pinned on every run line; before 200, 500 (23505), 500 (23502), 2 ERROR; A 201, the same name 409, its headers Content-Length: 0, Ravi 409 (unchanged), the misspelt key 500 (23502), 0 WARN, 1 ERROR; C (the class) the misspelt key 409, 0 ERROR; A' = A"
 
 # "Throwing ... four oh four, Boot's error body. Response entity of an empty optional: four oh four, no body. Returning null: two hundred,
 #  nothing. Returning the optional itself: two hundred, the word null ... response status created ... adds no Location ... the full request URL

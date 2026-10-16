@@ -8,7 +8,8 @@ without the token with a 403 it set on the servlet response itself. This unit sa
 **`Location`** header you can follow, **409 Conflict** for a name that is taken — decided by the database's own code, H2's SQLSTATE
 `23505`, never by the exception's class — and the 403 as the method's own return value, a **`ResponseEntity`**: Spring's type for a
 whole answer, its status, its headers and its body, as one return value. It measures where the Location's host comes from (the request's
-`Host` header), what a ResponseEntity changes in the answer's headers (it goes out chunked, with no `Content-Length`), and four ways a
+`Host` header), what a ResponseEntity changes in the answer's headers (one with a body is flushed as it is written, so it goes out
+chunked, with no `Content-Length`; the bodiless 409 says `Content-Length: 0`), and four ways a
 route can say "no such customer" by accident.
 
 **The anchor changes (brief ⚑2, ⚑11).** `after/` is this unit's frozen copy of `../c6-tiffinbox` after the change, and
@@ -83,14 +84,26 @@ without the exports — its `java` 23.0.1 — ends with `exit 1` and prints no l
 in `c6-unit10/`; README then SOLUTION in one `env -i` `zsh -f` shell → `fetch: 000 · got: none`, then `fetch: 200 · got: Sunil K`,
 exit 0, the shell in `c6-unit10/`; 19399 free after.
 
-Published hashes: entity `b967352f947caab5022bdc5acb5af434` · created `47d313fb1d9fae8142b3bc58399d03c5` · host `7d658053af4ca14ae0c9c870876a76a7` · conflict `9dbf9e6c0a6d8850d03800fa4218808c` · statuses `3324c81c4081cd48946da299fa1b18bc` · exercise `0cf643f6316a6b293cab5fc9e96c5e9b` · forms `5904505ab1e7b3efdeb3d7f09faa52ca`.
+Published hashes: entity `f3be88a8f6cf1d5b161406bbb0d4b4f9` · created `47d313fb1d9fae8142b3bc58399d03c5` · host `b6d96f9264bd660596a95a08b88f98cd` · conflict `3b655558511e10177ec89c3ef28470f1` · statuses `3324c81c4081cd48946da299fa1b18bc` · exercise `0cf643f6316a6b293cab5fc9e96c5e9b` · forms `5904505ab1e7b3efdeb3d7f09faa52ca`.
+
+**BLUE B (2026-10-16), after RED B1 rows 71-80:** `host` gains E (labelled: `--spring.main.cloud-platform=kubernetes` → the
+forwarded headers read, `https://kitchen.localhost/customers/Asha`) and Boot's metadata line says "no default value"; `receipts.sh` removes
+`KUBERNETES_SERVICE_HOST`/`_PORT` with the other variables; `conflict` pins the JVM's locale on every run line and prints it, and prints the
+409's headers (`Content-Length: 0`); `entity` changes only by the anchor README's line counts (10/after's README: the static-files 404,
+the forwarded headers, "chunked" scoped to answers with a body). Changed: entity `b967352f…` → `f3be88a8…`, host `7d658053…` → `b6d96f92…`,
+conflict `9dbf9e6c…` → `3b655558…`; created, statuses, exercise and forms byte for byte the same. **Runs of record:** `./receipts.sh`
+(/bin/bash 3.2.57, `.m2-demo` re-seeded from `_research/m2-seed-s2/`, its own process group, `env -i`) 1,264 s — the seven captures 3/3,
+every check passed, then "no published hash" as designed (receipts.md5 emptied first); `bash receipts.sh` (5.3.9, re-seeded) 2,165 s —
+exit 0, all 7 = published.
 
 ## The commands this unit adds
 
-`after/README.md` — the anchor's own — gives every line `receipts.sh` runs or derives from but seven, which are this unit's, each read
+`after/README.md` — the anchor's own — gives every line `receipts.sh` runs or derives from but nine, which are this unit's, each read
 from the block below and asserted to be exactly this (on the anchor's port 18431; each capture swaps in its own port):
 
 ```bash
+java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431
+java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --spring.main.cloud-platform=kubernetes
 curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'Host: kitchen.localhost' -H 'Content-Type: application/json' --data '{"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}' http://127.0.0.1:18431/customers
 curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'X-Forwarded-Host: kitchen.localhost' -H 'X-Forwarded-Proto: https' -H 'Content-Type: application/json' --data '{"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}' http://127.0.0.1:18431/customers
 curl -s -o /dev/null -D - -H 'Content-Type: application/json' --data '{"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}' http://127.0.0.1:18431/customers
@@ -100,12 +113,17 @@ curl -s -w ' · %{http_code} · Content-Type: [%header{content-type}] · Content
 javap -c -p -cp tiffinbox-web/target/extracted/lib/spring-webmvc-7.0.9.jar org.springframework.web.servlet.mvc.method.annotation.HttpEntityMethodProcessor org.springframework.web.servlet.mvc.method.annotation.RequestResponseBodyMethodProcessor
 ```
 
-The first is the anchor README's new line (the request-body lesson's POST, its answer's Location printed) with a `Host` header of the
-client's (`host` B); the script asserts it is that line with `-H 'Host: kitchen.localhost'` added and nothing else. The second adds the
-two headers a proxy in front of a server adds instead (`host` C, labelled), asserted the same way. The third and fourth print an
-answer's status line and headers — the request-body lesson's POST and the secrets lesson's POST /shutdown without the token, each with
-`-o /dev/null -D -` for its `-w` and nothing else, asserted (`created`, `entity`). The fifth asks a path which verbs it takes (`created`,
-on `/customers` and on a Location). The sixth prints an answer's status, `Content-Type` and `Content-Length` (`statuses`). The seventh
+The first is the anchor's run line with the JVM's locale pinned before `-jar` — asserted to be that line with `-Duser.language=en
+-Duser.country=US` added and nothing else — and `conflict` runs every JVM with it: H2 writes its messages in the JVM's locale, and on macOS
+the JVM takes the Mac's first language, not `LC_ALL` (measured, RED B1 #72: a JVM started as German prints `NULL nicht zulässig für Feld
+"MEAL_TYPE"` before the English line, and `conflict`'s hash and checks would fail). The second is the anchor's run line with Boot told it
+runs on Kubernetes (`host` E, labelled). The third is the anchor README's new line (the request-body lesson's POST, its answer's Location
+printed) with a `Host` header of the client's (`host` B); the script asserts it is that line with `-H 'Host: kitchen.localhost'` added and
+nothing else. The fourth adds the two headers a proxy — a server in front that passes requests on — adds instead (`host` C and E,
+labelled), asserted the same way. The fifth and sixth print an answer's status line and headers — the request-body lesson's POST and the
+secrets lesson's POST /shutdown without the token, each with `-o /dev/null -D -` for its `-w` and nothing else, asserted (`created`,
+`entity`, `conflict`). The seventh asks a path which verbs it takes (`created`, on `/customers` and on a Location). The eighth prints an
+answer's status, `Content-Type` and `Content-Length` (`statuses`). The ninth
 reads the two return-value handlers' bytecode out of after/'s own `spring-webmvc` jar, from `.harness/after` (`entity`). Every POST a
 capture sends is a line of these shapes — `plc` (the anchor's Location line), `lc` (any line of that shape), `pc` (the request-body
 lesson's), each with its port, path and body swapped, the body single-quoted as the README writes it.
@@ -233,9 +251,10 @@ the same bytes — five lines each: `Mapped to …#shutdown(String, HttpServletR
 same two processors. **Its headers are not the same:** `Content-Length: 21` before, `Transfer-Encoding: chunked` after; and POST /shutdown
 with the token, `harness/shutdown.sh`, prints `Content-Length: 17` before and `none` after. **javap**, after/'s `spring-webmvc-7.0.9.jar`:
 `HttpEntityMethodProcessor.handleReturnValue` calls `ServletServerHttpResponse.flush` twice, `RequestResponseBodyMethodProcessor`'s never —
-a flushed answer is committed before its length is known, so it goes out chunked.
+an answer with a body, flushed as it is written, is committed before its length is known, so it goes out chunked; the bodiless 409 says
+`Content-Length: 0` (`conflict`).
 
-`.r-entity.out` · md5 `b967352f947caab5022bdc5acb5af434` · 3 of 3
+`.r-entity.out` · md5 `f3be88a8f6cf1d5b161406bbb0d4b4f9` · 3 of 3
 
 ```
 the previous tree and after/, both copied under .harness/ with a config tree, each built with the README's line (offline):
@@ -297,7 +316,7 @@ $ diff -rq -x target -x secrets .harness/before .harness/after
     @@ -91 +102 @@
     -        return ordered("stopping", true);
     +        return ResponseEntity.ok(ordered("stopping", true));
-  README.md - the anchor's README: lines added 97, removed 12 - its new section and the history notes the change made false (not shown)
+  README.md - the anchor's README: lines added 98, removed 12 - its new section and the history notes the change made false (not shown)
 the executable jar's BOOT-INF/lib: 56 jars -> 56 · the same names: yes
 the seven - after/, the README's run line, port 19390, a fresh JVM:
 $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19390
@@ -434,20 +453,25 @@ $ harness/shutdown.sh 19390 .harness/after/secrets/tiffinbox/shutdown-token
 ```
 
 
-## 3 · host — the Location, and the request's Host header (A/B/A′ + C, D)
+## 3 · host — the Location, and the request's Host header (A/B/A′ + C, D, E)
 
-Boot's metadata (`spring-boot-web-server-4.1.1.jar`) for `server.forward-headers-strategy`: a `ForwardHeadersStrategy`, **no default**,
+Boot's metadata (`spring-boot-web-server-4.1.1.jar`) for `server.forward-headers-strategy`: a `ForwardHeadersStrategy`, **no default
+value** — unset is not `NONE`: Boot deduces the strategy from the cloud platform it detects (E),
 "Strategy for handling X-Forwarded-* headers." **A** — after/, the anchor's Location line: `Location: [http://127.0.0.1:19390/customers/Asha]`,
 followed → 200. **B** — this unit's line, the same with `-H 'Host: kitchen.localhost'`, on a fresh JVM: **`Location:
 [http://kitchen.localhost/customers/Asha]`** — the Host header's name, no port — printed, never followed; Asha is stored all the same
 (`/customers/Asha` → 200 on 127.0.0.1). **A′** — A again on a fresh JVM: **line for line A**. **C** (labelled) — this unit's line with
 `X-Forwarded-Host: kitchen.localhost` and `X-Forwarded-Proto: https`: the Location is **unchanged** — the forwarded headers are ignored
-with Boot's default. **D** (labelled) — the previous tree, the same line: **`200 · Location: []`** — no Location at all.
+**here**, on no cloud platform. **D** (labelled) — the previous tree, the same line: **`200 · Location: []`** — no Location at all. **E**
+(labelled) — C's line on after/ started with `--spring.main.cloud-platform=kubernetes`: **`Location: [https://kitchen.localhost/customers/Asha]`**
+— on Kubernetes Boot reads the forwarded headers (and so it does when `KUBERNETES_SERVICE_HOST` and `KUBERNETES_SERVICE_PORT` are set, as in
+every pod: RED B1 #71's probe; the script removes both from its environment, so C cannot flip under a Kubernetes CI runner). Printed, never
+followed.
 
-`.r-host.out` · md5 `7d658053af4ca14ae0c9c870876a76a7` · 3 of 3
+`.r-host.out` · md5 `b6d96f9264bd660596a95a08b88f98cd` · 3 of 3
 
 ```
-  Boot's metadata (spring-boot-web-server-4.1.1.jar) - server.forward-headers-strategy · its type: ServerProperties$ForwardHeadersStrategy · its default: none · its description: Strategy for handling X-Forwarded-* headers.
+  Boot's metadata (spring-boot-web-server-4.1.1.jar) - server.forward-headers-strategy · its type: ServerProperties$ForwardHeadersStrategy · no default value · its description: Strategy for handling X-Forwarded-* headers.
 A - after/, the README's run line, port 19390 - this unit's line in the anchor's README:
 $ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19390
   listens on: 127.0.0.1:19390 · loopback only: yes
@@ -515,27 +539,45 @@ $ harness/shutdown.sh 19391 .harness/before/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: 17 · {"stopping":true} · curl exit 0
   exit 0 · listening on 19391 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
+E (labelled) - C's line on after/ with Boot told it runs on Kubernetes (the run line with --spring.main.cloud-platform=kubernetes), on a fresh JVM, port 19390 (its Location printed, never followed):
+$ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19390 --spring.main.cloud-platform=kubernetes
+  listens on: 127.0.0.1:19390 · loopback only: yes
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19390/actuator/health/readiness
+  {"status":"UP"} 200
+$ curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'X-Forwarded-Host: kitchen.localhost' -H 'X-Forwarded-Proto: https' -H 'Content-Type: application/json' --data '{"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}' http://127.0.0.1:19390/customers
+  {"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"} 201 · Location: [https://kitchen.localhost/customers/Asha] · WARN lines it added: 0
+$ harness/shutdown.sh 19390 .harness/after/secrets/tiffinbox/shutdown-token
+  POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
+  exit 0 · listening on 19390 now: 0
+  its log: the demo token 0 times · X-Shutdown-Token 0 times
 ```
 
 
 ## 4 · conflict — 409 by the database's code (before/A/C/A′)
 
-**Before** — the previous tree: a new name → `200 · Location: []`; Ravi, a name the seed holds → **Boot's 500**, and Tomcat's ERROR line
+Every JVM here starts with the pinned run line, and the capture prints the locale first (`user.language = en`, `user.country = US`): H2's
+messages follow the JVM's locale. **Before** — the previous tree: a new name → `200 · Location: []`; Ravi, a name the seed holds → **Boot's 500**, and Tomcat's ERROR line
 `… threw exception [Request processing failed: org.h2.jdbc.JdbcSQLIntegrityConstraintViolationException: Unique index or primary key
 violation: "…"`, H2's code **`[23505-250]`**, a trace of over 50 frames (not shown); the misspelt key (`mealTyp`) → **Boot's 500**, the
 **same exception class**, `NULL not allowed for column "MEAL_TYPE"`, **`[23502-250]`**, over 50 frames; 0 WARN, 2 ERROR. **A** — after/:
-Asha → 201 and her Location; **Asha again → `409`, no body**, 0 WARN; **Ravi → `409`**, and `/customers/Ravi` → the seed's Ravi, unchanged
+Asha → 201 and her Location; **Asha again → `409`, no body**, 0 WARN — and again with its headers printed: `[HTTP/1.1 409 ]`,
+**`Content-Length: 0`**, not chunked (a bodiless ResponseEntity is not flushed early); **Ravi → `409`**, and `/customers/Ravi` → the seed's Ravi, unchanged
 (2 meals at 120, not the posted 1 at 99); the misspelt key → **still H2's 23502, Tomcat's ERROR line, Boot's 500** — and no `Unique index`
 line anywhere in A's log; 0 WARN, 1 ERROR. **C** (labelled) — a copy of after/ whose catch tests the exception's class
 (`e instanceof java.sql.SQLIntegrityConstraintViolationException`, its one line, `diff -U0`), built the same way: a new name 201, Ravi 409,
 **the misspelt key → `409`** — called a conflict — nothing stored (`/customers/Rohan` → 404), and **0 ERROR lines**: the typo's cause is gone
 from the log. **A′** — line for line A.
 
-`.r-conflict.out` · md5 `9dbf9e6c0a6d8850d03800fa4218808c` · 3 of 3
+`.r-conflict.out` · md5 `3b655558511e10177ec89c3ef28470f1` · 3 of 3
 
 ```
-before - the previous tree, the README's run line, port 19391 - a new name, a taken name, a misspelt key, each POSTed with its Location printed:
-$ cd .harness/before && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19391
+the JVM's locale on this capture's run lines - pinned before -jar, as each line below shows (H2 writes its messages in it):
+$ java -Duser.language=en -Duser.country=US -XshowSettings:properties -version
+  user.country = US
+  user.language = en
+before - the previous tree, the pinned run line, port 19391 - a new name, a taken name, a misspelt key, each POSTed with its Location printed:
+$ cd .harness/before && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19391
   listens on: 127.0.0.1:19391 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19391/actuator/health/readiness
@@ -557,17 +599,21 @@ $ harness/shutdown.sh 19391 .harness/before/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: 17 · {"stopping":true} · curl exit 0
   exit 0 · listening on 19391 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
-A - after/, the README's run line, port 19390:
-$ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19390
+A - after/, the pinned run line, port 19390:
+$ cd .harness/after && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19390
   listens on: 127.0.0.1:19390 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19390/actuator/health/readiness
   {"status":"UP"} 200
 $ curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'Content-Type: application/json' --data '{"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}' http://127.0.0.1:19390/customers
   {"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"} 201 · Location: [http://127.0.0.1:19390/customers/Asha] · WARN lines it added: 0
-  the same name again, then a name the database already had:
+  the same name again, then its status line and headers (this unit's line), then a name the database already had:
 $ curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'Content-Type: application/json' --data '{"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}' http://127.0.0.1:19390/customers
    409 · Location: [] · WARN lines it added: 0
+$ curl -s -o /dev/null -D - -H 'Content-Type: application/json' --data '{"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}' http://127.0.0.1:19390/customers
+  status line: [HTTP/1.1 409 ]
+  Content-Length: 0
+  Date: …
 $ curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'Content-Type: application/json' --data '{"name":"Ravi","mealsPerDay":1,"pricePerMeal":99,"mealType":"VEGAN"}' http://127.0.0.1:19390/customers
    409 · Location: [] · WARN lines it added: 0
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19390/customers/Ravi
@@ -590,7 +636,7 @@ $ diff -U0 after/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.j
   +            if (e instanceof java.sql.SQLIntegrityConstraintViolationException) {
 $ cd .harness/plant && mvn -o -B -Dmaven.repo.local="$M2" -DskipTests clean package
   built the planted copy · offline: yes · exit 0
-$ cd .harness/plant && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19393
+$ cd .harness/plant && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19393
   listens on: 127.0.0.1:19393 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19393/actuator/health/readiness
@@ -609,16 +655,20 @@ $ harness/shutdown.sh 19393 .harness/plant/secrets/tiffinbox/shutdown-token
   exit 0 · listening on 19393 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 A' - A again, on a fresh JVM:
-$ cd .harness/after && java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19390
+$ cd .harness/after && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19390
   listens on: 127.0.0.1:19390 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19390/actuator/health/readiness
   {"status":"UP"} 200
 $ curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'Content-Type: application/json' --data '{"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}' http://127.0.0.1:19390/customers
   {"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"} 201 · Location: [http://127.0.0.1:19390/customers/Asha] · WARN lines it added: 0
-  the same name again, then a name the database already had:
+  the same name again, then its status line and headers (this unit's line), then a name the database already had:
 $ curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'Content-Type: application/json' --data '{"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}' http://127.0.0.1:19390/customers
    409 · Location: [] · WARN lines it added: 0
+$ curl -s -o /dev/null -D - -H 'Content-Type: application/json' --data '{"name":"Asha","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}' http://127.0.0.1:19390/customers
+  status line: [HTTP/1.1 409 ]
+  Content-Length: 0
+  Date: …
 $ curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'Content-Type: application/json' --data '{"name":"Ravi","mealsPerDay":1,"pricePerMeal":99,"mealType":"VEGAN"}' http://127.0.0.1:19390/customers
    409 · Location: [] · WARN lines it added: 0
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19390/customers/Ravi
@@ -644,7 +694,8 @@ After/ with the harness's `Statuses` joined; this unit's status, type and length
 `/customers/Nobody` (the binding lesson's `ResponseStatusException`) → **404 and Boot's body**, `application/json`, no `Content-Length`;
 `ResponseEntity.of(…)` with the empty `Optional` → **404, no body** (`Content-Length: [0]`, no type); the customer or `null` → **200, no body**
 (`Content-Length: [0]`); the `Optional` itself → **200, `null`** (`application/json`, 4 bytes). **Ravi**, the same four → 200 and the record
-each — `Content-Length: [67]`, but **`[]` for `ResponseEntity.of`**: a ResponseEntity's answer is chunked. **`@ResponseStatus(HttpStatus.CREATED)`**
+each — `Content-Length: [67]`, but **`[]` for `ResponseEntity.of`**: a ResponseEntity's answer with a body is flushed as it is written,
+so it is chunked (the 404 `ResponseEntity.of` gives for Nobody has no body, and says `Content-Length: [0]`). **`@ResponseStatus(HttpStatus.CREATED)`**
 on a POST → **201, `Location: []`**. **A query string on the request:** the harness's route, `fromCurrentRequest()` →
 `Location: [http://127.0.0.1:19392/probe/statuses/where/Lata?via=app]` — **the query carried along**; TiffinBox's `POST /customers?via=app`
 (`fromCurrentRequestUri()`) → `…/customers/Lata`, followed → 200. 0 WARN, 0 ERROR.
@@ -919,7 +970,7 @@ fresh clone.
 | # | Item (brief) | Before | This unit (receipts, 2026-10-14) |
 |---|---|---|---|
 | 10 | 409 by SQLSTATE 23505; 23502 left at 500 | a JDBC probe only | **a taken name → 409, no body, 0 WARN, 0 ERROR; the misspelt key → H2's 23502, 500; one exception class for both** (`conflict` before, A, A′); **a copy that tests the class answers the misspelt key 409, 0 ERROR** (`conflict` C) |
-| 11 | the Location's Host echo and X-Forwarded on 10's tree | s12h | **`Host: kitchen.localhost` → `Location: [http://kitchen.localhost/customers/Asha]`, no port; `X-Forwarded-Host`/`-Proto` ignored; Boot's `server.forward-headers-strategy` no default** (`host`); **the image's Location names the published 127.0.0.1:19397, TiffinBox listening on 18425 inside** (`forms`) |
+| 11 | the Location's Host echo and X-Forwarded on 10's tree | s12h | **`Host: kitchen.localhost` → `Location: [http://kitchen.localhost/customers/Asha]`, no port; `X-Forwarded-Host`/`-Proto` ignored here; Boot's `server.forward-headers-strategy` no default value — on Kubernetes they are read (E)** (`host`); **the image's Location names the published 127.0.0.1:19397, TiffinBox listening on 18425 inside** (`forms`) |
 | 13 | (for 12) `before` on `10/after`: 201, stored | storage measured with `Unchecked` (200) | **the empty name → 201, its Location `…/customers/` a 404; listed** (`created`) |
 | 15 | the image of every chain unit | once, on the chain end | **built from after/'s Dockerfile, 0 pulls, its layers 0 tokens, `127.0.0.1:19397` alone, the seven `87ca7efc…`, 201 + Location, 409, 403, `docker wait` 0** (`forms`) |
 | 16 | the exercise as viewers run it | end state on a sketch | **one `env -i` shell: fetch `000` (the raw space), then `200`, `Sunil K`** (`exercise`) |
@@ -931,13 +982,14 @@ fresh clone.
   points at the new resource) is built from the request's URI alone: TiffinBox's `POST /customers?via=app` → `…/customers/Lata` (`statuses`).
   Both read the host the same way.
 - **A ResponseEntity changes the answer's headers.** Spring MVC's `HttpEntityMethodProcessor` flushes the answer it writes (javap: 2 calls
-  to `ServletServerHttpResponse.flush` in its `handleReturnValue`; `RequestResponseBodyMethodProcessor`'s: 0), so the answer goes out
-  `Transfer-Encoding: chunked`, with no `Content-Length`: the 403's 21 and the shutdown answer's 17 are gone (`entity`), and
+  to `ServletServerHttpResponse.flush` in its `handleReturnValue`; `RequestResponseBodyMethodProcessor`'s: 0), so an answer with a body goes
+  out `Transfer-Encoding: chunked`, with no `Content-Length` — a bodiless one is not: the 409 says `Content-Length: 0` (`conflict`), and so
+  does `ResponseEntity.of`'s 404 (`statuses`): the 403's 21 and the shutdown answer's 17 are gone (`entity`), and
   `ResponseEntity.of` for Ravi is chunked where the other routes say 67 (`statuses`). The bytes are the same, and so are the seven
   (`87ca7efc…`): they print status, type and body. Boot's own error body for a name nobody has carries no `Content-Length` either
   (`/customers/Nobody`, `Content-Length: []`, `statuses`).
-- **Nothing checks a body yet, and the Location shows it**: the empty name is created, 201, and its Location ends `/customers/` — a path no
-  mapping takes, 404 (`created`). *Validation on the Way In* refuses that body; its `before` is this.
+- **Nothing checks a body yet, and the Location shows it**: the empty name is created, 201, and its Location ends `/customers/` — a path none
+  of TiffinBox's routes takes; the static files row (`/**`) does, and finds no file: 404 (`created`). *Validation on the Way In* refuses that body; its `before` is this.
 - **"Catching the class would call a misspelt key a conflict"** (⚑11) is a capture now, not an argument (`conflict` C) — and the typo's
   real cause leaves the log with it (`ERROR lines: 0`).
 - **`@ResponseStatus(CREATED)`** (⚑11's loser B, unmeasured in the brief): 201, no Location (`statuses`).
@@ -965,7 +1017,7 @@ fresh clone.
 - **The Allow header's order moves between runs** of the same tree: `POST,GET,HEAD,OPTIONS` in the probe, `GET,HEAD,POST,OPTIONS` in the
   first development run — so `created` prints it sorted (`ropt`) and says so.
 - **The empty name's Location is a 404** — found while asking what an unchecked body's 201 looks like (`created`'s last POST): `…/customers/`,
-  a path no mapping takes. It is *Validation on the Way In*'s `before`.
+  a path none of TiffinBox's routes takes (the static files row does, and finds no file). It is *Validation on the Way In*'s `before`.
 - **Two /bin/bash 3.2 traps**, caught by the checks-only run on the first development captures — under 3.2 alone it stopped at "the 201's
   header line must be …": in `${x/pattern/replacement}` a `/` inside a quoted pattern still ends the pattern, and a quoted replacement keeps
   its quotes inside a quoted expansion. Both derivations put the pattern and the replacement in variables and assign the result.
@@ -1004,12 +1056,13 @@ fresh clone.
   space: `' 409 · Location: []'`. The request-body lesson's line (`-w ' %{http_code}\n'`) is still there and prints `{…} 201`.
 - **What a POST does on this tree, measured:** a new name → 201 + Location (`%20` for a space), the Location followed → 200; the same
   name again, or a seed name → 409, 0 WARN, 0 ERROR, the row unchanged; **the empty name** (`{"name":"",…,"mealType":"LUNCH"}`) → **201**, its
-  Location `…/customers/` → **404** (no mapping takes it) — **12's `before`**: nothing checks a body yet; the misspelt key (`mealTyp`) → H2's
+  Location `…/customers/` → **404** (none of TiffinBox's routes takes it; the static files row does, and finds no file) — **12's `before`**: nothing checks a body yet; the misspelt key (`mealTyp`) → H2's
   23502, Tomcat's ERROR line, over 50 frames, Boot's 500 — 12's validation should turn it into a field error before the insert; `2.7` →
   400 (09's key). A duplicate is a valid body: after 12's validation it should still reach the unique index and stay a 409 — 12's to
   measure, not measured here.
-- **ResponseEntity answers have no `Content-Length`:** `HttpEntityMethodProcessor` flushes them (javap: 2 calls in `handleReturnValue`),
-  so the 201, the 403 and POST /shutdown's 200 go out `Transfer-Encoding: chunked` (the 409 has no body; its headers are not captured);
+- **ResponseEntity answers with a body have no `Content-Length`:** `HttpEntityMethodProcessor` flushes them as they are written (javap: 2
+  calls in `handleReturnValue`), so the 201, the 403 and POST /shutdown's 200 go out `Transfer-Encoding: chunked`; the bodiless 409 says
+  `Content-Length: 0` (`conflict`, its headers captured since BLUE B);
   `harness/shutdown.sh` prints `Content-Length: none` on this tree where 09's printed 17. The GET routes keep their length (`/customers/Ravi`
   67). The seven print no headers: `87ca7efc8584dcccd40e6b956db1de9b` (masked) in all four forms — run them first, on a fresh JVM (S2.11).
 - **For 11 (XML on a copy of `10/after`):** a ResponseEntity's body goes through the same message converters — `HttpEntityMethodProcessor`
