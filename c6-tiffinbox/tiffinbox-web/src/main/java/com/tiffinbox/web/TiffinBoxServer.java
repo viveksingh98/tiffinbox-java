@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -83,16 +84,17 @@ import static java.lang.System.Logger.Level.INFO;
  *
  * <p>Course 6: a route can answer with a ResponseEntity - the answer's status, its headers and its body as one return value -
  * where a route that returns its body alone is answered 200. POST /customers answers 201 Created, with a Location header - the
- * new customer's own URL - and the record, or 409 Conflict, with no body, for a name that is taken; POST /shutdown answers its
- * 403 the same way, where it set the servlet response's status itself. Spring MVC's HttpEntityMethodProcessor writes such an
+ * new customer's own URL - and the record, or 409 Conflict for a name that is taken; POST /shutdown answers its 403 the same way,
+ * where it set the servlet response's status itself. Since Course 6's ProblemDetail lesson every refusal of TiffinBox's own - the
+ * 400, the 403, the 409 - carries a ProblemDetail, RFC 9457's shape, written as application/problem+json. Spring MVC's HttpEntityMethodProcessor writes such an
  * answer - the status and the headers, then the body through the same message converters - and flushes it as it goes, so it
  * leaves chunked, with no Content-Length; a plain return value is written by RequestResponseBodyMethodProcessor, which does not.
  *
  * <p>Course 6: a body is checked on its way in. Customer's components carry Bean Validation's constraints, and POST /customers
  * marks its body {@code @Valid}: once Jackson has read the JSON into the record, Spring MVC's validator - Boot's adapter around
  * the one Validator Boot builds, Hibernate Validator's - checks it, and every rule it breaks lands in the BindingResult the
- * method takes beside it. The method answers those itself: 400 Bad Request, each field that broke a rule with the rule's
- * message. A body that breaks none reaches the database as before: 201, or 409 for a name that is taken. The class carries no
+ * method takes beside it. The method answers those itself: 400 Bad Request, a problem detail whose member "errors" holds each
+ * field that broke a rule with the rule's message. A body that breaks none reaches the database as before: 201, or 409 for a name that is taken. The class carries no
  * {@code @Validated}: that would hand a constrained parameter to Boot's method-validation post-processor, which subclasses the
  * bean - and this class is final.
  */
@@ -144,28 +146,29 @@ public final class TiffinBoxServer {
      * A new customer, from the request's body: Spring MVC's JSON message converter reads the JSON into the record - through
      * its canonical constructor - and, because the parameter is marked @Valid, Spring MVC's validator checks the record
      * against its constraints (Customer), before this method runs. The rules it broke are in the BindingResult - which must
-     * come straight after the parameter it reports on - and a body that broke any is answered here: 400 Bad Request, its
-     * body each field that broke a rule and that rule's message, sorted by field name; nothing is stored. Without the
-     * BindingResult, Spring MVC would answer for the method: its own 400, whose body - Boot's - names no field. A body that
+     * come straight after the parameter it reports on - and a body that broke any is answered here: 400 Bad Request, a problem
+     * detail - its title "Invalid customer", its detail the number of rules broken, and its member "errors" each field that broke
+     * a rule and that rule's message, sorted by field name; nothing is stored. Without the BindingResult, Spring MVC would answer
+     * for the method: Boot's problem-details handler, whose 400 says "Invalid request content." and names no field. A body that
      * keeps every rule is stored, and the answer says what happened. Stored: 201 Created, the record, and a Location header,
      * the new customer's URL - this request's URL without its query string, the name appended to its path, encoded (a space
      * is %20). Its scheme, host and port are the ones the request names: the host and port come from the request's Host
-     * header, so the Location points wherever the client said it was talking to. A name that is taken: 409 Conflict, with no
-     * body. H2 refuses that row with the SQLSTATE 23505 - the five-character code a database reports with a refusal - and
+     * header, so the Location points wherever the client said it was talking to. A name that is taken: 409 Conflict, a problem
+     * detail that names it. H2 refuses that row with the SQLSTATE 23505 - the five-character code a database reports with a refusal - and
      * refuses a row with a column left empty, 23502, with the same exception class: so this method reads the code, never
-     * the class, and every other refusal stays Spring MVC's 500. The return type names no body type: the 400's body is a
-     * map, the 201's the record.
+     * the class, and every other refusal stays Spring MVC's 500. The return type names no body type: the 400's and the 409's
+     * body is a ProblemDetail, the 201's the record.
      */
     @PostMapping("/customers")
     ResponseEntity<?> add(@Valid @RequestBody Customer customer, BindingResult errors) throws SQLException {
         if (errors.hasErrors()) {
-            return ResponseEntity.badRequest().body(fieldMessages(errors));
+            return problem(HttpStatus.BAD_REQUEST, invalid(errors));
         }
         try {
             repo.add(customer);
         } catch (SQLException e) {
             if (NAME_TAKEN.equals(e.getSQLState())) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).build();
+                return problem(HttpStatus.CONFLICT, "a customer named " + customer.name() + " already exists");
             }
             throw e;
         }
@@ -207,12 +210,31 @@ public final class TiffinBoxServer {
      * answer, 200: the closing context stops Tomcat, and the JVM exits.
      */
     @PostMapping("/shutdown")
-    ResponseEntity<Map<String, Object>> shutdown(@RequestHeader(name = "X-Shutdown-Token", required = false) String token) {
+    ResponseEntity<?> shutdown(@RequestHeader(name = "X-Shutdown-Token", required = false) String token) {
         if (!holdsToken(token)) {                    // the server keeps running
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ordered("error", "forbidden"));
+            return problem(HttpStatus.FORBIDDEN, "the shutdown token is missing or wrong");
         }
         Thread.ofPlatform().start(context::close);
         return ResponseEntity.ok(ordered("stopping", true));
+    }
+
+    /** A refusal of TiffinBox's own: the status, and a problem detail - RFC 9457's shape - that says why. */
+    private static ResponseEntity<ProblemDetail> problem(HttpStatus status, String detail) {
+        return problem(status, ProblemDetail.forStatusAndDetail(status, detail));
+    }
+
+    private static ResponseEntity<ProblemDetail> problem(HttpStatus status, ProblemDetail problem) {
+        return ResponseEntity.status(status).body(problem);
+    }
+
+    /** The 400's problem detail: how many rules the body broke, and - its member "errors" - each field and its rule's message. */
+    private static ProblemDetail invalid(BindingResult errors) {
+        Map<String, String> fields = fieldMessages(errors);
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                "the customer breaks " + fields.size() + (fields.size() == 1 ? " rule" : " rules"));
+        problem.setTitle("Invalid customer");
+        problem.setProperty("errors", fields);
+        return problem;
     }
 
     /**

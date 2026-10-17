@@ -1,0 +1,6 @@
+# A developer's own settings: TiffinBox's application.yaml imports this file (optional:file:./tiffinbox-local.yaml) from the folder
+# TiffinBox starts in. This one asks Boot to answer Spring MVC's own errors as problem details.
+spring:
+  mvc:
+    problemdetail:
+      enabled: true

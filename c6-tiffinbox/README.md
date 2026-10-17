@@ -112,7 +112,7 @@ JSON with Jackson 3: Spring MVC's one JSON converter is `JacksonJsonHttpMessageC
 and the masked set hashes to `571faaea42e87e85add8c9548c64c961` — the comparison set from here on. `GET /shutdown` is still
 TiffinBox's own `405 {"error":"method not allowed"}`: its handler still matches the verb. *(Course 6, unit 06: it is Spring MVC's 405 now —
 `{"timestamp":"…","status":405,"error":"Method Not Allowed","path":"/shutdown"}`, `Allow: POST` — and the masked set hashes to
-`87ca7efc8584dcccd40e6b956db1de9b`, the comparison set from there on; `../c6-unit06/`, `seven`.)*
+`87ca7efc8584dcccd40e6b956db1de9b`, the comparison set from there on; `../c6-unit06/`, `seven`.)* *(Course 6, unit 16: both are problem details since, written by Boot's `ProblemDetailsExceptionHandler` with no error dispatch — `404 application/problem+json {"detail":"No static resource nowhere.","instance":"/nowhere","status":404,"title":"Not Found"}` and the 405's — and carry no timestamp, so the mask changes 0 lines; the masked set hashes to `466c20ed7e0d5439cb052f32ce09de1b`; `../c6-unit16/`, `seven`.)*
 
 ```bash
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.web=debug
@@ -190,7 +190,7 @@ java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --
 answered 405); `OPTIONS` 200 with `Allow: GET,HEAD,OPTIONS`; `DELETE` 405 with `Allow: GET`; `GET /shutdown` 405 with `Allow: POST`;
 `Accept: application/xml` 406 with an empty body (it was 200 JSON). The cost: the 405s and the 406 add one WARN line each at Boot's
 default level, Spring MVC's `DefaultHandlerExceptionResolver` — `Resolved [org.springframework.web.HttpRequestMethodNotSupportedException:
-Request method 'DELETE' is not supported]` — where TiffinBox's own 405 logged none; HEAD, OPTIONS and the 403 log none (`verbs`).
+Request method 'DELETE' is not supported]` — where TiffinBox's own 405 logged none; HEAD, OPTIONS and the 403 log none (`verbs`). *(Course 6, unit 16: with problem details on, the 406 has a body — `{"detail":"Acceptable representations: [application/json, application/*+json].",…}`, `application/problem+json` — and logs no WARN line; GET /shutdown's 405 logs one, Spring MVC's `PageNotFound`, `Request method 'GET' is not supported`; `../c6-unit16/`, `flag`.)*
 
 **The seven, on Spring MVC's routes.** Six of `../c5-unit11/curlset.sh`'s seven lines are byte for byte the embedded-Tomcat
 lesson's: the four bodies of TiffinBox's routes and `{"stopping":true}` are written now by Spring MVC's JSON converter,
@@ -200,7 +200,7 @@ MVC's `DefaultHandlerExceptionResolver` answers 405 with `Allow: POST`, and the 
 `405 application/json {"timestamp":"…","status":405,"error":"Method Not Allowed","path":"/shutdown"}`. Masked — two timestamps now,
 the 404's and the 405's — the seven hash to **`87ca7efc8584dcccd40e6b956db1de9b`**, the comparison set from here on. The status
 line and the header names are unchanged (`[HTTP/1.1 200 ]`, `Content-Type Content-Length Date`); the seven log one WARN line,
-GET /shutdown's (`seven`).
+GET /shutdown's (`seven`). *(Course 6, unit 16: `466c20ed…` since — lines 5 and 6 problem details, the other five byte for byte — and that WARN line is Spring MVC's `PageNotFound` now; `../c6-unit16/`, `seven`.)*
 
 **Who writes the answers, a class taken away.** With Jackson 2's `JDK14Util` deleted from a copy of the extracted jar (Course 5's
 missing-class lines, below), `/customers` still answers 200: Jackson 2 is no longer on its road. With Jackson 3's `RecordUtil`
@@ -292,11 +292,11 @@ flag starts cleanly and answers its first request with a 500: `Ensure that the c
 - `/customers/Ravi` → the record; `/customers/Nobody` → 404, Boot's body in the shape of `/nowhere`'s
   (`{"timestamp":"…","status":404,"error":"Not Found","path":"/customers/Nobody"}`), no WARN line, and no reason in the body (Course 6's
   *Boot's Default Error Response* opens it). *(Course 6, unit 15: `{"error":"no customer named Nobody"} 404` since, still no WARN line —
-  TiffinBox's own advice answers; `../c6-unit15/`, `notfound`.)* `Ravi.json` is the whole segment (no suffix match); `%20` arrives as a space; an encoded
+  TiffinBox's own advice answers; `../c6-unit15/`, `notfound`.)* *(Course 6, unit 16: a problem detail since — `{"detail":"no customer named Nobody","instance":"/customers/Nobody","status":404,"title":"Customer not found","name":"Nobody"}`, `application/problem+json`; `../c6-unit16/`, `own`.)* `Ravi.json` is the whole segment (no suffix match); `%20` arrives as a space; an encoded
   slash, `%2F`, is Tomcat's own HTML `HTTP Status 400 – Bad Request` page, not Spring's JSON.
 - `?mealType=VEG` → Ravi and Sunil; `?mealType=veg` → **400**, and one WARN line at Boot's default level, Spring MVC's
   `DefaultHandlerExceptionResolver`: `MethodArgumentTypeMismatchException: Method parameter 'mealType': Failed to convert value of
-  type 'java.lang.String' to required type 'com.tiffinbox.MealType'`. The text must be one of `MealType`'s names, as the enum spells
+  type 'java.lang.String' to required type 'com.tiffinbox.MealType'`. *(Course 6, unit 16: a problem detail since — `"detail":"Failed to convert 'mealType' with value: 'veg'"` — and no WARN line: Boot's problem-details handler resolves it, silently; `../c6-unit16/`, `flag`.)* The text must be one of `MealType`'s names, as the enum spells
   them. `?mealType=` (empty) → all four; the parameter twice → the first.
 - POST /shutdown with no header, or the token under a misspelt name (`X-Shutdown-Tokn`), is the method's own 403
   (`required = false`). With `required = true` — measured on a copy, one attribute changed — the same requests are Spring MVC's 400,
@@ -376,7 +376,7 @@ mealsPerDay=2, pricePerMeal=110, mealType=VEG]]` — and the record it wrote bac
 otherwise: without `-H 'Content-Type: application/json'` the same POST is Spring MVC's **415**, Boot's body, and the answer's `Accept`
 header names what it would read — `application/json, application/*+json` — with one WARN line, `HttpMediaTypeNotSupportedException:
 Content-Type 'application/x-www-form-urlencoded;charset=UTF-8' is not supported`; nothing is stored (`ctype`). The 415 is the
-converters', not the route's.
+converters', not the route's. *(Course 6, unit 16: a problem detail since, and no WARN line; `../c6-unit16/`, `flag`.)*
 
 **What doesn't fit** (`misfit`) is a 400, Boot's body, the reason only in one WARN line of Spring MVC's
 `DefaultHandlerExceptionResolver`, Jackson's message inside it: malformed JSON, an empty body (`Required request body is missing`),
@@ -385,7 +385,7 @@ the log:** an unknown property is ignored (`"loyaltyPoints":5`, Core Java II's o
 one by default; Jackson 3 does not, Boot's mapper and a plain `JsonMapper` alike: `chain`), `"2"` is read as 2 — and **`2.7` meals a
 day is stored as 2**. *(Course 6, unit 09: refused since — a 400 and one WARN line, Jackson's reason in it: `application.yaml`'s
 `spring.jackson.deserialization.accept-float-as-int: false`; `"2"`, an unknown property and a misspelt key are read as before;
-`../c6-unit09/`, `float`.)*
+`../c6-unit09/`, `float`.)* *(Course 6, unit 16: each such 400 is a problem detail since, `"detail":"Failed to read request"`, and logs no WARN line: Jackson's reason is in neither the answer nor the log — `--spring.mvc.log-resolved-exception=true` puts it back in a WARN line, one per resolved exception; `../c6-unit16/`, `flag`.)*
 
 **What nothing checks yet** (`unchecked`): `{"name":"","mealsPerDay":0,"pricePerMeal":-5,"mealType":"LUNCH"}` → 200 *(Course 6, unit
 10: 201 since, its Location `…/customers/` a 404; `../c6-unit10/`, `created`)*, stored, and
@@ -434,7 +434,7 @@ curl -s -w ' %{http_code}\n' -H 'Content-Type: application/json' --data '{"name"
 
 **Refused, and logged once.** That POST is now Spring MVC's 400, Boot's body, with one WARN line of Spring MVC's
 `DefaultHandlerExceptionResolver` holding Jackson's reason: ``Cannot coerce Floating-point value (2.7) to `int` value (but could if
-coercion was enabled using `CoercionConfig`)``; nothing is stored (`/customers/Mohan` → 404). The key looks at how a number is
+coercion was enabled using `CoercionConfig`)``; nothing is stored (`/customers/Mohan` → 404). *(Course 6, unit 16: not logged since — a problem detail, `Failed to read request`, 0 WARN lines; `../c6-unit16/`, `flag`.)* The key looks at how a number is
 written, not at its value: `2.0` is refused too, and so is a price of `110.5` (`pricePerMeal` is a whole number as well).
 **What it leaves alone:** `"2"`, a number sent as text, is still read as 2; an unknown property (`"loyaltyPoints":5`) is still
 ignored, and so is a misspelt key — `"mealTyp"` still reaches H2 as a missing meal type, H2's 23502 refusal and Boot's 500; a
@@ -485,12 +485,12 @@ changed, besides this README:
   **201 Created**, the record, and a **`Location`** header, the new customer's own URL:
   `ServletUriComponentsBuilder.fromCurrentRequestUri().path("/{name}").buildAndExpand(customer.name()).toUri()` — this request's URL
   without its query string, the name appended and encoded — handed to `ResponseEntity.created(location).body(customer)`. A name that
-  is taken: **409 Conflict**, no body, `ResponseEntity.status(HttpStatus.CONFLICT).build()`. The method decides by H2's **SQLSTATE** —
+  is taken: **409 Conflict**, no body, `ResponseEntity.status(HttpStatus.CONFLICT).build()`. *(Course 6, unit 16: a problem detail since, `a customer named X already exists`; `../c6-unit16/`, `own`.)* The method decides by H2's **SQLSTATE** —
   the five-character code a database reports with a refusal — `23505`, the unique index's (`NAME_TAKEN.equals(e.getSQLState())`);
   every other refusal is thrown on and stays Spring MVC's 500, a misspelt key's missing meal type, `23502`, among them, though H2
   throws both with one exception class. **`POST /shutdown`** is `ResponseEntity<Map<String, Object>> shutdown(@RequestHeader(…) String
   token)`: the 403 is its return value, `ResponseEntity.status(HttpStatus.FORBIDDEN).body(…)`, the 200 `ResponseEntity.ok(…)`; the
-  `HttpServletResponse` parameter, its `setStatus(403)` and their import are gone. The Javadoc gains the paragraph that says how: 215
+  `HttpServletResponse` parameter, its `setStatus(403)` and their import are gone. *(Course 6, unit 16: `ResponseEntity<?> shutdown(…)` since, its 403 a problem detail, `the shutdown token is missing or wrong`; `../c6-unit16/`, `change`.)* The Javadoc gains the paragraph that says how: 215
   lines → 241.
 
 The POMs, `application.yaml`, `CustomerRepository`, the Dockerfile and `compose.yaml` are not touched — 23 of the tree's 25 files byte
@@ -518,7 +518,7 @@ value (its metadata), and Boot deduces the strategy from the cloud platform it d
 `127.0.0.1:19397` in `forms`: the request's, again. Spring's `fromCurrentRequest()` would carry the request's query string into the
 Location too — `?via=app`, measured on the course's harness (`statuses`); `fromCurrentRequestUri()` leaves it out.
 
-**409 by the database's code.** The same name POSTed twice: `201`, then `409`, no body, no WARN or ERROR line; a name the seed already
+**409 by the database's code.** The same name POSTed twice: `201`, then `409`, no body, no WARN or ERROR line; *(Course 6, unit 16: the 409 a problem detail since; `../c6-unit16/`, `own`)* a name the seed already
 holds, `Ravi`, `409`, and Ravi's row unchanged. A misspelt key (`"mealTyp"`) is still H2's 23502, Tomcat's ERROR line with a trace of
 over 50 frames, and Boot's 500 (`conflict` A). *(Course 6, unit 12: a 400 since, `{"mealType":"must not be null"}`, no ERROR line;
 `../c6-unit12/`, `typo`.)* A copy that tests the exception's class instead of the code —
@@ -529,10 +529,10 @@ over 50 frames, and Boot's 500 (`conflict` A). *(Course 6, unit 12: a 400 since,
 `TiffinBoxServer#add(Customer)` *(Course 6, unit 12: `#add(Customer, BindingResult)` since; `../c6-unit12/`, `constraints`)*, and
 `#shutdown(String)` where it was `#shutdown(String, HttpServletResponse)` — and Spring MVC's
 `HttpEntityMethodProcessor` writes their answers, where `RequestResponseBodyMethodProcessor` did: `Writing [Customer[…]]`, then the
-`DispatcherServlet`'s `Completed 201 CREATED` (`entity`). The 403's bytes are the same — `{"error":"forbidden"} 403` — but not its
+`DispatcherServlet`'s `Completed 201 CREATED` (`entity`). The 403's bytes are the same — `{"error":"forbidden"} 403` — *(Course 6, unit 16: a problem detail since, `application/problem+json`; `../c6-unit16/`, `own`)* but not its
 headers: `HttpEntityMethodProcessor` flushes the answer it writes (javap: 2 calls to `ServletServerHttpResponse.flush` in its
 `handleReturnValue`, none in the other's), so an answer with a body goes out `Transfer-Encoding: chunked` — the 403, where it went out
-with `Content-Length: 21`, while the bodiless 409 says `Content-Length: 0` (`conflict`); POST /shutdown's `{"stopping":true}` lost its `Content-Length: 17` the same way. The seven are unchanged, `87ca7efc…` (masked):
+with `Content-Length: 21`, while the bodiless 409 says `Content-Length: 0` (`conflict`); *(Course 6, unit 16: the 409 has a body since)* POST /shutdown's `{"stopping":true}` lost its `Content-Length: 17` the same way. The seven are unchanged, `87ca7efc…` (masked):
 they print status, type and body, never a length.
 
 **Statuses by accident** (the course's harness, `statuses`): a name nobody has, answered four ways — TiffinBox's own route, Spring's
@@ -566,7 +566,7 @@ checks each body against them before the method runs. Two Java files changed, be
   the **`BindingResult`** — the parameter straight after the one it reports on — and the method answers them itself: **400 Bad
   Request**, its body each broken field and its rule's message, sorted by field name (`fieldMessages`, a `TreeMap`); nothing is stored.
   A body that keeps every rule goes on as before: 201 and a Location, or 409 for a name that is taken (H2's SQLSTATE 23505, the test
-  kept). The return type names no body type any more: the 400's body is a map, the 201's the record. The class carries no
+  kept). The return type names no body type any more: the 400's body is a map, the 201's the record. *(Course 6, unit 16: a `ProblemDetail` since, the map its member `errors`; `../c6-unit16/`, `change`.)* The class carries no
   `@Validated` (below). The class Javadoc gains the paragraph that says how, and the method's its own: 241 lines → 273.
 
 The POMs, `application.yaml`, `CustomerRepository`, the Dockerfile and `compose.yaml` are not touched — 22 of the tree's 25 files byte
@@ -581,13 +581,13 @@ curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'Content-Type: 
 blank","pricePerMeal":"must be greater than or equal to 1"} 400 · Location: []`: four rules broken, four fields, none twice, no WARN
 line, and `/customers` still lists the four customers TiffinBox seeds. Four meals a day: `{"mealsPerDay":"must be less than or equal
 to 3"}`. Asha's body: 201 and her Location; the same again: 409 — a body that keeps every rule still reaches the unique index
-(`answer`, A). At TRACE (the request-mapping lesson's line) the route registers as `{POST [/customers]}: add(Customer,BindingResult)`,
+(`answer`, A). *(Course 6, unit 16: the same four fields since, as the member `errors` of a problem detail — `{"detail":"the customer breaks 4 rules",…,"title":"Invalid customer","errors":{…}}`, `application/problem+json`; `../c6-unit16/`, `own`.)* At TRACE (the request-mapping lesson's line) the route registers as `{POST [/customers]}: add(Customer,BindingResult)`,
 still 9 mappings; at DEBUG (Boot's `web` group) Spring MVC maps the POST to `TiffinBoxServer#add(Customer, BindingResult)`, logs the
 body it read, and `HttpEntityMethodProcessor` writes the method's map: `Completed 400 BAD_REQUEST` (`constraints`). **Without the
 `BindingResult`** — a copy with that parameter, and the three lines that answer from it, deleted (`answer`, B) — Spring MVC answers for
 the method: its `MethodArgumentNotValidException`, Boot's 400 body (`timestamp`, `status`, `error`, `path`: no field), and one WARN line
 of Spring MVC's `DefaultHandlerExceptionResolver` that lists the 4 errors, each with the value it was given; their order in that line
-moves between runs — Hibernate Validator hands its violations over as a set — which is why the method's map is a `TreeMap`.
+moves between runs — Hibernate Validator hands its violations over as a set — which is why the method's map is a `TreeMap`. *(Course 6, unit 16: with problem details on, Boot's handler answers that exception — `{"detail":"Invalid request content.",…,"title":"Bad Request"}`, no field, no WARN line (the harness's `ValidIn`); `../c6-unit16/`, `losers`.)*
 
 **The misspelt key, caught** (`typo`). Jackson still ignores `"mealTyp"`, so the record's meal type is `null` — and that is now
 `{"mealType":"must not be null"}`, 400, before H2 is asked: no ERROR line, nothing stored (`/customers/Rohan` 404). An unknown property
@@ -615,7 +615,7 @@ Boot's one `MethodValidationExcludeFilter` keeps `@ConfigurationProperties` bean
 
 **Boot's error keys** (`keys`). `--spring.web.error.include-binding-errors=always` changes nothing where the method answers — the
 anchor's map, the same; on the copy without the `BindingResult`, Boot's body gains `errors`: each field error whole, 8 keys apiece
-(its field, the value it was given, its message, the codes and arguments behind them, a binding flag). Boot 3's name for the same key
+(its field, the value it was given, its message, the codes and arguments behind them, a binding flag). *(Course 6, unit 16: with problem details on, that copy's answer is Boot's problem detail; `spring.web.error.include-message`, measured, changes Boot's `/error` body — a route's 500 — and leaves a problem detail's bytes as they were; `../c6-unit16/`, `edges`.)* Boot 3's name for the same key
 (the same words, under `server` instead of `spring.web`) is in Boot 4.1.1's metadata as deprecated at level error since 4.0.0, and a run
 given it changes nothing and logs nothing about it (the exercise).
 
@@ -675,15 +675,82 @@ that accepts **only** HTML (`Accept: text/html`) or **only** XML gets **500**, w
 JSON-only converters cannot write the handler's map in either, Spring MVC's `ExceptionHandlerExceptionResolver` logs one WARN,
 `Failure in @ExceptionHandler com.tiffinbox.web.TiffinBoxErrors#notFound(CustomerNotFound)` (`HttpMediaTypeNotAcceptableException: No
 acceptable representation`), and Tomcat logs the `CustomerNotFound` at ERROR; a browser's whole Accept header (Chrome's, sent by
-curl), which ends `*/*;q=0.8`, gets the JSON 404 — where the previous tree gave it Boot's Whitelabel 404. Course 6's *ProblemDetail and RFC 9457* answers in a shape every client gets.
+curl), which ends `*/*;q=0.8`, gets the JSON 404 — where the previous tree gave it Boot's Whitelabel 404. Course 6's *ProblemDetail and RFC 9457* answers in a shape every client gets. *(Course 6, unit 16: it does — the same 404 problem detail, `application/problem+json`, for all three Accept headers, no WARN, no ERROR; `../c6-unit16/`, `accept`.)*
 
 **Every form still serves:** the jar, the AOT jar, the native binary and the image — each on `127.0.0.1` (the image: published there),
 each answering the seven `87ca7efc…` (masked), and, on a second start of each, `/customers/Nobody` and `/customers/Sunil%20K` 404
 with the name, Ravi 200, Nobody for a client that accepts only HTML Boot's 500 page, and POST /shutdown without the token 403
 (`forms`). Spring's AOT step registers one reflection entry more than on the previous tree, 665 → 666 — `TiffinBoxErrors` and its
-`notFound` handler — and the binary needs no hint.
+`notFound` handler — and the binary needs no hint. *(Course 6, unit 16: Nobody for a client that accepts only HTML is a 404 problem detail in every form since; `../c6-unit16/`, `forms`.)*
 
 Evidence for every sentence in this section: `../c6-unit15/` (`receipts.sh`, six captures).
+
+## Course 6 · unit 16 — ProblemDetail: one key, and every refusal in RFC 9457's shape (2026-10-17)
+
+Until this unit TiffinBox said "no" in four shapes: Boot's error body with its four keys — `timestamp`, `status`, `error`, `path` — for
+every error Spring MVC decided (a path nobody maps, a wrong verb, a value it could not convert or read, a type nobody accepts, a body type
+it cannot read); the advice's `{"error":"no customer named Nobody"}`; the 403's `{"error":"forbidden"}`, the same shape; the
+validation method's bare field map; and a 409 with no body at all (`../c6-unit16/`, `own`, the previous tree). From this unit on they are one
+shape, a **problem detail** — RFC 9457's, the internet standard for an error's shape: a `title`, the `status`, a `detail` that says what
+happened, the `instance` (the request's path, which Spring MVC fills in), a `type` (left unset here: RFC 9457 reads a missing one as
+`about:blank`), and members of the application's own — written as `application/problem+json`. Three files changed, besides this README:
+- `application.yaml` — one key in the first document (line 64, above the `---` at 99), **`spring.mvc.problemdetails.enabled: true`**,
+  with its comment: Boot's `ProblemDetailsExceptionHandler` — a `ResponseEntityExceptionHandler`, Spring MVC's own class for this —
+  joins as an advice ordered 0, asked before `TiffinBoxErrors`, and answers Spring MVC's own exceptions. Boot's metadata gives the key
+  `false` by default (`change`).
+- `TiffinBoxErrors.java` — its handler returns a `ProblemDetail`: 404, the exception's message as the detail, the title `Customer not
+  found`, and the name as a member of TiffinBox's own, `name`; the `@ResponseStatus` line is gone — the status is the problem detail's.
+- `TiffinBoxServer.java` — the 400 is a problem detail whose `errors` member is the field map, the detail the number of rules broken;
+  the 409 says `a customer named X already exists`; the 403 `the shutdown token is missing or wrong`; `shutdown()` returns
+  `ResponseEntity<?>`; the Javadoc says so: 274 lines → 296.
+
+The POMs, the Dockerfile and `compose.yaml` are not touched — 23 of the tree's 27 files byte for byte — and the executable jar holds the
+same 56 libraries and the same 9 web classes (`change`).
+
+```bash
+curl -s -w ' %{http_code} · Content-Type: [%{content_type}]\n' http://127.0.0.1:18431/customers/Nobody
+```
+
+**One shape.** That line — the exception-handler lesson's, with curl's Content-Type printed — answers
+`{"detail":"no customer named Nobody","instance":"/customers/Nobody","status":404,"title":"Customer not found","name":"Nobody"} 404 ·
+Content-Type: [application/problem+json]`: the four standard keys in alphabetical order (Jackson 3 sorts a class's properties), then the
+member of TiffinBox's own, and no `type` key (Spring's `ProblemDetail.forStatus` leaves it `null`, read off the class by the harness's
+`Who`). The validation lesson's body that breaks four rules: `{"detail":"the customer breaks 4 rules",…,"title":"Invalid customer",
+"errors":{…the four fields…}}`; the misspelt key (`"mealTyp"`) `the customer breaks 1 rule`, `{"mealType":"must not be null"}`; POST
+/shutdown without the token 403 `the shutdown token is missing or wrong`; a name that is taken 409 `a customer named Asha already
+exists` — each `application/problem+json`, no WARN, no ERROR (`own`).
+
+**The seven move by two lines** (`seven`): `87ca7efc…` → **`466c20ed7e0d5439cb052f32ce09de1b`** (masked) — line 5, `GET /nowhere ->
+404 application/problem+json {"detail":"No static resource nowhere.","instance":"/nowhere","status":404,"title":"Not Found"}`, and line 6,
+`GET /shutdown -> 405 application/problem+json {"detail":"Method 'GET' is not supported.","instance":"/shutdown","status":405,"title":"Method
+Not Allowed"}`; lines 1-4 and 7 byte for byte. A problem detail carries no timestamp: the mask still runs and changes 0 lines. The seven
+still log one WARN line — now Spring MVC's `PageNotFound` (`Request method 'GET' is not supported`), where it was
+`DefaultHandlerExceptionResolver`'s.
+
+**Every client gets it** (`accept`): `/customers/Nobody` for a client that accepts only HTML, only XML, or a browser's whole Accept
+header (Chrome's, sent by curl) — the same 404 problem detail, `application/problem+json`, no WARN, no ERROR. The exception-handler
+lesson's tree answered the first two 500, with a WARN line and Tomcat's ERROR line each. Spring MVC writes a problem detail as
+`application/problem+json` whatever the client accepts.
+
+**What the key cost** (`flag`): the reasons left the log. With the key, a type mismatch, an unreadable body, two point seven meals, a
+415 and a 406 log **0 WARN lines** — Boot's handler resolves them, silently — and an unreadable body's answer says `Failed to read
+request`: Jackson's reason is in neither the answer nor the log. The 405 logs one, `PageNotFound`. With the key off for one run
+(`--spring.mvc.problemdetails.enabled=false`) they are Boot's four keys again, one `DefaultHandlerExceptionResolver` WARN each, Jackson's
+reason inside it, the 406 empty — and TiffinBox's own 404 and 400 still problem details. `--spring.mvc.log-resolved-exception=true` (not
+set here) puts the reason back, at a price: one WARN per resolved exception — every 404, `CustomerNotFound` included — and two for a 405.
+
+**What it does not reach** (`edges`): a route's unexpected exception (the harness's `Boom`) is still Boot's `/error` body —
+`{"timestamp":"…","status":500,…}`, the Whitelabel page for HTML — with Tomcat's ERROR line; `spring.web.error.include-message=always`
+adds `message` to that body and leaves a problem detail's bytes as they were; Tomcat's own HTML 400 for an encoded slash is
+untouched. Two shapes, by design: problem details for what TiffinBox and Spring MVC decided, Boot's body for what nobody caught.
+
+**Every form serves it** (`forms`): the jar, the AOT jar, the native binary and the image — each on `127.0.0.1` (the image: published
+there), each answering the seven `466c20ed…` (masked, the mask changing 0 lines), and, on a second start of each, Nobody's problem
+detail for curl's own Accept and for only HTML, the four-rule 400 with its `errors`, the 403 and the 409 problem details. Spring's AOT step registers 4
+reflection entries more than on the previous tree, 666 → 670 — Boot's `ProblemDetailsExceptionHandler`, its configuration class,
+`MessageSourceAware` and `ResponseEntityExceptionHandler`'s `handleException` — and the binary needs no hint.
+
+Evidence for every sentence in this section: `../c6-unit16/` (`receipts.sh`, nine captures).
 
 ---
 
@@ -882,7 +949,7 @@ and nothing else:
   came from, in a log line at ERROR. With the method, a short token's report reads `Value: "false"`. The record also
   writes its own `toString()`: every component, and `[not shown]` in the token's place — a record's default prints every
   component, the token included, and a settings object is the first thing anyone logs.
-- `TiffinBoxServer` answers POST /shutdown with `403 {"error":"forbidden"}` — and keeps running — unless the request's
+- `TiffinBoxServer` answers POST /shutdown with `403 {"error":"forbidden"}` *(Course 6, unit 16: a 403 problem detail since, `the shutdown token is missing or wrong`)* — and keeps running — unless the request's
   `X-Shutdown-Token` header holds the token (compared with `MessageDigest.isEqual`). Nothing logs the header or the token.
   *(Course 6, unit 07: TiffinBox still logs neither; at TRACE, Spring MVC's `HandlerMethod` prints a route's arguments — the token
   among them, since the header is a parameter — and Tomcat's `Http11InputBuffer` prints each request it received, headers too (a
@@ -909,7 +976,7 @@ on a command line (`ps` prints every argument; `ps eww`, a process's environment
 { printf 'X-Shutdown-Token: '; head -n 1 secrets/tiffinbox/shutdown-token; } | curl -s -w ' %{http_code}\n' -H @- -X POST http://127.0.0.1:18431/shutdown
 ```
 
-It answers `{"stopping":true} 200`; without the header, `{"error":"forbidden"} 403`, and TiffinBox keeps running.
+It answers `{"stopping":true} 200`; without the header, `{"error":"forbidden"} 403`, and TiffinBox keeps running. *(Course 6, unit 16: without it, a 403 problem detail since — `{"detail":"the shutdown token is missing or wrong","instance":"/shutdown","status":403,"title":"Forbidden"}`; `../c6-unit16/`, `own`.)*
 `../c4-unit31/curlset.sh` can no longer stop it: its seven responses now hash to `11bbc19ca107097dfd6477aa7fb0246b`. The
 comparison set from here on is `../c5-unit11/curlset.sh PORT TOKENFILE` — Course 4's seven, the last with the header — and
 they hash to `115c36bac276128e245ca57df11c2891`: plain, and with the logging, rush and lunch commands above. With `lunch`
@@ -2029,6 +2096,7 @@ curl -s -w ' %{http_code}\n' http://127.0.0.1:18425/shutdown              # 405 
 ```
 *(Course 6, unit 06: GET /shutdown is Spring MVC's 405 now — `{"timestamp":"…","status":405,"error":"Method Not Allowed","path":"/shutdown"}`
 — with `Allow: POST`; `../c6-unit06/`, `seven`.)*
+*(Course 6, unit 16: and a problem detail since — `{"detail":"Method 'GET' is not supported.","instance":"/shutdown","status":405,"title":"Method Not Allowed"}`, `application/problem+json`; `../c6-unit16/`, `seven`.)*
 
 ## Stopping it
 

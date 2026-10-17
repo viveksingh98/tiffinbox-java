@@ -1,0 +1,8 @@
+# The profile "dev": Boot's Docker Compose support, switched on (application.yaml switches it off). Start TiffinBox
+# from this project's root folder, where compose.yaml is, on a class path that holds spring-boot-docker-compose, with
+# --spring.profiles.active=dev: Boot runs docker compose up and waits, then starts TiffinBox; when TiffinBox stops,
+# Boot runs docker compose stop. The executable jar does not hold the module, so there this profile starts nothing.
+spring:
+  docker:
+    compose:
+      enabled: true

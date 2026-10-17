@@ -54,6 +54,14 @@ spring:
   jackson:
     deserialization:
       accept-float-as-int: false
+  # Course 6: Spring MVC's own errors - no route (404), a verb no route takes (405), a request it cannot read or convert (400),
+  # a type the client does not accept (406), a body type it cannot read (415) - answered as problem details: RFC 9457's shape,
+  # application/problem+json, by Boot's ProblemDetailsExceptionHandler, an advice Boot asks before TiffinBox's own, where Boot's
+  # error controller wrote its four keys. A route's unexpected exception is still Boot's /error body. Above the "---": below
+  # it, only the rush profile would answer this way.
+  mvc:
+    problemdetails:
+      enabled: true
 # Logging. Boot's logging system is Logback, and TiffinBox's System.Logger reaches it through java.util.logging. A log
 # group is one name for several loggers: "kitchen" is TiffinBox's own logger (System.getLogger("tiffinbox")) and the loggers
 # under com.tiffinbox - Boot logs TiffinBox's startup under its main class's name. --logging.level.kitchen=debug sets them
