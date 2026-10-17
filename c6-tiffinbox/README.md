@@ -247,7 +247,8 @@ values from the request as **method parameters**, each named by an annotation, a
 objects that fill one kind of parameter each — fills it before the method runs. Two Java files changed, besides this README:
 - `TiffinBoxServer.java` — **`GET /customers/{name}`**, new: `Customer customer(@PathVariable String name)` — a **path variable**,
   one segment of the path — answers the customer whose name is exactly that one; a name nobody has throws Spring's
-  **`ResponseStatusException`** with 404. **`GET /customers`** takes `@RequestParam(required = false) MealType mealType` — a
+  **`ResponseStatusException`** with 404 *(Course 6, unit 15: `CustomerNotFound` since, which the controller advice `TiffinBoxErrors`
+  answers — 404 and `{"error":"no customer named Nobody"}`; `../c6-unit15/`, `notfound`)*. **`GET /customers`** takes `@RequestParam(required = false) MealType mealType` — a
   **request parameter**, from the query string — and keeps the customers of that meal type; without it, or with an empty value, all
   four. **POST /shutdown** takes its token as `@RequestHeader(name = "X-Shutdown-Token", required = false) String token`, where it read
   the servlet request's header itself: `holdsToken()` takes the header's value (`null` when there is none), and the 403 is still the
@@ -290,7 +291,8 @@ flag starts cleanly and answers its first request with a 500: `Ensure that the c
 **What a missing or malformed value gets** (`path`, `params`, `token`):
 - `/customers/Ravi` → the record; `/customers/Nobody` → 404, Boot's body in the shape of `/nowhere`'s
   (`{"timestamp":"…","status":404,"error":"Not Found","path":"/customers/Nobody"}`), no WARN line, and no reason in the body (Course 6's
-  *Boot's Default Error Response* opens it). `Ravi.json` is the whole segment (no suffix match); `%20` arrives as a space; an encoded
+  *Boot's Default Error Response* opens it). *(Course 6, unit 15: `{"error":"no customer named Nobody"} 404` since, still no WARN line —
+  TiffinBox's own advice answers; `../c6-unit15/`, `notfound`.)* `Ravi.json` is the whole segment (no suffix match); `%20` arrives as a space; an encoded
   slash, `%2F`, is Tomcat's own HTML `HTTP Status 400 – Bad Request` page, not Spring's JSON.
 - `?mealType=VEG` → Ravi and Sunil; `?mealType=veg` → **400**, and one WARN line at Boot's default level, Spring MVC's
   `DefaultHandlerExceptionResolver`: `MethodArgumentTypeMismatchException: Method parameter 'mealType': Failed to convert value of
@@ -534,7 +536,8 @@ with `Content-Length: 21`, while the bodiless 409 says `Content-Length: 0` (`con
 they print status, type and body, never a length.
 
 **Statuses by accident** (the course's harness, `statuses`): a name nobody has, answered four ways — TiffinBox's own route, Spring's
-`ResponseStatusException`: 404 and Boot's body; `ResponseEntity.of(…)` with an empty `Optional`: 404, no body; `null`: 200, no body;
+`ResponseStatusException`: 404 and Boot's body *(Course 6, unit 15: TiffinBox's route throws `CustomerNotFound` since — 404 and
+`{"error":"no customer named Nobody"}`, its controller advice's body; `../c6-unit15/`, `notfound`)*; `ResponseEntity.of(…)` with an empty `Optional`: 404, no body; `null`: 200, no body;
 the `Optional` itself: 200 and the word `null`. None of them logs a WARN line. `@ResponseStatus(HttpStatus.CREATED)` on a route answers
 201 with no Location.
 
@@ -624,6 +627,63 @@ the token 403 (`forms`). Spring's AOT step registers the same 665 reflection ent
 that name it, the `@RequestBody` parameter and `GET /customers/{name}`'s return type, though `add` no longer names it in its own.
 
 Evidence for every sentence in this section: `../c6-unit12/` (`receipts.sh`, nine captures).
+
+## Course 6 · unit 15 — @RestControllerAdvice: a 404 that names the customer (2026-10-17)
+
+Until this unit a name nobody has was Spring's `ResponseStatusException`: 404 and Boot's error body —
+`{"timestamp":"…","status":404,"error":"Not Found","path":"/customers/Nobody"}` — which names no customer and gives no reason
+(`../c6-unit15/`, `notfound`, the previous tree). From this unit on, TiffinBox throws an exception of its own, and one class of its own
+answers it: an **exception handler** — a method Spring MVC calls with the exception a route threw, whose return value is the answer — in
+a **controller advice**, a component whose handlers serve every controller. Two Java files are new, and one changed, besides this README:
+- `CustomerNotFound.java` — new: a `RuntimeException`, package-private, final, holding the name it was asked for; its message is `no
+  customer named X`.
+- `TiffinBoxErrors.java` — new: **`@RestControllerAdvice`** — Spring MVC's `@ControllerAdvice` plus `@ResponseBody`, read off the
+  annotation (`notfound`) — final, package-private, with one handler: `@ExceptionHandler(CustomerNotFound.class)`
+  `@ResponseStatus(HttpStatus.NOT_FOUND)` `Map<String, String> notFound(CustomerNotFound e)` → `{"error": e.getMessage()}`, the shape
+  TiffinBox's own 403 already had.
+- `TiffinBoxServer.java` — `GET /customers/{name}` throws `new CustomerNotFound(name)` where it threw `ResponseStatusException`; that
+  import is gone, and the Javadoc says who answers now: 273 lines → 274.
+
+The POMs, `application.yaml`, the Dockerfile and `compose.yaml` are not touched, and the executable jar holds the same 56 libraries
+(`change`).
+
+```bash
+curl -s -w ' %{http_code}\n' http://127.0.0.1:18431/customers/Nobody
+```
+
+**A 404 that names the customer.** That line — the path-variable lesson's one-customer line, its name one nobody has — answers
+`{"error":"no customer named Nobody"} 404`; `/customers/Sunil%20K` answers `{"error":"no customer named Sunil K"} 404` (the path
+variable arrives decoded); Ravi still 200. No WARN and no ERROR line for any of them. The seven are unchanged, `87ca7efc…` (masked):
+none of them asks for a name (`notfound`). **Who answers:** Spring MVC's `ExceptionHandlerExceptionResolver`, the first of the three
+resolvers in its composite (then `ResponseStatusExceptionResolver`, then `DefaultHandlerExceptionResolver`; the DispatcherServlet asks
+Boot's `DefaultErrorAttributes` before the composite), keeps an advice cache — here one advice, `TiffinBoxErrors`, at the default order, the lowest; at DEBUG it logs
+`Using @ExceptionHandler com.tiffinbox.web.TiffinBoxErrors#notFound(CustomerNotFound)` and `Completed 404 NOT_FOUND`, and no error
+dispatch follows — where the previous tree's `ResponseStatusException` was resolved by the second resolver, and Boot's error controller
+wrote the body on an error dispatch (`notfound`, at DEBUG).
+
+**Which handler wins** (the course's harness, `precedence`): inside one advice, the nearest exception type (a `NumberFormatException`
+went to the handler for it, not to the one for `IllegalArgumentException`); a controller's own `@ExceptionHandler` before any advice;
+no handler at all, Boot's 500 and Tomcat's ERROR line. Across advices, **order before nearness**: an advice ordered first that takes
+any `RuntimeException` took `CustomerNotFound` from `TiffinBoxErrors` — and, naming no status, answered **200**. Two advices at the
+same order are asked in the order the cache lists them — here the harness's, joined by `--spring.main.sources`, before `TiffinBoxErrors`;
+a broad handler takes more than its name says (the harness's `IllegalArgumentException` handler also took the type mismatch's 400).
+**The status is the handler's to name:** a copy whose handler has no
+`@ResponseStatus` answers `{"error":"no customer named Nobody"} 200` (`status` B; the exercise).
+
+**What it costs, for now** (`status` C, D, labelled): a handler's return value is content-negotiated like a route's — so a client
+that accepts **only** HTML (`Accept: text/html`) or **only** XML gets **500**, where the previous tree answered both 404: TiffinBox's
+JSON-only converters cannot write the handler's map in either, Spring MVC's `ExceptionHandlerExceptionResolver` logs one WARN,
+`Failure in @ExceptionHandler com.tiffinbox.web.TiffinBoxErrors#notFound(CustomerNotFound)` (`HttpMediaTypeNotAcceptableException: No
+acceptable representation`), and Tomcat logs the `CustomerNotFound` at ERROR; a browser's whole Accept header (Chrome's, sent by
+curl), which ends `*/*;q=0.8`, gets the JSON 404 — where the previous tree gave it Boot's Whitelabel 404. Course 6's *ProblemDetail and RFC 9457* answers in a shape every client gets.
+
+**Every form still serves:** the jar, the AOT jar, the native binary and the image — each on `127.0.0.1` (the image: published there),
+each answering the seven `87ca7efc…` (masked), and, on a second start of each, `/customers/Nobody` and `/customers/Sunil%20K` 404
+with the name, Ravi 200, Nobody for a client that accepts only HTML Boot's 500 page, and POST /shutdown without the token 403
+(`forms`). Spring's AOT step registers one reflection entry more than on the previous tree, 665 → 666 — `TiffinBoxErrors` and its
+`notFound` handler — and the binary needs no hint.
+
+Evidence for every sentence in this section: `../c6-unit15/` (`receipts.sh`, six captures).
 
 ---
 

@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import com.tiffinbox.Customer;
 import com.tiffinbox.CustomerRepository;
@@ -65,14 +64,16 @@ import static java.lang.System.Logger.Level.INFO;
  * "web" at DEBUG prints Spring MVC's lines, which show the request line as the client typed it, its parameters masked.
  *
  * <p>Course 6: a route that throws - an exception, or a class the answer needs that the class path does not hold - is Spring
- * MVC's to answer: "Handler dispatch failed", which Tomcat logs at ERROR with its trace, and Boot's 500 body.
+ * MVC's to answer: "Handler dispatch failed", which Tomcat logs at ERROR with its trace, and Boot's 500 body - unless an
+ * exception handler takes it (TiffinBoxErrors takes CustomerNotFound).
  * Course 5's catch of its own (Exception | LinkageError) left with the router's handler.
  *
  * <p>Course 6: a route takes values from the request as method parameters, each named by an annotation - a path variable
  * ({@code @PathVariable}: a segment of the path), a request parameter ({@code @RequestParam}: the query string) and a header
  * ({@code @RequestHeader}) - and one of Spring MVC's argument resolvers fills each: by the name the annotation gives, or else by
  * the parameter's own, which the class file keeps (Boot's parent compiles with -parameters). A value that cannot become its type
- * is Spring MVC's 400. A name nobody has is a ResponseStatusException: Spring MVC's 404, whose body, Boot's, names no reason.
+ * is Spring MVC's 400. A name nobody has throws CustomerNotFound, which this class does not answer: TiffinBoxErrors, the
+ * controller advice beside it, does - 404, and a body that names the customer.
  *
  * <p>Course 6: a route takes the request's body too ({@code @RequestBody}). POST /customers reads a new customer from JSON:
  * Spring MVC asks its message converters, in order, which one reads a Customer from the request's Content-Type, and for
@@ -132,11 +133,11 @@ public final class TiffinBoxServer {
         return mealType == null ? all : all.stream().filter(c -> c.mealType().equals(mealType.name())).toList();
     }
 
-    /** One customer, by the exact name in the path; a name nobody has is a 404. */
+    /** One customer, by the exact name in the path; a name nobody has throws CustomerNotFound (TiffinBoxErrors: a 404). */
     @GetMapping("/customers/{name}")
     Customer customer(@PathVariable String name) throws Exception {
         return repo.findByName(name)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "no customer named " + name));
+                .orElseThrow(() -> new CustomerNotFound(name));
     }
 
     /**
