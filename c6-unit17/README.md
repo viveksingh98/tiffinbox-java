@@ -14,7 +14,7 @@ unit's folder. Everything new is **the course's harness**, never TiffinBox's —
 `-parameters` against the anchor's own jar and joined by `--spring.main.sources` on the extracted jar's class path:
 
 - `Boom` — `/probe/boom` throws an `IllegalStateException` ("the kitchen is on fire"): an error nobody decided on.
-- `BoomFilter` — a `OncePerRequestFilter`, so a **filter bean Boot registers** with Tomcat: `X-Boom: state` throws an
+- `BoomFilter` — a `Filter` bean (a `OncePerRequestFilter`), which **Boot registers** with Tomcat: `X-Boom: state` throws an
   `IllegalStateException` ("the filter is on fire"), `X-Boom: status` a `ResponseStatusException(403, "a filter said no")`; any other
   request goes on.
 - `ResolvingFilter` — a filter bean ordered first (`HIGHEST_PRECEDENCE`, so it wraps `BoomFilter`): it catches a `RuntimeException`
@@ -24,7 +24,7 @@ unit's folder. Everything new is **the course's harness**, never TiffinBox's —
 - `CatchAll` / `CatchAllFirst` — one `@ExceptionHandler(Exception.class)` each, answering a 500 problem detail "something went wrong" with
   a member naming the class (S3.15: the answer says who wrote it); `CatchAll` at the default order, `CatchAllFirst` at `HIGHEST_PRECEDENCE`.
 - `Committed` — `/probe/committed` writes a line, flushes it, throws; `/probe/meals` returns 2,000 meals whose 1,500th fails as Jackson
-  writes it.
+  writes it; `/probe/short` returns 10 meals whose 5th fails the same way (`committed`'s C).
 - `Fragile` — an exception handler with a bug, ordered first, for `NoResourceFoundException`: it reads the exception's cause, which is null.
 - `Who` — reads the running application, as text, and changes nothing: the `ResponseEntityExceptionHandler` beans, the
   `ExceptionHandlerExceptionResolver`'s advice cache in the order it asks (each advice's type, order, `@ExceptionHandler` methods), the
@@ -43,6 +43,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 from `receipts.md5` (it prints the `DIFFERS` line first). **Start it in a process group of its own** (a terminal's foreground job is one):
 two receipts started as background jobs of one shell share a group, and one run's clean-up would stop the other's JVMs (R.94).
 
+**BLUE's runs (2026-10-20, after RED S3's fixes — the S3 brief's AMENDMENT (BLUE S3)):** 731 s under `./receipts.sh` (/bin/bash 3.2.57) and 505 s under `bash receipts.sh` (Homebrew bash 5.3), each `env -i` in a process group of its own, exit 0, every capture 3/3 = published. Captures that changed: filter `32cc5cd9…` → `0dd3c5c3…` · committed `320d4ca3…` → `0adf3d85…` · tomcat `7d9cb44e…` → `5b82910f…`; the rest as published before. **Sealed clone** (BLUE, /bin/bash 3.2, `env -i`, Maven sent to a `file://` copy of `.m2-demo`, proxies refused): exit 0 in 590 s, 6 of 6 = published, 512 artifacts, every one from the `file://` copy; the clone's `anchor` link compared by `readlink` (`../c6-unit16/after` both) and the tree it points to diffed whole: 0 differences (RED B #213). The exercise as viewers run it (Java 23.0.1 at start): `500 500`, then `405 405` twice; SOLUTION alone `405 405`.
+
 **Runs of record (2026-10-18, this script as committed):** **492 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with HOME and a plain
 PATH, this folder, its own process group, `.m2-demo` re-seeded from `_research/m2-seed-s3/` alone: exit 0, all 6 captures 3/3 = published,
 every check passed) and **493 s under `bash receipts.sh`** (Homebrew bash 5.3.9, the same: exit 0, all 6 = published). **A sealed fresh
@@ -55,7 +57,7 @@ no`, as a fresh clone's must, and every capture's build `offline: yes`. **How th
 capture once) fixed the captures; its six hashes went into `receipts.md5`; all three runs of record reproduced them, 3 of 3 each.
 
 
-Published hashes: filter `32cc5cd907def7ea57f6dda04e19e257` · catchall `cd295913d5f78d39b4051ffc8864ae85` · committed `320d4ca3ec8a80c803dc4337afed23f0` · tomcat `7d9cb44e78b982fe999636d75fb1c2a2` · handler `eb0ec28eb622d8d108c51c49253a32b3` · exercise `dc0605ea4e3cad199086e8830fcfba4f`.
+Published hashes: filter `0dd3c5c328efcfb23716b0b693a5d713` · catchall `cd295913d5f78d39b4051ffc8864ae85` · committed `0adf3d8595b5bc99842c9811aacade00` · tomcat `5b82910f9615dd96293191ca20ed0776` · handler `eb0ec28eb622d8d108c51c49253a32b3` · exercise `dc0605ea4e3cad199086e8830fcfba4f`.
 
 ## The commands this unit adds
 
@@ -174,7 +176,7 @@ filter's exception. **E** (labelled, A at DEBUG): the request adds 6 log lines, 
 dispatch for GET "/error"`** — Tomcat's second pass to Boot's `BasicErrorController`; the request itself never reached Spring MVC. Pays the
 roadmap's "an exception thrown in a filter bypassing the advice entirely".
 
-`.r-filter.out` · md5 `32cc5cd907def7ea57f6dda04e19e257` · 3 of 3
+`.r-filter.out` · md5 `0dd3c5c328efcfb23716b0b693a5d713` · 3 of 3
 
 ```
 the anchor - anchor/, copied under .harness/ with a config tree, built with its README's line (offline), its jar extracted (the README's line):
@@ -184,7 +186,7 @@ $ cd .harness/anchor && java -Djarmode=tools -jar tiffinbox-web/target/tiffinbox
   exit 0
 the harness, compiled against the anchor's own jar - with -parameters (this unit's line):
 $ javac -parameters -d .harness/hc -cp ".harness/anchor/tiffinbox-web/target/extracted/lib/*" harness/probe/web/Boom.java harness/probe/web/BoomFilter.java harness/probe/web/CatchAll.java harness/probe/web/CatchAllFirst.java harness/probe/web/Committed.java harness/probe/web/Fragile.java harness/probe/web/ResolvingFilter.java harness/probe/web/Who.java
-  exit 0 · its classes: probe/web/Boom.class probe/web/BoomFilter.class probe/web/CatchAll.class probe/web/CatchAllFirst.class probe/web/Committed$Meal.class probe/web/Committed.class probe/web/Fragile.class probe/web/ResolvingFilter.class probe/web/Who.class
+  exit 0 · its classes: probe/web/Boom.class probe/web/BoomFilter.class probe/web/CatchAll.class probe/web/CatchAllFirst.class probe/web/Committed$Meal.class probe/web/Committed$ShortMeal.class probe/web/Committed.class probe/web/Fragile.class probe/web/ResolvingFilter.class probe/web/Who.class
 the seven - the anchor, the README's run line (its locale pinned), port 19460, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19460
   listens on: 127.0.0.1:19460 · loopback only: yes
@@ -224,7 +226,7 @@ $ harness/shutdown.sh 19460 .harness/anchor/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
   exit 0 · listening on 19460 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
-A - the anchor on its class path, the harness's BoomFilter joined (a filter bean Boot registers), port 19460: X-Boom: status, X-Boom: state, X-Boom: state for HTML (a browser's Accept, sent by curl), then a request the filter lets through:
+A - the anchor on its class path, the harness's BoomFilter joined (a filter bean Boot registers), port 19460: X-Boom: status, X-Boom: state, X-Boom: state for HTML (only HTML, sent by curl), then a request the filter lets through:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19460 --spring.main.sources=probe.web.BoomFilter
   listens on: 127.0.0.1:19460 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
@@ -639,9 +641,12 @@ and **exit 18** (the answer ended before it was complete); the log gains Tomcat'
 Content-Type 'text/plain;charset=ISO-8859-1'` — the error dispatch's own attempt to write Boot's map into the answer already sent.
 `/probe/meals` — 2,000 meals, the 1,500th failing as Jackson writes it: **200** `application/json`, curl **exit 0**, **JSON that parses** —
 a list of 1,500, the last `{"number":1500}` with no name (Jackson closes what it opened) — and **one WARN, no ERROR**: Boot's handler took
-Jackson's failure, found the answer committed and ignored it.
+Jackson's failure, found the answer committed and ignored it. **C (labelled), the same JVM: `/probe/short`** — 10 meals, the 5th failing
+the same way, **before anything has gone out**: **500** `application/problem+json`, `{"detail":"Failed to write request",…}`, and **0 WARN,
+0 ERROR** — a silent 500, the reason (`meal 5 burned`) in neither the answer nor the log (RED B #200, #201). The 200 needs the answer
+committed first: here 1,500 of 2,000.
 
-`.r-committed.out` · md5 `320d4ca3ec8a80c803dc4337afed23f0` · 3 of 3
+`.r-committed.out` · md5 `0adf3d8595b5bc99842c9811aacade00` · 3 of 3
 
 ```
 the anchor on its class path, the harness's Committed joined, port 19468 - a route that writes a line, flushes it and throws; then a route whose JSON fails at its 1,500th item of 2,000:
@@ -665,6 +670,11 @@ $ curl -s -o .harness/got.txt -w ' %{http_code} · Content-Type: [%{content_type
   WARN lines it added: 1 · ERROR lines: 0
     WARN o.s.b.w.a.ProblemDetailsExceptionHandler: Response already committed. Ignoring: org.springframework.http.converter.HttpMessageNotWritableException: Could not write JSON: meal 1500 burned
       its stack frames: 0, its other lines: 0 - none shown
+C (labelled) - the same JVM: a short list, 10 meals whose 5th fails as Jackson writes it - before anything has gone out:
+$ curl -s -o .harness/got.txt -w ' %{http_code} · Content-Type: [%{content_type}]\n' http://127.0.0.1:19468/probe/short
+  curl's line: 500 · Content-Type: [application/problem+json] · curl's exit code: 0
+  what curl got: JSON that parses - {"detail":"Failed to write request","instance":"/probe/short","status":500,"title":"Internal Server Error"}
+  WARN lines it added: 0 · ERROR lines: 0
   WARN lines in this run's log, at Boot's default level: 2 · ERROR lines: 1
 $ harness/shutdown.sh 19468 .harness/anchor/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
@@ -682,7 +692,7 @@ HTML 400 (`%2F`)". **A** — a route that throws, asked for HTML: Boot's Whitela
 dispatch failing (`Circular view path [error]`, logged by `[dispatcherServlet]` and by Tomcat's host, `[Tomcat].[localhost]`); for curl's own
 Accept the same request is Boot's JSON body (1 ERROR), and a problem detail stays a problem detail. **A′** = A.
 
-`.r-tomcat.out` · md5 `7d9cb44e78b982fe999636d75fb1c2a2` · 3 of 3
+`.r-tomcat.out` · md5 `5b82910f9615dd96293191ca20ed0776` · 3 of 3
 
 ```
 before Spring MVC - the anchor on its class path, the harness's Boom joined, Boot's web group at DEBUG (the embedded-Tomcat lesson's option), port 19461: a name with an encoded slash, curl's own Accept and JSON's; then a request Spring MVC takes:
@@ -709,7 +719,7 @@ $ harness/shutdown.sh 19461 .harness/anchor/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
   exit 0 · listening on 19461 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
-A - the anchor on its class path, the harness's Boom joined, port 19462: a route that throws, for HTML (a browser's Accept, sent by curl) and for curl's own Accept; a path nobody maps, for HTML:
+A - the anchor on its class path, the harness's Boom joined, port 19462: a route that throws, for HTML (only HTML, sent by curl) and for curl's own Accept; a path nobody maps, for HTML:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19462 --spring.main.sources=probe.web.Boom
   listens on: 127.0.0.1:19462 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
@@ -791,7 +801,8 @@ A' against A, its label aside, line for line the same: yes
 
 The anchor as it ships: `/nowhere`, and a name nobody has for a client that accepts **only HTML, only an image (`image/png`), only plain
 text** — the same 404 problem detail, `application/problem+json`, 0 WARN 0 ERROR each. (The exception-handler lesson's `Map` body gave a
-browser's request a 500 — its own `status` capture's C; cited, not re-run.) **`Fragile` joined**, ordered first: its handler throws a
+client that accepts only HTML, or only XML, a 500 — its own `status` capture's C; Chrome's whole header got its JSON 404 there; cited, not
+re-run — RED B #202.) **`Fragile` joined**, ordered first: its handler throws a
 `NullPointerException` while it answers `/nowhere`; Spring MVC logs **one WARN** (`ExceptionHandlerExceptionResolver: Failure in
 @ExceptionHandler probe.web.Fragile#noSuchPath`, the NPE under it), hands the exception on, and `DefaultHandlerExceptionResolver` answers it:
 **Boot's four keys, 404** — not a problem detail. A name nobody has, which `Fragile` does not take, still gets ours.
@@ -938,7 +949,9 @@ offline, compiles the harness's `CatchAllFirst` and `Who` against it, starts it 
   Nobody's 404. Ordered first, the WARN goes too.
 - **Boot's "Response already committed. Ignoring" belongs to the error dispatch** (the brief: Tomcat's ERROR and that WARN): it follows
   Tomcat's ERROR, when Boot's error controller tries to write its map into the `text/plain` answer already sent.
-- **A list that fails mid-way is a 200 with JSON that parses, and no ERROR at all** (not in the brief): 1,500 of 2,000 meals, one WARN.
+- **A list that fails after the answer is committed is a 200 with JSON that parses, and no ERROR at all** (not in the brief): 1,500 of
+  2,000 meals, one WARN. **A list that fails before that is a silent 500 problem detail** — `committed`'s C, 10 meals, the 5th: `Failed to
+  write request`, 0 WARN 0 ERROR (RED B #200).
 - **Whitelabel off: the three ERROR lines carry `Circular view path [error]`** — the error dispatch itself fails before Tomcat writes its page.
 - **"The handler that fails" is measured** with a handler that throws (`Fragile`), beside the brief's citation: Spring MVC hands the error to
   the next resolver, and the answer is Boot's four keys, not a problem detail.
@@ -977,7 +990,8 @@ offline, compiles the harness's `CatchAllFirst` and `Who` against it, starts it 
 
 - This unit reads `../c6-unit16/after` only (no change). *Filters vs Interceptors vs Advice* inherits: the filter order (`ResolvingFilter`
   needs `HIGHEST_PRECEDENCE` to wrap `BoomFilter`; Boot registers both from `--spring.main.sources`); `OncePerRequestFilter` and the ERROR
-  dispatch (unmeasured here); whether a resolving filter belongs in the anchor (TiffinBox has no filter that throws).
+  dispatch (unmeasured here; RED B's probe `BoomAll` — the same throw with `shouldNotFilterErrorDispatch()` false — measured Tomcat's own
+  500 page and 3 ERROR lines where `BoomFilter` gives Boot's 500 and 1: the skip decides the answer, RED B #214); whether a resolving filter belongs in the anchor (TiffinBox has no filter that throws).
 - **For RED:** re-run under both bashes, the sealed clone, SIGINT during a capture's JVM; check every WARN/ERROR count against its logger
   (Tomcat's, Spring MVC's, Boot's), the catch-all's per-run silence against the as-shipped baseline, the committed 200s (curl exit 18 and 0),
   the `sumf` filter, the seven's moved lines, and that no trap reached the anchor.

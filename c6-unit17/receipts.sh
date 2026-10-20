@@ -19,7 +19,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #              first: each one's seven (a fresh JVM, the lines that moved), its advice cache, and eight requests - Spring MVC's
 #              own errors, a name nobody has, a route that throws - each with the WARN and ERROR lines it added
 #   committed  two routes that fail after the answer has started to leave (the harness's Committed): each answer's status, what
-#              curl got and its exit code, the lines the log gained
+#              curl got and its exit code, the lines the log gained; C (labelled): a short list that fails before anything has left
 #   tomcat     an encoded slash at DEBUG (Tomcat's own 400, and the lines the log gained: none) against a request Spring MVC
 #              takes; A/B/A': a route that throws, asked for HTML - A, Boot's default; B, Boot's Whitelabel page switched off;
 #              A', A again
@@ -437,7 +437,7 @@ filter() {
   start "$(at .harness/anchor 19460 "$R_RUN")"; up 19460; ready 19460; seven 19460 .harness/anchor; WARNS; logl 0 WARN
   echo "who answers - the anchor on its class path, the harness's Who joined, port 19460, read off the running application:"
   start "$(hcp .harness/anchor 19460 probe.web.Who)"; up 19460; ready 19460; rp "$(url "$L_WHO" 19460)"; stop 19460 .harness/anchor
-  echo "A - the anchor on its class path, the harness's BoomFilter joined (a filter bean Boot registers), port 19460: X-Boom: status, X-Boom: state, X-Boom: state for HTML (a browser's Accept, sent by curl), then a request the filter lets through:"
+  echo "A - the anchor on its class path, the harness's BoomFilter joined (a filter bean Boot registers), port 19460: X-Boom: status, X-Boom: state, X-Boom: state for HTML (only HTML, sent by curl), then a request the filter lets through:"
   frun 19460 probe.web.BoomFilter
   echo "B - the same, with the harness's ResolvingFilter joined too (a filter bean ordered first, which hands an exception to Spring MVC's resolvers), port 19461:"
   frun 19461 probe.web.ResolvingFilter,probe.web.BoomFilter
@@ -484,7 +484,9 @@ gqr() { local n0 c e=0 w r; n0=$(mark); c=$(gq "$1" "$2"); rm -f .harness/got.tx
 committed() {
   echo "the anchor on its class path, the harness's Committed joined, port 19468 - a route that writes a line, flushes it and throws; then a route whose JSON fails at its 1,500th item of 2,000:"
   start "$(hcp .harness/anchor 19468 probe.web.Committed)"; up 19468; ready 19468
-  gqr 19468 /probe/committed; gqr 19468 /probe/meals; WARNS; stop 19468 .harness/anchor; }
+  gqr 19468 /probe/committed; gqr 19468 /probe/meals
+  echo "C (labelled) - the same JVM: a short list, 10 meals whose 5th fails as Jackson writes it - before anything has gone out:"
+  gqr 19468 /probe/short; WARNS; stop 19468 .harness/anchor; }
 
 # ---- tomcat: before Spring MVC; A/B/A' Boot's Whitelabel page ------------------------------------------------------------------
 wrun() { start "$(hcp .harness/anchor "$1" probe.web.Boom "${2:-}")"; up "$1"; ready "$1"
@@ -494,7 +496,7 @@ tomcat() {
   start "$(hcp .harness/anchor 19461 probe.web.Boom "$O_WEB")"; up 19461; ready 19461
   dreq "$(tq 19461 /customers/a%2Fb)"; dreq "$(tq 19461 /customers/a%2Fb application/json)"; dreq "$(tq 19461 /customers/Ravi)"
   stop 19461 .harness/anchor
-  echo "A - the anchor on its class path, the harness's Boom joined, port 19462: a route that throws, for HTML (a browser's Accept, sent by curl) and for curl's own Accept; a path nobody maps, for HTML:"
+  echo "A - the anchor on its class path, the harness's Boom joined, port 19462: a route that throws, for HTML (only HTML, sent by curl) and for curl's own Accept; a path nobody maps, for HTML:"
   wrun 19462
   echo "B - the same, Boot's Whitelabel page switched off for this run (this unit's line), port 19463:"
   wrun 19463 "$O_WL"
@@ -626,7 +628,7 @@ FO=$(cat .r-filter.out)
 has "$FO" '  built the anchor · offline: yes · exit 0' "filter: the anchor built offline"
 has "$FO" "  exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 0 · md5 $S466" "filter: the seven $S466"
 has "$FO" '    WARN o.s.web.servlet.PageNotFound: Request method '"'"'GET'"'"' is not supported' "filter: the seven's one WARN, PageNotFound"
-has "$FO" '  exit 0 · its classes: probe/web/Boom.class probe/web/BoomFilter.class probe/web/CatchAll.class probe/web/CatchAllFirst.class probe/web/Committed$Meal.class probe/web/Committed.class probe/web/Fragile.class probe/web/ResolvingFilter.class probe/web/Who.class' "filter: the harness's classes"
+has "$FO" '  exit 0 · its classes: probe/web/Boom.class probe/web/BoomFilter.class probe/web/CatchAll.class probe/web/CatchAllFirst.class probe/web/Committed$Meal.class probe/web/Committed$ShortMeal.class probe/web/Committed.class probe/web/Fragile.class probe/web/ResolvingFilter.class probe/web/Who.class' "filter: the harness's classes"
 for l in '    1 org.springframework.boot.webmvc.autoconfigure.ProblemDetailsExceptionHandler · its order: 0' '        @ExceptionHandler handleException, from ResponseEntityExceptionHandler - takes 20 exception types' '    2 com.tiffinbox.web.TiffinBoxErrors · its order: 2147483647' "  a ResponseStatusException, each advice's method for it, in that order: ProblemDetailsExceptionHandler: handleException · TiffinBoxErrors: none" "  the JVM's locale: en_US"; do has "$FO" "$l" "filter: who answers"; done
 FA=$(blk filter "A - " "B - "); FB=$(blk filter "B - " "A' - "); FC=$(blk filter "C (labelled)" "D (labelled)"); FE=$(blk filter "E (labelled)" '')
 ans "$FA" "$(bq 19460 status)" "$(J4 500 'Internal Server Error' /customers/Ravi)" 0 1 "filter A: X-Boom: status"
@@ -699,9 +701,15 @@ has "$MO" "    WARN o.s.b.w.a.ProblemDetailsExceptionHandler: Response already c
 has "$MO" "  curl's line: 200 · Content-Type: [application/json] · curl's exit code: 0" "committed: the meals, 200, curl's exit 0"
 has "$MO" '  what curl got: JSON that parses - a list of 1500 · its first: {"number":1,"name":"meal 1"} · its last: {"number":1500}' "committed: 1500 meals, valid JSON"
 has "$MO" "    WARN o.s.b.w.a.ProblemDetailsExceptionHandler: Response already committed. Ignoring: org.springframework.http.converter.HttpMessageNotWritableException: Could not write JSON: meal 1500 burned" "committed: the meals' WARN"
-[ "$(printf '%s\n' "$MO" | grep -c '^  WARN lines it added: ')" = 2 ] && has "$MO" "  WARN lines it added: 1 · ERROR lines: 1" "committed" && has "$MO" "  WARN lines it added: 1 · ERROR lines: 0" "committed: the meals, 1 WARN, 0 ERROR"
-grep -q 'rangeClosed(1, 2000)' harness/probe/web/Committed.java && grep -q 'number == 1500' harness/probe/web/Committed.java || die "committed: the harness's 2,000 meals and its 1,500th"
-echo "  committed: write, flush, throw -> 200 text/plain 'half an answer', curl exit 18, Tomcat's ERROR + Boot's WARN; the meals -> 200, JSON that parses, 1500 of 2000, 1 WARN, 0 ERROR"
+[ "$(printf '%s\n' "$MO" | grep -c '^  WARN lines it added: ')" = 3 ] && has "$MO" "  WARN lines it added: 1 · ERROR lines: 1" "committed" && has "$MO" "  WARN lines it added: 1 · ERROR lines: 0" "committed: the meals, 1 WARN, 0 ERROR"
+MC=$(blk committed "C (labelled)" '')
+has "$MC" "  curl's line: 500 · Content-Type: [application/problem+json] · curl's exit code: 0" "committed C: a short list that fails - 500, a problem detail"
+has "$MC" '  what curl got: JSON that parses - {"detail":"Failed to write request","instance":"/probe/short","status":500,"title":"Internal Server Error"}' "committed C: the problem detail, the reason in it nowhere"
+has "$MC" "  WARN lines it added: 0 · ERROR lines: 0" "committed C: silent - 0 WARN, 0 ERROR"
+! printf '%s\n' "$MC" | grep -q 'meal 5 burned' || die "committed C: the reason (meal 5 burned) is in neither the answer nor the log"
+has "$MO" "  WARN lines in this run's log, at Boot's default level: 2 · ERROR lines: 1" "committed: 2 WARN, 1 ERROR in the run - C added none"
+grep -q 'rangeClosed(1, 2000)' harness/probe/web/Committed.java && grep -q 'number == 1500' harness/probe/web/Committed.java && grep -q 'rangeClosed(1, 10).mapToObj(ShortMeal::new)' harness/probe/web/Committed.java && grep -q 'number == 5)' harness/probe/web/Committed.java || die "committed: the harness's 2,000 meals and its 1,500th; 10 meals and the 5th"
+echo "  committed: write, flush, throw -> 200 text/plain 'half an answer', curl exit 18, Tomcat's ERROR + Boot's WARN; the meals -> 200, JSON that parses, 1500 of 2000, 1 WARN, 0 ERROR; C: 10 meals, the 5th fails -> a 500 problem detail, 0 WARN 0 ERROR"
 
 # "an encoded slash ... Tomcat's own page, and not one line, even at debug ... the Whitelabel page off: Tomcat's own five hundred,
 # three error lines" - tomcat

@@ -17,8 +17,9 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #               annotations @RestControllerAdvice carries, the exception resolvers in order, the advice cache; who resolved the 404, at
 #               DEBUG, on both trees
 #   precedence  the harness's controller and advices joined to after/: inside one advice the nearest type; the controller's own
-#               handler before any advice; no handler, Boot's 500; then an advice ordered first, handling any RuntimeException with no
-#               status - order before nearness, and 200s
+#               handler before any advice; no handler, Boot's 500; a type mismatch, which no handler takes by its type, taken by the
+#               IllegalArgumentException handler (its cause's type); then an advice ordered first, handling any RuntimeException with
+#               no status - order before nearness, and 200s
 #   status      A/B/A': after/ (A); a copy whose handler names no status (B); A again (A'); C, labelled: A asked by clients that accept
 #               only HTML, only XML, and a browser's whole Accept header (Chrome's), each sent by curl; D, labelled: the previous tree, the
 #               same three
@@ -27,7 +28,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #   forms       the native build of after/; what Spring's AOT step registers, on the previous tree and on after/; then four forms -
 #               the jar, the AOT jar, the binary, the image: each one's address, the seven (masked), exit 0; then, on a second start of
 #               each, a name nobody has, a name with a space, Ravi, the name nobody has for a client that accepts only HTML, and POST
-#               /shutdown without the token
+#               /shutdown without the token; the locale options on the binary's and the image's run lines, counted
 # "The previous tree" is ../c6-unit12/after (the anchor before this change: the validation lesson's frozen tree), COPIED under
 # .harness/before; after/ is this unit's frozen copy of ../c6-tiffinbox after the change, COPIED under .harness/after. This script
 # never writes into another unit's folder, and never builds a frozen tree in place. Every run of TiffinBox starts in a folder under
@@ -769,7 +770,8 @@ forms() {
   dlog "$BOX"; echo "  exit $LASTE · its log (docker logs): the demo token 0 times · X-Shutdown-Token 0 times"
   docker rm "$BOX" > /dev/null
   echo "four forms, one tree: the seven (masked) $(grep -cE '^  exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 2 · md5 87ca7efc8584dcccd40e6b956db1de9b$' .harness/cap.raw) of 4 times 87ca7efc8584dcccd40e6b956db1de9b · a name nobody has, 404 and the name $(grep -cxF -- "$NOB" .harness/cap.raw) of 4 · a name with a space, 404 and the name $(grep -cxF -- '  {"error":"no customer named Sunil K"} 404' .harness/cap.raw) of 4 · Ravi 200 $(grep -cxF -- '  {"name":"Ravi","mealsPerDay":2,"pricePerMeal":120,"mealType":"VEG"} 200' .harness/cap.raw) of 4 · the name nobody has for a client that accepts only HTML, Boot's 500 page $(grep -cxF -- "  the Whitelabel page (Boot's) - its <h1>: Whitelabel Error Page · its error line: There was an unexpected error (type=Internal Server Error, status=500). · its created date: masked · its paragraphs: 1, not shown · then curl's: 500 · Content-Type: [text/html;charset=UTF-8]" .harness/cap.raw) of 4 · POST /shutdown without the token 403 $(grep -cxF '  {"error":"forbidden"} 403' .harness/cap.raw) of 4"
-  echo "  loopback, form by form: the jar $(lbk '1 the jar') · the AOT jar $(lbk '2 the AOT jar') · the binary $(lbk '3 the binary') · the image, published on 127.0.0.1 alone $(lbk '4 the image')"; }
+  echo "  loopback, form by form: the jar $(lbk '1 the jar') · the AOT jar $(lbk '2 the AOT jar') · the binary $(lbk '3 the binary') · the image, published on 127.0.0.1 alone $(lbk '4 the image')"
+  echo "  the locale: options on the binary's and the image's run lines: $(printf '%s\n%s\n' "$(at .harness/nat 19448 "$R_BIN")" "$(drun .harness/after 19447)" | grep -o 'user\.language\|user\.country' | wc -l | tr -d ' ') (none passed: the binary runs as the README writes it, the image as its ENTRYPOINT, java -jar, unpinned) - nothing they print here depends on one: each answer above the pinned jar's, 4 of 4"; }
 
 
 
@@ -895,12 +897,14 @@ for l in "  ExceptionHandlerExceptionResolver's advice cache, in the order it as
 [ "$(aft "$(BQ 19442 /probe/prec/iae)" "$P1")" = "$(Z "$(WHO 'AdviceWide: IllegalArgumentException' 400)" 0 0)" ] && [ "$(aft "$(BQ 19442 /probe/prec/nfe)" "$P1")" = "$(Z "$(WHO 'AdviceWide: NumberFormatException' 400)" 0 0)" ] || die "precedence: inside one advice, the nearest type"
 [ "$(aft "$(BQ 19442 /probe/prec/ise)" "$P1")" = "$(Z "$(WHO "Prec, the controller's own handler: IllegalStateException" 400)" 0 0)" ] || die "precedence: the controller's own handler"
 [ "$(aft "$(BQ 19442 /probe/prec/uoe)" "$P1")" = "$(Z '  {"timestamp":"…","status":500,"error":"Internal Server Error","path":"/probe/prec/uoe"} 500' 0 1)" ] && has "$P1" '    ERROR o.a.c.c.C.[.[.[/].[dispatcherServlet]: Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed: java.lang.UnsupportedOperationException: not supported] with root cause' "precedence: no handler" || die "precedence: no handler - Boot's 500, Tomcat's ERROR line"
+has "$P1" "  a MethodArgumentTypeMismatchException, each advice's method for it, in that order: AdviceWide: none · TiffinBoxErrors: none" "precedence: no handler takes the type mismatch by its type"
+has "$P2" "  a MethodArgumentTypeMismatchException, each advice's method for it, in that order: AdviceFirst: any · AdviceWide: none · TiffinBoxErrors: none" "precedence: AdviceFirst takes the type mismatch by its type"
 [ "$(aft "$(BQ 19442 /customers/Nobody)" "$P1")" = "$(Z "$NOB4" 0 0)" ] && [ "$(aft "$(BQ 19442 '/customers?mealType=veg')" "$P1")" = "$(Z "$(WHO 'AdviceWide: IllegalArgumentException' 400)" 0 0)" ] || die "precedence: TiffinBox's 404 kept; the type mismatch taken by AdviceWide's IllegalArgumentException handler"
 for l in "  ExceptionHandlerExceptionResolver's advice cache, in the order it asks: 3" '    1 probe.web.AdviceFirst · its order: -2147483648' '        @ExceptionHandler any - takes RuntimeException · @ResponseStatus: none' "  a CustomerNotFound, each advice's method for it, in that order: AdviceFirst: any · AdviceWide: none · TiffinBoxErrors: notFound"; do has "$P2" "$l" "precedence: AdviceFirst first"; done
 for p in /probe/prec/iae /probe/prec/nfe /probe/prec/uoe /customers/Nobody '/customers?mealType=veg'; do [ "$(aft "$(BQ 19442 "$p")" "$P2")" = "$(Z "$(WHO 'AdviceFirst: RuntimeException' 200)" 0 0)" ] || die "precedence: AdviceFirst takes $p, 200"; done
 [ "$(aft "$(BQ 19442 /probe/prec/ise)" "$P2")" = "$(Z "$(WHO "Prec, the controller's own handler: IllegalStateException" 400)" 0 0)" ] || die "precedence: the controller's own handler, still"
 has "$P2" "  WARN lines in this run's log, at Boot's default level: 0 · ERROR lines: 0" "precedence: AdviceFirst's run, 0 and 0"
-echo "  precedence: NumberFormatException -> its own handler; IllegalStateException -> the controller's; UnsupportedOperationException -> Boot's 500, 1 ERROR; AdviceFirst (-2147483648) -> 200 for five, the controller's 400 kept"
+echo "  precedence: NumberFormatException -> its own handler; IllegalStateException -> the controller's; UnsupportedOperationException -> Boot's 500, 1 ERROR; the type mismatch -> no handler by its type, AdviceWide's IllegalArgumentException handler by its cause, 0 WARN; AdviceFirst (-2147483648) -> 200 for five, the controller's 400 kept"
 
 # "B: the same handler without that one line ... two hundred, with the error in the body ... A again: the same ... C: a client that
 #  accepts only HTML ... five hundred, a warning and an error in the log ... only XML ... five hundred ... a browser's whole header ...
@@ -943,6 +947,7 @@ x forms "^  Spring's generated metadata \(spring-aot/main/resources/META-INF/nat
 x forms '^    com\.tiffinbox\.web\.TiffinBoxErrors - 1 method \(notFound\(CustomerNotFound\)\)$'
 x forms '^  resource entries: 26 -> 26 · the same: yes$'
 x forms "^four forms, one tree: the seven \(masked\) 4 of 4 times $S87C · a name nobody has, 404 and the name 4 of 4 · a name with a space, 404 and the name 4 of 4 · Ravi 200 4 of 4 · the name nobody has for a client that accepts only HTML, Boot's 500 page 4 of 4 · POST /shutdown without the token 403 4 of 4\$"
+has "$(cat .r-forms.out)" "  the locale: options on the binary's and the image's run lines: 0 (none passed: the binary runs as the README writes it, the image as its ENTRYPOINT, java -jar, unpinned) - nothing they print here depends on one: each answer above the pinned jar's, 4 of 4" "forms: the binary and the image carry no locale option (S3.1)"
 x forms '^  loopback, form by form: the jar yes · the AOT jar yes · the binary yes · the image, published on 127\.0\.0\.1 alone yes$'
 # each form's block runs from its label to the next form's (a label:port:next label triple - a case inside $( ) is a syntax error to
 # /bin/bash 3.2)

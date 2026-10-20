@@ -45,13 +45,15 @@ are needed. It **dies** when a capture's md5 differs from `receipts.md5` (it pri
 of its own** (a terminal's foreground job is one): two receipts started as background jobs of one shell share a group, and one run's clean-up
 would stop the other's JVMs (R.94).
 
+**BLUE's runs (2026-10-20, after RED S3's fixes — the S3 brief's AMENDMENT (BLUE S3)):** 361 s under `./receipts.sh` (/bin/bash 3.2.57) and 356 s under `bash receipts.sh` (Homebrew bash 5.3), each `env -i` in a process group of its own, exit 0, every capture 3/3 = published. Captures that changed: path `64ec40cb…` → `6b5603c9…` · html `e40d8ad1…` → `b991dc6b…`; the rest as published before. **SIGINT** (BLUE): to the script's process group during `shapes`' JVM (55 s in; 4 processes, 1 java): exit 130, 0 processes left, no listener, no `.r-lock`, no unfinished run, the captures unchanged (md5). The exercise as viewers run it (one `env -i` /bin/bash, Java 23.0.1 at start): README → `text/html`, SOLUTION twice → `application/json`; SOLUTION alone → `application/json`.
+
 **Runs of record (2026-10-17, this script as committed):** **346 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with HOME and a plain
 PATH, this folder, its own process group, `.m2-demo` re-seeded from `_research/m2-seed-s3/` alone: exit 0, all 7 captures 3/3 = published,
 every check passed) and **345 s under `bash receipts.sh`** (Homebrew bash 5.3.9, the same, re-seeded: exit 0, all 7 = published). **A
 sealed fresh clone**: `git clone` of tiffinbox-java at 12d42f7, this unit's 9 files put in as git would take them (its `.gitignore` lines keep `.m2-demo`, `.harness` and `.r-*` out); `env -i`, a `HOME` of its own whose `.mavenrc` points every Java proxy at a refusing port (127.0.0.1:1, never bound), Maven settings sending every repository to a `file://` copy of Central's files made from this unit's `.m2-demo` (4,373 files), the proxy variables at the same refusing port, `/bin/bash` 3.2, a process group of its own: exit 0 in 350 s, all 7 = published, every check passed; **688 artifacts, every one from the `file://` copy** (512 for the first build, 176 for DevTools' `dependency:get` — Maven's dependency plugin and DevTools' jar; 0 from anywhere else); the first build and the DevTools fetch said `offline: no`, as a fresh clone's must, and every capture's build `offline: yes`. **How the hashes were made:** four development runs (bash 5.3) fixed the filters and the derivations
 (Found on the way); the seven hashes of the fourth went into `receipts.md5`; both runs of record reproduced them. **SIGINT**: SIGINT to the script's process group during `shapes`' JVM (52 s in; 3 processes in the group, 1 of them java), the script started as a terminal starts its foreground job (`python3` with `signal.signal(signal.SIGINT, signal.SIG_DFL)` and `os.setpgrp()`, `env -i`, /bin/bash 3.2): **exit 130**; 5 s later 0 processes in the group and 0 anywhere naming this folder or `TiffinBoxServer`; 19430-19439, 8080, 18425 and 35729 free; no `.r-lock`, no unfinished capture run; the published captures unchanged (md5).
 
-Published hashes: path `64ec40cbb767173d995cd099a4951e85` · shapes `8fd67ffd6e46683eda60757b7034f50f` · reasons `2d9322452f5a9aa3791968e5463f675b` · html `e40d8ad1685dc19218c87ad0c2183373` · message `fcf66eea48cc41d5138f526afed1b942` · devtools `1ef2f4accea2a4dc2c4b8172400f4f17` · exercise `c156036038dee6a4bc41d58180107c4a`.
+Published hashes: path `6b5603c99223d9c900f9ff8a124ce584` · shapes `8fd67ffd6e46683eda60757b7034f50f` · reasons `2d9322452f5a9aa3791968e5463f675b` · html `b991dc6bbb4f61114d3e6f45563feee0` · message `fcf66eea48cc41d5138f526afed1b942` · devtools `1ef2f4accea2a4dc2c4b8172400f4f17` · exercise `c156036038dee6a4bc41d58180107c4a`.
 
 ## The commands this unit adds
 
@@ -173,10 +175,11 @@ request-mapping lesson, and one WARN — Spring MVC's `DefaultHandlerExceptionRe
 lesson's option): `/probe/boom` — `Failed to complete request` (the `DispatcherServlet`), **Tomcat's** ERROR line, then `"ERROR" dispatch for
 GET "/error"`, mapped to `BasicErrorController#error`, the map written by `HttpEntityMethodProcessor`, `Exiting from "ERROR" dispatch, status
 500`; `/nowhere` — the static files row takes the path and finds no file, `DefaultHandlerExceptionResolver` resolves the
-`NoResourceFoundException`, `Completed 404`, and the same error dispatch, status 404. The container — Tomcat — sends the request back
+`NoResourceFoundException`, `Completed 404`, and the same error dispatch, status 404; `/customers/a%2Fb` — **Tomcat's** own HTML 400 page,
+and **0 log lines** at DEBUG: Spring never sees it (RED A #133). The container — Tomcat — sends the request back
 (C6-8, H-01): that is the measured "who sends it back".
 
-`.r-path.out` · md5 `64ec40cbb767173d995cd099a4951e85` · 3 of 3
+`.r-path.out` · md5 `6b5603c99223d9c900f9ff8a124ce584` · 3 of 3
 
 ```
 the anchor - anchor/, copied under .harness/ with a config tree, built with its README's line (offline):
@@ -223,7 +226,7 @@ $ harness/shutdown.sh 19430 .harness/anchor/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
   exit 0 · listening on 19430 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
-at DEBUG - the embedded-Tomcat lesson's option (Boot's web group at DEBUG), the same class path, port 19430: a route that throws (the harness's Boom), then a path no route takes:
+at DEBUG - the embedded-Tomcat lesson's option (Boot's web group at DEBUG), the same class path, port 19430: a route that throws (the harness's Boom), then a path no route takes, then a name with an encoded slash:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19430 --spring.main.sources=probe.web.Who,probe.web.Boom --logging.level.web=debug
   listens on: 127.0.0.1:19430 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
@@ -254,6 +257,9 @@ $ curl -s -w ' %{http_code} · Content-Type: [%{content_type}]\n' http://127.0.0
     o.s.w.s.m.m.a.HttpEntityMethodProcessor: Using 'application/json', given [*/*] and supported [application/json, application/*+json]
     o.s.w.s.m.m.a.HttpEntityMethodProcessor: Writing [{timestamp=…, status=404, error=Not Found, path=/nowhere}]
     o.s.web.servlet.DispatcherServlet: Exiting from "ERROR" dispatch, status 404
+$ curl -s -w ' %{http_code} · Content-Type: [%{content_type}]\n' http://127.0.0.1:19430/customers/a%2Fb
+  an HTML page - its <title>: HTTP Status 400 – Bad Request · its <h1>: HTTP Status 400 – Bad Request · its other characters: 349, not shown · then curl's: 400 · Content-Type: [text/html;charset=utf-8]
+  the lines the log gained for it, Boot's web group at DEBUG (logger: message) - its log lines, all 0, and 0 other lines (a stack trace's: frames and blank lines), not shown:
 $ harness/shutdown.sh 19430 .harness/anchor/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
   exit 0 · listening on 19430 now: 0
@@ -268,7 +274,8 @@ sees it); POST /shutdown without the token (`{"error":"forbidden"}`, 403); `/now
 GET /shutdown and DELETE /customers (Boot's 405); Ravi for a client that accepts only XML (**406, no body, no Content-Type**); a form body
 (Boot's 415 — the one POST without a JSON `Content-Type`, labelled, R.98); a new name, 201, then the same again (**409, no body**); the
 harness's `/probe/boom` (Boot's 500). **Fourteen errors, five shapes** — the capture's own count: Boot's four keys ×9 (400 ×3, 404 ×2, 405 ×2,
-415, 500), the field map, Tomcat's page, `{"error"}`, and no body (the 406 and the 409 — the same bytes, one shape).
+415, 500), the field map, Tomcat's page, `{"error"}`, and no body (the 406 and the 409 — no body, no Content-Type: one shape by body; not the same bytes — the 406 also sends an
+`Accept` header naming what it could have written, RED A #132).
 
 `.r-shapes.out` · md5 `8fd67ffd6e46683eda60757b7034f50f` · 3 of 3
 
@@ -393,19 +400,21 @@ $ harness/shutdown.sh 19432 .harness/anchor/secrets/tiffinbox/shutdown-token
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 ```
 
-## 4 · html — a browser's Accept type
+## 4 · html — a client that asks for HTML alone; C, Chrome's whole Accept header
 
-The same requests, each with `Accept: text/html` — a browser's leading type, **sent by curl; no browser ran** (S3.12) — the 406's own XML
-header made `text/html` too: **13 of 15 answers are Boot's Whitelabel page**, each with its status (`/nowhere`'s 404 — C6-8's other half —
+The same requests, each from a client that asks for **HTML alone** — `Accept: text/html`, **sent by curl; no browser ran** (S3.12) — the
+406's own XML header made `text/html` too: **13 of 15 answers are Boot's Whitelabel page**, each with its status (`/nowhere`'s 404 — C6-8's other half —
 `/customers/Nobody`'s 404, the 400s, the 405s, the 415, the 500); **four become 406s**: the method's field map, the 403's map, Ravi himself,
 and **Lata's 201 — she was stored** (the same POST again is a 409) while the client was told 406, each with one WARN (`No acceptable
 representation`); Tomcat's `a%2Fb` page and the empty 409 unchanged. 10 WARN, 1 ERROR in all (H-11: Boot sends the 406 as its own HTML page;
-the XML 406 is empty — `shapes`).
+the XML 406 is empty — `shapes`). **C (labelled): Chrome's whole Accept header**, sent by curl, the same JVM — Ravi **200, JSON**; a name
+nobody has, the Whitelabel 404. A real browser's header ends with `*/*;q=0.8`, so TiffinBox's own answers stay JSON for it: **only a
+client that asks for HTML alone gets the 406s** (RED A #128); for an error, both get the Whitelabel page.
 
-`.r-html.out` · md5 `e40d8ad1685dc19218c87ad0c2183373` · 3 of 3
+`.r-html.out` · md5 `b991dc6bbb4f61114d3e6f45563feee0` · 3 of 3
 
 ```
-the same requests, each with a browser's Accept type, text/html, sent by curl (the 406's own XML header made text/html too) - the anchor on its class path, the harness's Boom joined, port 19433, a fresh JVM:
+the same requests, each from a client that asks for HTML alone - Accept: text/html, sent by curl (the 406's own XML header made text/html too) - the anchor on its class path, the harness's Boom joined, port 19433, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19433 --spring.main.sources=probe.web.Boom
   listens on: 127.0.0.1:19433 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
@@ -465,6 +474,11 @@ $ curl -s -w ' %{http_code} · Content-Type: [%{content_type}]\n' -H 'Accept: te
       java.lang.IllegalStateException: the kitchen is on fire
       its stack frames: over 40, its other lines: 2 - none shown
   WARN lines in this run's log, at Boot's default level: 10 · ERROR lines: 1
+C (labelled) - Chrome's whole Accept header, sent by curl, the same JVM: TiffinBox's own answer (Ravi), then a name nobody has:
+$ curl -s -w ' %{http_code} · Content-Type: [%{content_type}]\n' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7' http://127.0.0.1:19433/customers/Ravi
+  {"name":"Ravi","mealsPerDay":2,"pricePerMeal":120,"mealType":"VEG"} 200 · Content-Type: [application/json] · WARN lines it added: 0 · ERROR lines: 0
+$ curl -s -w ' %{http_code} · Content-Type: [%{content_type}]\n' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7' http://127.0.0.1:19433/customers/Nobody
+  the Whitelabel page (Boot's) - its <h1>: Whitelabel Error Page · its error line: There was an unexpected error (type=Not Found, status=404). · its created date: masked · its paragraphs: 1, not shown · then curl's: 404 · Content-Type: [text/html;charset=UTF-8] · WARN lines it added: 0 · ERROR lines: 0
 $ harness/shutdown.sh 19433 .harness/anchor/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
   exit 0 · listening on 19433 now: 0
@@ -730,7 +744,7 @@ the solution's 3 lines, next, in the same shell:
 
 ## Exercise
 
-**Your turn:** the README's request gets an HTML page, not JSON. Read its Content-Type, change one header, and read the status again.
+**Your turn:** the README's request gets an HTML page, not JSON. Read its Content-Type, change one header, and read the Content-Type again.
 `exercise/README.md` has the commands (copy the anchor, give the copy a token of its own); its last line, in a subshell, builds the copy
 offline, starts it on 19439, asks for a customer nobody has with `Accept: text/html`, stops it, waits for its JVM and prints — as shipped —
 `status: 404 · Content-Type: text/html;charset=UTF-8`. Done is `status: 404 · Content-Type: application/json`. Measured answer:
@@ -759,13 +773,15 @@ offline, starts it on 19439, asks for a customer nobody has with `Accept: text/h
 
 ## LINES OVERTURNED OR SHARPENED BY THIS UNIT'S MEASUREMENT
 
-- **Five shapes, not six** (brief READ FIRST 2, the unit block's `shapes`): the empty 406 and the empty 409 are the same bytes — no body, no
-  `Content-Type`, `Content-Length: 0` — so the capture's own count, by Content-Type and keys, is five. The voice says "no body at all for the
+- **Five shapes, not six** (brief READ FIRST 2, the unit block's `shapes`): the empty 406 and the empty 409 are the same body shape — none, no
+  `Content-Type`, `Content-Length: 0` (the 406 adds an `Accept` header naming what it could have sent) — so the capture's own count, by
+  Content-Type and keys, is five. The voice says "no body at all for the
   four oh six and the four oh nine".
 - **The method's field map has four fields** on this tree's refused body (the anchor README's own body breaks four rules: `mealType`,
   `mealsPerDay`, `name`, `pricePerMeal`), where the probe's had three.
-- **A browser-like client is told 406 for a POST that stored a customer** (not in the brief): Lata's 201 under `Accept: text/html` became a
-  Whitelabel 406, and the same POST again answered 409. Spoken.
+- **A client that asks for HTML alone is told 406 for a POST that stored a customer** (not in the brief): Lata's 201 under
+  `Accept: text/html` became a Whitelabel 406, and the same POST again answered 409. Spoken. A browser's whole header is not that client:
+  `html`'s C, Chrome's header → Ravi 200 JSON (RED A #128).
 - **Under `text/html` the 406 is a Whitelabel 406** (Ravi asked for as HTML), while the XML 406 stays empty (`shapes`): both measured; the brief's
   "the 406 still empty" holds for its own XML request.
 - **DevTools' 404 trace is 46 frames**, its 500's 44 (the brief's 44 for the 500, re-counted: holds).

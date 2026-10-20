@@ -124,7 +124,9 @@ HEAD, `Accept: application/xml` and DELETE answer as before (TiffinBox's handler
 `http_server_requests` times every answer (it tags every 404 here `uri="/**"`), TiffinBox's own `tiffinbox_requests` only the
 answers TiffinBox's handler gives — the three 404s are on Boot's timer alone. *(Course 6, unit 06: Spring MVC decides those three now — HEAD 200 with
 `Content-Length: 282`, `Accept: application/xml` 406, DELETE 405 with `Allow: GET`, the 405 and the 406 one WARN line each; and
-TiffinBox's own timer is retired: Boot's alone times every answer — `../c6-unit06/`, `verbs`, `timers`.)* **A `static/` folder is served:** `/**`'s locations
+TiffinBox's own timer is retired: Boot's alone times every answer — `../c6-unit06/`, `verbs`, `timers`.)* *(Course 6, unit 16: with problem
+details on, the 405 and the 406 are problem details; the 405 still logs one WARN line, now Spring MVC's `PageNotFound`, the 406 none —
+`../c6-unit16/`, `flag`.)* **A `static/` folder is served:** `/**`'s locations
 end with `ServletContext [/]`, Tomcat's document root, which Boot takes from the folder TiffinBox starts in (its `static/`,
 `public/` or `src/main/webapp/`): a file in `static/` there answers 200, while that folder's own files and the config tree,
 `secrets/`, answer 404 (`../c6-unit05/`, `catchall` D).
@@ -248,7 +250,8 @@ objects that fill one kind of parameter each — fills it before the method runs
 - `TiffinBoxServer.java` — **`GET /customers/{name}`**, new: `Customer customer(@PathVariable String name)` — a **path variable**,
   one segment of the path — answers the customer whose name is exactly that one; a name nobody has throws Spring's
   **`ResponseStatusException`** with 404 *(Course 6, unit 15: `CustomerNotFound` since, which the controller advice `TiffinBoxErrors`
-  answers — 404 and `{"error":"no customer named Nobody"}`; `../c6-unit15/`, `notfound`)*. **`GET /customers`** takes `@RequestParam(required = false) MealType mealType` — a
+  answers — 404 and `{"error":"no customer named Nobody"}`; `../c6-unit15/`, `notfound`)* *(Course 6, unit 16: a problem detail since —
+`application/problem+json`, title `Customer not found`, the name a member of its own; `../c6-unit16/`, `own`)*. **`GET /customers`** takes `@RequestParam(required = false) MealType mealType` — a
   **request parameter**, from the query string — and keeps the customers of that meal type; without it, or with an empty value, all
   four. **POST /shutdown** takes its token as `@RequestHeader(name = "X-Shutdown-Token", required = false) String token`, where it read
   the servlet request's header itself: `holdsToken()` takes the header's value (`null` when there is none), and the 403 is still the
@@ -300,7 +303,9 @@ flag starts cleanly and answers its first request with a 500: `Ensure that the c
   them. `?mealType=` (empty) → all four; the parameter twice → the first.
 - POST /shutdown with no header, or the token under a misspelt name (`X-Shutdown-Tokn`), is the method's own 403
   (`required = false`). With `required = true` — measured on a copy, one attribute changed — the same requests are Spring MVC's 400,
-  with a WARN line that names the header (`MissingRequestHeaderException`), and TiffinBox's method never answers forbidden.
+  with a WARN line that names the header (`MissingRequestHeaderException`), and TiffinBox's method never answers forbidden. *(Course 6,
+unit 16: that copy is not re-measured on this tree; with problem details on, the 400s Spring MVC decides that `flag` sends are problem
+details with no WARN line — `../c6-unit16/`, `flag`.)*
 
 ```bash
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.root=trace
@@ -537,7 +542,8 @@ they print status, type and body, never a length.
 
 **Statuses by accident** (the course's harness, `statuses`): a name nobody has, answered four ways — TiffinBox's own route, Spring's
 `ResponseStatusException`: 404 and Boot's body *(Course 6, unit 15: TiffinBox's route throws `CustomerNotFound` since — 404 and
-`{"error":"no customer named Nobody"}`, its controller advice's body; `../c6-unit15/`, `notfound`)*; `ResponseEntity.of(…)` with an empty `Optional`: 404, no body; `null`: 200, no body;
+`{"error":"no customer named Nobody"}`, its controller advice's body; `../c6-unit15/`, `notfound`)* *(Course 6, unit 16: a problem
+detail since, the name a member of its own; `../c6-unit16/`, `own`)*; `ResponseEntity.of(…)` with an empty `Optional`: 404, no body; `null`: 200, no body;
 the `Optional` itself: 200 and the word `null`. None of them logs a WARN line. `@ResponseStatus(HttpStatus.CREATED)` on a route answers
 201 with no Location.
 
@@ -590,9 +596,11 @@ of Spring MVC's `DefaultHandlerExceptionResolver` that lists the 4 errors, each 
 moves between runs — Hibernate Validator hands its violations over as a set — which is why the method's map is a `TreeMap`. *(Course 6, unit 16: with problem details on, Boot's handler answers that exception — `{"detail":"Invalid request content.",…,"title":"Bad Request"}`, no field, no WARN line (the harness's `ValidIn`); `../c6-unit16/`, `losers`.)*
 
 **The misspelt key, caught** (`typo`). Jackson still ignores `"mealTyp"`, so the record's meal type is `null` — and that is now
-`{"mealType":"must not be null"}`, 400, before H2 is asked: no ERROR line, nothing stored (`/customers/Rohan` 404). An unknown property
+`{"mealType":"must not be null"}`, 400 *(Course 6, unit 16: inside a problem detail since — `"errors":{"mealType":"must not be null"}`,
+"the customer breaks 1 rule"; `../c6-unit16/`, `own`)*, before H2 is asked: no ERROR line, nothing stored (`/customers/Rohan` 404). An unknown property
 beside a full body (`"loyaltyPoints":5`) is still ignored: 201, and the customer is stored without it — validation checks the record
-Jackson built, not the JSON that was sent. `2.7` meals is still Jackson's refusal, before validation: Boot's 400, one WARN line.
+Jackson built, not the JSON that was sent. `2.7` meals is still Jackson's refusal, before validation: Boot's 400, one WARN line *(Course 6, unit 16: a problem detail since,
+`Failed to read request`, and no WARN line — Jackson's reason in neither; `../c6-unit16/`, `flag`)*.
 
 **Who validates** (`validator`: the course's harness, `probe.web.Who`, reading the running application). Spring MVC's handler adapter
 binds and validates with the bean `mvcValidator`, Boot's `ValidatorAdapter`; its target is the very `LocalValidatorFactoryBean` Boot
@@ -640,7 +648,8 @@ a **controller advice**, a component whose handlers serve every controller. Two 
 - `TiffinBoxErrors.java` — new: **`@RestControllerAdvice`** — Spring MVC's `@ControllerAdvice` plus `@ResponseBody`, read off the
   annotation (`notfound`) — final, package-private, with one handler: `@ExceptionHandler(CustomerNotFound.class)`
   `@ResponseStatus(HttpStatus.NOT_FOUND)` `Map<String, String> notFound(CustomerNotFound e)` → `{"error": e.getMessage()}`, the shape
-  TiffinBox's own 403 already had.
+  TiffinBox's own 403 already had. *(Course 6, unit 16: it returns a `ProblemDetail` since — 404, title `Customer not found`, the
+  message as the detail, the name as a member; `@ResponseStatus` gone; the 403 a problem detail too; `../c6-unit16/`, `change`, `own`.)*
 - `TiffinBoxServer.java` — `GET /customers/{name}` throws `new CustomerNotFound(name)` where it threw `ResponseStatusException`; that
   import is gone, and the Javadoc says who answers now: 273 lines → 274.
 
@@ -653,10 +662,12 @@ curl -s -w ' %{http_code}\n' http://127.0.0.1:18431/customers/Nobody
 
 **A 404 that names the customer.** That line — the path-variable lesson's one-customer line, its name one nobody has — answers
 `{"error":"no customer named Nobody"} 404`; `/customers/Sunil%20K` answers `{"error":"no customer named Sunil K"} 404` (the path
-variable arrives decoded); Ravi still 200. No WARN and no ERROR line for any of them. The seven are unchanged, `87ca7efc…` (masked):
+variable arrives decoded); Ravi still 200. No WARN and no ERROR line for any of them. *(Course 6, unit 16: Nobody's answer is a problem
+detail since — `application/problem+json`, the name a member of its own, 0 WARN 0 ERROR; `../c6-unit16/`, `own`, `accept`.)* The seven are unchanged, `87ca7efc…` (masked):
 none of them asks for a name (`notfound`). **Who answers:** Spring MVC's `ExceptionHandlerExceptionResolver`, the first of the three
 resolvers in its composite (then `ResponseStatusExceptionResolver`, then `DefaultHandlerExceptionResolver`; the DispatcherServlet asks
-Boot's `DefaultErrorAttributes` before the composite), keeps an advice cache — here one advice, `TiffinBoxErrors`, at the default order, the lowest; at DEBUG it logs
+Boot's `DefaultErrorAttributes` before the composite), keeps an advice cache — here one advice, `TiffinBoxErrors`, at the default order, the lowest *(Course 6, unit 16: two since — Boot's
+`ProblemDetailsExceptionHandler` at order 0 first, then `TiffinBoxErrors`; `../c6-unit16/`, `seven`)*; at DEBUG it logs
 `Using @ExceptionHandler com.tiffinbox.web.TiffinBoxErrors#notFound(CustomerNotFound)` and `Completed 404 NOT_FOUND`, and no error
 dispatch follows — where the previous tree's `ResponseStatusException` was resolved by the second resolver, and Boot's error controller
 wrote the body on an error dispatch (`notfound`, at DEBUG).

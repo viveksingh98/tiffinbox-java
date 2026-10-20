@@ -43,6 +43,8 @@ build per `forms` run (three per receipt); its seconds, and the 20-minute bound,
 group of its own** (a terminal's foreground job is one): two receipts started as background jobs of one shell share a group, and one
 run's clean-up would stop the other's JVMs (R.94).
 
+**BLUE's runs (2026-10-20, after RED S3's fixes — the S3 brief's AMENDMENT (BLUE S3)):** 1608 s under `./receipts.sh` (/bin/bash 3.2.57) and 1411 s under `bash receipts.sh` (Homebrew bash 5.3), each `env -i` in a process group of its own, exit 0, every capture 3/3 = published. Captures that changed: change `73f2b4cb…` → `8976f627…` · accept `e004c390…` → `98dd1c00…` · forms `792c6354…` → `2b0cf5eb…`; the rest as published before. The cascade: this unit's `after/README.md` (= `c6-tiffinbox/README.md`) gained nine notes, so this unit and the next re-ran (R.104); jar, AOT jar, binary and image re-proved in `forms` (the seven `466c20ed…` 4 of 4, loopback per form, 0 tokens in the binary and the image's layers).
+
 **Runs of record (2026-10-17, this script as committed):** **1,054 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with HOME and a
 plain PATH, this folder, its own process group, `.m2-demo` re-seeded from `_research/m2-seed-s3/` alone: all 9 captures 3/3, every check
 passed, then — as designed for a first run — "no published hash", the nine hashes put into `receipts.md5`); **1,074 s under `bash
@@ -57,7 +59,7 @@ from `_research/m2-seed-s3/` (4,360 files), the proxy variables at the same refu
 yes`. This README's prose (the run facts, these lines) was completed after the sealed run; nothing it reads (`mine()`) changed. **A last run on the finished files** (this README, the anchor's, everything as committed): `bash receipts.sh`, re-seeded, exit 0, all 9 = published, 1,058 s. **The
 exercise as viewers run it** — see "Found on the way".
 
-Published hashes: change `73f2b4cbc9034ae442af03dd6231c9d7` · seven `866b3671d38c87261d02e74e4056d396` · own `3cf9bfad986dbd50dc4c6165ea626b20` · accept `e004c39074b159966cbe1e0cdfc2af38` · flag `3eb13a29caed61a55dc0f3396fd250b3` · edges `f9155b1023741b0c9fb345c1213ba90d` · losers `6d7a8e5c44abb4dc34adf390195d2c30` · exercise `f31329abbd2b7fe21030f45314b8b11d` · forms `792c63543cd8f3bd6c69519ae39c9b20`.
+Published hashes: change `8976f62790541693f534c11e35513850` · seven `866b3671d38c87261d02e74e4056d396` · own `3cf9bfad986dbd50dc4c6165ea626b20` · accept `98dd1c00baed2ffa2df042f2da9f36cd` · flag `3eb13a29caed61a55dc0f3396fd250b3` · edges `f9155b1023741b0c9fb345c1213ba90d` · losers `6d7a8e5c44abb4dc34adf390195d2c30` · exercise `f31329abbd2b7fe21030f45314b8b11d` · forms `2b0cf5eb4fc6aff25e44fc24af3cac63`.
 
 ## The commands this unit adds
 
@@ -86,8 +88,8 @@ one run (`flag` B), Spring MVC's `log-resolved-exception` (`flag` C), Boot's `in
 and the key's two misspellings (`losers`): singular, as the class is named, and with a dash. The javac line compiles the course's harness,
 the three files of `harness/probe/web`, against after/'s extracted jar, with `-parameters`. The three Accept lines are the anchor's new
 line — `curl -s -w ' %{http_code} · Content-Type: [%{content_type}]\n' http://127.0.0.1:18431/customers/Nobody`, this unit's, in its
-README's own section: the exception-handler lesson's line with curl's Content-Type printed — with one `Accept` header each: a browser's type
-alone, XML alone, and a browser's whole header (Chrome's). The last is the request-body lesson's POST line with curl's Content-Type
+README's own section: the exception-handler lesson's line with curl's Content-Type printed — with one `Accept` header each: HTML alone, XML
+alone, and a browser's whole header (Chrome's). `ah` puts `Accept: text/html` into the POST line and the 403's (`accept`). The last is the request-body lesson's POST line with curl's Content-Type
 printed. Every other request is one of those with its path or its body swapped: `tq` (the anchor's new line, a path, an optional Accept),
 `pq` (the POST line, a body; a form's Content-Type for the 415), `xq` (the secrets lesson's POST /shutdown without the token, Content-Type
 printed). The bodies are read off the anchor's README lines — Asha's (the request-body lesson), Mohan's two point seven meals (the
@@ -131,8 +133,9 @@ counted 0 times in its own log and never printed.
 Every java line this script starts carries `-Duser.language=en -Duser.country=US` before `-jar` or `-cp` (S3.1, RED B2 #111), and `Who`
 prints the JVM's locale (`en_US`). Hibernate Validator's messages are in the 400's `errors` member (`must not be blank`, …), and Spring's
 problem-detail details (`Failed to convert …`, `No static resource …`), Jackson's messages in WARN lines and Boot's Whitelabel page are
-English text a JVM in another language could word otherwise. The binary takes no JVM options (its line has none: `at()` checks); the
-image runs the jar on Linux with no locale set. A last check refuses any capture whose java line lacks the two options.
+English text a JVM in another language could word otherwise. The binary's line passes no locale option (`at()` adds none to it); the
+image runs the jar on Linux with no locale set — `forms` counts the options on both lines (0) and says nothing they print here depends on
+one: their answers are the pinned jar's, 4 of 4, Hibernate Validator's four messages in English (RED B #210). A last check refuses any capture whose java line lacks the two options.
 
 ## The folders, the names and the ports
 
@@ -215,7 +218,7 @@ key's line **64**, the first `---` at **99** — in the first document (R.87). *
 the `Map` and its imports out, `ProblemDetail notFound(…)` with its title and `name` member in. `TiffinBoxServer.java` 274 → 296,
 `ProblemDetail` named 0 → 6, `"forbidden"` 1 → 0 — its code lines' diff whole. The jar: 56 libraries, 9 web classes, the same names.
 
-`.r-change.out` · md5 `73f2b4cbc9034ae442af03dd6231c9d7` · 3 of 3
+`.r-change.out` · md5 `8976f62790541693f534c11e35513850` · 3 of 3
 
 ```
 the previous tree and after/, both copied under .harness/ with a config tree, each built with the README's line (offline):
@@ -300,7 +303,7 @@ $ diff -rq -x target -x secrets .harness/before .harness/after
     +        problem.setProperty("errors", fields);
     +        return problem;
     +    }
-  README.md - the anchor's README: lines added 89, removed 21 - its new section and the history notes the change made false (not shown)
+  README.md - the anchor's README: lines added 109, removed 30 - its new section and the history notes the change made false (not shown)
 the executable jar's BOOT-INF/lib: 56 jars -> 56 · the same names: yes
 the classes in the jar's com/tiffinbox/web: 9 -> 9 · the same names: yes
 ```
@@ -478,15 +481,16 @@ $ harness/shutdown.sh 19450 .harness/after/secrets/tiffinbox/shutdown-token
 ## 4 · accept — what a client that accepts something else gets
 
 `/customers/Nobody` for three clients, each sent by curl (no browser ran; S3.12): `Accept: text/html`, `Accept: application/xml`, and
-Chrome's whole header; then `/nowhere` for `text/html`. **after/: all four problem details, `application/problem+json`, 0 WARN 0 ERROR** —
-the 404 for every client. **The previous tree** (the exception-handler lesson's C, re-measured): only HTML → Boot's Whitelabel 500, only XML
+Chrome's whole header; then, each for a client that asks for HTML alone, `/nowhere`, the body that breaks four rules and POST /shutdown
+without the token. **after/: all six problem details, `application/problem+json`, 0 WARN 0 ERROR** — the 404 for every client, and
+TiffinBox's own 400 and 403 for HTML alone too (RED B #206: a second and third case of "whatever the client accepts"). **The previous tree** (the exception-handler lesson's C, re-measured): only HTML → Boot's Whitelabel 500, only XML
 → an empty 500, each 1 WARN (`Failure in @ExceptionHandler …#notFound`, `No acceptable representation`) and 1 ERROR (Tomcat's); Chrome's →
-`{"error":…}` JSON 404; `/nowhere` for HTML → the Whitelabel 404.
+`{"error":…}` JSON 404; `/nowhere` for HTML → the Whitelabel 404; the 4-rule body and the 403 for HTML alone → each Boot's Whitelabel **406**, 1 WARN (`DefaultHandlerExceptionResolver`, `No acceptable representation`).
 
-`.r-accept.out` · md5 `e004c39074b159966cbe1e0cdfc2af38` · 3 of 3
+`.r-accept.out` · md5 `98dd1c00baed2ffa2df042f2da9f36cd` · 3 of 3
 
 ```
-after/ - a name nobody has, asked by three clients, each sent by curl: one that accepts only HTML (a browser's type), one that accepts only XML, and a browser's whole Accept header (Chrome's); then a path nobody maps, for HTML - port 19450:
+after/ - a name nobody has, asked by three clients, each sent by curl: one that accepts only HTML, one that accepts only XML, and a browser's whole Accept header (Chrome's); then, each for a client that asks for HTML alone, a path nobody maps, a body that breaks four rules, POST /shutdown without the token - port 19450:
 $ cd .harness/after && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19450
   listens on: 127.0.0.1:19450 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
@@ -500,12 +504,16 @@ $ curl -s -w ' %{http_code} · Content-Type: [%{content_type}]\n' -H 'Accept: te
   {"detail":"no customer named Nobody","instance":"/customers/Nobody","status":404,"title":"Customer not found","name":"Nobody"} 404 · Content-Type: [application/problem+json] · WARN lines it added: 0 · ERROR lines: 0
 $ curl -s -w ' %{http_code} · Content-Type: [%{content_type}]\n' -H 'Accept: text/html' http://127.0.0.1:19450/nowhere
   {"detail":"No static resource nowhere.","instance":"/nowhere","status":404,"title":"Not Found"} 404 · Content-Type: [application/problem+json] · WARN lines it added: 0 · ERROR lines: 0
+$ curl -s -w ' %{http_code} · Content-Type: [%{content_type}]\n' -H 'Accept: text/html' -H 'Content-Type: application/json' --data '{"name":"","mealsPerDay":0,"pricePerMeal":-5,"mealType":"LUNCH"}' http://127.0.0.1:19450/customers
+  {"detail":"the customer breaks 4 rules","instance":"/customers","status":400,"title":"Invalid customer","errors":{"mealType":"must match \"VEG|NON_VEG|VEGAN\"","mealsPerDay":"must be greater than or equal to 1","name":"must not be blank","pricePerMeal":"must be greater than or equal to 1"}} 400 · Content-Type: [application/problem+json] · WARN lines it added: 0 · ERROR lines: 0
+$ curl -s -w ' %{http_code} · Content-Type: [%{content_type}]\n' -H 'Accept: text/html' -X POST http://127.0.0.1:19450/shutdown
+  {"detail":"the shutdown token is missing or wrong","instance":"/shutdown","status":403,"title":"Forbidden"} 403 · Content-Type: [application/problem+json] · WARN lines it added: 0 · ERROR lines: 0
   WARN lines in this run's log, at Boot's default level: 0 · ERROR lines: 0
 $ harness/shutdown.sh 19450 .harness/after/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
   exit 0 · listening on 19450 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
-the previous tree - the same four, port 19451:
+the previous tree - the same six, port 19451:
 $ cd .harness/before && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19451
   listens on: 127.0.0.1:19451 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
@@ -531,7 +539,15 @@ $ curl -s -w ' %{http_code} · Content-Type: [%{content_type}]\n' -H 'Accept: te
   {"error":"no customer named Nobody"} 404 · Content-Type: [application/json] · WARN lines it added: 0 · ERROR lines: 0
 $ curl -s -w ' %{http_code} · Content-Type: [%{content_type}]\n' -H 'Accept: text/html' http://127.0.0.1:19451/nowhere
   the Whitelabel page (Boot's) - its <h1>: Whitelabel Error Page · its error line: There was an unexpected error (type=Not Found, status=404). · its created date: masked · its paragraphs: 1, not shown · then curl's: 404 · Content-Type: [text/html;charset=UTF-8] · WARN lines it added: 0 · ERROR lines: 0
-  WARN lines in this run's log, at Boot's default level: 2 · ERROR lines: 2
+$ curl -s -w ' %{http_code} · Content-Type: [%{content_type}]\n' -H 'Accept: text/html' -H 'Content-Type: application/json' --data '{"name":"","mealsPerDay":0,"pricePerMeal":-5,"mealType":"LUNCH"}' http://127.0.0.1:19451/customers
+  the Whitelabel page (Boot's) - its <h1>: Whitelabel Error Page · its error line: There was an unexpected error (type=Not Acceptable, status=406). · its created date: masked · its paragraphs: 1, not shown · then curl's: 406 · Content-Type: [text/html;charset=UTF-8] · WARN lines it added: 1 · ERROR lines: 0
+    WARN .w.s.m.s.DefaultHandlerExceptionResolver: Resolved [org.springframework.web.HttpMediaTypeNotAcceptableException: No acceptable representation]
+      its stack frames: 0, its other lines: 0 - none shown
+$ curl -s -w ' %{http_code} · Content-Type: [%{content_type}]\n' -H 'Accept: text/html' -X POST http://127.0.0.1:19451/shutdown
+  the Whitelabel page (Boot's) - its <h1>: Whitelabel Error Page · its error line: There was an unexpected error (type=Not Acceptable, status=406). · its created date: masked · its paragraphs: 1, not shown · then curl's: 406 · Content-Type: [text/html;charset=UTF-8] · WARN lines it added: 1 · ERROR lines: 0
+    WARN .w.s.m.s.DefaultHandlerExceptionResolver: Resolved [org.springframework.web.HttpMediaTypeNotAcceptableException: No acceptable representation]
+      its stack frames: 0, its other lines: 0 - none shown
+  WARN lines in this run's log, at Boot's default level: 4 · ERROR lines: 2
 $ harness/shutdown.sh 19451 .harness/before/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
   exit 0 · listening on 19451 now: 0
@@ -1005,7 +1021,7 @@ detail for curl's own Accept and for only HTML, the four-rule 400 with its `erro
 details: 4 of 4 each. The image: built from after/'s Dockerfile, 0 lines that say pull, its layers 0 bytes of the token; `docker port`
 `18425/tcp -> 127.0.0.1:19457` alone.
 
-`.r-forms.out` · md5 `792c63543cd8f3bd6c69519ae39c9b20` · 3 of 3
+`.r-forms.out` · md5 `2b0cf5eb4fc6aff25e44fc24af3cac63` · 3 of 3
 
 ```
 the native build - after/ copied to .harness/nat with a config tree; the README's two Maven lines, offline; $GRAALVM_HOME names the GraalVM:
@@ -1190,6 +1206,7 @@ $ docker wait tiffinbox-problem
   exit 0 · its log (docker logs): the demo token 0 times · X-Shutdown-Token 0 times
 four forms, one tree: the seven (masked) 4 of 4 times 466c20ed7e0d5439cb052f32ce09de1b, the timestamp mask changing 0 lines · a name nobody has - curl's own Accept, and only HTML - 404 and the name, a problem detail: 8 of 8 · four rules broken, a problem detail with its errors: 4 of 4 · POST /shutdown without the token, a 403 problem detail: 4 of 4 · a new customer, 201: 4 of 4 · the same again, a 409 problem detail: 4 of 4
   loopback, form by form: the jar yes · the AOT jar yes · the binary yes · the image, published on 127.0.0.1 alone yes
+  the locale: options on the binary's and the image's run lines: 0 (none passed: the binary runs as the README writes it, the image as its ENTRYPOINT, java -jar, unpinned) - nothing they print here depends on one: each answer above the pinned jar's, 4 of 4 - Hibernate Validator's four messages in English
 ```
 
 
@@ -1232,11 +1249,24 @@ and **22 history notes amended in place**, each an *(Course 6, unit 16: …)* no
 - Course 5's secrets section's `403 {"error":"forbidden"}` → a 403 problem detail;
 - Course 5's secrets section's "without the header, `{"error":"forbidden"} 403`" → the problem detail, whole;
 - the capstone's run section's GET /shutdown 405 (after unit 06's note) → a problem detail.
+
+**Nine more, added by BLUE (2026-10-20; RED A #141, RED B #203)** — lines this unit made false and the first pass missed, each now an
+*(Course 6, unit 16: …)* note, in `after/README.md` and `c6-tiffinbox/README.md` alike:
+- the embedded-Tomcat section's unit 06 note ("the 405 and the 406 one WARN line each") → problem details; the 405 one WARN, `PageNotFound`'s, the 406 none (`flag`);
+- the path-variable section's unit 15 note (`{"error":"no customer named Nobody"}`) → a problem detail, the name a member (`own`);
+- the path-variable section's `required = true` copy ("Spring MVC's 400, with a WARN line") → not re-measured; `flag`'s Spring MVC 400s are problem details with no WARN;
+- the response section's unit 15 note on "Statuses by accident" → a problem detail (`own`);
+- the validation section's typo line (`{"mealType":"must not be null"}`, 400) → inside a problem detail's `errors`, 1 rule (`own`);
+- the validation section's "`2.7` meals … Boot's 400, one WARN line" → `Failed to read request`, no WARN (`flag`);
+- the exception-handler section's `TiffinBoxErrors` (`@ResponseStatus`, the `Map` body) → a `ProblemDetail` (`change`, `own`);
+- the exception-handler section's "A 404 that names the customer" (`{"error":…} 404`) → the problem detail (`own`, `accept`);
+- the exception-handler section's "here one advice, `TiffinBoxErrors`" → two, Boot's at order 0 first (`seven`).
+
 Left as they were, and still true (each read): the embedded-Tomcat section's server lines; the request-mapping section's 9 mappings; every
 `Whitelabel` line about a tree before this one (history: Boot's page still answers a 500 for HTML, `edges`); the path-variable section's
-`%2F` (Tomcat's page, unchanged, `edges`) and its missing-header 400 (`MissingRequestHeaderException`, not measured here); the validation
+`%2F` (Tomcat's page, unchanged, `edges`) and its missing-header 400 (`MissingRequestHeaderException`, not measured here; noted since, above); the validation
 section's method-validation lines (`HandlerMethodValidationException`, not measured here); every form's statuses (each still holds; the
-bodies are new, and the new section says so); Course 5's sections other than the two `forbidden` lines. `c6-tiffinbox/README.md`: 89 lines added, 21 removed (`change`).
+bodies are new, and the new section says so); Course 5's sections other than the two `forbidden` lines. `c6-tiffinbox/README.md`: 109 lines added, 30 removed against the previous tree's (`change`; 89 and 21 before BLUE's nine notes).
 
 ## RE-MEASURE — the brief's items this unit settles
 

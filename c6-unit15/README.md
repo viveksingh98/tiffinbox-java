@@ -60,6 +60,8 @@ build per `forms` run (three per receipt); its seconds, and the 20-minute bound,
 with the machine's load. **Start it in a process group of its own** (a terminal's foreground job is one): two receipts started as
 background jobs of one shell share a group, and one run's clean-up would stop the other's JVMs (R.94).
 
+**BLUE's runs (2026-10-20, after RED S3's fixes — the S3 brief's AMENDMENT (BLUE S3)):** 1075 s under `./receipts.sh` (/bin/bash 3.2.57) and 1356 s under `bash receipts.sh` (Homebrew bash 5.3), each `env -i` in a process group of its own, exit 0, every capture 3/3 = published. Captures that changed: notfound `3084642c…` → `8595bf78…` · precedence `f44a3921…` → `891b8854…` · forms `c9a8aa1b…` → `274bb50a…`; the rest as published before.
+
 **Runs of record (2026-10-17, this script as committed):** **1,086 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with HOME and a
 plain PATH, this folder, its own process group, `.m2-demo` re-seeded from `_research/m2-seed-s3/` alone: every check passed, all 6
 captures 3/3 — five = published, `exercise` "no published hash" as designed, its hash then put into `receipts.md5`; the native builds 168,
@@ -74,7 +76,7 @@ it**, beyond the capture: README then SOLUTION, then SOLUTION again, in one `env
 `/bin/bash` shell without the exports — its `java` 23.0.1 — ends with `exit 1` and prints no line; SOLUTION alone in such a shell → `status:
 404 …` (its exports first), exit 0; 19449 free after each.
 
-Published hashes: change `5c6f2e2bae7175560cee262e7020c733` · notfound `3084642c563d0e7025760de5f5b8a255` · precedence `f44a39216cbe803da323d54b66ad5e2b` · status `52072794da8e0cba66fd1016aa3b1389` · exercise `6c598c975e990cf1557ac24582017eda` · forms `c9a8aa1b6a07298a983a7c46b9656721`.
+Published hashes: change `5c6f2e2bae7175560cee262e7020c733` · notfound `8595bf785e3b90f1ad57a66661baae29` · precedence `891b88547eb43d4b974f8ee27898e86d` · status `52072794da8e0cba66fd1016aa3b1389` · exercise `6c598c975e990cf1557ac24582017eda` · forms `274bb50acb071f603ba1c5cc6895a0e1`.
 
 ## The commands this unit adds
 
@@ -136,8 +138,9 @@ counted 0 times in its own log and never printed.
 Every java line this script starts carries `-Duser.language=en -Duser.country=US` before `-jar` or `-cp` (S3.1, RED B2 #111), and `Who`
 prints the JVM's locale (`en_US`). On macOS the JVM takes the Mac's first language, not `LC_ALL` (measured by RED B2: `LC_ALL=de_DE.UTF-8`
 → `en_US`), and Spring's, Jackson's and Tomcat's messages in this unit's log lines, and Boot's Whitelabel page, are English text a JVM in
-another language could word otherwise. The binary takes no JVM options (its line has none: `at()` checks); the image runs the jar on Linux
-with no locale set. A last check refuses any capture whose java line lacks the two options (the extract line, `-Djarmode=tools`, prints
+another language could word otherwise. The binary's line passes no locale option (`at()` adds none to it); the image runs the jar on Linux
+with no locale set — `forms` counts the options on both lines (0) and says nothing they print here depends on one: each of their answers
+is the pinned jar's, 4 of 4 (RED A #142). A last check refuses any capture whose java line lacks the two options (the extract line, `-Djarmode=tools`, prints
 nothing a locale changes).
 
 ## The folders, the names and the ports
@@ -151,7 +154,7 @@ nothing a locale changes).
   the extracted jar's class path: `Who` reads the running application as text (`/probe/who/advice`: the annotations `@RestControllerAdvice`
   carries; the `HandlerExceptionResolver` beans in the order the `DispatcherServlet` sorts them, and the composite's resolvers; the
   `ExceptionHandlerExceptionResolver`'s advice cache in the order it asks — each advice's type, its order, its `@ExceptionHandler` methods,
-  the types each takes and its `@ResponseStatus` — and, for five exception types, the method each advice resolves it to, by the resolver's
+  the types each takes and its `@ResponseStatus` — and, for six exception types — the sixth Spring MVC's `MethodArgumentTypeMismatchException` — the method each advice resolves it to, by the resolver's
   own `resolveMethodByExceptionType`; the JVM's locale); `Prec` (four routes throwing `IllegalArgumentException`, `NumberFormatException`,
   `IllegalStateException`, `UnsupportedOperationException`, and a handler of its own for `IllegalStateException`); `AdviceWide` (an advice
   at the default order: `IllegalArgumentException`, `NumberFormatException`, `IllegalStateException`, each 400); `AdviceFirst` (ordered
@@ -302,7 +305,7 @@ com.tiffinbox.web.TiffinBoxErrors#notFound(CustomerNotFound)`, the map written b
 tree's 9: `ResponseStatusExceptionResolver` resolved the `ResponseStatusException`, then the container's `"ERROR" dispatch for GET "/error"`
 mapped to Boot's `BasicErrorController#error`, whose body `HttpEntityMethodProcessor` wrote.
 
-`.r-notfound.out` · md5 `3084642c563d0e7025760de5f5b8a255` · 3 of 3
+`.r-notfound.out` · md5 `8595bf785e3b90f1ad57a66661baae29` · 3 of 3
 
 ```
 the seven - after/, the README's run line, port 19440, a fresh JVM:
@@ -374,6 +377,7 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19442/probe/who/advice
   a NumberFormatException, each advice's method for it, in that order: TiffinBoxErrors: none
   an IllegalStateException, each advice's method for it, in that order: TiffinBoxErrors: none
   an UnsupportedOperationException, each advice's method for it, in that order: TiffinBoxErrors: none
+  a MethodArgumentTypeMismatchException, each advice's method for it, in that order: TiffinBoxErrors: none
   the JVM's locale: en_US
    200 · WARN lines it added: 0 · ERROR lines: 0
 $ harness/shutdown.sh 19442 .harness/after/secrets/tiffinbox/shutdown-token
@@ -433,12 +437,13 @@ advice, the nearest type, though `IllegalArgumentException`'s handler would take
 before `AdviceWide`'s `IllegalStateException` handler; **`uoe`, no handler → Boot's 500 and 1 ERROR line**, Tomcat's, its trace over 40
 frames. TiffinBox's own: `/customers/Nobody` still `TiffinBoxErrors`' 404; and `?mealType=veg` → `AdviceWide: IllegalArgumentException`
 400 with 0 WARN lines, where after/ alone answers it with Spring MVC's `DefaultHandlerExceptionResolver` and one WARN (the path-variable
-lesson's) — a broad handler takes more than its name says. **`AdviceFirst` joined too** (`Ordered.HIGHEST_PRECEDENCE`, −2147483648): 3
+lesson's) — a broad handler takes more than its name says: `Who` shows no handler takes a `MethodArgumentTypeMismatchException` **by
+its type** (`AdviceWide: none`), so `iae` took it **by a cause in its chain** — Spring MVC also matches an exception's causes (RED A #138). **`AdviceFirst` joined too** (`Ordered.HIGHEST_PRECEDENCE`, −2147483648): 3
 advices, it first; `iae`, `nfe`, `uoe`, `/customers/Nobody` and `?mealType=veg` → **`{"who":"AdviceFirst: RuntimeException"} 200`** —
 across advices, order before nearness, and a handler that names no status answers 200; `ise` still the controller's own 400. 0 WARN and 0
 ERROR lines in that run.
 
-`.r-precedence.out` · md5 `f44a39216cbe803da323d54b66ad5e2b` · 3 of 3
+`.r-precedence.out` · md5 `891b88547eb43d4b974f8ee27898e86d` · 3 of 3
 
 ```
 after/ with the harness's Who, Prec and AdviceWide joined, port 19442 - AdviceWide at the default order:
@@ -467,6 +472,7 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19442/probe/who/advice
   a NumberFormatException, each advice's method for it, in that order: AdviceWide: nfe · TiffinBoxErrors: none
   an IllegalStateException, each advice's method for it, in that order: AdviceWide: ise · TiffinBoxErrors: none
   an UnsupportedOperationException, each advice's method for it, in that order: AdviceWide: none · TiffinBoxErrors: none
+  a MethodArgumentTypeMismatchException, each advice's method for it, in that order: AdviceWide: none · TiffinBoxErrors: none
   the JVM's locale: en_US
    200 · WARN lines it added: 0 · ERROR lines: 0
   the harness's Prec - four routes, each throwing one exception; its own handler takes IllegalStateException:
@@ -519,6 +525,7 @@ $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19442/probe/who/advice
   a NumberFormatException, each advice's method for it, in that order: AdviceFirst: any · AdviceWide: nfe · TiffinBoxErrors: none
   an IllegalStateException, each advice's method for it, in that order: AdviceFirst: any · AdviceWide: ise · TiffinBoxErrors: none
   an UnsupportedOperationException, each advice's method for it, in that order: AdviceFirst: any · AdviceWide: none · TiffinBoxErrors: none
+  a MethodArgumentTypeMismatchException, each advice's method for it, in that order: AdviceFirst: any · AdviceWide: none · TiffinBoxErrors: none
   the JVM's locale: en_US
    200 · WARN lines it added: 0 · ERROR lines: 0
   the harness's Prec - four routes, each throwing one exception; its own handler takes IllegalStateException:
@@ -709,7 +716,7 @@ inside): each listening on loopback only, the seven `87ca7efc…` (masked), exit
 the cost ships in every form — and POST /shutdown without the token 403 — 4 of 4 each. The image: built from after/'s Dockerfile, 0 lines
 that say pull, its layers 0 bytes of the token; `docker port` `18425/tcp -> 127.0.0.1:19447` alone.
 
-`.r-forms.out` · md5 `c9a8aa1b6a07298a983a7c46b9656721` · 3 of 3
+`.r-forms.out` · md5 `274bb50acb071f603ba1c5cc6895a0e1` · 3 of 3
 
 ```
 the native build - after/ copied to .harness/nat with a config tree; the README's two Maven lines, offline; $GRAALVM_HOME names the GraalVM:
@@ -883,6 +890,7 @@ $ docker wait tiffinbox-advice
   exit 0 · its log (docker logs): the demo token 0 times · X-Shutdown-Token 0 times
 four forms, one tree: the seven (masked) 4 of 4 times 87ca7efc8584dcccd40e6b956db1de9b · a name nobody has, 404 and the name 4 of 4 · a name with a space, 404 and the name 4 of 4 · Ravi 200 4 of 4 · the name nobody has for a client that accepts only HTML, Boot's 500 page 4 of 4 · POST /shutdown without the token 403 4 of 4
   loopback, form by form: the jar yes · the AOT jar yes · the binary yes · the image, published on 127.0.0.1 alone yes
+  the locale: options on the binary's and the image's run lines: 0 (none passed: the binary runs as the README writes it, the image as its ENTRYPOINT, java -jar, unpinned) - nothing they print here depends on one: each answer above the pinned jar's, 4 of 4
 ```
 
 ## Exercise

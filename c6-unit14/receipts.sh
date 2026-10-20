@@ -12,13 +12,14 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # every capture, in the log of every run and in every file this unit ships.
 #   path      the anchor built and extracted; the harness compiled; the seven on the jar; who writes an error answer, read off the
 #             running application (the harness's Who: the error controller, the error attributes, the exception resolvers in order);
-#             then, at DEBUG, a route that throws and a path no route takes - every line each request added
+#             then, at DEBUG, a route that throws, a path no route takes and an encoded slash - every line each request added
 #   shapes    the catalogue: every error TiffinBox can give - fourteen requests and the one POST the duplicate needs - each answer
 #             whole (curl's own Accept), then the answers' shapes, counted
 #   reasons   the same requests on a fresh JVM: each answer's status and the WARN and ERROR lines it added, each record by its
 #             logger
-#   html      the same requests, each with a browser's Accept type (text/html, sent by curl): the Whitelabel page, the answers that
-#             became 406s, the WARN lines
+#   html      the same requests, each from a client that asks for HTML alone (Accept: text/html, sent by curl): the Whitelabel page,
+#             the answers that became 406s, the WARN lines; C (labelled): Chrome's whole Accept header, sent by curl - Ravi, then a
+#             name nobody has
 #   message   Boot's metadata for its error keys; A/B/A': spring.web.error.include-message - A, Boot's default; B, always; A', A
 #             again - each on a name nobody has, a meal type no route takes, and a route that puts a header's value into its
 #             exception's message (a planted canary, counted in the answer and in the log); C (labelled): include-stacktrace
@@ -410,7 +411,7 @@ nq() { local n0 a l; n0=$(mark); rq "$(url "$L_NOTE" "$1")"; a=$(raw "$NOTE" .ha
 # (the timestamp masked), then every line the log gained for it, counted
 dbg() { awk -v from="$1" 'NR > from && / [A-Z]+ [0-9]+ --- \[/ { s = $0; i = index(s, " --- ["); s = substr(s, i + 6); i = index(s, "] "); s = substr(s, i + 2)
     i = index(s, " : "); lg = substr(s, 1, i - 1); sub(/ +$/, "", lg); m = substr(s, i + 3); gsub(/timestamp=[^,]*,/, "timestamp=…,", m); print "    " lg ": " m }' .harness/run.out; }
-dreq() { local n0 k o; n0=$(mark); echo "\$ $1"; (eval "$1") 2>&1 < /dev/null | tsmask | sed 's/^/  /'; settle
+dreq() { local n0 k o; n0=$(mark); echo "\$ $1"; if [ "${2:-}" = page ]; then (eval "$1") 2>&1 < /dev/null | pagef; else (eval "$1") 2>&1 < /dev/null | tsmask | sed 's/^/  /'; fi; settle
   k=$(dbg "$n0" | grep -c . || true); o=$(awk -v from="$n0" 'NR > from && !/ [A-Z]+ [0-9]+ --- \[/' .harness/run.out | grep -c . || true)
   echo "  the lines the log gained for it, Boot's web group at DEBUG (logger: message) - its log lines, all $k, and $o other lines (a stack trace's: frames and blank lines), not shown:"; dbg "$n0"; }
 # blkraw FROM TO: this capture so far, the lines after the line that starts with FROM, up to the next line that starts with TO (to
@@ -453,6 +454,8 @@ echo "  the filters: the answer filter and the record filter print their planted
 # writes each kind (its GET line with a meal type, its POST line, its 2.7 line, its refused-body line, its POST /shutdown line)
 BAD='{"name":"","mealsPerDay":0,"pricePerMeal":-5,"mealType":"LUNCH"}'; LATA='{"name":"Lata","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}'
 JS="-H 'Content-Type: application/json'"
+# Chrome's whole Accept header, as Chrome sends it for a page (the exception-handler lesson's line): html's C only
+CHROME='text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
 r=$(readme "curl -s -w ' %{http_code} · Location: [%header{location}]\n' $JS --data '$BAD' http://127.0.0.1:18431/customers")
 CAT_N=15
 catq() { local p=$1
@@ -486,10 +489,11 @@ path() {
   start "$(hcp "$L_CPL" .harness/anchor 19430 probe.web.Who,probe.web.Boom)"; up 19430; ready 19430
   rp "$(url "$L_WHO" 19430)"
   stop 19430 .harness/anchor
-  echo "at DEBUG - the embedded-Tomcat lesson's option (Boot's web group at DEBUG), the same class path, port 19430: a route that throws (the harness's Boom), then a path no route takes:"
+  echo "at DEBUG - the embedded-Tomcat lesson's option (Boot's web group at DEBUG), the same class path, port 19430: a route that throws (the harness's Boom), then a path no route takes, then a name with an encoded slash:"
   start "$(hcp "$L_CPL" .harness/anchor 19430 probe.web.Who,probe.web.Boom "$O_WEB")"; up 19430; ready 19430
   dreq "$(cq 19430 "" /probe/boom)"
   dreq "$(cq 19430 "" /nowhere)"
+  dreq "$(cq 19430 "" /customers/a%2Fb)" page
   stop 19430 .harness/anchor; }
 
 # ---- shapes: every error, each answer whole ---------------------------------------------------------------------------------
@@ -541,13 +545,15 @@ reasons() { local k=1 c
   WARNS
   stop 19432 .harness/anchor; }
 
-# ---- html: a browser's Accept type ------------------------------------------------------------------------------------------
+# ---- html: a client that asks for HTML alone; C, labelled: Chrome's whole Accept header ----------------------------------------------
 html() { local k=1 c
-  echo "the same requests, each with a browser's Accept type, text/html, sent by curl (the 406's own XML header made text/html too) - the anchor on its class path, the harness's Boom joined, port 19433, a fresh JVM:"
+  echo "the same requests, each from a client that asks for HTML alone - Accept: text/html, sent by curl (the 406's own XML header made text/html too) - the anchor on its class path, the harness's Boom joined, port 19433, a fresh JVM:"
   start "$(hcp "$L_CPL" .harness/anchor 19433 probe.web.Boom)"; up 19433; ready 19433
   catq 19433 text/html
   while [ $k -le $CAT_N ]; do eval "c=\$CQ$k"; rq "$c"; k=$((k + 1)); done
   WARNS
+  echo "C (labelled) - Chrome's whole Accept header, sent by curl, the same JVM: TiffinBox's own answer (Ravi), then a name nobody has:"
+  rq "$(cq 19433 "-H 'Accept: $CHROME'" /customers/Ravi)"; rq "$(cq 19433 "-H 'Accept: $CHROME'" /customers/Nobody)"
   stop 19433 .harness/anchor; }
 
 # ---- message: Boot's error keys; A/B/A' include-message; C, labelled: include-stacktrace ------------------------------------------
@@ -700,7 +706,10 @@ PD=$(blk path "at DEBUG" '')
 for l in '    o.s.web.servlet.DispatcherServlet: Failed to complete request: java.lang.IllegalStateException: the kitchen is on fire' "${TOME#    ERROR }" '    o.s.web.servlet.DispatcherServlet: "ERROR" dispatch for GET "/error", parameters={}' '    s.w.s.m.m.a.RequestMappingHandlerMapping: Mapped to org.springframework.boot.webmvc.autoconfigure.error.BasicErrorController#error(HttpServletRequest)' '    o.s.web.servlet.DispatcherServlet: Exiting from "ERROR" dispatch, status 500' "    .w.s.m.s.DefaultHandlerExceptionResolver: Resolved [org.springframework.web.servlet.resource.NoResourceFoundException: No static resource nowhere for request '/nowhere'.]" '    o.s.web.servlet.DispatcherServlet: Exiting from "ERROR" dispatch, status 404'; do
   case $l in '    '*) has "$PD" "$l" "path: DEBUG" ;; *) has "$PD" "    $l" "path: DEBUG, Tomcat's ERROR line" ;; esac; done
 [ "$(printf '%s\n' "$PD" | grep -c '"ERROR" dispatch for GET "/error"')" = 2 ] && [ "$(printf '%s\n' "$PD" | grep -c 'Mapped to org.springframework.boot.webmvc.autoconfigure.error.BasicErrorController#error')" = 2 ] || die "path: two requests, two error dispatches, each to Boot's error controller"
-echo "  path: the seven $S87C; BasicErrorController and DefaultErrorAttributes (Boot's); 2 resolver beans, DefaultErrorAttributes first, the composite's 3; 0 advices; at DEBUG: Tomcat's ERROR line, then the error dispatch to BasicErrorController, for the 500 and the 404"
+has "$PD" "  an HTML page - its <title>: HTTP Status 400 – Bad Request · its <h1>: HTTP Status 400 – Bad Request · its other characters: 349, not shown · then curl's: 400 · Content-Type: [text/html;charset=utf-8]" "path: DEBUG, a%2Fb Tomcat's page"
+A2F=$(printf '%s\n' "$PD" | C="\$ $(cq 19430 "" /customers/a%2Fb)" awk 'f == 1 { n++; if (n == 2) { print; exit } } $0 == ENVIRON["C"] { f = 1 }')
+[ "$A2F" = "  the lines the log gained for it, Boot's web group at DEBUG (logger: message) - its log lines, all 0, and 0 other lines (a stack trace's: frames and blank lines), not shown:" ] || die "path: DEBUG, a%2Fb adds no log line at all - got: $A2F"
+echo "  path: the seven $S87C; BasicErrorController and DefaultErrorAttributes (Boot's); 2 resolver beans, DefaultErrorAttributes first, the composite's 3; 0 advices; at DEBUG: Tomcat's ERROR line, then the error dispatch to BasicErrorController, for the 500 and the 404; a%2Fb - Tomcat's page, 0 log lines at DEBUG"
 
 # "Fifteen requests ... five shapes" - shapes: each answer, and the shapes counted
 SO=$(cat .r-shapes.out)
@@ -730,8 +739,12 @@ for t in "1:$(WL 'Bad Request' 400):1:0" "4:$(WL 'Not Acceptable' 406):1:0" "5:$
   k_=${t%%:*}; r_=${t#*:}; e_=${r_##*:}; r_=${r_%:*}; w_=${r_##*:}; a_=${r_%:*}; eval "c_=\$CQ$k_"
   [ "$k_" = 14 ] && g_=$(aftn 2 "\$ $c_" "$HO") || g_=$(aft "\$ $c_" "$HO"); [ "$g_" = "$(Z "$a_" "$w_" "$e_")" ] || die "html: request $k_ ($c_)"; done
 has "$HO" "  WARN lines in this run's log, at Boot's default level: 10 · ERROR lines: 1" "html: 10 WARN, 1 ERROR"
-[ "$(n html '^  the Whitelabel page')" = 13 ] || die "html: 13 answers are the Whitelabel page"
-echo "  html: text/html - the Whitelabel page for 13 of 15 (its <h1>, type and status; the created date masked): /nowhere 404, Nobody 404, the 500; the method's 400, the 403, Ravi and Lata's 201 become 406s, each a WARN; Tomcat's page and the empty 409 unchanged"
+HC=$(blk html "C (labelled)" '')
+[ "$(printf '%s\n' "$HO" | sed '/^C (labelled)/,$d' | grep -c '^  the Whitelabel page')" = 13 ] || die "html: 13 answers are the Whitelabel page"
+has "$HC" "$(Z '  {"name":"Ravi","mealsPerDay":2,"pricePerMeal":120,"mealType":"VEG"} 200 · Content-Type: [application/json]' 0 0)" "html C: Chrome's whole header - Ravi stays JSON, 200"
+has "$HC" "$(Z "$(WL 'Not Found' 404)" 0 0)" "html C: Chrome's whole header - a name nobody has, the Whitelabel page"
+[ "$(printf '%s\n' "$HC" | grep -c '^\$ curl ')" = 2 ] && [ "$(printf '%s\n' "$HC" | grep -cF -- "-H 'Accept: $CHROME' ")" = 2 ] || die "html C: two requests, each with Chrome's whole header"
+echo "  html: text/html - the Whitelabel page for 13 of 15 (its <h1>, type and status; the created date masked): /nowhere 404, Nobody 404, the 500; the method's 400, the 403, Ravi and Lata's 201 become 406s, each a WARN; Tomcat's page and the empty 409 unchanged; C, Chrome's whole header: Ravi 200 JSON, Nobody the Whitelabel 404"
 
 # "include-message ... the reason in the answer, and the canary with it" - message: A/B/A', C
 MO=$(cat .r-message.out)
@@ -784,7 +797,7 @@ grep -qF -- "\`$l0\`" exercise/README.md || die "exercise/README.md: the shipped
 has "$XS" '  exit 0 · what they printed:' "exercise: the README's commands, exit 0"; has "$XE" '  exit 0 · what they printed:' "exercise: the solution's lines, exit 0"
 for b in "$XS" "$XE"; do has "$b" "  the shell is now in: this unit's folder · the copy's own token in its log: 0 times · WARN lines in its log: 0 · ERROR lines: 0 · listening on 19439 now: 0" "exercise: the shell in this unit's folder, the token 0, the port free"; done
 [ "$(printf '%s\n' "$XE" | grep -c '^  \$ export ')" = 2 ] || die "exercise: SOLUTION.md gives the README's two export lines"
-EXQ="Your turn: the README's request gets an HTML page, not JSON. Read its Content-Type, change one header, and read the status again."
+EXQ="Your turn: the README's request gets an HTML page, not JSON. Read its Content-Type, change one header, and read the Content-Type again."
 grep -qxF -- "**Your turn:** ${EXQ#Your turn: }" exercise/README.md || die "exercise/README.md: the spoken exercise line"
 [ "$(printf '%s\n' "$EXQ" | wc -w | tr -d ' ')" -le 25 ] || die "exercise: the spoken line is over 25 words"
 echo "  exercise: one env -i shell - the README as written (Accept: text/html) -> 404 text/html, the Whitelabel page; the solution (Accept: application/json) -> 404 application/json, Boot's four keys; the shell in this unit's folder after each"

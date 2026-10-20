@@ -1,6 +1,6 @@
 # Exercise — an HTML page where you wanted JSON
 
-**Your turn:** the README's request gets an HTML page, not JSON. Read its Content-Type, change one header, and read the status again.
+**Your turn:** the README's request gets an HTML page, not JSON. Read its Content-Type, change one header, and read the Content-Type again.
 
 TiffinBox — the tree the validation lesson left, `anchor/` here (the link to `../c6-unit12/after`) — answers a name nobody has with a
 404 written by Boot's error controller, and that controller picks the answer's type from the request's `Accept` header: the types the

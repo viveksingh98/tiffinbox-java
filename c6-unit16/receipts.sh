@@ -20,7 +20,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #   own         TiffinBox's own refusals, then and now: a path nobody maps, a name nobody has, a body that breaks four rules, a
 #               misspelt key, POST /shutdown without the token, a new customer twice - on the previous tree and on after/
 #   accept      a name nobody has for clients that accept only HTML, only XML, and a browser's whole Accept header (Chrome's), each
-#               sent by curl, and a path nobody maps for HTML - on after/ and on the previous tree
+#               sent by curl; a path nobody maps, a body that breaks four rules and POST /shutdown without the token, each for a
+#               client that asks for HTML alone - on after/ and on the previous tree
 #   flag        A/B/A': after/ (A); the key off for one run (B); A again (A'); C, labelled: Spring MVC's log-resolved-exception on -
 #               nine requests each, every WARN and ERROR line each added
 #   edges       what the key does not reach: a route's unexpected exception (the harness's Boom), for JSON and for HTML; Tomcat's
@@ -32,7 +33,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #   forms       the native build of after/; what Spring's AOT step registers, on the previous tree and on after/; then four forms -
 #               the jar, the AOT jar, the binary, the image: each one's address, the seven (masked), exit 0; then, on a second start of
 #               each, a name nobody has (curl's own Accept, and only HTML), a body that breaks four rules, POST /shutdown without the
-#               token, a new customer twice
+#               token, a new customer twice; the locale options on the binary's and the image's run lines, counted
 # "The previous tree" is ../c6-unit15/after (the anchor before this change: the exception-handler lesson's frozen tree), COPIED
 # under .harness/before; after/ is this unit's frozen copy of ../c6-tiffinbox after the change, COPIED under .harness/after. This
 # script never writes into another unit's folder, and never builds a frozen tree in place. Every run of TiffinBox starts in a folder
@@ -588,11 +589,13 @@ own() {
   start "$(at .harness/after 19450 "$R_RUN")"; up 19450; ready 19450; ownq 19450; stop 19450 .harness/after; }
 
 # ---- accept: what a client that accepts something else gets ------------------------------------------------------------------------
-accq() { hq "$L_HTML" "$1"; hq "$L_XML" "$1"; hq "$L_CHROME" "$1"; rq "$(tq "$1" /nowhere text/html)"; WARNS; }
+# ah COMMAND: the command with Accept: text/html after its -w option - a client that asks for HTML alone
+ah() { local p=${R_PD% http://*} r; r="$p -H 'Accept: text/html'"; printf '%s\n' "${1/"$p"/$r}"; }
+accq() { hq "$L_HTML" "$1"; hq "$L_XML" "$1"; hq "$L_CHROME" "$1"; rq "$(tq "$1" /nowhere text/html)"; rq "$(ah "$(pq "$1" "$B_BAD")")"; rq "$(ah "$(xq "$1")")"; WARNS; }
 accept() {
-  echo "after/ - a name nobody has, asked by three clients, each sent by curl: one that accepts only HTML (a browser's type), one that accepts only XML, and a browser's whole Accept header (Chrome's); then a path nobody maps, for HTML - port 19450:"
+  echo "after/ - a name nobody has, asked by three clients, each sent by curl: one that accepts only HTML, one that accepts only XML, and a browser's whole Accept header (Chrome's); then, each for a client that asks for HTML alone, a path nobody maps, a body that breaks four rules, POST /shutdown without the token - port 19450:"
   start "$(at .harness/after 19450 "$R_RUN")"; up 19450; ready 19450; accq 19450; stop 19450 .harness/after
-  echo "the previous tree - the same four, port 19451:"
+  echo "the previous tree - the same six, port 19451:"
   start "$(at .harness/before 19451 "$R_RUN")"; up 19451; ready 19451; accq 19451; stop 19451 .harness/before; }
 
 # ---- flag: A/B/A' - the key on, off, on; C, labelled - Spring MVC's log-resolved-exception -------------------------------------------
@@ -881,7 +884,8 @@ forms() {
   dlog "$BOX"; echo "  exit $LASTE · its log (docker logs): the demo token 0 times · X-Shutdown-Token 0 times"
   docker rm "$BOX" > /dev/null
   echo "four forms, one tree: the seven (masked) $(grep -cE "^  exit 0 · the seven responses: 7 lines · lines the timestamp mask changed: 0 · md5 $S466\$" .harness/cap.raw) of 4 times $S466, the timestamp mask changing 0 lines · a name nobody has - curl's own Accept, and only HTML - 404 and the name, a problem detail: $(grep -cxF -- "$PDNOB" .harness/cap.raw) of 8 · four rules broken, a problem detail with its errors: $(grep -cxF -- "$PDBAD" .harness/cap.raw) of 4 · POST /shutdown without the token, a 403 problem detail: $(grep -cxF -- "$PD403" .harness/cap.raw) of 4 · a new customer, 201: $(grep -cxF -- "$PD201" .harness/cap.raw) of 4 · the same again, a 409 problem detail: $(grep -cxF -- "$PD409" .harness/cap.raw) of 4"
-  echo "  loopback, form by form: the jar $(lbk '1 the jar') · the AOT jar $(lbk '2 the AOT jar') · the binary $(lbk '3 the binary') · the image, published on 127.0.0.1 alone $(lbk '4 the image')"; }
+  echo "  loopback, form by form: the jar $(lbk '1 the jar') · the AOT jar $(lbk '2 the AOT jar') · the binary $(lbk '3 the binary') · the image, published on 127.0.0.1 alone $(lbk '4 the image')"
+  echo "  the locale: options on the binary's and the image's run lines: $(printf '%s\n%s\n' "$(at .harness/nat 19458 "$R_BIN")" "$(drun .harness/after 19457)" | grep -o 'user\.language\|user\.country' | wc -l | tr -d ' ') (none passed: the binary runs as the README writes it, the image as its ENTRYPOINT, java -jar, unpinned) - nothing they print here depends on one: each answer above the pinned jar's, 4 of 4 - Hibernate Validator's four messages in English"; }
 
 
 
@@ -1000,13 +1004,17 @@ has "$OA" "  WARN lines in this run's log, at Boot's default level: 0 · ERROR l
 echo "  own: before - Boot's four keys, {\"error\"}, the field map, forbidden, an empty 409; after - every one a problem detail, 4 rules, 1 rule, 403, 409; 0 WARN 0 ERROR"
 
 # "Only HTML, only XML, a browser's whole header: the same problem detail, four oh four, no warning ... the last lesson's five hundreds"
-AA=$(blk accept "after/ - a name nobody has" "the previous tree - the same four"); AB=$(blk accept "the previous tree - the same four" "")
+AA=$(blk accept "after/ - a name nobody has" "the previous tree - the same six"); AB=$(blk accept "the previous tree - the same six" "")
 for l in "$L_HTML" "$L_XML" "$L_CHROME"; do [ "$(aft "$(RQ "$(url "$l" 19450)")" "$AA")" = "$(Z "$PDNOB" 0 0)" ] || die "accept: after, $l"; done
 [ "$(aft "$(RQ "$(tq 19450 /nowhere text/html)")" "$AA")" = "$(Z "$PD404" 0 0)" ] || die "accept: after, /nowhere for HTML"
 has "$AA" "  WARN lines in this run's log, at Boot's default level: 0 · ERROR lines: 0" "accept: after, 0 and 0"
+[ "$(aft "$(RQ "$(ah "$(pq 19450 "$B_BAD")")")" "$AA")" = "$(Z '  {"detail":"the customer breaks 4 rules","instance":"/customers","status":400,"title":"Invalid customer","errors":{"mealType":"must match \"VEG|NON_VEG|VEGAN\"","mealsPerDay":"must be greater than or equal to 1","name":"must not be blank","pricePerMeal":"must be greater than or equal to 1"}} 400'"$PJ" 0 0)" ] || die "accept: after, the 4-rule body for HTML alone - the problem detail"
+[ "$(aft "$(RQ "$(ah "$(xq 19450)")")" "$AA")" = "$(Z '  {"detail":"the shutdown token is missing or wrong","instance":"/shutdown","status":403,"title":"Forbidden"} 403'"$PJ" 0 0)" ] || die "accept: after, the 403 for HTML alone - the problem detail"
+[ "$(printf '%s\n' "$AA" | grep -c -- "^\$ curl .* -H 'Accept: text/html' ")" = 4 ] || die "accept: after, four requests for HTML alone"
 [ "$(aft "$(RQ "$(url "$L_HTML" 19451)")" "$AB")" = "$(Z "$(WL 'Internal Server Error' 500)" 1 1)" ] && [ "$(aft "$(RQ "$(url "$L_XML" 19451)")" "$AB")" = "$(Z '   500 · Content-Type: []' 1 1)" ] || die "accept: before, the two 500s"
 [ "$(aft "$(RQ "$(url "$L_CHROME" 19451)")" "$AB")" = "$(Z '  {"error":"no customer named Nobody"} 404 · Content-Type: [application/json]' 0 0)" ] && [ "$(printf '%s\n' "$AB" | grep -cxF -- "$FAILW")" = 2 ] && [ "$(printf '%s\n' "$AB" | grep -cxF -- "$TOME")" = 2 ] || die "accept: before, Chrome's JSON, the failed handler and Tomcat's ERROR twice"
-echo "  accept: after - only HTML, only XML, Chrome's: the 404 problem detail, 0 and 0; before - 500, 500 (1 WARN + 1 ERROR each), 404 JSON"
+for q in "$(ah "$(pq 19451 "$B_BAD")")" "$(ah "$(xq 19451)")"; do [ "$(aft "$(RQ "$q")" "$AB")" = "$(Z "$(WL 'Not Acceptable' 406)" 1 0)" ] || die "accept: before, TiffinBox's own map for HTML alone - Boot's Whitelabel 406, 1 WARN"; done
+echo "  accept: after - only HTML, only XML, Chrome's: the 404 problem detail, 0 and 0; for HTML alone the 4-rule 400 and the 403 problem details too; before, those two the Whitelabel 406, 1 WARN each; before - 500, 500 (1 WARN + 1 ERROR each), 404 JSON"
 
 # "With the key, the reason left the log: no warning for the four hundreds, the four fifteen, the four oh six ... the four oh five still logs
 #  one, from another logger ... unreadable: failed to read request ... B: Boot's four keys, a warning each ... A again ... C: the reason back,
@@ -1080,6 +1088,7 @@ x forms "^  Spring's generated metadata \(spring-aot/main/resources/META-INF/nat
 x forms '^  resource entries: 26 -> 26 · the same: yes$'
 x forms "^four forms, one tree: the seven \(masked\) 4 of 4 times $S466, the timestamp mask changing 0 lines · a name nobody has - curl's own Accept, and only HTML - 404 and the name, a problem detail: 8 of 8 · four rules broken, a problem detail with its errors: 4 of 4 · POST /shutdown without the token, a 403 problem detail: 4 of 4 · a new customer, 201: 4 of 4 · the same again, a 409 problem detail: 4 of 4\$"
 x forms '^  loopback, form by form: the jar yes · the AOT jar yes · the binary yes · the image, published on 127\.0\.0\.1 alone yes$'
+has "$(cat .r-forms.out)" "  the locale: options on the binary's and the image's run lines: 0 (none passed: the binary runs as the README writes it, the image as its ENTRYPOINT, java -jar, unpinned) - nothing they print here depends on one: each answer above the pinned jar's, 4 of 4 - Hibernate Validator's four messages in English" "forms: the binary and the image carry no locale option (S3.1)"
 for t in '1 the jar:19450:2 the AOT jar' '2 the AOT jar:19456:3 the binary' '3 the binary:19458:4 the image' '4 the image:19457:four forms, one tree'; do lb_=${t%%:*}; r_=${t#*:}; p_=${r_%%:*}; nx_=${r_#*:}
   b=$(blk forms "$lb_ - " "$nx_")
   [ "$(aft "$(RQ "$(tq "$p_" /customers/Nobody)")" "$b")" = "$PDNOB" ] && [ "$(aft "$(RQ "$(url "$L_HTML" "$p_")")" "$b")" = "$PDNOB" ] && [ "$(aft "$(RQ "$(pq "$p_" "$B_BAD")")" "$b")" = "$PDBAD" ] || die "forms $lb_: the problem details, on its own port"

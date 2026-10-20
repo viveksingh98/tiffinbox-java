@@ -33,7 +33,8 @@ import java.util.Map;
 public class Who {
 
     private static final String[] ASKED = {"com.tiffinbox.web.CustomerNotFound", "java.lang.IllegalArgumentException",
-            "java.lang.NumberFormatException", "java.lang.IllegalStateException", "java.lang.UnsupportedOperationException"};
+            "java.lang.NumberFormatException", "java.lang.IllegalStateException", "java.lang.UnsupportedOperationException",
+            "org.springframework.web.method.annotation.MethodArgumentTypeMismatchException"};
 
     private final ApplicationContext ctx;
 
