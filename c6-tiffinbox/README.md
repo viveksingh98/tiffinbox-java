@@ -716,7 +716,7 @@ happened, the `instance` (the request's path, which Spring MVC fills in), a `typ
 - `application.yaml` — one key in the first document (line 64, above the `---` at 99), **`spring.mvc.problemdetails.enabled: true`**,
   with its comment: Boot's `ProblemDetailsExceptionHandler` — a `ResponseEntityExceptionHandler`, Spring MVC's own class for this —
   joins as an advice ordered 0, asked before `TiffinBoxErrors`, and answers Spring MVC's own exceptions. Boot's metadata gives the key
-  `false` by default (`change`).
+  `false` by default (`change`). *(Course 6, unit 23: the `---` is at line 115 since — the static-resource keys sit above it, lines 72-80; `../c6-unit23/`, `change`.)*
 - `TiffinBoxErrors.java` — its handler returns a `ProblemDetail`: 404, the exception's message as the detail, the title `Customer not
   found`, and the name as a member of TiffinBox's own, `name`; the `@ResponseStatus` line is gone — the status is the problem detail's.
 - `TiffinBoxServer.java` — the 400 is a problem detail whose `errors` member is the field map, the detail the number of rules broken;
@@ -854,6 +854,54 @@ classes — and `templates/**` and `static/**` as resources. The binary's pages 
 its run line takes no locale option.
 
 Evidence for every sentence in this section: `../c6-unit22/` (`receipts.sh`, nine captures).
+
+## Course 6 · unit 23 — static files named by their content, kept a year (2026-10-22)
+
+Until this unit TiffinBox's stylesheet, `static/css/tiffinbox.css`, answered with a **validator** — `Last-Modified`, a date a client can
+send back to ask "has it changed since?" — and nothing else: no `Cache-Control` (no lifetime), no `ETag` (`headers`). That date is the
+root `pom.xml`'s `project.build.outputTimestamp`, the fixed build time of the reproducible-build section below (`Tue, 15 Sep 2026
+00:00:00 GMT`; every entry of the jar carries it), so **a changed stylesheet keeps it**: a new build with one line more answers the
+old build's date with `304 Not Modified`, 0 bytes — a cache that holds the old file is told it is current (`date`). In headless
+Chrome, with no lifetime given, the old stylesheet stayed in use when the new build ran on the same address: on a visit and on a
+reload Chrome asked TiffinBox for the page only, never for the stylesheet (`browser`). One file changed, besides this README:
+- `tiffinbox-web/src/main/resources/application.yaml` — three keys in its **first document** (lines 77, 78 and 80, above the `---`
+  at 115), with their comment: `spring.web.resources.chain.strategy.content.enabled: true` (Boot's content version strategy, `false`
+  by default), `spring.web.resources.chain.strategy.content.paths: /**` (Boot's own default, written down) and
+  `spring.web.resources.cache.period: 365d` (no default: no `Cache-Control` at all) — Boot's metadata (`change`).
+
+```bash
+curl -s -H 'Accept: text/html' http://127.0.0.1:18431/dashboard | grep -o '/css/[^"]*'
+curl -s -D - -o /dev/null http://127.0.0.1:18431/css/tiffinbox-10ba2401fd96e2e382866a731d207fc4.css
+```
+
+**A name that changes when the file does** (`versioned`). Every page now links `/css/tiffinbox-10ba2401fd96e2e382866a731d207fc4.css`
+— a **versioned URL**: the md5 of the file itself (`md5 -q`), written into the page's link by Boot's resource chain — and that answer
+carries `Cache-Control: max-age=31536000` (a **cache lifetime** of a year: a browser may use its copy without asking), a weak `ETag:
+W/"10ba…"` and the same `Last-Modified`. A build with a changed stylesheet links another name, its own md5; the old name answers 404
+there (no file has that content), and the page itself carries no validator and no lifetime, so a browser asks for the page every time
+and meets the new link. In Chrome: the new name fetched once, the new rule applied, and a reload left it in Chrome's cache — nothing
+sent (`browser`). **The plain name still answers** — `/css/tiffinbox.css`, 200, with the year's `Cache-Control` and no `ETag`: never
+link it. `--spring.web.resources.chain.strategy.content.enabled=false` brings the plain link back, and with it the 304 to the old
+date (B).
+
+**The ETag matches nothing** (`etag`): Spring MVC 7.0.9's `ResourceHttpRequestHandler` (the `/**` row of the routing table) sends it,
+and answers `If-None-Match` with it — alone, as `*`, or beside `If-Modified-Since`, as a browser sends both — with 200 and the whole
+file; the date alone gets the 304. So `Cache-Control: no-cache` (ask every time) on a versioned name costs a full download each time
+(Chrome: D), and on the plain name it asks by date and is told the old file is current (Chrome: C — the 304 in Chrome's own record and
+in the server's log).
+
+**DevTools** (`devtools`): on its class path DevTools' defaults set `spring.web.resources.cache.period` to `0` — `Cache-Control:
+no-store` on a tree without the key — and `spring.web.resources.chain.cache` to `false`. `application.yaml`'s `365d` beats DevTools'
+`0` (a config file's key wins: the environment reads `365d`, the answer `max-age=31536000`). With the chain's cache on — Boot's default —
+a stylesheet changed while TiffinBox runs from a classes folder keeps its old name in the page, and that name answers 404; with it off,
+the page links the new name at once.
+
+**Every form serves it** (`forms`): the jar, the AOT jar, the native binary and the image link the versioned name and answer it with
+the year's lifetime and the ETag; Spring's AOT step registers three classes more (the resource chain's configuration, 687 → 690). **The
+binary's `Last-Modified` is its own**: a time inside its native build, not the POM's — asked with the POM's date it answers 200. The
+seven are the previous tree's, byte for byte — `466c20ed7e0d5439cb052f32ce09de1b` (masked).
+
+Evidence for every sentence in this section: `../c6-unit23/` (`receipts.sh`, nine captures).
 
 ---
 

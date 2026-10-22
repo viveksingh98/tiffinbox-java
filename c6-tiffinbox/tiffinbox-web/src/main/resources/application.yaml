@@ -62,6 +62,22 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  # Course 6: the static files under static/ - the pages' stylesheet. Each one's address carries the md5 of its content
+  # (/css/tiffinbox-<md5>.css: Boot's resource chain, which also rewrites every page's link to it), and its answer lets a
+  # browser keep it a year (Cache-Control: max-age=31536000). A changed file is a new address, so a kept copy is never the
+  # wrong one. Without these keys a browser kept the stylesheet with no lifetime given, and Last-Modified - the build's
+  # fixed time, project.build.outputTimestamp in the root pom.xml, the same for every build - called a changed file
+  # unchanged. paths: /** is Boot's own default (every file), written down. Above the "---": below it, only the rush
+  # profile would version its files.
+  web:
+    resources:
+      chain:
+        strategy:
+          content:
+            enabled: true
+            paths: /**
+      cache:
+        period: 365d
 # Logging. Boot's logging system is Logback, and TiffinBox's System.Logger reaches it through java.util.logging. A log
 # group is one name for several loggers: "kitchen" is TiffinBox's own logger (System.getLogger("tiffinbox")) and the loggers
 # under com.tiffinbox - Boot logs TiffinBox's startup under its main class's name. --logging.level.kitchen=debug sets them
