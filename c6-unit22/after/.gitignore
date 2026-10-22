@@ -1,0 +1,6 @@
+# A developer's own settings, imported by application.yaml (optional:file:./tiffinbox-local.yaml): never committed.
+tiffinbox-local.yaml
+# The config tree application.yaml imports (optional:configtree:./secrets/): one file per secret. Never committed.
+secrets/
+# A heap dump (Actuator's heapdump endpoint, switched on for one run) holds the shutdown token: never committed.
+*.hprof

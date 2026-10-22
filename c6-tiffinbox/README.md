@@ -31,7 +31,8 @@ goes through) hands each request to TiffinBox's handler for its path. Six files 
   Jackson 3 writes Spring's (an error body, Actuator's answers). *(Course 6, unit 06: Spring MVC's JSON converter writes TiffinBox's five answers too, with
   Jackson 3; Jackson 2 stays in the jar until Course 6's Jackson lessons, and writes none of them — `../c6-unit06/`, `json`.)*
   *(Course 6, unit 08: one Jackson from there on — Jackson 2's `jackson-databind` is out of this POM, and two of the jar's 58 jars
-  with it: 56; `../c6-unit08/`, `jackson`.)*
+  with it: 56; `../c6-unit08/`, `jackson`.)* *(Course 6, unit 22: 61 — Thymeleaf's starter adds five; `../c6-unit22/`,
+  `change`.)*
 - `TiffinBoxServer.java` — the server half is out: no `HttpServer`, no executor, no contexts, no `stop()`. `handle()`, `respond()`
   and `holdsToken()` work on the servlet API (`HttpServletRequest`, `HttpServletResponse`); `handlers()` builds one **handler** per
   path (the object a request is handed to), each named — its `toString()` reads `TiffinBox route /customers` — and the verb is still
@@ -181,7 +182,8 @@ one run, still has 14 rows, and TiffinBox's five now carry their verbs: `{GET [/
 `methods ["GET"]` (`rows`). *(Course 6, unit 07: six routes, 8 mappings, 15 rows — `GET /customers/{name}` is the sixth, and the
 routes list their parameter types, `customers(MealType)`; `../c6-unit07/`, `change`.)* *(Course 6, unit 08: seven routes, 9 mappings,
 16 rows — `POST /customers`, `add(Customer)`, is the seventh; `../c6-unit08/`, `change`.)* *(Course 6, unit 12: `add(Customer,BindingResult)`
-since, still 9 mappings; `../c6-unit12/`, `constraints`.)*
+since, still 9 mappings; `../c6-unit12/`, `constraints`.)* *(Course 6, unit 22: ten routes, 19 rows — `DashboardPage`'s `GET /dashboard` and
+`GET /customers/new`, each producing `text/html`, and its `POST /customers`, consuming a form's type; `../c6-unit22/`, `negotiate`.)*
 
 ```bash
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.kitchen=debug --logging.level.org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping=trace
@@ -279,7 +281,7 @@ parameter is gone; `../c6-unit10/`, `entity`)* — and `8 mappings in 'requestMa
 (`/actuator/mappings`, exposed for one run) has 15 rows, TiffinBox's six each naming a verb, and the `/customers` row's
 `requestMappingConditions.params` is `[]`: the meal type is no part of the match (`change`). *(Course 6, unit 08: seven routes —
 `{POST [/customers]}: add(Customer)` the seventh — 9 mappings and 16 rows; `../c6-unit08/`, `change`.)* *(Course 6, unit 12:
-`add(Customer,BindingResult)` since; `../c6-unit12/`, `constraints`.)* The first time it meets a parameter,
+`add(Customer,BindingResult)` since; `../c6-unit12/`, `constraints`.)* *(Course 6, unit 22: ten routes, 19 rows; `../c6-unit22/`, `negotiate`.)* The first time it meets a parameter,
 Spring MVC's `RequestMappingHandlerAdapter` asks its 28 argument resolvers in order — the first that takes it fills it, and that
 choice is cached for the parameter:
 `@PathVariable` → `PathVariableMethodArgumentResolver`, `@RequestParam` → `RequestParamMethodArgumentResolver`, `@RequestHeader` →
@@ -363,11 +365,14 @@ curl -s -w ' %{http_code}\n' -H 'Content-Type: application/json' --data '{"name"
 routes now — `{POST [/customers]}: add(Customer)` the seventh *(Course 6, unit 12: `add(Customer,BindingResult)` since;
 `../c6-unit12/`, `constraints`)* — and `9 mappings in 'requestMappingHandlerMapping'`; the routing
 table has 16 rows, two of them `/customers`, one per verb, and the new row's `requestMappingConditions.consumes` is `[]`: the route
-names no media type of its own (`change`). Spring MVC's `RequestMappingHandlerAdapter` holds six **message converters** — the
+names no media type of its own (`change`). *(Course 6, unit 22: 19 rows since, three of them `/customers` — `DashboardPage`'s `POST`
+consumes `application/x-www-form-urlencoded`; `../c6-unit22/`, `negotiate`.)* Spring MVC's `RequestMappingHandlerAdapter` holds six **message converters** — the
 objects that turn a request's body into a parameter, and a return value into an answer's bytes — and asks them in order which can
 read the parameter's type from the body's **media type**, the type the request's `Content-Type` header names. For a `Customer`, only
 the sixth says yes, `JacksonJsonHttpMessageConverter`, for `application/json`, and it writes one too; none reads a `Customer` from a
-form (`application/x-www-form-urlencoded`) or from `text/plain` (`chain`: the course's harness, reading the running adapter). Its
+form (`application/x-www-form-urlencoded`) or from `text/plain` (`chain`: the course's harness, reading the running adapter). *(Course 6,
+unit 22: still none of the converters — but a form's fields are bound onto a `Customer` since, by Spring MVC's data binder, on
+`DashboardPage`'s `POST /customers`; `../c6-unit22/`, `form`.)* Its
 mapper is Boot's bean `jacksonJsonMapper`, Jackson 3's `JsonMapper`. A record has no setters and no constructor without arguments:
 Jackson builds it through its canonical constructor, once per body (a harness record whose compact constructor counts its calls:
 1, then 2 — `body`).
@@ -381,7 +386,9 @@ mealsPerDay=2, pricePerMeal=110, mealType=VEG]]` — and the record it wrote bac
 otherwise: without `-H 'Content-Type: application/json'` the same POST is Spring MVC's **415**, Boot's body, and the answer's `Accept`
 header names what it would read — `application/json, application/*+json` — with one WARN line, `HttpMediaTypeNotSupportedException:
 Content-Type 'application/x-www-form-urlencoded;charset=UTF-8' is not supported`; nothing is stored (`ctype`). The 415 is the
-converters', not the route's. *(Course 6, unit 16: a problem detail since, and no WARN line; `../c6-unit16/`, `flag`.)*
+converters', not the route's. *(Course 6, unit 16: a problem detail since, and no WARN line; `../c6-unit16/`, `flag`.)* *(Course 6, unit
+22: no longer a 415 — a form's type reaches `DashboardPage`'s `POST /customers` since, which answers 200 with the form and one raw
+message, `Failed to convert value of type null to required type int; …`; nothing is stored; `../c6-unit22/`, `form`.)*
 
 **What doesn't fit** (`misfit`) is a 400, Boot's body, the reason only in one WARN line of Spring MVC's
 `DefaultHandlerExceptionResolver`, Jackson's message inside it: malformed JSON, an empty body (`Required request body is missing`),
@@ -414,7 +421,8 @@ parent's pin was what kept it at 2.22 (Boot 4.1.1's `<jackson-2-bom.version>2.21
 each answering the seven `87ca7efc…` (masked), and, on a second start of each, the new customer 200 *(Course 6, unit 10: 201 since,
 with a Location; `../c6-unit10/`, `forms`)* and read back by name, the
 form's 415, and `2.7` meals stored as 2 (`forms`). *(Course 6, unit 09: refused, 400, in all four forms since;
-`../c6-unit09/`, `forms`.)*
+`../c6-unit09/`, `forms`.)* *(Course 6, unit 22: the form's 415 is gone — a form's type reaches the form's route; `../c6-unit22/`,
+`form`.)*
 
 Evidence for every sentence in this section: `../c6-unit08/` (`receipts.sh`, nine captures).
 
@@ -753,7 +761,9 @@ set here) puts the reason back, at a price: one WARN per resolved exception — 
 **What it does not reach** (`edges`): a route's unexpected exception (the harness's `Boom`) is still Boot's `/error` body —
 `{"timestamp":"…","status":500,…}`, the Whitelabel page for HTML — with Tomcat's ERROR line; `spring.web.error.include-message=always`
 adds `message` to that body and leaves a problem detail's bytes as they were; Tomcat's own HTML 400 for an encoded slash is
-untouched. Two shapes, by design: problem details for what TiffinBox and Spring MVC decided, Boot's body for what nobody caught.
+untouched. Two shapes, by design: problem details for what TiffinBox and Spring MVC decided, Boot's body for what nobody caught. *(Course 6,
+unit 22: for a client that asks for HTML, what nobody caught is TiffinBox's own error page since, `templates/error/5xx.html`, in place
+of the Whitelabel page; curl's own Accept still gets Boot's body; `../c6-unit22/`, `errors`.)*
 
 **Every form serves it** (`forms`): the jar, the AOT jar, the native binary and the image — each on `127.0.0.1` (the image: published
 there), each answering the seven `466c20ed…` (masked, the mask changing 0 lines), and, on a second start of each, Nobody's problem
@@ -762,6 +772,88 @@ reflection entries more than on the previous tree, 666 → 670 — Boot's `Probl
 `MessageSourceAware` and `ResponseEntityExceptionHandler`'s `handleException` — and the binary needs no hint.
 
 Evidence for every sentence in this section: `../c6-unit16/` (`receipts.sh`, nine captures).
+
+## Course 6 · unit 22 — Thymeleaf: the dashboard as a page, a form, an error page (2026-10-22)
+
+Until this unit TiffinBox answered every client in JSON: a browser that asked for `/dashboard` got the braces curl gets. From this unit
+on, a client that ranks HTML first gets a **page**, rendered on the server by **Thymeleaf**, a template engine — a **template** is an
+HTML file whose `th:*` attributes Thymeleaf fills from the model, the values a route hands it, on each request. One file changed and
+six are new, besides this README (`change`):
+- `tiffinbox-web/pom.xml` — Boot's `spring-boot-starter-thymeleaf`, with its comment (130 → 137 lines). The executable jar holds 61
+  libraries where it held 56: `attoparser`, `spring-boot-thymeleaf`, `thymeleaf`, `thymeleaf-spring6`, `unbescape`.
+- `DashboardPage.java` (new) — a `@Controller`, not a `@RestController`: its routes return a **view**'s name, which Thymeleaf's view
+  resolver turns into `templates/<name>.html`, where a `@RestController`'s return value is the body itself (`@ResponseBody`). `GET
+  /dashboard` with `produces = text/html` → `dashboard`; `GET /customers/new` (HTML) → `customer-form`, its **form-backing object** a
+  new `Customer`; `POST /customers` with `consumes = application/x-www-form-urlencoded` → the fields bound onto a `Customer`
+  (`@ModelAttribute`) and checked (`@Valid`): the form again with each message beside its field, a taken name one more (H2's 23505, as
+  `TiffinBoxServer` reads it), or `redirect:/dashboard`. Its nested `TemplateHints` registers `Dashboard.View` and `Customer` for the
+  native image, and the customer count is computed in Java (`customerCount`) so the template calls no method on a type nobody
+  registered.
+- `templates/fragments.html` (three **fragments**, pieces another template pulls in: `head(title)`, `header`, `footer`),
+  `templates/dashboard.html`, `templates/customer-form.html` (`th:object`, `th:field`, `th:errors`), `templates/error/5xx.html` — and
+  no `templates/error/404.html` (below) — and `static/css/tiffinbox.css`.
+
+25 of the tree's 33 files are byte for byte the previous tree's; the jar's `com/tiffinbox/web` holds 11 classes where it held 9
+(`DashboardPage`, `DashboardPage$TemplateHints`).
+
+```bash
+curl -s -H 'Accept: text/html' http://127.0.0.1:18431/dashboard
+curl -s -w ' %{http_code} · Location: [%header{location}]\n' -H 'Content-Type: application/x-www-form-urlencoded' --data 'name=Lata&mealsPerDay=2&pricePerMeal=120&mealType=VEG' http://127.0.0.1:18431/customers
+```
+
+**One URL, two answers** (`negotiate`). The seven are the previous tree's, byte for byte — `466c20ed7e0d5439cb052f32ce09de1b` (masked),
+one WARN line (`PageNotFound`) — because curl's own `Accept: */*` still gets `TiffinBoxServer`'s JSON `/dashboard`, and so does
+`Accept: application/json`. The routing table (`/actuator/mappings`, exposed for one run) has 19 rows where it had 16: two `GET
+/dashboard` rows, `DashboardPage#page` producing `text/html` and `TiffinBoxServer#dashboard` producing anything; two `POST /customers`
+rows, the form's consuming `application/x-www-form-urlencoded`; and `GET /customers/new`, producing `text/html`. A client that asks
+for HTML alone, or a browser's whole Accept header (Chrome 155's, sent by curl), gets the page — `200 text/html;charset=UTF-8`,
+`Content-Language: en-US` (the JVM's locale; `Accept-Language: de` makes it `de`), `<title>Dashboard · TiffinBox</title>`, the four
+customers in a table. `GET /customers/new` asked for JSON is `/customers/{name}` with the name `new`: the 404 problem detail.
+
+**Shared pieces** (`fragments`): both pages' `<head>`, `<header>` and `<footer>` come from `fragments.html` (`th:fragment`, pulled in by
+`th:replace`) — seven lines each, one different: the `<title>`, the fragment's parameter.
+
+**A form that answers in words** (`form`): the line above → `302`, `Location: http://127.0.0.1:18431/dashboard`, no body — the
+**redirect-after-POST** pattern: the browser asks for the page with a GET, so a reload never sends the form again — and the dashboard
+lists Lata (5 customers). The validation lesson's four broken rules, as a form → 200, the form again, four messages beside their
+fields, in the language the request names (none: the JVM's, pinned — `must not be blank`, …; `Accept-Language: de` → `darf nicht leer
+sein`, …). Letters for a number (`mealsPerDay=two`) → one message, Spring's own and raw: `Failed to convert value of type
+java.lang.String to required type int; For input string: "two"` (a `typeMismatch` key in a `messages.properties` would word it; not
+set here). A taken name → `a customer named Lata already exists`, on the name. The JSON POST is still `201`. **One answer moved:** the
+request-body lesson's POST without `-H 'Content-Type: application/json'` (curl's `--data` names a form's type) is no longer a 415 — it
+reaches the form's route, and answers 200 with the form and one raw message (`Failed to convert value of type null to required type
+int; …`). The form carries no CSRF token: Course 10's subject. 0 WARN, 0 ERROR.
+
+**In a browser** (`browser`; headless Chrome 155, a fresh profile, sealed to 127.0.0.1): typed into the address bar, `/dashboard`
+went with Chrome's whole Accept header — the one curl sends above — and came back the page; the form, filled and sent, went as `POST
+/customers`, `Content-Type: application/x-www-form-urlencoded`, `Origin` TiffinBox's own, `Sec-Fetch-Site: same-origin` → `302` →
+`GET /dashboard` 200, Kiran in the table; four broken rules → the form, four messages in English (`Accept-Language: en-US,en;q=0.9`).
+Each seen twice: in Chrome's own record of the request and in the server's (the course's `Dump` filter).
+
+**When it breaks** (`errors`): a name of 61 letters — the table's column holds 60, and nothing checks the length — is H2's refusal
+(22001), which nobody handles: `500`, Tomcat's ERROR line, and for a client that asks for HTML the error page is TiffinBox's own,
+`templates/error/5xx.html` (`<title>Something broke · TiffinBox</title>`); curl's own Accept still gets Boot's JSON body. A template
+with a misspelt name (the exercise's) fails only when the page is asked for: `500`, the same error page, and two ERROR lines —
+Thymeleaf's `TemplateEngine` naming the template, the expression and its line, then Tomcat's — while the JSON `/dashboard` stays 200.
+**No `error/404.html`:** a copy with one, asked for `/nowhere` or a name nobody has as HTML or with Chrome's Accept header, still
+answers the 404 problem detail — every 404 here is answered before the error dispatch (C).
+
+**The template cache** (`devtools`): Boot's `spring.thymeleaf.cache` is `true` by default (its metadata): run from a classes folder,
+a template edited while TiffinBox runs is not read again by a page that has already rendered — the dashboard keeps the old footer —
+while a page asked for the first time (the form) reads the edited file; with `--spring.thymeleaf.cache=false` every request reads
+it. Boot's `spring.template.provider.cache` (no metadata entry; read in `TemplateAvailabilityProviders`) caches whether a template
+exists: an error page added while TiffinBox runs is not found until it is `false`. DevTools on this class path adds 10 defaults —
+`spring.thymeleaf.cache` and `spring.template.provider.cache` false among them.
+
+**Every form serves it** (`forms`): the jar, the AOT jar, the native binary and the image — each on `127.0.0.1` (the image:
+published there), each answering the seven `466c20ed…` (masked), and, on a second start of each, every page: the dashboard, the form,
+its four messages, the valid POST's `302` and Lata in the table, TiffinBox's error page for the 61-letter name — the binary's too — and
+the JSON POST's `201`. Spring's AOT step registers 687 reflection entries where the previous tree's registered 670 — `Dashboard$View`
+with its public methods, `Customer`'s public methods (the hint), `DashboardPage`, Thymeleaf's engine, resolver and configuration
+classes — and `templates/**` and `static/**` as resources. The binary's pages say `Content-Language: en` where the jar's say `en-US`:
+its run line takes no locale option.
+
+Evidence for every sentence in this section: `../c6-unit22/` (`receipts.sh`, nine captures).
 
 ---
 

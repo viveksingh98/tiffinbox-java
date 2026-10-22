@@ -63,6 +63,13 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webmvc</artifactId>
     </dependency>
+    <!-- Course 6: Thymeleaf, through Boot's starter - a template engine: it fills an HTML file's th:* attributes from the
+         model a @Controller hands it, on the server, so a client that asks for HTML gets a finished page. Boot's module
+         configures the engine and a view resolver for classpath:/templates/*.html. Boot's parent manages its version. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-thymeleaf</artifactId>
+    </dependency>
   </dependencies>
 
   <build>

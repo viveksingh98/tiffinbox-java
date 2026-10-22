@@ -1,0 +1,106 @@
+# TiffinBox's settings: the four keys application.properties held, one level of nesting per dot.
+tiffinbox:
+  jdbc-url: jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1
+  cooks: 3
+  days: 30
+  port: 18425
+  # The address TiffinBox listens on: this computer only. In a container, set TIFFINBOX_ADDRESS=0.0.0.0 - every
+  # interface of the container - and publish the port on the Mac's 127.0.0.1 alone (docker run -p 127.0.0.1:...).
+  address: 127.0.0.1
+  # The meal types TiffinBox serves. Boot keeps a list as one key per item: meal-types[0], [1], [2].
+  meal-types:
+    - VEG
+    - NON_VEG
+    - VEGAN
+# Course 6: the server is embedded Tomcat, and Tomcat reads Boot's keys - server.address and server.port - not TiffinBox's.
+# These two lines give it TiffinBox's, so --tiffinbox.port=, TIFFINBOX_ADDRESS and TIFFINBOX_PORT work as before. Without
+# server.address Tomcat listens on every interface. They sit here, above the "---": below it, they would belong to the
+# profile "rush" alone. Boot's own name still wins where both are given: --server.port beats --tiffinbox.port.
+server:
+  address: ${tiffinbox.address}
+  port: ${tiffinbox.port}
+# How Boot composes the rest: virtual threads, a profile group, one more file, and the secrets.
+spring:
+  # Course 6: Tomcat answers each request on a virtual thread of its own, as TiffinBox's own server did since Core Java II,
+  # and Boot's task executor uses virtual threads too. Under Spring's AOT step, and so in the native binary, this is fixed
+  # when the jar is built: a run-time --spring.threads.virtual.enabled changes nothing there, either way.
+  threads:
+    virtual:
+      enabled: true
+  profiles:
+    group:
+      # --spring.profiles.active=lunch switches on the rush and the audit together.
+      lunch: rush,audit
+  config:
+    import:
+      # A developer's own settings, from the folder TiffinBox starts in. "optional:" - a missing file is no error.
+      # tiffinbox-local.yaml is never committed: .gitignore, beside this project's README.
+      - optional:file:./tiffinbox-local.yaml
+      # The secrets: a config tree, one file per key, in ./secrets/ - tiffinbox.shutdown-token is the file
+      # secrets/tiffinbox/shutdown-token. Never committed either (.gitignore). "optional:" - a missing folder is no
+      # error here, but the record requires the token, so the start still stops, and names the key.
+      - optional:configtree:./secrets/
+  # Boot's Docker Compose support (spring-boot-docker-compose, an optional dependency of tiffinbox-web): off. On a class
+  # path that holds the module - the one Maven lists for tiffinbox-web does; the executable jar does not - it would
+  # otherwise run docker compose up from the folder TiffinBox starts in, and stop the start where that folder holds no
+  # compose.yaml, or where Docker does not answer. The profile "dev" switches it on: application-dev.yaml.
+  docker:
+    compose:
+      enabled: false
+  # Course 6: Jackson, the library Spring MVC reads a request's JSON body with, as Boot builds it (its bean jacksonJsonMapper).
+  # Jackson's own default reads a number with a decimal point into a whole-number field by dropping the fraction, without a
+  # word: "mealsPerDay": 2.7 is stored as 2. Off, such a number - 2.0 too - is refused: Spring MVC answers 400. Boot reads it
+  # when TiffinBox starts, in the AOT jar and the binary too. Above the "---": below it, a run without the rush profile skips it.
+  jackson:
+    deserialization:
+      accept-float-as-int: false
+  # Course 6: Spring MVC's own errors - no route (404), a verb no route takes (405), a request it cannot read or convert (400),
+  # a type the client does not accept (406), a body type it cannot read (415) - answered as problem details: RFC 9457's shape,
+  # application/problem+json, by Boot's ProblemDetailsExceptionHandler, an advice Boot asks before TiffinBox's own, where Boot's
+  # error controller wrote its four keys. A route's unexpected exception is still Boot's /error body. Above the "---": below
+  # it, only the rush profile would answer this way.
+  mvc:
+    problemdetails:
+      enabled: true
+# Logging. Boot's logging system is Logback, and TiffinBox's System.Logger reaches it through java.util.logging. A log
+# group is one name for several loggers: "kitchen" is TiffinBox's own logger (System.getLogger("tiffinbox")) and the loggers
+# under com.tiffinbox - Boot logs TiffinBox's startup under its main class's name. --logging.level.kitchen=debug sets them
+# all at start; the loggers endpoint - exposed by a flag, for one run - sets them while TiffinBox runs. Under Spring's AOT
+# step and in the native binary a level given at start still works; loggers is not in the exposure list below.
+logging:
+  group:
+    kitchen: tiffinbox, com.tiffinbox
+  # Course 6: two loggers print the shutdown token when they are at TRACE - Tomcat's Http11InputBuffer, each request it read,
+  # headers and all (its records labelled DEBUG), and Spring MVC's HandlerMethod, the arguments a route was given, the
+  # X-Shutdown-Token header's value among them. Held at INFO, Boot's default level, in the first document: a default run logs as
+  # it did without these lines, and every logger at TRACE, or Boot's web group at TRACE, leaves the token out of the log.
+  level:
+    org.apache.coyote.http11.Http11InputBuffer: info
+    org.springframework.web.method.HandlerMethod: info
+# Boot's Actuator: the endpoints Boot's own adapter answers under /actuator (Course 6). Health, and prometheus - the meters in the
+# text a Prometheus server scrapes - and nothing else: widening it is a line someone reviews. Under Spring's AOT step,
+# and so in the native binary, this list is fixed when the jar is built: a run-time exposure flag adds nothing there,
+# though it can still remove one - health too.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  # Health's groups. Readiness - "send TiffinBox traffic?" - holds Boot's own readiness state and the kitchen
+  # (KitchenHealthIndicator: DOWN when the database does not answer). Liveness - "restart TiffinBox?" - stays Boot's own
+  # state alone: a restart cannot bring back a database outside the process. (TiffinBox's own H2 lives in memory, and a
+  # restart would rebuild it: the health lesson's harness plays the outside database that stays down.) With probes switched
+  # off (management.endpoint.health.probes.enabled=false) readinessState does not exist, and this line stops the start.
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,kitchen
+---
+# A second document in the same file, read only while the profile "rush" is active.
+spring:
+  config:
+    activate:
+      on-profile: rush
+tiffinbox:
+  cooks: 6
