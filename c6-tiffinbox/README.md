@@ -716,7 +716,7 @@ happened, the `instance` (the request's path, which Spring MVC fills in), a `typ
 - `application.yaml` — one key in the first document (line 64, above the `---` at 99), **`spring.mvc.problemdetails.enabled: true`**,
   with its comment: Boot's `ProblemDetailsExceptionHandler` — a `ResponseEntityExceptionHandler`, Spring MVC's own class for this —
   joins as an advice ordered 0, asked before `TiffinBoxErrors`, and answers Spring MVC's own exceptions. Boot's metadata gives the key
-  `false` by default (`change`). *(Course 6, unit 23: the `---` is at line 115 since — the static-resource keys sit above it, lines 72-80; `../c6-unit23/`, `change`.)*
+  `false` by default (`change`). *(Course 6, unit 23: the `---` is at line 115 since — the static-resource keys sit above it, lines 72-80; `../c6-unit23/`, `change`.)* *(Course 6, unit 24: the key is at line 70 and the `---` at line 121 since — the session key sits above both, lines 22-27; `../c6-unit24/`, `change`.)*
 - `TiffinBoxErrors.java` — its handler returns a `ProblemDetail`: 404, the exception's message as the detail, the title `Customer not
   found`, and the name as a member of TiffinBox's own, `name`; the `@ResponseStatus` line is gone — the status is the problem detail's.
 - `TiffinBoxServer.java` — the 400 is a problem detail whose `errors` member is the field map, the detail the number of rules broken;
@@ -867,7 +867,7 @@ reload Chrome asked TiffinBox for the page only, never for the stylesheet (`brow
 - `tiffinbox-web/src/main/resources/application.yaml` — three keys in its **first document** (lines 77, 78 and 80, above the `---`
   at 115), with their comment: `spring.web.resources.chain.strategy.content.enabled: true` (Boot's content version strategy, `false`
   by default), `spring.web.resources.chain.strategy.content.paths: /**` (Boot's own default, written down) and
-  `spring.web.resources.cache.period: 365d` (no default: no `Cache-Control` at all) — Boot's metadata (`change`).
+  `spring.web.resources.cache.period: 365d` (no default: no `Cache-Control` at all) — Boot's metadata (`change`). *(Course 6, unit 24: lines 83, 84 and 86, the `---` at 121 since — the session key sits above them, lines 22-27; `../c6-unit24/`, `change`.)*
 
 ```bash
 curl -s -H 'Accept: text/html' http://127.0.0.1:18431/dashboard | grep -o '/css/[^"]*'
@@ -902,6 +902,56 @@ binary's `Last-Modified` is its own**: a time inside its native build, not the P
 seven are the previous tree's, byte for byte — `466c20ed7e0d5439cb052f32ce09de1b` (masked).
 
 Evidence for every sentence in this section: `../c6-unit23/` (`receipts.sh`, nine captures).
+
+## Course 6 · unit 24 — a note across the redirect, and the session's id kept out of the address (2026-10-22)
+
+Until this unit the form's POST answered `302` to `/dashboard` and the dashboard said nothing about it: no answer of TiffinBox's made a
+**session** (state the server keeps for one client between requests) or set a **cookie** (a name and value a server asks the client
+to keep and send back with every later request to it) — the seven, the pages, the form's POST: 0 `Set-Cookie` (`cookie`). From this
+unit the redirect carries a note — a **flash attribute**: a value Spring MVC keeps for one client until the redirect's next request has
+read it, then drops — and the dashboard says `Lata added` once. Spring MVC keeps a flash attribute in the client's session, so the
+POST now makes one: its answer sets `JSESSIONID=<id>; Path=/; HttpOnly` — the session's id in a cookie that the page's scripts cannot
+read (**HttpOnly**), with no `Secure` and no `SameSite` (`cookie`). Three files changed, besides this README:
+- `DashboardPage.java` — `POST /customers` takes a `RedirectAttributes` and, once the customer is stored, adds the flash attribute
+  `added` (the customer's name) before `redirect:/dashboard`.
+- `templates/dashboard.html` — one line: `<p class="note">… added</p>`, shown when `added` is in the model.
+- `tiffinbox-web/src/main/resources/application.yaml` — one key in its **first document** (line 27, under `server:` at 19; the `---`
+  at 121), with its comment: **`server.servlet.session.tracking-modes: cookie`**. Tomcat's default — the servlet context's default
+  tracking modes, `COOKIE` and `URL` — also writes a new session's id into the address of a redirect to a client that sent no cookie:
+  `Location: …/dashboard;jsessionid=<id>` (`tracking`). Boot's metadata gives the key no default (`change`).
+
+```bash
+curl -s -D - -o /dev/null --data 'name=Lata&mealsPerDay=2&pricePerMeal=110&mealType=VEG' http://127.0.0.1:18431/customers
+```
+
+**The note, once** (`flash`): the line above → `302`, `Location: http://127.0.0.1:18431/dashboard`, the `Set-Cookie`. A client that
+keeps the cookie and follows the redirect (curl's cookie jar; Chrome) gets the dashboard with `Lata added`; the next request, none. A
+client that keeps no cookie gets no note — the customer is stored, the note stays in a session nobody asks for. A form the rules
+refuse and a JSON POST make no session. `curl -L` with `-X POST` posts again to `/dashboard` (405); without `-X` it follows with a GET.
+
+**The id in the address** (`tracking`): with `cookie,url` — Tomcat's default, for one run — the same first POST answers `Location:
+…/dashboard;jsessionid=<id>`, the cookie's own id, and a client that keeps no cookie still gets the note through that address — and a
+page whose every link (the stylesheet's, the two in the header) carries the id too. In Chrome the address it then shows is
+`/dashboard;jsessionid=<id>` (`browser` C). With `cookie` the address is clean and the id travels in `Set-Cookie` alone.
+
+**In a browser** (`browser`; headless Chrome 155, a fresh profile, sealed to 127.0.0.1): the dashboard, then the form, filled and sent:
+`POST /customers` → `302` with `Set-Cookie`, then `GET /dashboard` with `Cookie: JSESSIONID=<id>` — the same id — and the page says
+`Kiran added`; typed again, the page says nothing and the cookie still goes. Chrome's cookie store: `httpOnly true`, `secure false`,
+`sameSite (none)`, `session true` (kept until the browser closes).
+
+**What Course 10 decides** (`flags`, `browser` F): `server.servlet.session.cookie.same-site=strict` → `SameSite=Strict`;
+`…cookie.secure=true` → `Secure`, which Chrome kept and sent back over plain http to 127.0.0.1 (a loopback address); `…timeout=90s` →
+a session that may sit unused 60 seconds (Tomcat counts whole minutes; Boot's default is `30m`, 1800 seconds). None is set here.
+
+**DevTools** (`persistent`): on its class path DevTools sets `server.servlet.session.persistent` to `true` — Tomcat writes its sessions
+to `SESSIONS.ser` when it stops and reads them back when it starts: a visit count went 1, 2, restart, 3. Off: 1 again. That file holds
+each session's id and what it carries; the run's folder for it here is under `.harness/`, deleted on every exit.
+
+**Every form** (`forms`): the jar, the AOT jar, the native binary and the image answer the form's first POST with the clean `Location`
+and the `HttpOnly` cookie, and show the note once; with `cookie,url` passed at start each writes the id into the address — the key is
+read at run time in all four. The seven are the previous tree's, byte for byte — `466c20ed7e0d5439cb052f32ce09de1b` (masked).
+
+Evidence for every sentence in this section: `../c6-unit24/` (`receipts.sh`, nine captures).
 
 ---
 

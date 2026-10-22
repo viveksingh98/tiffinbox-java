@@ -4,6 +4,7 @@
 <body>
 <header th:replace="~{fragments :: header}"></header>
 <main>
+  <p class="note" th:if="${added != null}" th:text="${added} + ' added'">x added</p>
   <p>Customers: <strong th:text="${customerCount}">0</strong> · This month: <strong th:text="${view.monthRevenue}">0</strong> · Paused days: <strong th:text="${view.pausedDays}">0</strong></p>
   <table>
     <tr><th>Name</th><th>Meals a day</th><th>Price a meal</th><th>Meal type</th><th>Monthly bill</th></tr>

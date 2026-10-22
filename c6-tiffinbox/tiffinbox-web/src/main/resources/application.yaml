@@ -19,6 +19,12 @@ tiffinbox:
 server:
   address: ${tiffinbox.address}
   port: ${tiffinbox.port}
+  # Course 6: a session's id travels in its cookie, JSESSIONID, and nowhere else. Tomcat's default, cookie and url, also
+  # writes it into the address of a redirect to a client that sent no cookie yet (/dashboard;jsessionid=...) - an address
+  # a log, a browser's history or a copied link keeps. Above the "---": below it, only the rush profile would keep it out.
+  servlet:
+    session:
+      tracking-modes: cookie
 # How Boot composes the rest: virtual threads, a profile group, one more file, and the secrets.
 spring:
   # Course 6: Tomcat answers each request on a virtual thread of its own, as TiffinBox's own server did since Core Java II,

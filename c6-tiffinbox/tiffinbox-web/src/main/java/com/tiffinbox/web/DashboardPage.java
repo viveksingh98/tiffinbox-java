@@ -15,6 +15,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.sql.SQLException;
 
@@ -34,7 +35,11 @@ import java.sql.SQLException;
  *     fields onto a new Customer ({@code @ModelAttribute}) and checks it ({@code @Valid}); the rules it broke are in the
  *     BindingResult, and the form is shown again with each message beside its field. A name that is taken - H2's SQLSTATE
  *     23505, read as TiffinBoxServer reads it - is one more message, on the name. Stored: a redirect to the dashboard (302),
- *     redirect-after-POST: the browser asks for the page with a GET, so a reload never sends the form again. Every other
+ *     redirect-after-POST: the browser asks for the page with a GET, so a reload never sends the form again. The redirect
+ *     carries a note: a flash attribute ("added", the customer's name), which Spring MVC keeps in the client's session until
+ *     the redirect's GET /dashboard has read it, then drops - the page shows "... added" once. Keeping it is what makes the
+ *     session: the answer sets the session cookie, JSESSIONID, and only the cookie carries the session's id, never the
+ *     address (server.servlet.session.tracking-modes: cookie, application.yaml). Every other
  *     refusal stays Spring MVC's 500 - for a client that asks for HTML, {@code templates/error/5xx.html}. A JSON body still
  *     goes to TiffinBoxServer's POST /customers.</li>
  * </ul>
@@ -82,7 +87,8 @@ final class DashboardPage {
     }
 
     @PostMapping(value = "/customers", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-    String add(@Valid @ModelAttribute("customer") Customer customer, BindingResult errors) throws SQLException {
+    String add(@Valid @ModelAttribute("customer") Customer customer, BindingResult errors, RedirectAttributes flash)
+            throws SQLException {
         if (errors.hasErrors()) {
             return "customer-form";
         }
@@ -95,6 +101,7 @@ final class DashboardPage {
             }
             throw e;
         }
+        flash.addFlashAttribute("added", customer.name());
         return "redirect:/dashboard";
     }
 }
