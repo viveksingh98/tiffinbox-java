@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>waiting</title><link rel="icon" href="data:,"></head>
+<body><p id="out">nothing yet</p>
+<script>
+// The course's harness, never TiffinBox's: a page on another origin that asks TiffinBox for its menu. ?m= the method (PUT unless
+// named: a PUT carries a JSON body, so its Content-Type is application/json); ?u= the address. It prints what the page could read -
+// "answer STATUS BODY" - or what fetch threw, then sets its title to "done".
+const q = new URLSearchParams(location.search);
+const opts = { method: q.get('m') || 'PUT' };
+if (opts.method !== 'GET') { opts.headers = { 'Content-Type': 'application/json' }; opts.body = '{}'; }
+fetch(q.get('u'), opts)
+  .then(r => r.text().then(t => out('answer ' + r.status + ' ' + t)))
+  .catch(e => out('refused: ' + e));
+function out(s) { document.getElementById('out').textContent = s; document.title = 'done'; }
+</script>
+</body></html>
