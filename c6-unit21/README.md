@@ -46,9 +46,48 @@ from `receipts.md5` (it prints the `DIFFERS` line first). **Start it in a proces
 two receipts started as background jobs of one shell share a group, and one run's clean-up would stop the other's JVMs (R.94). A run
 takes several minutes: `timeout` A and A′ each wait for Tomcat's own async timeout, three times.
 
-**Runs of record (2026-10-22, at a machine load of about 5):** **466 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with HOME and a plain PATH, this folder, its own process group: exit 0, all 6 captures 3/3 = published, every check passed; `.m2-demo` still 5,890 files after) and **465 s under `bash receipts.sh`** (Homebrew bash 5.3.9, the same: exit 0, all 6 = published; 5,890 files after); a final bash 3.2 run after this README was written, the same. **A sealed fresh clone**: `git clone` of tiffinbox-java at 66732c9 through `file://`, this unit's 20 files put in as git would take them (its `.gitignore` lines keep `.m2-demo`, `.harness` and `.r-*` out; `anchor` stays the link — `readlink` gives `../c6-unit16/after` in both, and the tree it points to diffed whole: 0 differences); `env -i`, a `HOME` of its own whose `.mavenrc` points every Java proxy at a refusing port (127.0.0.1:9), Maven settings sending every repository to a `file://` copy of Central's files made from this unit's `.m2-demo` (4,412 files), the proxy variables at the same refusing port, `/bin/bash` 3.2, a process group of its own: exit 0 in 479 s, all 6 = published, every check passed; **512 artifacts, every one from the `file://` copy, 0 from anywhere else**; the first build said `offline: no`, as a fresh clone's must, and every capture's build `offline: yes`. **How the hashes were made:** one development run (bash 3.2, each capture 3/3 on its first full run) fixed the captures; its six hashes went into `receipts.md5`; every run since reproduced them, 3 of 3 each (bash 3.2 twice, bash 5.3, the sealed clone).
+**Runs of record (2026-10-23, BLUE S4 part 1, this script as committed):** **503 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with
+HOME and a plain PATH, this folder, a session of its own: exit 0, all 6 captures 3/3 = published, every check passed) and **496 s under
+`bash receipts.sh`** (Homebrew bash 5.3.9, the same: exit 0, all 6 = published). **How the hashes were made:** one development run (bash
+3.2, 579 s, each capture 3/3) fixed `timeout` (D: curl bounded to ten seconds, RED S4 #350) and `gone` (the OS's words masked, RED S4 #349);
+it stopped only at the exercise card's spoken line, which this change rewrote (RED S4 #353) and the check now reads; `events`, `dispatch`,
+`committed` and `exercise` reproduced their earlier hashes unchanged. **The sealed fresh clone** of 2026-10-22 (at 66732c9, 479 s) followed
+the earlier text of the recipe, which RED S4 #405 measured to leak as written, so its "every one from the `file://` copy" is not a proof from
+that text. It was **not re-run** for this change: only captures changed (no dependency, plugin or build step), which a sealed clone cannot
+tell from a seeded run. The fixed recipe below was measured once, on c6-unit18 (its README gives the counts).
 
-Published hashes: events `fefc45b7cf4d0a953f024275e3538257` · dispatch `13a32aafa14472a7c6861338c8dc21e9` · timeout `cc3d27e480d799fb3bc928e361ca0075` · committed `1695bed65367ebb06913c524e09de0a4` · gone `77b6e69d1f6843a021dcc293b2dd7e21` · exercise `f07806ddfb8c7534938d84014a6c0426`.
+Published hashes: events `fefc45b7cf4d0a953f024275e3538257` · dispatch `13a32aafa14472a7c6861338c8dc21e9` · timeout `80887a7c60587e5821342829afd6843a` · committed `1695bed65367ebb06913c524e09de0a4` · gone `23c7d84808f566705fd4641a0100882f` · exercise `f07806ddfb8c7534938d84014a6c0426`.
+
+### A sealed fresh clone — the recipe (RED S4 #405)
+
+A sealed clone proves that a fresh clone's first build fetches only from a copy you control. **The earlier text of this paragraph did not
+seal** (RED S4 #405, measured): a `HOME` of its own whose `.mavenrc` set only `-Dhttp(s).proxyHost`, with Maven settings in `$HOME/.m2`,
+fetched from Maven Central — Java on macOS ignores `$HOME` (`user.home` stays your own folder, so Maven never read those settings), and
+Maven's resolver ignores the `-Dhttp.proxyHost` properties (it takes its proxies from `settings.xml`). The recipe that seals, step by step,
+with a pre-flight that refuses to start unless the only remote is `file://` and a post-check of where every artifact came from:
+
+```bash
+S=/tmp/sealed-21                                   # an empty folder of your own; T = your tiffinbox-java clone
+mkdir -p "$S/home/.m2" && git clone -q "file://$T" "$S/tiffinbox-java"
+rsync -a --exclude _remote.repositories --exclude '*.lastUpdated' --exclude resolver-status.properties "$T/c6-unit21/.m2-demo/" "$S/central/"
+printf 'MAVEN_OPTS="-Duser.home=%s"\n' "$S/home" > "$S/home/.mavenrc"     # mvn reads $HOME/.mavenrc; Java then reads this user.home
+cat > "$S/home/.m2/settings.xml" <<XML
+<settings>
+  <mirrors><mirror><id>sealed</id><mirrorOf>*</mirrorOf><url>file://$S/central</url></mirror></mirrors>
+  <proxies>
+    <proxy><id>dead-http</id><active>true</active><protocol>http</protocol><host>127.0.0.1</host><port>9</port></proxy>
+    <proxy><id>dead-https</id><active>true</active><protocol>https</protocol><host>127.0.0.1</host><port>9</port></proxy>
+  </proxies>
+</settings>
+XML
+X=http://127.0.0.1:9; E="env -i HOME=$S/home PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin http_proxy=$X https_proxy=$X HTTP_PROXY=$X HTTPS_PROXY=$X no_proxy=127.0.0.1,localhost NO_PROXY=127.0.0.1,localhost"
+# pre-flight: an artifact that exists nowhere, asked for through the sealed settings - it must fail, having asked file:// and nothing else
+$E JAVA_HOME=/opt/homebrew/opt/openjdk@25 mvn -B -Dmaven.repo.local="$S/preflight-m2" org.apache.maven.plugins:maven-dependency-plugin:3.8.1:get -Dartifact=org.example.sealed:absent:1 > "$S/preflight.log" 2>&1
+[ $? != 0 ] && grep -q 'Downloading from sealed: file://' "$S/preflight.log" && ! grep -qE 'Downloading from [^ ]+: https?://' "$S/preflight.log" && echo "sealed: file:// only" || echo "NOT SEALED - do not run receipts.sh"
+cd "$S/tiffinbox-java/c6-unit21" && $E ./receipts.sh            # a process group of its own (a terminal's foreground job is one)
+# post-check: every artifact's origin, by repository id - each line must say sealed; 0 central
+find .m2-demo -name _remote.repositories -exec cat {} + | grep -o '>[^=]*=' | sort | uniq -c
+```
 
 ## The commands this unit adds
 
@@ -71,13 +110,13 @@ curl -s -N -D .harness/head.txt -o .harness/body.txt -w ' %{http_code} · Conten
 
 The first two are the anchor's run line and its class-path line with `-Duser.language=en -Duser.country=US` after `java` — asserted — and
 every java line a capture starts takes the same two options in the same place (`at()`; a last check refuses any capture's java line without
-them, and the exercise's). The third is the pinned class-path line with Spring MVC's timeout key as an option (`timeout` B, `committed`).
+them, and the exercise's). The third is the pinned class-path line with Boot's timeout key for Spring MVC as an option (`timeout` B, `committed`).
 The javac line compiles the harness's eleven files and nothing else. The metadata line reads the anchor's own `spring-boot-webmvc` jar; the
 `javap` line prints Boot's handler's class line; the `unzip | grep -ac` line counts the WARN's sentence in Spring MVC's
 `ResponseEntityExceptionHandler` class. The help line is curl's own word for `-N`. The stream line is curl reading the feed as it arrives,
 the headers first (`-D -`, `sq()` swaps the port). The saved-answer line is the anchor's Content-Type line with `-N`, `-D` and `-o`
 (headers and body to files, both removed before each request — R.119), a bound on curl's time and the feed (`gq()` swaps the port, the
-number of orders and the bound: `--max-time 2` is `gone`'s); each derivation is asserted.
+number of orders and the bound: `--max-time 2` is `gone`'s, `--max-time 10` is `timeout` D's); each derivation is asserted.
 
 ## The repository, and what was downloaded
 
@@ -121,6 +160,8 @@ bash (`#!/bin/bash`), never zsh, where the two options would arrive as one word 
    `$$SpringCGLIB$$<n>`. A last check fails if any capture holds `/Users/`, `/private/`, `/home/`, `/var/folders/`, a unit number, Boot's
    process line, a log time, an unmasked timestamp, a date, a thread number, a stack frame, a whole HTML page, `:8080` or `:35729`, a
    carriage return, a duration, a count of an endless stream's events, or a command with a URL that is not `127.0.0.1`'s.
+   **The OS's words** (RED S4 #349): in any line, `java.io.IOException: <message>` → `java.io.IOException: <the OS's words>` (up to the
+   harness's next ` - `); the raw message is asserted to be there and printed on the terminal, never in a capture.
 2. **Spring's error timestamp** (`tsmask`): `"timestamp":"<anything>"` → `"timestamp":"…"`, both forms, in every answer printed and in the
    seven (problem details here: the mask runs, and the seven print its count, 0).
 3. **What curl printed** (`strm`, the stream line): every line as it came, its carriage return and trailing space dropped, `Date`'s value →
@@ -344,9 +385,13 @@ $ harness/shutdown.sh 19503 .harness/anchor/secrets/tiffinbox/shutdown-token
 
 ## 3 · timeout — nothing comes, A/B/A′
 
-Boot's metadata for `spring.mvc.async.`: one key, `request-timeout`, no default. A: the key `null` in Spring's environment, Tomcat's connector's async timeout 30000 ms, the request's own async context 30000 ms; a feed asked for no events → `503 application/problem+json` `{"instance":"/probe/feed","status":503,"title":"Service Unavailable"}`, `Connection: close`, `onTimeout`, 0 WARN 0 ERROR. B (`--spring.mvc.async.request-timeout=2s`): the environment `2s`, the connector still 30000, the request's context 2000 ms — the same 503, byte for byte. A′ = A.
+Boot's metadata for `spring.mvc.async.`: one key, `request-timeout`, no default. A: the key `null` in Spring's environment, Tomcat's connector's async timeout 30000 ms, the request's own async context 30000 ms; a feed asked for no events → `503 application/problem+json` `{"instance":"/probe/feed","status":503,"title":"Service Unavailable"}`, `Connection: close`, `onTimeout`, 0 WARN 0 ERROR. B (`--spring.mvc.async.request-timeout=2s`): the environment `2s`, the connector still 30000, the request's context 2000 ms — the same 503, byte for byte. A′ = A. **D (labelled) — the key by its effect, a bound and not a
+clock** (RED S4 #350): the same request with curl bounded to ten seconds (`--max-time 10`). A's JVM, the key unset: `000`, curl's exit 28 —
+curl gave up first, no status — and the server's own 30000 ms timeout comes later, to nobody (`onTimeout`, `onCompletion`, 0 WARN 0 ERROR;
+`fq` waits for the stream's `onCompletion`, as for every stream: a wait, never timed). B's JVM, two seconds: the 503, inside the bound.
+(`hdrs` now says so when curl wrote no header file, instead of failing on it.)
 
-`.r-timeout.out` · md5 `cc3d27e480d799fb3bc928e361ca0075` · 3 of 3
+`.r-timeout.out` · md5 `80887a7c60587e5821342829afd6843a` · 3 of 3
 
 ```
 the key - what Boot's own metadata declares under spring.mvc.async. (in spring-boot-webmvc-4.1.1.jar, from the anchor's extracted lib/; this unit's line):
@@ -441,6 +486,58 @@ $ harness/shutdown.sh 19504 .harness/anchor/secrets/tiffinbox/shutdown-token
   exit 0 · listening on 19504 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 A' against A, its label aside, line for line the same: yes
+D (labelled) - the key by its effect, a bound and not a clock: the same request with curl bounded to ten seconds (this unit's line, --max-time 10); A's JVM, the key unset, port 19504:
+$ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19504 --spring.main.sources=probe.web.Feed,probe.web.Timeouts
+  listens on: 127.0.0.1:19504 · loopback only: yes
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19504/actuator/health/readiness
+  {"status":"UP"} 200
+  the JVM's locale (the harness's Feed): en_US
+  the harness at start: Timeouts spring.mvc.async.request-timeout in Spring's environment: null - Tomcat's connector, its async timeout: 30000 ms
+$ curl -s -N -D .harness/head.txt -o .harness/body.txt -w ' %{http_code} · Content-Type: [%{content_type}]\n' --max-time 10 'http://127.0.0.1:19504/probe/feed?orders=0'
+  curl's line: 000 · Content-Type: [] · curl's exit code: 28 · WARN lines it added: 0 · ERROR lines: 0
+  the headers curl saved, as they came: 0 lines, the status line first (Date's value masked):
+  Content-Length: none · Transfer-Encoding: none
+  the body curl saved: nothing
+  the harness's lines it printed, in order: 4
+     1 Feed            the handler returns the emitter, nothing sent yet, on tomcat-handler-<n> (virtual: true) - orders asked: 0
+     2 Timeouts        the REQUEST dispatch leaves; the request is async, its timeout: 30000 ms
+     3 Feed            onTimeout on tomcat-handler-<n> (virtual: true) - the clock: none - no events were asked
+     4 Feed            onCompletion on tomcat-handler-<n> (virtual: true) - the clock: none - no events were asked
+  WARN lines in this run's log, at Boot's default level: 0 · ERROR lines: 0
+$ harness/shutdown.sh 19504 .harness/anchor/secrets/tiffinbox/shutdown-token
+  POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
+  exit 0 · listening on 19504 now: 0
+  its log: the demo token 0 times · X-Shutdown-Token 0 times
+then B's JVM, the key at two seconds, port 19505:
+$ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19505 --spring.main.sources=probe.web.Feed,probe.web.Timeouts --spring.mvc.async.request-timeout=2s
+  listens on: 127.0.0.1:19505 · loopback only: yes
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19505/actuator/health/readiness
+  {"status":"UP"} 200
+  the JVM's locale (the harness's Feed): en_US
+  the harness at start: Timeouts spring.mvc.async.request-timeout in Spring's environment: 2s - Tomcat's connector, its async timeout: 30000 ms
+$ curl -s -N -D .harness/head.txt -o .harness/body.txt -w ' %{http_code} · Content-Type: [%{content_type}]\n' --max-time 10 'http://127.0.0.1:19505/probe/feed?orders=0'
+  curl's line: 503 · Content-Type: [application/problem+json] · curl's exit code: 0 · WARN lines it added: 0 · ERROR lines: 0
+  the headers curl saved, as they came: 5 lines, the status line first (Date's value masked):
+    HTTP/1.1 503
+    Content-Type: application/problem+json
+    Transfer-Encoding: chunked
+    Date: …
+    Connection: close
+  Content-Length: none · Transfer-Encoding: chunked
+  the body curl saved, whole (0 newlines):
+    | {"instance":"/probe/feed","status":503,"title":"Service Unavailable"}
+  the harness's lines it printed, in order: 4
+     1 Feed            the handler returns the emitter, nothing sent yet, on tomcat-handler-<n> (virtual: true) - orders asked: 0
+     2 Timeouts        the REQUEST dispatch leaves; the request is async, its timeout: 2000 ms
+     3 Feed            onTimeout on tomcat-handler-<n> (virtual: true) - the clock: none - no events were asked
+     4 Feed            onCompletion on tomcat-handler-<n> (virtual: true) - the clock: none - no events were asked
+  WARN lines in this run's log, at Boot's default level: 0 · ERROR lines: 0
+$ harness/shutdown.sh 19505 .harness/anchor/secrets/tiffinbox/shutdown-token
+  POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
+  exit 0 · listening on 19505 now: 0
+  its log: the demo token 0 times · X-Shutdown-Token 0 times
 ```
 
 ## 4 · committed — time runs out mid-stream
@@ -495,9 +592,12 @@ $ unzip -p .harness/anchor/tiffinbox-web/target/extracted/lib/spring-webmvc-7.0.
 
 ## 5 · gone — the reader leaves
 
-The key unset, an endless feed, `curl --max-time 2`: curl's exit code 28 (its status line still says 200; every event it saved whole). The server learns of it at a send: `onError` — `AsyncRequestNotUsableException: Servlet container error notification for disconnected client`, the failed send on the clock's thread `…failed to flushBuffer: java.io.IOException: Broken pipe` — then `onCompletion`; the clock stopped; 0 WARN 0 ERROR.
+The key unset, an endless feed, `curl --max-time 2`: curl's exit code 28 (its status line still says 200; every event it saved whole). The server learns of it at a send: `onError` — `AsyncRequestNotUsableException: Servlet container error notification for disconnected client`, the failed send on the clock's thread `…failed to flushBuffer: java.io.IOException: <the OS's words>` — then `onCompletion`; the clock stopped;
+0 WARN 0 ERROR. **The OS's words are masked** (RED S4 #349): the exception's message is the kernel's text for the failed write (`Broken pipe`
+on this Mac; a Linux kernel may say `Connection reset by peer`), so the capture keeps only that it is a `java.io.IOException`; the check
+asserts that on the raw line (kept in `.harness/gone-os.txt`), and the terminal prints the words, never a capture.
 
-`.r-gone.out` · md5 `77b6e69d1f6843a021dcc293b2dd7e21` · 3 of 3
+`.r-gone.out` · md5 `23c7d84808f566705fd4641a0100882f` · 3 of 3
 
 ```
 the reader leaves - the anchor on its class path, the harness joined (Feed, Timeouts), the key unset, port 19507: an endless feed, curl bounded to two seconds:
@@ -524,7 +624,7 @@ $ curl -s -N -D .harness/head.txt -o .harness/body.txt -w ' %{http_code} · Cont
      1 Feed            the handler returns the emitter, nothing sent yet, on tomcat-handler-<n> (virtual: true) - orders asked: endless
      2 Timeouts        the REQUEST dispatch leaves; the request is async, its timeout: 30000 ms
      3 Feed            sent event 1 (Meera) on kitchen-clock (virtual: false) - an endless feed prints its first send only
-     4 Feed            onError on tomcat-handler-<n> (virtual: true): AsyncRequestNotUsableException: Servlet container error notification for disconnected client - the failed send, on the clock's thread: AsyncRequestNotUsableException: ServletResponse failed to flushBuffer: java.io.IOException: Broken pipe - the clock: stopped
+     4 Feed            onError on tomcat-handler-<n> (virtual: true): AsyncRequestNotUsableException: Servlet container error notification for disconnected client - the failed send, on the clock's thread: AsyncRequestNotUsableException: ServletResponse failed to flushBuffer: java.io.IOException: <the OS's words> - the clock: stopped
      5 Feed            onCompletion on tomcat-handler-<n> (virtual: true) - the clock: stopped
   WARN lines in this run's log, at Boot's default level: 0 · ERROR lines: 0
 $ harness/shutdown.sh 19507 .harness/anchor/secrets/tiffinbox/shutdown-token
@@ -613,7 +713,7 @@ unchanged). Measured answer: `exercise/solution/`. Run `./receipts.sh` once firs
 - **The reader leaves: the server learns of it from a failed send, and the notice says "disconnected client".** The brief's sketch had
   "`Broken pipe`, then `onError`". Measured: `onError` carries Spring MVC's `AsyncRequestNotUsableException: Servlet container error
   notification for disconnected client`; the send that failed, on the clock's thread, threw `AsyncRequestNotUsableException: ServletResponse
-  failed to flushBuffer: java.io.IOException: Broken pipe`. Both are printed, on one line (`gone`); neither is a WARN or an ERROR (0/0).
+  failed to flushBuffer: java.io.IOException: Broken pipe` (its message masked in the capture since BLUE S4 part 1 — the OS's words). Both are printed, on one line (`gone`); neither is a WARN or an ERROR (0/0).
   How many sends the server made after curl left is timing, and never printed.
 - **Who logs the committed WARN.** "Boot's WARN" (brief S4.5) is the logger's name: `o.s.b.w.a.ProblemDetailsExceptionHandler`, Boot's
   class — but the class is a one-constructor subclass of **Spring MVC's** `ResponseEntityExceptionHandler` (`javap`), and the sentence lives in

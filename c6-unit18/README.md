@@ -51,20 +51,52 @@ export PATH="$JAVA_HOME/bin:$PATH"
 from `receipts.md5` (it prints the `DIFFERS` line first). **Start it in a process group of its own** (a terminal's foreground job is one):
 two receipts started as background jobs of one shell share a group, and one run's clean-up would stop the other's JVMs (R.94).
 
-**Runs of record (2026-10-22, this script as committed):** **220 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with HOME and a plain
-PATH, this folder, its own process group, `.m2-demo` re-seeded from `_research/m2-seed-s4/` alone: exit 0, all 5 captures 3/3 = published,
-every check passed; `.m2-demo` still 5,891 files after) and **291 s under `bash receipts.sh`** (Homebrew bash 5.3.9, the same, re-seeded:
-exit 0, all 5 = published; 5,891 files after). **A sealed fresh clone**: `git clone` of tiffinbox-java at 5a2c523 through `file://`, this
-unit's 20 files put in as git would take them (its `.gitignore` lines keep `.m2-demo`, `.harness` and `.r-*` out; `anchor` stays the link —
-`readlink` gives `../c6-unit16/after` in both, and the tree it points to diffed whole: 0 differences); `env -i`, a `HOME` of its own whose
-`.mavenrc` points every Java proxy at a refusing port (127.0.0.1:9), Maven settings sending every repository to a `file://` copy of Central's
-files made from this unit's `.m2-demo` (4,412 files), the proxy variables at the same refusing port, `/bin/bash` 3.2, a process group of
-its own: exit 0 in 244 s, all 5 = published, every check passed; **512 artifacts, every one from the `file://` copy, 0 from anywhere
-else**; the first build said `offline: no`, as a fresh clone's must, and every capture's build `offline: yes`. **How the hashes were made:**
-one development run (bash 3.2, each capture 3/3) fixed the captures; its five hashes went into `receipts.md5`; every run since reproduced
-them, 3 of 3 each (bash 5.3 twice, bash 3.2, the sealed clone).
+**Runs of record (2026-10-22, this script as committed; unchanged by BLUE S4 part 1):** **220 s under `./receipts.sh`** (/bin/bash 3.2.57,
+`env -i` with HOME and a plain PATH, this folder, its own process group, `.m2-demo` re-seeded from `_research/m2-seed-s4/` alone: exit 0, all
+5 captures 3/3 = published, every check passed; `.m2-demo` still 5,891 files after) and **291 s under `bash receipts.sh`** (Homebrew bash
+5.3.9, the same, re-seeded: exit 0, all 5 = published; 5,891 files after). **A sealed fresh clone, by the recipe below** (2026-10-23, BLUE
+S4 part 1 — the earlier text of this paragraph, measured by RED S4 #405, does not seal): `git clone` of tiffinbox-java at 81b6d31 through
+`file://`, this unit's 20 files put in as git would take them (`git ls-files -co --exclude-standard`; `anchor` stays the link —
+`readlink` gives `../c6-unit16/after`, and the tree it points to diffed whole: 0 differences); a `file://` copy of Central's files made
+from this unit's `.m2-demo` (4,413 files); **the pre-flight: exit 1, 221 `Downloading from sealed: file://` lines, 0 from `http(s)://`**;
+then `./receipts.sh` (/bin/bash 3.2, `env -i`, a session of its own, the proxy variables at 127.0.0.1:9): **exit 0 in 230 s, all 5 =
+published**, every check passed; the first build said `offline: no`, as a fresh clone's must; **the post-check: `_remote.repositories`
+holds 512 entries, every one `>sealed=`, 0 `>central=`** (352 artifact folders), and the build logs 1,024 `sealed: file://` lines, 0
+`http(s)://`. **How the hashes were made:** one development run (bash 3.2, each capture 3/3) fixed the captures; its five hashes went into
+`receipts.md5`; every run since reproduced them, 3 of 3 each (bash 5.3 twice, bash 3.2, both sealed clones).
 
 Published hashes: chain `0d12a8f11754c1c03af959332c195af8` · order `701a5c58f9bd5e00ed8413acb919dac4` · throws `f6ce61fba288f52094b2e8334bdfcf43` · dispatch `4ae137a2f004467c61249ba7e4b9ebe4` · exercise `3acd496457dee74f384c662a7dba72ec`.
+
+### A sealed fresh clone — the recipe (RED S4 #405)
+
+A sealed clone proves that a fresh clone's first build fetches only from a copy you control. **The earlier text of this paragraph did not
+seal** (RED S4 #405, measured): a `HOME` of its own whose `.mavenrc` set only `-Dhttp(s).proxyHost`, with Maven settings in `$HOME/.m2`,
+fetched from Maven Central — Java on macOS ignores `$HOME` (`user.home` stays your own folder, so Maven never read those settings), and
+Maven's resolver ignores the `-Dhttp.proxyHost` properties (it takes its proxies from `settings.xml`). The recipe that seals, step by step,
+with a pre-flight that refuses to start unless the only remote is `file://` and a post-check of where every artifact came from:
+
+```bash
+S=/tmp/sealed-18                                   # an empty folder of your own; T = your tiffinbox-java clone
+mkdir -p "$S/home/.m2" && git clone -q "file://$T" "$S/tiffinbox-java"
+rsync -a --exclude _remote.repositories --exclude '*.lastUpdated' --exclude resolver-status.properties "$T/c6-unit18/.m2-demo/" "$S/central/"
+printf 'MAVEN_OPTS="-Duser.home=%s"\n' "$S/home" > "$S/home/.mavenrc"     # mvn reads $HOME/.mavenrc; Java then reads this user.home
+cat > "$S/home/.m2/settings.xml" <<XML
+<settings>
+  <mirrors><mirror><id>sealed</id><mirrorOf>*</mirrorOf><url>file://$S/central</url></mirror></mirrors>
+  <proxies>
+    <proxy><id>dead-http</id><active>true</active><protocol>http</protocol><host>127.0.0.1</host><port>9</port></proxy>
+    <proxy><id>dead-https</id><active>true</active><protocol>https</protocol><host>127.0.0.1</host><port>9</port></proxy>
+  </proxies>
+</settings>
+XML
+X=http://127.0.0.1:9; E="env -i HOME=$S/home PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin http_proxy=$X https_proxy=$X HTTP_PROXY=$X HTTPS_PROXY=$X no_proxy=127.0.0.1,localhost NO_PROXY=127.0.0.1,localhost"
+# pre-flight: an artifact that exists nowhere, asked for through the sealed settings - it must fail, having asked file:// and nothing else
+$E JAVA_HOME=/opt/homebrew/opt/openjdk@25 mvn -B -Dmaven.repo.local="$S/preflight-m2" org.apache.maven.plugins:maven-dependency-plugin:3.8.1:get -Dartifact=org.example.sealed:absent:1 > "$S/preflight.log" 2>&1
+[ $? != 0 ] && grep -q 'Downloading from sealed: file://' "$S/preflight.log" && ! grep -qE 'Downloading from [^ ]+: https?://' "$S/preflight.log" && echo "sealed: file:// only" || echo "NOT SEALED - do not run receipts.sh"
+cd "$S/tiffinbox-java/c6-unit18" && $E ./receipts.sh            # a process group of its own (a terminal's foreground job is one)
+# post-check: every artifact's origin, by repository id - each line must say sealed; 0 central
+find .m2-demo -name _remote.repositories -exec cat {} + | grep -o '>[^=]*=' | sort | uniq -c
+```
 
 ## The commands this unit adds
 

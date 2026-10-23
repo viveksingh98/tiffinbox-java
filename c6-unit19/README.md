@@ -55,21 +55,49 @@ It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIF
 changes what Chrome sends, so a `browser` mismatch after an update names Chrome among its suspects. **Start it in a process group of its
 own** (a terminal's foreground job is one): two receipts started as background jobs of one shell share a group (R.94).
 
-**Runs of record (2026-10-22, this script as committed):** **252 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with HOME and a plain
-PATH, this folder, its own process group, `.m2-demo` re-seeded from `_research/m2-seed-s4/` alone: exit 0, all 5 captures 3/3 = published,
-every check passed; `.m2-demo` still 5,891 files after) and **259 s under `bash receipts.sh`** (Homebrew bash 5.3.9, the same, re-seeded:
-exit 0, all 5 = published; 5,891 files after). **A sealed fresh clone**: `git clone` of tiffinbox-java at f175b1f through `file://`, this
-unit's 22 files put in as git would take them (its `.gitignore` lines keep `.m2-demo`, `.harness` and `.r-*` out; `anchor` stays the link —
-`readlink` gives `../c6-unit16/after` in both, and the tree it points to diffed whole: 0 differences); `env -i`, a `HOME` of its own whose
-`.mavenrc` points every Java proxy at a refusing port (127.0.0.1:9), Maven settings sending every repository to a `file://` copy of Central's
-files made from this unit's `.m2-demo` (4,413 files), the proxy variables at the same refusing port, `/bin/bash` 3.2, a process group of its
-own: exit 0 in 460 s, all 5 = published, every check passed; **512 artifacts, every one from the `file://` copy, 0 from anywhere else**; the
-first build said `offline: no`, as a fresh clone's must, and every capture's build `offline: yes`. **How the hashes were made:** one
-development run (bash 3.2, each capture 3/3) fixed the five; a change to the browser step's NetLog line (C names only the ports its page used)
-made a second, whose `browser` hash went into `receipts.md5`; every run since reproduced all five, 3 of 3 each (bash 3.2, bash 5.3, the sealed
-clone).
+**Runs of record (2026-10-23, BLUE S4 part 1, this script as committed):** **314 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with
+HOME and a plain PATH, this folder, a session of its own: exit 0, all 5 captures 3/3 = published, every check passed) and **464 s under
+`bash receipts.sh`** (Homebrew bash 5.3.9, the same: exit 0, all 5 = published). A first bash 5.3 run died on `browser`'s own drift check:
+its second run's first Chrome exited 2 at `Browser.close` (macOS display-link errors in Chrome's log), the other two 0; the re-run passed 3/3
+("Found on the way"). **How the hashes were made:** one development run (bash 3.2, 451 s, every check passed, each capture 3/3) fixed `ways`
+(B's label: the filter runs on every path) and `browser` (visit 2 after seven seconds, the control D, the platform masked); `preflight`, `star`
+and `exercise` reproduced their earlier hashes unchanged. **The sealed fresh clone** of 2026-10-22 (at f175b1f, 460 s) followed the earlier
+text of the recipe, which RED S4 #405 measured to leak as written, so its "every one from the `file://` copy" is not a proof from that text.
+It was **not re-run** for this change: only captures changed (no dependency, plugin or build step), which a sealed clone cannot tell from a
+seeded run. The fixed recipe below was measured once, on c6-unit18 (its README gives the counts).
 
-Published hashes: preflight `9e2e164c8c9cdafef1e7326787aeb985` · ways `4ff7c702e8e130bdf6f5b32d4eddcfea` · star `4adff2ac2c2b89ec0d03d34fffddc453` · exercise `cfe0622301da0ac0f41061602fb60d2b` · browser `b9852cad401430259c38e96775542cdd`.
+Published hashes: preflight `9e2e164c8c9cdafef1e7326787aeb985` · ways `f8c3732e728e9af618b6f66209bfa44d` · star `4adff2ac2c2b89ec0d03d34fffddc453` · exercise `cfe0622301da0ac0f41061602fb60d2b` · browser `56f94efc97099e42f155fbc399d7d3b4`.
+
+### A sealed fresh clone — the recipe (RED S4 #405)
+
+A sealed clone proves that a fresh clone's first build fetches only from a copy you control. **The earlier text of this paragraph did not
+seal** (RED S4 #405, measured): a `HOME` of its own whose `.mavenrc` set only `-Dhttp(s).proxyHost`, with Maven settings in `$HOME/.m2`,
+fetched from Maven Central — Java on macOS ignores `$HOME` (`user.home` stays your own folder, so Maven never read those settings), and
+Maven's resolver ignores the `-Dhttp.proxyHost` properties (it takes its proxies from `settings.xml`). The recipe that seals, step by step,
+with a pre-flight that refuses to start unless the only remote is `file://` and a post-check of where every artifact came from:
+
+```bash
+S=/tmp/sealed-19                                   # an empty folder of your own; T = your tiffinbox-java clone
+mkdir -p "$S/home/.m2" && git clone -q "file://$T" "$S/tiffinbox-java"
+rsync -a --exclude _remote.repositories --exclude '*.lastUpdated' --exclude resolver-status.properties "$T/c6-unit19/.m2-demo/" "$S/central/"
+printf 'MAVEN_OPTS="-Duser.home=%s"\n' "$S/home" > "$S/home/.mavenrc"     # mvn reads $HOME/.mavenrc; Java then reads this user.home
+cat > "$S/home/.m2/settings.xml" <<XML
+<settings>
+  <mirrors><mirror><id>sealed</id><mirrorOf>*</mirrorOf><url>file://$S/central</url></mirror></mirrors>
+  <proxies>
+    <proxy><id>dead-http</id><active>true</active><protocol>http</protocol><host>127.0.0.1</host><port>9</port></proxy>
+    <proxy><id>dead-https</id><active>true</active><protocol>https</protocol><host>127.0.0.1</host><port>9</port></proxy>
+  </proxies>
+</settings>
+XML
+X=http://127.0.0.1:9; E="env -i HOME=$S/home PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin http_proxy=$X https_proxy=$X HTTP_PROXY=$X HTTPS_PROXY=$X no_proxy=127.0.0.1,localhost NO_PROXY=127.0.0.1,localhost"
+# pre-flight: an artifact that exists nowhere, asked for through the sealed settings - it must fail, having asked file:// and nothing else
+$E JAVA_HOME=/opt/homebrew/opt/openjdk@25 mvn -B -Dmaven.repo.local="$S/preflight-m2" org.apache.maven.plugins:maven-dependency-plugin:3.8.1:get -Dartifact=org.example.sealed:absent:1 > "$S/preflight.log" 2>&1
+[ $? != 0 ] && grep -q 'Downloading from sealed: file://' "$S/preflight.log" && ! grep -qE 'Downloading from [^ ]+: https?://' "$S/preflight.log" && echo "sealed: file:// only" || echo "NOT SEALED - do not run receipts.sh"
+cd "$S/tiffinbox-java/c6-unit19" && $E ./receipts.sh            # a process group of its own (a terminal's foreground job is one)
+# post-check: every artifact's origin, by repository id - each line must say sealed; 0 central
+find .m2-demo -name _remote.repositories -exec cat {} + | grep -o '>[^=]*=' | sort | uniq -c
+```
 
 ## The commands this unit adds
 
@@ -141,14 +169,19 @@ Chrome runs with `--lang=en-US`; its requests say `Accept-Language: en-US,en;q=0
 1. **Paths, the token, the user** (`gsub()`), in every line: the demo token → `[masked: the 28-character token]`; this folder → `…`; the
    folder above → `…/..`; home → `~`; the user name → `<user>`; a generated class's number → `$$SpringCGLIB$$<n>`.
 2. **Chrome's version** (R.116): `Chrome/<digits>` → `Chrome/<version>` (its `User-Agent`), and the whole value of `sec-ch-ua` (its brand list,
-   whose names and numbers follow the version) → `(its brands and their versions: masked)`. Chrome's version is printed once, in the terminal,
-   never in a capture; a last check refuses any `Chrome/<digit>` or `v="<digit>` in a capture. Checked on planted lines first.
+   whose names and numbers follow the version) → `(its brands and their versions: masked)`. **The platform** (RED S4 #305, #381): the
+   `User-Agent`'s first brackets → `Mozilla/5.0 (<platform masked>)` (here `Macintosh; Intel Mac OS X 10_15_7`) and `sec-ch-ua-platform`'s
+   value → `(<platform masked>)` (here `"macOS"`): Chrome on Linux or Windows sends other words there, and a capture must not hash this
+   machine. Chrome's version and the platform (`uname -s -m`) are printed once, in the terminal, never in a capture; a last check refuses any
+   `Chrome/<digit>`, `v="<digit>`, `Macintosh`, `Mac OS X`, `Windows NT`, `X11;` or a quoted `sec-ch-ua-platform` in a capture. Checked on
+   planted lines first (a Mac and a Linux `User-Agent`, both platform values).
 3. **curl's headers** (`hdr`): carriage returns and trailing spaces dropped (Tomcat's status line has none after `200`), the blank line after
    the headers dropped, a `Date` header's value → `(the time: not printed)`; Spring's error timestamp → `"timestamp":"…"`. Checked on planted
    headers first.
 4. **Log lines** (`logl`, `recs`): from their logger on; counted **by the log's own line shape** (`<ISO date> LEVEL <pid> --- [`), never a bare
    `' ERROR '` (R.120; a planted log with a hook line that says ERROR gives 1, a bare count 2). `o.a.c.c.C.[.[.[/].[dispatcherServlet]` is
-   **Tomcat's** logger; `Invalid CORS request` is no log line at all — it is the body Spring MVC's `DefaultCorsProcessor` writes (S4.5).
+   **Tomcat's** logger; `Invalid CORS request` is no log line at all — it is the body Spring's `DefaultCorsProcessor` writes (spring-web,
+   not spring-webmvc: `unzip -l`; the brief's S4.5 said "Spring MVC's" — RED S4 #308).
 5. **Harness lines** (`hk`): `Dump`'s record and the hooks, in the order they printed, numbered from 1 per request; the JVM's running number
    checked to rise (a planted falling number stops the run), never shown.
 6. **Chrome's record** (`net.py`): only the page's requests to TiffinBox's port (not the page itself, which jwebserver served); a preflight's
@@ -316,13 +349,13 @@ $ harness/shutdown.sh 19480 .harness/anchor/secrets/tiffinbox/shutdown-token
 ## 2 · ways — three ways, one answer (A/B/A′)
 
 `@CrossOrigin` and the registry (`GlobalCors`), in one JVM: their preflight answers are **the same line for line**, allowed and refused. A:
-`CorsRoutes` alone — the headers. B: `FilterCors` joined, its rule for `/probe/filter/**` only: the annotated route's preflight is now **`200`,
+`CorsRoutes` alone — the headers. B: `FilterCors` joined — its registration names no path, so the filter runs on every path; its one rule is for `/probe/filter/**` (RED S4 #302): the annotated route's preflight is now **`200`,
 `Content-Length: 0`, no CORS header, no harness line** — the `CorsFilter` answered it (it answers every preflight that reaches it, its own
 paths with their rule, any other with nothing). On its own path the filter answers with the origin, methods and header but **no `Max-Age` and
 no `Allow`**: a bare `CorsConfiguration` gets no defaults, and the request never reaches Spring MVC. An actual `GET` of the annotated route still
 gets its header. A′ = A, line for line.
 
-`.r-ways.out` · md5 `4ff7c702e8e130bdf6f5b32d4eddcfea` · 3 of 3
+`.r-ways.out` · md5 `f8c3732e728e9af618b6f66209bfa44d` · 3 of 3
 
 ```
 two ways - CorsRoutes and GlobalCors (the same rule for /probe/global/**, through Spring MVC's CORS registry) and Hooks, port 19481:
@@ -427,7 +460,7 @@ $ harness/shutdown.sh 19482 .harness/anchor/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
   exit 0 · listening on 19482 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
-B - the same, FilterCors joined (a CorsFilter in a filter registration, for /probe/filter/** only), port 19483:
+B - the same, FilterCors joined (a CorsFilter in a filter registration that names no path, so it runs on every path; its one rule is for /probe/filter/**), port 19483:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19483 --spring.main.sources=probe.web.CorsRoutes,probe.web.FilterCors,probe.web.Hooks
   listens on: 127.0.0.1:19483 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
@@ -664,15 +697,20 @@ Two origins (jwebserver, the JDK's own file server, on 19486 and 19487), TiffinB
 claim has two witnesses (R.115-R.117): **Chrome's own record** of the request — its DevTools protocol's Network events, read by `net.py` —
 and **the server's record** — `Dump`, every request whole. No developer-tools panel is used or filmed (brief ⚑8). **Visit 1** (19486, `PUT`):
 Chrome sends the `OPTIONS` first — its 13 headers quoted, `Sec-Fetch-Mode: cors`, `Sec-Fetch-Site: same-site` — gets the `200` (Max-Age 1800),
-then the `PUT`; the page reads `200`. **Visit 2**, the same page in the same Chrome: **the `PUT` alone** — no `OPTIONS` in either record: the
-**preflight cache** (Chrome keeps a preflight's answer, up to its `Max-Age`). **Visit 3** (19487, `PUT`): the `OPTIONS` gets the `403`; **the
+then the `PUT`; the page reads `200`. **Visit 2**, the same page in the same Chrome, **seven seconds later** (`$ sleep 7` — a wait, not a
+witness: Chrome keeps an answer that has no `Max-Age` for a few seconds of its own, so visit 2 must come after those to tell the two causes
+apart; RED S4 #301): **the `PUT` alone** — no `OPTIONS` in either record: the **preflight cache**, holding the answer under its `Max-Age: 1800`. **Visit 3** (19487, `PUT`): the `OPTIONS` gets the `403`; **the
 `PUT` is never sent** (Chrome: `sent: no`, `PreflightMissingAllowOriginHeader`; the server: no `PUT`). **Visit 4** (19487, `GET /customers`):
 no preflight; **the server ran it** — the controller, `200`, the whole list in `Dump`'s body line — **and Chrome withheld it from the page**
-(`MissingAllowOriginHeader`; the page: `refused: TypeError: Failed to fetch`). CORS is the browser's rule about who may read an answer, not a
-lock on the server (R.126). **C (labelled, RE-MEASURE 3):** `FilterCors` joined, a fresh profile, the allowed `PUT`: the preflight gets the
-empty `200`, no harness line, and **the `PUT` is never sent**. The NetLog of each Chrome run: every address 127.0.0.1.
+(`MissingAllowOriginHeader`; the page: `refused: TypeError: Failed to fetch`). For a simple GET, CORS decides what the page may read, not
+whether the server runs it; and a client that sends no `Origin` (curl) is never stopped by it (R.126). It is not "never what the server
+runs": Spring's CORS check does stop a denied preflight and a denied actual request that carries an `Origin` (`preflight`: the 403s, 0
+harness lines; RED S4 #300). **C (labelled, RE-MEASURE 3):** `FilterCors` joined, a fresh profile, the allowed `PUT`: the preflight gets the
+empty `200`, no harness line, and **the `PUT` is never sent**. **D (labelled), the control:** in C's Chrome, the filter's own path
+`/probe/filter/menu`, whose answer carries **no `Max-Age`**: `OPTIONS` then `PUT`, and **seven seconds later `OPTIONS` again** — the same wait
+that visit 2 survived under `Max-Age: 1800`. The NetLog of each Chrome run: every address 127.0.0.1.
 
-`.r-browser.out` · md5 `b9852cad401430259c38e96775542cdd` · 3 of 3
+`.r-browser.out` · md5 `56f94efc97099e42f155fbc399d7d3b4` · 3 of 3
 
 ```
 two origins - jwebserver, the JDK's own file server, serving harness/www (cors.html) twice: http://127.0.0.1:19486 (the origin the rules allow) and http://127.0.0.1:19487 (one they do not):
@@ -710,7 +748,7 @@ $ python3 harness/net.py .harness/ev.json 19484
         Sec-Fetch-Dest: empty
         Sec-Fetch-Mode: cors
         Sec-Fetch-Site: same-site
-        User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
     PUT /probe/cors/menu - the page's fetch · sent: yes · the answer Chrome got: 200 · handed to the page: yes
   the server's record:
     the harness's lines it printed, in order: 57
@@ -721,7 +759,7 @@ $ python3 harness/net.py .harness/ev.json 19484
        5 Dump            >   Access-Control-Request-Method: PUT
        6 Dump            >   Access-Control-Request-Headers: content-type
        7 Dump            >   Origin: http://127.0.0.1:19486
-       8 Dump            >   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+       8 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
        9 Dump            >   Sec-Fetch-Mode: cors
       10 Dump            >   Sec-Fetch-Site: same-site
       11 Dump            >   Sec-Fetch-Dest: empty
@@ -746,8 +784,8 @@ $ python3 harness/net.py .harness/ev.json 19484
       30 Dump            >   Host: 127.0.0.1:19484
       31 Dump            >   Connection: keep-alive
       32 Dump            >   Content-Length: 2
-      33 Dump            >   sec-ch-ua-platform: "macOS"
-      34 Dump            >   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+      33 Dump            >   sec-ch-ua-platform: (<platform masked>)
+      34 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
       35 Dump            >   sec-ch-ua: (its brands and their versions: masked)
       36 Dump            >   Content-Type: application/json
       37 Dump            >   sec-ch-ua-mobile: ?0
@@ -772,7 +810,8 @@ $ python3 harness/net.py .harness/ev.json 19484
       56 Dump            <   Content-Type: application/json
       57 Dump            <   body: [{"menu":"annotated"}]
     WARN lines they added: 0 · ERROR lines: 0
-visit 2 - the same page again, the same Chrome:
+visit 2 - the same page again, the same Chrome, seven seconds later (a wait, not a witness: Chrome keeps an answer with no max age for a few seconds, D below):
+$ sleep 7
 $ node harness/cdp.mjs 19489 visit 'http://127.0.0.1:19486/cors.html?m=PUT&u=http://127.0.0.1:19484/probe/cors/menu' .harness/ev.json
   the page printed: answer 200 {"menu":"annotated"}
 $ python3 harness/net.py .harness/ev.json 19484
@@ -784,8 +823,8 @@ $ python3 harness/net.py .harness/ev.json 19484
        2 Dump            >   Host: 127.0.0.1:19484
        3 Dump            >   Connection: keep-alive
        4 Dump            >   Content-Length: 2
-       5 Dump            >   sec-ch-ua-platform: "macOS"
-       6 Dump            >   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+       5 Dump            >   sec-ch-ua-platform: (<platform masked>)
+       6 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
        7 Dump            >   sec-ch-ua: (its brands and their versions: masked)
        8 Dump            >   Content-Type: application/json
        9 Dump            >   sec-ch-ua-mobile: ?0
@@ -829,7 +868,7 @@ $ python3 harness/net.py .harness/ev.json 19484
         Sec-Fetch-Dest: empty
         Sec-Fetch-Mode: cors
         Sec-Fetch-Site: same-site
-        User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
     PUT /probe/cors/menu - the page's fetch · sent: no · no answer · handed to the page: no - Chrome's CORS check: PreflightMissingAllowOriginHeader
   the server's record:
     the harness's lines it printed, in order: 23
@@ -840,7 +879,7 @@ $ python3 harness/net.py .harness/ev.json 19484
        5 Dump            >   Access-Control-Request-Method: PUT
        6 Dump            >   Access-Control-Request-Headers: content-type
        7 Dump            >   Origin: http://127.0.0.1:19487
-       8 Dump            >   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+       8 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
        9 Dump            >   Sec-Fetch-Mode: cors
       10 Dump            >   Sec-Fetch-Site: same-site
       11 Dump            >   Sec-Fetch-Dest: empty
@@ -868,8 +907,8 @@ $ python3 harness/net.py .harness/ev.json 19484
        1 Dump            > GET /customers
        2 Dump            >   Host: 127.0.0.1:19484
        3 Dump            >   Connection: keep-alive
-       4 Dump            >   sec-ch-ua-platform: "macOS"
-       5 Dump            >   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+       4 Dump            >   sec-ch-ua-platform: (<platform masked>)
+       5 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
        6 Dump            >   sec-ch-ua: (its brands and their versions: masked)
        7 Dump            >   sec-ch-ua-mobile: ?0
        8 Dump            >   Accept: */*
@@ -897,7 +936,7 @@ $ harness/shutdown.sh 19484 .harness/anchor/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
   exit 0 · listening on 19484 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
-C (labelled) - TiffinBox with FilterCors joined too (a CorsFilter for /probe/filter/** only), port 19485; Chrome again, a fresh profile:
+C (labelled) - TiffinBox with FilterCors joined too (a CorsFilter on every path, its one rule for /probe/filter/**), port 19485; Chrome again, a fresh profile:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19485 --spring.main.sources=probe.web.Dump,probe.web.CorsRoutes,probe.web.FilterCors,probe.web.Hooks
   listens on: 127.0.0.1:19485 · loopback only: yes
   Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
@@ -926,7 +965,7 @@ $ python3 harness/net.py .harness/ev.json 19485
         Sec-Fetch-Dest: empty
         Sec-Fetch-Mode: cors
         Sec-Fetch-Site: same-site
-        User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
     PUT /probe/cors/menu - the page's fetch · sent: no · no answer · handed to the page: no - Chrome's CORS check: PreflightMissingAllowOriginHeader
   the server's record:
     the harness's lines it printed, in order: 16
@@ -937,7 +976,7 @@ $ python3 harness/net.py .harness/ev.json 19485
        5 Dump            >   Access-Control-Request-Method: PUT
        6 Dump            >   Access-Control-Request-Headers: content-type
        7 Dump            >   Origin: http://127.0.0.1:19486
-       8 Dump            >   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+       8 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
        9 Dump            >   Sec-Fetch-Mode: cors
       10 Dump            >   Sec-Fetch-Site: same-site
       11 Dump            >   Sec-Fetch-Dest: empty
@@ -946,6 +985,157 @@ $ python3 harness/net.py .harness/ev.json 19485
       14 Dump            >   Accept-Language: en-US,en;q=0.9
       15 Dump            < 200 OPTIONS /probe/cors/menu
       16 Dump            <   body: []
+    WARN lines they added: 0 · ERROR lines: 0
+D (labelled) - the control: the filter's own path, whose answer carries no max age - the same page on http://127.0.0.1:19486 asks for PUT /probe/filter/menu:
+$ node harness/cdp.mjs 19489 visit 'http://127.0.0.1:19486/cors.html?m=PUT&u=http://127.0.0.1:19485/probe/filter/menu' .harness/ev.json
+  the page printed: answer 200 {"menu":"filter"}
+$ python3 harness/net.py .harness/ev.json 19485
+  Chrome's own record (its DevTools protocol) - the requests the page made to TiffinBox: 2
+    OPTIONS /probe/filter/menu - a preflight, for the PUT below · sent: yes · the answer Chrome got: 200
+      as Chrome sent it, its 13 headers:
+        Accept: */*
+        Accept-Encoding: gzip, deflate, br, zstd
+        Accept-Language: en-US,en;q=0.9
+        Access-Control-Request-Headers: content-type
+        Access-Control-Request-Method: PUT
+        Connection: keep-alive
+        Host: 127.0.0.1:19485
+        Origin: http://127.0.0.1:19486
+        Referer: http://127.0.0.1:19486/
+        Sec-Fetch-Dest: empty
+        Sec-Fetch-Mode: cors
+        Sec-Fetch-Site: same-site
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+    PUT /probe/filter/menu - the page's fetch · sent: yes · the answer Chrome got: 200 · handed to the page: yes
+  the server's record:
+    the harness's lines it printed, in order: 51
+       1 Dump            > OPTIONS /probe/filter/menu
+       2 Dump            >   Host: 127.0.0.1:19485
+       3 Dump            >   Connection: keep-alive
+       4 Dump            >   Accept: */*
+       5 Dump            >   Access-Control-Request-Method: PUT
+       6 Dump            >   Access-Control-Request-Headers: content-type
+       7 Dump            >   Origin: http://127.0.0.1:19486
+       8 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+       9 Dump            >   Sec-Fetch-Mode: cors
+      10 Dump            >   Sec-Fetch-Site: same-site
+      11 Dump            >   Sec-Fetch-Dest: empty
+      12 Dump            >   Referer: http://127.0.0.1:19486/
+      13 Dump            >   Accept-Encoding: gzip, deflate, br, zstd
+      14 Dump            >   Accept-Language: en-US,en;q=0.9
+      15 Dump            < 200 OPTIONS /probe/filter/menu
+      16 Dump            <   Vary: Origin
+      17 Dump            <   Vary: Access-Control-Request-Method
+      18 Dump            <   Vary: Access-Control-Request-Headers
+      19 Dump            <   Access-Control-Allow-Origin: http://127.0.0.1:19486
+      20 Dump            <   Access-Control-Allow-Methods: GET,PUT
+      21 Dump            <   Access-Control-Allow-Headers: content-type
+      22 Dump            <   body: []
+      23 Dump            > PUT /probe/filter/menu
+      24 Dump            >   Host: 127.0.0.1:19485
+      25 Dump            >   Connection: keep-alive
+      26 Dump            >   Content-Length: 2
+      27 Dump            >   sec-ch-ua-platform: (<platform masked>)
+      28 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+      29 Dump            >   sec-ch-ua: (its brands and their versions: masked)
+      30 Dump            >   Content-Type: application/json
+      31 Dump            >   sec-ch-ua-mobile: ?0
+      32 Dump            >   Accept: */*
+      33 Dump            >   Origin: http://127.0.0.1:19486
+      34 Dump            >   Sec-Fetch-Site: same-site
+      35 Dump            >   Sec-Fetch-Mode: cors
+      36 Dump            >   Sec-Fetch-Dest: empty
+      37 Dump            >   Referer: http://127.0.0.1:19486/
+      38 Dump            >   Accept-Encoding: gzip, deflate, br, zstd
+      39 Dump            >   Accept-Language: en-US,en;q=0.9
+      40 Interceptor     preHandle       REQUEST /probe/filter/menu handler CorsRoutes#filtered
+      41 CorsRoutes      filtered
+      42 Interceptor     postHandle      REQUEST /probe/filter/menu status 200 committed false
+      43 Interceptor     afterCompletion REQUEST /probe/filter/menu status 200 exception none
+      44 Dump            < 200 PUT /probe/filter/menu
+      45 Dump            <   Vary: Origin
+      46 Dump            <   Vary: Access-Control-Request-Method
+      47 Dump            <   Vary: Access-Control-Request-Headers
+      48 Dump            <   Access-Control-Allow-Origin: http://127.0.0.1:19486
+      49 Dump            <   X-Post-Handle: set
+      50 Dump            <   Content-Type: application/json
+      51 Dump            <   body: [{"menu":"filter"}]
+    WARN lines they added: 0 · ERROR lines: 0
+D again - the same page, the same Chrome, seven seconds later:
+$ sleep 7
+$ node harness/cdp.mjs 19489 visit 'http://127.0.0.1:19486/cors.html?m=PUT&u=http://127.0.0.1:19485/probe/filter/menu' .harness/ev.json
+  the page printed: answer 200 {"menu":"filter"}
+$ python3 harness/net.py .harness/ev.json 19485
+  Chrome's own record (its DevTools protocol) - the requests the page made to TiffinBox: 2
+    OPTIONS /probe/filter/menu - a preflight, for the PUT below · sent: yes · the answer Chrome got: 200
+      as Chrome sent it, its 13 headers:
+        Accept: */*
+        Accept-Encoding: gzip, deflate, br, zstd
+        Accept-Language: en-US,en;q=0.9
+        Access-Control-Request-Headers: content-type
+        Access-Control-Request-Method: PUT
+        Connection: keep-alive
+        Host: 127.0.0.1:19485
+        Origin: http://127.0.0.1:19486
+        Referer: http://127.0.0.1:19486/
+        Sec-Fetch-Dest: empty
+        Sec-Fetch-Mode: cors
+        Sec-Fetch-Site: same-site
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+    PUT /probe/filter/menu - the page's fetch · sent: yes · the answer Chrome got: 200 · handed to the page: yes
+  the server's record:
+    the harness's lines it printed, in order: 51
+       1 Dump            > OPTIONS /probe/filter/menu
+       2 Dump            >   Host: 127.0.0.1:19485
+       3 Dump            >   Connection: keep-alive
+       4 Dump            >   Accept: */*
+       5 Dump            >   Access-Control-Request-Method: PUT
+       6 Dump            >   Access-Control-Request-Headers: content-type
+       7 Dump            >   Origin: http://127.0.0.1:19486
+       8 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+       9 Dump            >   Sec-Fetch-Mode: cors
+      10 Dump            >   Sec-Fetch-Site: same-site
+      11 Dump            >   Sec-Fetch-Dest: empty
+      12 Dump            >   Referer: http://127.0.0.1:19486/
+      13 Dump            >   Accept-Encoding: gzip, deflate, br, zstd
+      14 Dump            >   Accept-Language: en-US,en;q=0.9
+      15 Dump            < 200 OPTIONS /probe/filter/menu
+      16 Dump            <   Vary: Origin
+      17 Dump            <   Vary: Access-Control-Request-Method
+      18 Dump            <   Vary: Access-Control-Request-Headers
+      19 Dump            <   Access-Control-Allow-Origin: http://127.0.0.1:19486
+      20 Dump            <   Access-Control-Allow-Methods: GET,PUT
+      21 Dump            <   Access-Control-Allow-Headers: content-type
+      22 Dump            <   body: []
+      23 Dump            > PUT /probe/filter/menu
+      24 Dump            >   Host: 127.0.0.1:19485
+      25 Dump            >   Connection: keep-alive
+      26 Dump            >   Content-Length: 2
+      27 Dump            >   sec-ch-ua-platform: (<platform masked>)
+      28 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+      29 Dump            >   sec-ch-ua: (its brands and their versions: masked)
+      30 Dump            >   Content-Type: application/json
+      31 Dump            >   sec-ch-ua-mobile: ?0
+      32 Dump            >   Accept: */*
+      33 Dump            >   Origin: http://127.0.0.1:19486
+      34 Dump            >   Sec-Fetch-Site: same-site
+      35 Dump            >   Sec-Fetch-Mode: cors
+      36 Dump            >   Sec-Fetch-Dest: empty
+      37 Dump            >   Referer: http://127.0.0.1:19486/
+      38 Dump            >   Accept-Encoding: gzip, deflate, br, zstd
+      39 Dump            >   Accept-Language: en-US,en;q=0.9
+      40 Interceptor     preHandle       REQUEST /probe/filter/menu handler CorsRoutes#filtered
+      41 CorsRoutes      filtered
+      42 Interceptor     postHandle      REQUEST /probe/filter/menu status 200 committed false
+      43 Interceptor     afterCompletion REQUEST /probe/filter/menu status 200 exception none
+      44 Dump            < 200 PUT /probe/filter/menu
+      45 Dump            <   Vary: Origin
+      46 Dump            <   Vary: Access-Control-Request-Method
+      47 Dump            <   Vary: Access-Control-Request-Headers
+      48 Dump            <   Access-Control-Allow-Origin: http://127.0.0.1:19486
+      49 Dump            <   X-Post-Handle: set
+      50 Dump            <   Content-Type: application/json
+      51 Dump            <   body: [{"menu":"filter"}]
     WARN lines they added: 0 · ERROR lines: 0
 $ node harness/cdp.mjs 19489 close
   Chrome exit 0 · listening on 19489 now: 0 · its profile removed
@@ -994,6 +1184,11 @@ answer: `exercise/solution/`. Run `./receipts.sh` once first on a fresh clone.
 - **`*` + credentials fails a request with no `Origin` too** (`star`): the brief's "every request on the mapping — preflight or GET" holds,
   and is wider than it says: a plain `GET` with no `Origin` header — not a cross-origin request at all — is a 500 as well. The voice says
   "every request we sent to that path, even one with no Origin".
+- **"Nobody set that number"** (`Max-Age: 1800`): `javap -c` on spring-web-7.0.9's `CorsConfiguration.applyPermitDefaultValues()`:
+  `ldc2_w 1800` → `putfield maxAge` (no named constant), called by `CorsRegistration`'s constructor (the registry) and by
+  `RequestMappingHandlerMapping` for `@CrossOrigin` (whose own `maxAge()` defaults to -1) — RED S4 #306. The deck's chip names the method.
+- **"A `CorsFilter` answers every preflight that reaches it"** holds for 7.0.9 from the code, beyond the three paths measured: `javap -c
+  CorsFilter.doFilterInternal` — `if (!valid || isPreFlight) return;`, never `chain.doFilter` (RED S4 #319).
 - **The 403's headers:** besides the three `Vary` lines, `Transfer-Encoding: chunked` (curl) — a body with no `Content-Type`, as the brief said.
 - **Chrome's page itself is not counted**: jwebserver serves it, and a second visit of the same page may come from Chrome's cache; `net.py`
   reads only the requests to TiffinBox's port (the page carries a `data:` icon, so Chrome asks no origin for `/favicon.ico`).
@@ -1003,6 +1198,9 @@ answer: `exercise/solution/`. Run `./receipts.sh` once first on a fresh clone.
 
 ## Found on the way
 
+- **A Chrome that exits 2** (BLUE S4 part 1, 2026-10-23): one bash 5.3 run's `browser` drifted — its second run's first Chrome exited 2 at
+  `Browser.close` (its log: macOS `CVDisplayLinkCreateWithCGDisplay failed`), the other runs 0. The drift check stopped the run, as it
+  must; the re-run passed 3/3. Chrome's exit code stays in the capture: a Chrome that cannot close cleanly is a fault worth stopping for.
 - **Every new check fails on a planted fault first** (R.65): the checks block runs alone (`cap()` a no-op, the build and the wipe skipped) on
   the published captures with one thing changed per plant, the file restored after each — **46 plants, 46 stops under /bin/bash 3.2 and 46
   under bash 5.3**, each naming its own check; the unplanted files pass before and after under both, and the published captures' md5s are

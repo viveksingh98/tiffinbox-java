@@ -1,11 +1,11 @@
 # Exercise — the feed that answers five oh three
 
-**Your turn:** the README's feed waits, then answers five oh three. Read the timeout key, ask for three orders, and count the events.
+**Your turn:** the README's feed answers five oh three, after the key's two seconds, not thirty. Ask for three orders, and count the events.
 
 `exercise/KitchenFeed.java` is a kitchen feed: a route, `GET /kitchen/feed?orders=N`, that answers with **server-sent events** — a
 `text/event-stream` that stays open while its own clock sends one event every 200 ms, each naming the next of TiffinBox's customers, `N`
 of them, and then ends the stream. Asked for none, it sends nothing, and the stream waits — until the request's timeout, which the class
-does not set. Spring MVC's key `spring.mvc.async.request-timeout` sets it; unset, the container's default applies.
+does not set. Boot's timeout key for Spring MVC, `spring.mvc.async.request-timeout`, sets it; unset, the container's default applies.
 
 Run everything from `c6-unit21/`, in one shell. The commands below copy TiffinBox — `anchor/`, the tree the problem-detail lesson made —
 to `.harness/mine/anchor` (git-ignored; `receipts.sh` wipes `.harness/` when it runs), copy the class to `.harness/mine/KitchenFeed.java`,

@@ -16,13 +16,15 @@ CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"   # the Ch
 #              @CrossOrigin for http://127.0.0.1:19486) with Hooks: preflights by curl from the origin the rule allows, from one it
 #              does not, and to a path no rule covers; the actual requests; an OPTIONS with no Origin at all
 #   ways       the annotation and the registry (GlobalCors) side by side, their answers compared line for line; then A/B/A':
-#              A - CorsRoutes alone; B - FilterCors joined (a CorsFilter for /probe/filter/** only); A' - A again
+#              A - CorsRoutes alone; B - FilterCors joined (a CorsFilter on every path, its one rule for /probe/filter/**); A' - A again
 #   star       StarCreds - any origin ("*") and credentials on one global mapping: it starts, then every request to that mapping
 #   exercise   exercise/README.md's commands, then exercise/solution/SOLUTION.md's, read from the files and run as written, one after
 #              the other in ONE shell a viewer could have: env -i, /bin/bash, started in this folder
 #   browser    two origins (jwebserver on 19486 and 19487, serving harness/www/cors.html), TiffinBox with Dump (the server's record
-#              of every request, whole), CorsRoutes and Hooks, and Chrome: the allowed PUT, the same page again, the PUT from the other
-#              origin, a simple GET from it; then C (labelled): FilterCors joined, the allowed PUT, in a fresh profile
+#              of every request, whole), CorsRoutes and Hooks, and Chrome: the allowed PUT, the same page again seven seconds later
+#              (past Chrome's own few seconds for an answer with no max age), the PUT from the other origin, a simple GET from it; then
+#              C (labelled): FilterCors joined, the allowed PUT, in a fresh profile; D (labelled), the control: the filter's own path,
+#              whose answer has no max age, visited twice seven seconds apart - Chrome asks again
 # "The anchor" is anchor/, the link to ../c6-unit16/after, COPIED under .harness/anchor; this script never writes into another unit's
 # folder, and never builds a frozen tree in place. Every run of TiffinBox starts in .harness/anchor, which holds a config tree with a
 # fake token (secrets/), as the README asks. Commands are printed exactly as they run: each goes through eval. "$CURLSET" is the
@@ -44,7 +46,9 @@ CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"   # the Ch
 # Without Chrome or node (22 or later) every curl capture is made and checked, and the script stops at the browser step (exit 2).
 # Masks and filters (README.md declares each; awk sub/gsub only): the demo token, this folder, the folder above, home, your user name, as
 # in the last lesson; Spring's error timestamp; a Date header's value; Chrome's version in its User-Agent ("Chrome/<version>") and its
-# sec-ch-ua brand list (masked whole). curl's header lines lose their carriage return and trailing spaces. A run's log lines are printed
+# sec-ch-ua brand list (masked whole); the platform - the User-Agent's first brackets ("Mozilla/5.0 (<platform masked>)") and
+# sec-ch-ua-platform's value ("(<platform masked>)"): a viewer's Chrome on another system sends other words there (RED S4 #305, #381);
+# both are printed on the terminal, beside the version, never in a capture. curl's header lines lose their carriage return and trailing spaces. A run's log lines are printed
 # from their logger on; a WARN or ERROR record as its level, logger and message, then its exception line, its frames bounded and counted.
 # The harness's lines (Trace: Dump's record and the hooks) are printed in the order they ran, numbered from 1 for each request.
 # Ports (brief ⚑1, 19480-19489): preflight - the seven and the routes 19480 · ways - the two ways 19481, A and A' 19482, B 19483 ·
@@ -190,7 +194,7 @@ rsync -a --exclude target --exclude secrets anchor/ .harness/pre/
 mbuild "$C_PRE" .harness/build-pre.log ".harness/pre (the anchor)"
 [ -f "$M2/org/springframework/boot/spring-boot-starter-webmvc/4.1.1/spring-boot-starter-webmvc-4.1.1.jar" ] || die "Spring MVC's starter is not in .m2-demo after the first build"
 echo "  .m2-demo holds Spring MVC's starter"
-if [ $BROWSER = yes ]; then echo "  the browser: $("$CHROME" --version 2> /dev/null | head -1) · node $(node --version) - printed here, never in a capture"; else echo "  the browser: none - $WHYNOT"; fi
+if [ $BROWSER = yes ]; then echo "  the browser: $("$CHROME" --version 2> /dev/null | head -1) on $(uname -s) $(uname -m) (the platform its User-Agent and sec-ch-ua-platform name) · node $(node --version) - printed here, never in a capture"; else echo "  the browser: none - $WHYNOT"; fi
 
 # ---- helpers ------------------------------------------------------------------------------------------------------------
 raw() { local t=$1; shift; cat "$@" | LC_ALL=C grep -aoF -- "$t" | wc -l | tr -d ' '; }
@@ -240,7 +244,8 @@ mask() { awk -v t="$TOKEN" -v u="$U" -v up="$UP" -v hm="$HOME" -v me="$ME" -v tl
   BEGIN { T = lit(t); P = lit(u); Q = lit(up); H = lit(hm); PE = lit(enc(u)); QE = lit(enc(up)); M = "(^|[^A-Za-z0-9_])" lit(me) "([^A-Za-z0-9_]|$)" }
   { gsub(T, "[masked: the " tl "-character token]"); gsub(P, "…"); gsub(PE, "…")
     gsub(Q, "…/.."); gsub(QE, "…/.."); gsub(H, "~"); gsub(/\$\$SpringCGLIB\$\$[0-9]+/, "$$SpringCGLIB$$<n>")
-    gsub(/Chrome\/[0-9][0-9.]*/, "Chrome/<version>")
+    gsub(/Chrome\/[0-9][0-9.]*/, "Chrome/<version>"); gsub(/Mozilla\/5\.0 \([^)]*\)/, "Mozilla/5.0 (<platform masked>)")
+    if (match($0, /sec-ch-ua-platform: /)) $0 = substr($0, 1, RSTART + RLENGTH - 1) "(<platform masked>)"
     if (match($0, /sec-ch-ua: /)) $0 = substr($0, 1, RSTART + RLENGTH - 1) "(its brands and their versions: masked)"
     while (match($0, M)) { pre = substr($0, 1, RSTART - 1); s = substr($0, RSTART, RLENGTH); post = substr($0, RSTART + RLENGTH)
       sub(lit(me), "<user>", s); $0 = pre s post }
@@ -314,7 +319,7 @@ printf '%s\n' 'HOOK 0007 Dump            > GET /x' 'HOOK 0006 Dump            < 
 ( hk 0 > /dev/null 2>&1 3> /dev/null ) && die "hk: a falling running number must stop the run"
 rm -f .harness/run.out
 [ "$(printf 'HTTP/1.1 403 \r\nDate: Thu, 22 Oct 2026 05:59:37 GMT\r\nVary: Origin\r\n\r\n' | hdr)" = "$(printf '%s\n' '  HTTP/1.1 403' '  Date: (the time: not printed)' '  Vary: Origin')" ] || die "hdr: the planted headers do not come out as declared"
-[ "$(printf '%s\n' 'User-Agent: Mozilla/5.0 (Macintosh) HeadlessChrome/155.0.0.0 Safari/537.36' 'sec-ch-ua: "Google Chrome";v="155"' 'sec-ch-ua-mobile: ?0' | mask)" = "$(printf '%s\n' 'User-Agent: Mozilla/5.0 (Macintosh) HeadlessChrome/<version> Safari/537.36' 'sec-ch-ua: (its brands and their versions: masked)' 'sec-ch-ua-mobile: ?0')" ] || die "mask: Chrome's version must be masked in User-Agent and sec-ch-ua, and nothing else"
+[ "$(printf '%s\n' 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36' 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36' 'sec-ch-ua: "Google Chrome";v="155"' 'sec-ch-ua-mobile: ?0' 'sec-ch-ua-platform: "macOS"' 'sec-ch-ua-platform: "Linux"' | mask)" = "$(printf '%s\n' 'User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36' 'User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36' 'sec-ch-ua: (its brands and their versions: masked)' 'sec-ch-ua-mobile: ?0' 'sec-ch-ua-platform: (<platform masked>)' 'sec-ch-ua-platform: (<platform masked>)')" ] || die "mask: Chrome's version and the platform must be masked in User-Agent, sec-ch-ua and sec-ch-ua-platform, and nothing else"
 echo "  the filters: the level counts (a hook line that says ERROR is no ERROR line), the record filter, the harness's lines (a falling running number stops the run), the header filter and Chrome's masks print their planted inputs as declared"
 
 # ---- preflight: the question, asked by curl -------------------------------------------------------------------------------------
@@ -354,7 +359,7 @@ ways() {
   WARNS; stop 19481 .harness/anchor
   echo "A - CorsRoutes and Hooks, port 19482:"
   serve 19482 "$CS"; ask "$(pfq 19482 /probe/cors/menu "$O_A")"; WARNS; stop 19482 .harness/anchor
-  echo "B - the same, FilterCors joined (a CorsFilter in a filter registration, for /probe/filter/** only), port 19483:"
+  echo "B - the same, FilterCors joined (a CorsFilter in a filter registration that names no path, so it runs on every path; its one rule is for /probe/filter/**), port 19483:"
   serve 19483 probe.web.CorsRoutes,probe.web.FilterCors,probe.web.Hooks
   ask "$(pfq 19483 /probe/cors/menu "$O_A")"
   echo "B - the filter's own path:"
@@ -455,7 +460,8 @@ browser() {
   chrome
   echo "visit 1 - the page on $O_A asks TiffinBox for PUT /probe/cors/menu:"
   visit 19486 PUT 19484 /probe/cors/menu
-  echo "visit 2 - the same page again, the same Chrome:"
+  echo "visit 2 - the same page again, the same Chrome, seven seconds later (a wait, not a witness: Chrome keeps an answer with no max age for a few seconds, D below):"
+  echo "\$ sleep 7"; sleep 7
   visit 19486 PUT 19484 /probe/cors/menu
   echo "visit 3 - the page on $O_D asks for the same PUT:"
   visit 19487 PUT 19484 /probe/cors/menu
@@ -463,11 +469,16 @@ browser() {
   visit 19487 GET 19484 /customers
   unchrome 19484 19486 19487
   WARNS; stop 19484 .harness/anchor
-  echo "C (labelled) - TiffinBox with FilterCors joined too (a CorsFilter for /probe/filter/** only), port 19485; Chrome again, a fresh profile:"
+  echo "C (labelled) - TiffinBox with FilterCors joined too (a CorsFilter on every path, its one rule for /probe/filter/**), port 19485; Chrome again, a fresh profile:"
   serve 19485 probe.web.Dump,probe.web.CorsRoutes,probe.web.FilterCors,probe.web.Hooks
   chrome
   echo "C - the page on $O_A asks for PUT /probe/cors/menu:"
   visit 19486 PUT 19485 /probe/cors/menu
+  echo "D (labelled) - the control: the filter's own path, whose answer carries no max age - the same page on $O_A asks for PUT /probe/filter/menu:"
+  visit 19486 PUT 19485 /probe/filter/menu
+  echo "D again - the same page, the same Chrome, seven seconds later:"
+  echo "\$ sleep 7"; sleep 7
+  visit 19486 PUT 19485 /probe/filter/menu
   unchrome 19485 19486
   WARNS; stop 19485 .harness/anchor
   echo "the origins:"
@@ -496,7 +507,7 @@ ccheck() { local c="$1" w="$2" e="$3" n="$4" lbl="$5"; has "$c" "  WARN lines it
 for f in .harness/raw-*; do [ "$(cat "$f")" = "0" ] || die "a capture's raw output held the token ($f: $(cat "$f"))"; done
 SHIP="README.md exercise/README.md exercise/KitchenCors.java exercise/solution/SOLUTION.md exercise/solution/KitchenCors.java receipts.md5 harness/shutdown.sh harness/www/cors.html harness/cdp.mjs harness/net.py harness/netlog.py $HWS"
 for f in .r-*.out $SHIP; do [ "$(raw "$TOKEN" "$f")" = 0 ] || die "$f holds the demo token, raw"; done
-for f in .r-*.out; do ! grep -qE '/Users/|/private/|/home/|/var/folders/' "$f" || die "$f holds an absolute path"; ! grep -qE 'c[0-9]-unit[0-9]|unit ?[0-9]' "$f" || die "$f holds a unit number"; ! grep -qE ' (with PID|started by) ' "$f" || die "$f holds Boot's process line"; ! grep -qE '^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T|"timestamp":"?[0-9]|(exec|handler|task|utility)-[0-9]|GMT|CES?T|[A-Z][a-z][a-z], [0-9][0-9] [A-Z][a-z][a-z] ' "$f" || die "$f holds a log line's time, a timestamp, a date or a thread's number"; ! grep -q "^$(printf '\t')at " "$f" || die "$f shows a stack frame"; ! grep -qE 'SpringCGLIB\$\$[0-9]' "$f" || die "$f holds a generated class's number"; ! grep -qE ':(8080|35729)([^0-9]|$)' "$f" || die "$f shows a bind on 8080 or 35729"; ! grep -q $'\r' "$f" || die "$f holds a carriage return"; ! grep -qiE '<html|<!doctype' "$f" || die "$f shows an HTML page whole"; ! grep -qE 'Chrome/[0-9]|v="[0-9]' "$f" || die "$f holds Chrome's version"; done
+for f in .r-*.out; do ! grep -qE '/Users/|/private/|/home/|/var/folders/' "$f" || die "$f holds an absolute path"; ! grep -qE 'c[0-9]-unit[0-9]|unit ?[0-9]' "$f" || die "$f holds a unit number"; ! grep -qE ' (with PID|started by) ' "$f" || die "$f holds Boot's process line"; ! grep -qE '^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T|"timestamp":"?[0-9]|(exec|handler|task|utility)-[0-9]|GMT|CES?T|[A-Z][a-z][a-z], [0-9][0-9] [A-Z][a-z][a-z] ' "$f" || die "$f holds a log line's time, a timestamp, a date or a thread's number"; ! grep -q "^$(printf '\t')at " "$f" || die "$f shows a stack frame"; ! grep -qE 'SpringCGLIB\$\$[0-9]' "$f" || die "$f holds a generated class's number"; ! grep -qE ':(8080|35729)([^0-9]|$)' "$f" || die "$f shows a bind on 8080 or 35729"; ! grep -q $'\r' "$f" || die "$f holds a carriage return"; ! grep -qiE '<html|<!doctype' "$f" || die "$f shows an HTML page whole"; ! grep -qE 'Chrome/[0-9]|v="[0-9]' "$f" || die "$f holds Chrome's version"; ! grep -qE 'Macintosh|Mac OS X|Windows NT|X11;|Linux x86|sec-ch-ua-platform: "' "$f" || die "$f holds the platform (User-Agent or sec-ch-ua-platform)"; done
 for f in receipts.sh README.md exercise/README.md exercise/solution/SOLUTION.md $HWS exercise/KitchenCors.java exercise/solution/KitchenCors.java; do ! grep -qE "exposure\.include='?\*" "$f" || die "$f exposes every endpoint (R.42)"; done
 K3='server'; K3="$K3.error."
 for f in receipts.sh $SHIP; do ! grep -qF "$K3" "$f" || die "$f names one of Boot 3's error keys - Boot 4.1 reads only spring.web.error.* (S3.21)"; done
@@ -561,7 +572,7 @@ ck_ways() { local WO S B
   has "$WO" "A' against A, its label aside, line for line the same: yes" "ways: A' = A"
   [ "$(printf '%s\n' "$WO" | grep -c "^  WARN lines in this run's log, at Boot's default level: 0 · ERROR lines: 0\$")" = 4 ] && [ "$(printf '%s\n' "$WO" | grep -c "^  the JVM's locale (the harness's Hooks): en_US\$")" = 4 ] || die "ways: four JVMs, each en_US and 0/0"
   grep -qF 'source.registerCorsConfiguration("/probe/filter/**", c);' harness/probe/web/FilterCors.java && grep -qF 'registry.addMapping("/probe/global/**").allowedOrigins("http://127.0.0.1:19486").allowedMethods("GET", "PUT");' harness/probe/web/GlobalCors.java || die "ways: the filter's one path, the registry's rule"
-  echo "  ways: the registry's preflight = the annotation's, line for line (allowed and refused); A - the headers; B (FilterCors for /probe/filter/** only) - the annotated route's preflight 200, Content-Length 0, no CORS header, no hook; the filter's own path: no Max-Age, no Allow; the actual GET keeps its header; A' = A"; }
+  echo "  ways: the registry's preflight = the annotation's, line for line (allowed and refused); A - the headers; B (FilterCors on every path, its one rule for /probe/filter/**) - the annotated route's preflight 200, Content-Length 0, no CORS header, no hook; the filter's own path: no Max-Age, no Allow; the actual GET keeps its header; A' = A"; }
 ck_star() { local SO S c
   SO=$(cat .r-star.out)
   has "$SO" "  the JVM's locale (the harness's Hooks): en_US" "star: the locale"
@@ -593,9 +604,9 @@ ck_exercise() { local XS XE l l0
   grep -qxF -- "**Your turn:** ${EXQ#Your turn: }" exercise/README.md || die "exercise/README.md: the spoken exercise line"
   [ "$(printf '%s\n' "$EXQ" | wc -w | tr -d ' ')" -le 25 ] || die "exercise: the spoken line is over 25 words"
   echo "  exercise: one env -i shell - the README as written (a CorsFilter bean beside @CrossOrigin) -> $l0; the solution (the bean removed) -> $l; the shell in this unit's folder after each"; }
-ck_browser() { local BO V1 V2 V3 V4 VC S
+ck_browser() { local BO V1 V2 V3 V4 VC VD VE S
   BO=$(cat .r-browser.out)
-  V1=$(blk browser "visit 1 - " "visit 2 - "); V2=$(blk browser "visit 2 - " "visit 3 - "); V3=$(blk browser "visit 3 - " "visit 4 - "); V4=$(blk browser "visit 4 - " "C (labelled)"); VC=$(blk browser "C - the page" "the origins:")
+  V1=$(blk browser "visit 1 - " "visit 2 - "); V2=$(blk browser "visit 2 - " "visit 3 - "); V3=$(blk browser "visit 3 - " "visit 4 - "); V4=$(blk browser "visit 4 - " "C (labelled)"); VC=$(blk browser "C - the page" "D (labelled)"); VD=$(blk browser "D (labelled)" "D again - "); VE=$(blk browser "D again - " "the origins:")
   for p in 19486 19487; do has "$BO" "\$ $(jw $p)" "browser: the origin on $p"; done
   [ "$(printf '%s\n' "$BO" | grep -c '^  listens on: 127.0.0.1:1948[4-9] · loopback only: yes$')" = 6 ] || die "browser: two origins, two TiffinBoxes, two Chromes - each loopback"
   [ "$(printf '%s\n' "$BO" | grep -c '^  its profile, .harness/chrome, made fresh for this run (it did not exist before this line): yes$')" = 2 ] || die "browser: two fresh profiles"
@@ -613,6 +624,7 @@ ck_browser() { local BO V1 V2 V3 V4 VC S
   [ "$(hl "$V1" | grep -E '^Dump > (OPTIONS|PUT) ' | paste -sd'|' -)" = 'Dump > OPTIONS /probe/cors/menu|Dump > PUT /probe/cors/menu' ] || die "browser 1: the server got OPTIONS, then PUT"
   hl "$V1" | grep -qxF 'Dump < Access-Control-Max-Age: 1800' && hl "$V1" | grep -qxF "$PFH" && hl "$V1" | grep -qxF 'CorsRoutes annotated' || die "browser 1: the server's preflight answer (Max-Age 1800, PreFlightHttpRequestHandler) and the route"
   # "again: no OPTIONS - the preflight cache"
+  has "$V2" '$ sleep 7' "browser 2: seven seconds after visit 1"
   has "$V2" "  Chrome's own record (its DevTools protocol) - the requests the page made to TiffinBox: 1" "browser 2: one request"
   has "$V2" '  the page printed: answer 200 {"menu":"annotated"}' "browser 2: the page read the answer"
   ! hl "$V2" | grep -q '^Dump > OPTIONS' && [ "$(hl "$V2" | grep -c '^Dump > PUT /probe/cors/menu$')" = 1 ] || die "browser 2: the server got the PUT alone"
@@ -631,10 +643,18 @@ ck_browser() { local BO V1 V2 V3 V4 VC S
   has "$VC" '    OPTIONS /probe/cors/menu - a preflight, for the PUT below · sent: yes · the answer Chrome got: 200' "browser C: the preflight, 200"
   has "$VC" '    PUT /probe/cors/menu - the page'"'"'s fetch · sent: no · no answer · handed to the page: no - Chrome'"'"'s CORS check: PreflightMissingAllowOriginHeader' "browser C: the PUT never sent"
   [ "$(hl "$VC" | grep '^Dump < ' | paste -sd'|' -)" = 'Dump < 200 OPTIONS /probe/cors/menu|Dump < body: []' ] && ! hl "$VC" | grep -q '^Interceptor' || die "browser C: the server answered the preflight empty, no hook"
-  for b in V1 V2 V3 V4 VC; do eval "B_=\$$b"; has "$B_" '    WARN lines they added: 0 · ERROR lines: 0' "browser $b: 0/0"; done
+  # D, the control: "with no max age, the browser asks again" - the filter's own path, no Max-Age in its answer, asked twice 7 s apart
+  for b in VD VE; do eval "B_=\$$b"
+    has "$B_" '  the page printed: answer 200 {"menu":"filter"}' "browser $b: the page read the answer"
+    has "$B_" "  Chrome's own record (its DevTools protocol) - the requests the page made to TiffinBox: 2" "browser $b: two requests"
+    has "$B_" '    OPTIONS /probe/filter/menu - a preflight, for the PUT below · sent: yes · the answer Chrome got: 200' "browser $b: the preflight"
+    [ "$(hl "$B_" | grep -E '^Dump > (OPTIONS|PUT) ' | paste -sd'|' -)" = 'Dump > OPTIONS /probe/filter/menu|Dump > PUT /probe/filter/menu' ] || die "browser $b: the server got OPTIONS, then PUT"
+    ! hl "$B_" | grep -q '^Dump < Access-Control-Max-Age' || die "browser $b: the filter's answer carries no Max-Age"; done
+  has "$VE" '$ sleep 7' "browser D again: seven seconds after D"
+  for b in V1 V2 V3 V4 VC VD VE; do eval "B_=\$$b"; has "$B_" '    WARN lines they added: 0 · ERROR lines: 0' "browser $b: 0/0"; done
   has "$BO" '  the origin on 19486 stopped by its pid · exit 143 · listening on 19486 now: 0' "browser: the origin 19486 stopped"
   has "$BO" '  the origin on 19487 stopped by its pid · exit 143 · listening on 19487 now: 0' "browser: the origin 19487 stopped"
-  echo "  browser: Chrome, two fresh sealed profiles, NetLog 127.0.0.1 only; 1 - OPTIONS (13 headers as sent, same-site, en-US) then PUT, the page reads 200; 2 - the PUT alone (the preflight cache); 3 - OPTIONS 403, the PUT never sent (PreflightMissingAllowOriginHeader); 4 - GET /customers: the server ran it, 200 and the whole list, the page refused (MissingAllowOriginHeader); C - FilterCors joined: the preflight 200 empty, no hook, the PUT never sent"; }
+  echo "  browser: Chrome, two fresh sealed profiles, NetLog 127.0.0.1 only; 1 - OPTIONS (13 headers as sent, same-site, en-US) then PUT, the page reads 200; 2 - the PUT alone (the preflight cache); 3 - OPTIONS 403, the PUT never sent (PreflightMissingAllowOriginHeader); 4 - GET /customers: the server ran it, 200 and the whole list, the page refused (MissingAllowOriginHeader); C - FilterCors joined: the preflight 200 empty, no hook, the PUT never sent; visit 2 came 7 s after visit 1; D (the control) - the filter's own path, no Max-Age: OPTIONS then PUT, and 7 s later OPTIONS again"; }
 ck_preflight; ck_ways; ck_star; ck_exercise
 if [ $BROWSER = yes ]; then ck_browser
 else echo "  *** the browser step: $WHYNOT - every curl capture is made and checked; the browser capture needs Chrome and node 22 or later (README.md, \"The browser\") ***"; exit 2; fi

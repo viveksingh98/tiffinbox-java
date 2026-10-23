@@ -3,9 +3,11 @@
 Run from `c6-unit21/`, after `exercise/README.md`'s commands — in the same shell (the README's `N` lives in that shell), or in a new one:
 the README's two `export` lines come first here too, because a bare `java` may be another JDK (on the author's Mac it is 23, which cannot
 run this jar: the JVM stops at once, and `wait "$p"` ends the line with its exit code). The key is `spring.mvc.async.request-timeout`, two
-seconds in the copy's `tiffinbox-local.yaml`: a stream that sends nothing for two seconds is answered `503`. The feed was asked for no
-orders (`N=0`), so it never sent a thing. Ask for three — `N=3` — and the feed sends three events, 200 ms apart, and ends the stream itself,
-well inside the two seconds. Then the README's last line again, unchanged: nothing in `KitchenFeed.java` or the key changes. Run twice, it
+seconds in the copy's `tiffinbox-local.yaml`: it gives every stream two seconds in all, counted from the request, and one that has sent
+nothing by then is answered `503`. The feed was asked for no
+orders (`N=0`), so it never sent a thing. Ask for three — `N=3` — and the feed sends three events and ends the stream itself: the answer below is a
+`200` with all three. (A stream still sending when its two seconds are up is cut, and curl sees a clean end, exit 0, that it cannot tell
+from a finished feed: this unit's `committed` capture.) Then the README's last line again, unchanged: nothing in `KitchenFeed.java` or the key changes. Run twice, it
 prints the same.
 
 ```bash

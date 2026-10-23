@@ -161,6 +161,7 @@ L_MAKE=$(mine "head -c 1048577 /dev/zero | tr '\\0' 'm' > .harness/files/menu-10
 L_UP=$(mine "curl -s$WU -F 'menu=@.harness/files/menu.csv' http://127.0.0.1:18431/probe/menu")
 L_GET=$(mine "curl -s -D .harness/head.txt -o .harness/body.csv$WT http://127.0.0.1:18431/probe/bill/Ravi")
 L_OJ=$(mine "cd .harness/dl && curl -s -O -J http://127.0.0.1:18431/probe/bill/Ravi")
+L_RAW=$(mine "curl -s --raw -o .harness/raw.txt http://127.0.0.1:18431/probe/bill/Ravi")
 ZOE='{"name":"Zoë K","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}'
 L_ZOE=$(mine "curl -s -w ' %{http_code}\n' -H 'Content-Type: application/json' --data '$ZOE' http://127.0.0.1:18431/customers")
 # The derivations, each asserted
@@ -196,6 +197,16 @@ uq() { local c=${L_UP/:18431\//:$1/} P_="menu=@.harness/files/menu.csv" Q_="menu
 gq() { local c=${L_GET/:18431\//:$1/} P_=" http://" Q_=" ${3:-} http://"; c=${c/\/probe\/bill\/Ravi/$2}; [ -z "${3:-}" ] || c=${c/"$P_"/$Q_}; printf '%s\n' "$c"; }
 # oj PORT PATH: this unit's curl -O -J line, its port and its path
 oj() { local c=${L_OJ/:18431\//:$1/}; printf '%s\n' "${c/\/probe\/bill\/Ravi/$2}"; }
+# rawq PORT: this unit's --raw line on PORT - the body as it came, chunk framing and all (RED S4 #344)
+rawq() { printf '%s\n' "${L_RAW/:18431\//:$1/}"; }
+# chunks FILE: a chunked body's framing, read - each chunk's size (the size lines, hex, read as decimal), in order; then its data
+# joined, without the framing, in FILE.data
+chunks() { python3 -c 'import sys
+b = open(sys.argv[1], "rb").read(); i = 0; z = []; d = b""
+while True:
+    j = b.index(b"\r\n", i); n = int(b[i:j].split(b";")[0], 16); z.append(n); d += b[j + 2:j + 2 + n]; i = j + 2 + n + 2
+    if n == 0: break
+open(sys.argv[1] + ".data", "wb").write(d); print(", ".join(map(str, z)))' "$1"; }
 # mk BYTES: this unit's file-making line for a test file of BYTES bytes
 mk() { printf '%s\n' "${L_MAKE//1048577/$1}"; }
 # exe 'COMMAND': the command with "exec" after its "cd DIR && " - so $pid is the program's
@@ -204,7 +215,7 @@ C_PRE=$(off .harness/pre "$R_PLAIN" package)
 [ "$(dev "$C_PRE")" = "$R_PLAIN" ] || die "not the README's build line with the offline changes: $C_PRE"
 [ "$(exe "$(at .harness/x 19490 "$R_RUN")")" = "cd .harness/x && exec ${L_RUNL/18431/19490}" ] && [ "$(at .harness/x 18431 "$R_CP")" = "cd .harness/x && $L_CPL" ] && [ "$(at .harness/x 18431 "$R_EXTRACT")" = "cd .harness/x && $R_EXTRACT" ] || die "at(): the pinned lines are not README.md's"
 [ "$(hcp .harness/x 19494 probe.web.Files "$O_MB")" = 'cd .harness/x && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19494 --spring.main.sources=probe.web.Files --spring.servlet.multipart.max-file-size=2MB' ] || die "hcp()"
-[ "$(uq 18431 menu.csv)" = "$L_UP" ] && [ "$(uq 19492 menu.csv text/csv)" = "curl -s$WU -F 'menu=@.harness/files/menu.csv;type=text/csv' http://127.0.0.1:19492/probe/menu" ] && [ "$(gq 18431 /probe/bill/Ravi)" = "$L_GET" ] && [ "$(gq 19497 /probe/bill-whole/Ravi '-r 0-15')" = "curl -s -D .harness/head.txt -o .harness/body.csv$WT -r 0-15 http://127.0.0.1:19497/probe/bill-whole/Ravi" ] && [ "$(oj 18431 /probe/bill/Ravi)" = "$L_OJ" ] && [ "$(mk 1048577)" = "$L_MAKE" ] || die "uq(), gq(), oj() or mk()"
+[ "$(uq 18431 menu.csv)" = "$L_UP" ] && [ "$(uq 19492 menu.csv text/csv)" = "curl -s$WU -F 'menu=@.harness/files/menu.csv;type=text/csv' http://127.0.0.1:19492/probe/menu" ] && [ "$(gq 18431 /probe/bill/Ravi)" = "$L_GET" ] && [ "$(gq 19497 /probe/bill-whole/Ravi '-r 0-15')" = "curl -s -D .harness/head.txt -o .harness/body.csv$WT -r 0-15 http://127.0.0.1:19497/probe/bill-whole/Ravi" ] && [ "$(oj 18431 /probe/bill/Ravi)" = "$L_OJ" ] && [ "$(mk 1048577)" = "$L_MAKE" ] && [ "$(rawq 18431)" = "$L_RAW" ] || die "uq(), gq(), oj(), mk() or rawq()"
 echo "  the commands: anchor/README.md gives the 7 lines this script runs or derives from; README.md the 10 this unit adds"
 
 # ---- build: before the captures - the anchor built once (on a fresh clone this fills .m2-demo); what .m2-demo holds ---------------
@@ -466,6 +477,9 @@ bill() {
   start "$(hcp .harness/anchor 19496 "$ALL")"; up 19496; ready 19496; loc
   gt "$(gq 19496 /probe/bill/Ravi)"
   cp .harness/body.csv .harness/streamed-Ravi.csv
+  echo "the same bill once more, its framing kept - curl --raw writes each chunk's size line too (this unit's line):"
+  rm -f .harness/raw.txt .harness/raw.txt.data; c=$(rawq 19496); echo "\$ $c"; e=0; (eval "$c") < /dev/null || e=$?
+  echo "  curl's exit code: $e · the chunks' sizes, in bytes, as they came: [$(chunks .harness/raw.txt)] · their data = the bill above, byte for byte: $(cmp -s .harness/raw.txt.data .harness/streamed-Ravi.csv && echo yes || echo no)"; settle
   gt "$(gq 19496 /probe/bill/Nobody)"
   WARNS; stop 19496 .harness/anchor; }
 
@@ -663,10 +677,13 @@ has "$S_N" "  curl's line: 404 · Content-Type: [] · curl's exit code: 0$Z00" "
 has "$S_N" '  the body curl saved: nothing' "bill: Nobody - nothing written"
 has "$S_N" '  Content-Length: 0 · Transfer-Encoding: none' "bill: Nobody - Content-Length 0"
 [ "$(hl "$S_N" | paste -sd'|' -)" = 'Dispatches in REQUEST /probe/bill/Nobody|Files bill: no customer Nobody - 404, nothing written|Dispatches out REQUEST /probe/bill/Nobody status 404' ] || die "bill: Nobody - one REQUEST dispatch"
+# "here the whole bill fit in one chunk" (RED S4 #344): curl --raw's framing read - one chunk of 595 bytes, then the last, empty one
+has "$BO" "\$ $(rawq 19496)" "bill: the --raw line"
+has "$BO" "  curl's exit code: 0 · the chunks' sizes, in bytes, as they came: [595, 0] · their data = the bill above, byte for byte: yes" "bill: one chunk of 595 bytes, then the end"
 has "$BO" "  WARN lines in this run's log, at Boot's default level: 0 · ERROR lines: 0" "bill: the run 0/0"
 grep -qF 'private final CustomerRepository customers;' harness/probe/web/Files.java && grep -qF 'customers.findByName(name)' harness/probe/web/Files.java || die "bill: the harness reads TiffinBox's own CustomerRepository"
 grep -qF 'b.setDispatcherTypes(EnumSet.allOf(DispatcherType.class));' harness/probe/web/Dispatches.java && grep -qF 'b.addUrlPatterns("/probe/bill/*", "/probe/bill-whole/*");' harness/probe/web/Dispatches.java || die "bill: Dispatches is registered for every dispatch type, on the two bill paths"
-echo "  bill: Ravi - 200 text/csv, chunked, no Content-Length, attachment filename + filename*, 32 lines, the month 7200; the handler returns on tomcat-handler, the body written on task (another thread), then the ASYNC dispatch; Nobody - 404, nothing written, one REQUEST dispatch; 0/0"
+echo "  bill: Ravi - 200 text/csv, chunked, no Content-Length, attachment filename + filename*, 32 lines, the month 7200; the handler returns on tomcat-handler, the body written on task (another thread), then the ASYNC dispatch; Nobody - 404, nothing written, one REQUEST dispatch; --raw: one chunk, 595 bytes, then the empty last; 0/0"
 
 # "a Resource ... a length: five hundred and ninety-five ... Accept-Ranges ... the first sixteen bytes: two oh six ... the same bytes
 # ... Zoë: filename Zoe K, and the encoded one ... curl -O -J saved bill Zoe K, the plain one" - resource

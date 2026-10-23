@@ -150,7 +150,7 @@ R_PD=$(readme "curl -s -w ' %{http_code} · Content-Type: [%{content_type}]\n' h
 WT=" -w ' %{http_code} · Content-Type: [%{content_type}]\n'"
 [ "${R_PD#curl -s}" = "$WT http://127.0.0.1:18431/customers/Nobody" ] || die "the anchor's Content-Type line"
 # This unit's own lines (README.md, "The commands this unit adds") - each asserted to be exactly that: the anchor's run and class-path
-# lines with the JVM's locale pinned; the class-path line with Spring MVC's timeout key; the harness's javac line; the metadata reader;
+# lines with the JVM's locale pinned; the class-path line with Boot's timeout key for Spring MVC; the harness's javac line; the metadata reader;
 # javap on Boot's handler; the sentence counted in Spring MVC's jar; curl's own help for -N; the stream read as it comes, headers first
 # (-N -D -); the anchor's Content-Type line with -N, the headers and the body saved to files, a bound on curl's time, at the feed
 mine() { grep -m1 -xF -- "$1" README.md > /dev/null || die "README.md no longer gives the line: $1"; printf '%s\n' "$1"; }
@@ -169,7 +169,7 @@ L_GET=$(mine "curl -s -N -D .harness/head.txt -o .harness/body.txt$WT --max-time
 # The derivations, each asserted
 P_='java '; Q_="java $JL "; r=${R_RUN/"$P_"/$Q_}; r2=${R_CP/"$P_"/$Q_}
 [ "$r" = "$L_RUNL" ] && [ "$r2" = "$L_CPL" ] || die "the pinned lines must be the anchor's run and class-path lines with $JL after java, and nothing else"
-O_B=${L_B#"$L_CPL "}; [ "$O_B" = '--spring.mvc.async.request-timeout=2s' ] || die "the B line must be the pinned class-path line with Spring MVC's timeout key, and nothing else"
+O_B=${L_B#"$L_CPL "}; [ "$O_B" = '--spring.mvc.async.request-timeout=2s' ] || die "the B line must be the pinned class-path line with Boot's timeout key for Spring MVC, and nothing else"
 [ "${L_JAVAC#* -cp \"*\" }" = "$HWS" ] || die "the harness's javac line must compile the eleven files in harness/probe/web, and nothing else"
 P_='curl -s '; Q_='curl -s -N -D .harness/head.txt -o .harness/body.txt '; r=${R_PD/"$P_"/$Q_}; P_=' http://127.0.0.1:18431/customers/Nobody'; Q_=" --max-time 60 'http://127.0.0.1:18431/probe/feed?orders=0'"; r=${r/"$P_"/$Q_}
 [ "$r" = "$L_GET" ] || die "the saved-answer line must be the anchor's Content-Type line with -N, -D and -o, a bound on curl's time and the feed, and nothing else"
@@ -286,6 +286,8 @@ mask() { awk -v t="$TOKEN" -v u="$U" -v up="$UP" -v hm="$HOME" -v me="$ME" -v tl
   BEGIN { T = lit(t); P = lit(u); Q = lit(up); H = lit(hm); PE = lit(enc(u)); QE = lit(enc(up)); M = "(^|[^A-Za-z0-9_])" lit(me) "([^A-Za-z0-9_]|$)" }
   { gsub(T, "[masked: the " tl "-character token]"); gsub(P, "…"); gsub(PE, "…")
     gsub(Q, "…/.."); gsub(QE, "…/.."); gsub(H, "~"); gsub(/\$\$SpringCGLIB\$\$[0-9]+/, "$$SpringCGLIB$$<n>")
+    if (match($0, /java\.io\.IOException: /)) { pre = substr($0, 1, RSTART + RLENGTH - 1); post = substr($0, RSTART + RLENGTH); i = index(post, " - ")
+      $0 = pre "<the OS'"'"'s words>" (i ? substr(post, i) : "") }
     while (match($0, M)) { pre = substr($0, 1, RSTART - 1); s = substr($0, RSTART, RLENGTH); post = substr($0, RSTART + RLENGTH)
       sub(lit(me), "<user>", s); $0 = pre s post }
     print }'; }
@@ -354,7 +356,7 @@ hk() { local o; o=$(awk -v from="$1" 'NR > from && /^HOOK [0-9]+ / { n = $2 + 0;
 counted() { local w e; settle; w=$(logl "$1" WARN | grep -c . || true); e=$(logl "$1" ERROR | grep -c . || true); printf ' · WARN lines it added: %s · ERROR lines: %s' "$w" "$e"; }
 # hdrs FILE: the headers curl saved (-D), as they came - each line without its carriage return and trailing space, Date's value "…" -
 # counted; then whether the answer had a Content-Length and a Transfer-Encoding
-hdrs() { local n; n=$(tr -d '\r' < "$1" | grep -c . || true)
+hdrs() { local n; [ -f "$1" ] || { echo "  the headers curl saved: none - curl wrote no header file (no header came)"; return 0; }; n=$(tr -d '\r' < "$1" | grep -c . || true)
   echo "  the headers curl saved, as they came: $n lines, the status line first (Date's value masked):"
   tr -d '\r' < "$1" | grep . | sed -E 's/ +$//; s/^(Date|date): .*/\1: …/; s/^/    /'
   echo "  Content-Length: $(tr -d '\r' < "$1" | awk -F': ' 'tolower($1) == "content-length" { print $2; f = 1 } END { if (!f) print "none" }') · Transfer-Encoding: $(tr -d '\r' < "$1" | awk -F': ' 'tolower($1) == "transfer-encoding" { print $2; f = 1 } END { if (!f) print "none" }')"; }
@@ -500,7 +502,16 @@ timeout() {
   trun 19505 "$O_B"
   echo "A' - A again, a fresh JVM, port 19504:"
   trun 19504 ""
-  echo "A' against A, its label aside, line for line the same: $(asame "A - " "B - " "A' - " "A' against A")"; }
+  echo "A' against A, its label aside, line for line the same: $(asame "A - " "B - " "A' - " "A' against A")"
+  echo "D (labelled) - the key by its effect, a bound and not a clock: the same request with curl bounded to ten seconds (this unit's line, --max-time 10); A's JVM, the key unset, port 19504:"
+  tbound 19504 ""
+  echo "then B's JVM, the key at two seconds, port 19505:"
+  tbound 19505 "$O_B"; }
+# tbound PORT [OPTION]: the feed asked for no events, curl bounded to 10 s (fq waits for the stream's onCompletion, as for every
+# stream: when curl gave up first, that wait is the server's own timeout coming later - a wait, never a witness: no time is printed)
+tbound() { start "$(hcp .harness/anchor "$1" "$TIMED" "${2:-}")"; up "$1"; ready "$1"; loc; atstart
+  fq "$(gq "$1" 0 10)"
+  WARNS; stop "$1" .harness/anchor; }
 
 # ---- committed: events, then the timeout --------------------------------------------------------------------------------------------
 committed() {
@@ -517,6 +528,7 @@ gone() {
   echo "the reader leaves - the anchor on its class path, the harness joined (Feed, Timeouts), the key unset, port 19507: an endless feed, curl bounded to two seconds:"
   start "$(hcp .harness/anchor 19507 "$TIMED")"; up 19507; ready 19507; loc; atstart
   fq "$(gq 19507 -1 2)" endless
+  grep -oE 'java\.io\.IOException: [^-]*[^ -]' .harness/run.out > .harness/gone-os.txt || true
   WARNS; stop 19507 .harness/anchor; }
 block() { awk '/^```bash$/ { if (!d) { f = 1 }; next } f && /^```$/ { f = 0; d = 1 } f' "$1"; }
 # The shell a viewer has: env -i - nothing this script set reaches it (its JAVA_HOME, the JDK at the front of its PATH, LC_ALL,
@@ -673,7 +685,7 @@ echo "  dispatch: REQUEST - every filter in, preHandle, the handler returns, fil
 TO=$(cat .r-timeout.out); TA=$(blk timeout "A - " "B - "); TB=$(blk timeout "B - " "A' - "); TA2=$(blk timeout "A' - " "A' against A")
 has "$TO" '  spring.mvc.async.request-timeout · default none · Duration' "timeout: the key's metadata, no default"
 has "$TO" '  1 keys under spring.mvc.async.' "timeout: one key"
-[ "$(printf '%s\n' "$TO" | grep -c "^$LOC\$")" = 3 ] || die "timeout: three JVMs, each en_US"
+[ "$(printf '%s\n' "$TO" | grep -c "^$LOC\$")" = 5 ] || die "timeout: five JVMs, each en_US"
 T_A="  the harness at start: Timeouts spring.mvc.async.request-timeout in Spring's environment: null - Tomcat's connector, its async timeout: 30000 ms"
 T_B="  the harness at start: Timeouts spring.mvc.async.request-timeout in Spring's environment: 2s - Tomcat's connector, its async timeout: 30000 ms"
 has "$TA" "$T_A" "timeout A: the key unset, the connector's 30000 ms"; has "$TB" "$T_B" "timeout B: 2s, the connector unchanged"
@@ -687,7 +699,18 @@ TW() { printf '%s' "$HR - orders asked: 0|Timeouts the REQUEST dispatch leaves; 
 [ "$(hl "$S_TB")" = "$(TW 2000)" ] || die "timeout B: the request's own timeout 2000 ms, onTimeout, onCompletion - got: $(hl "$S_TB")"
 has "$TO" "A' against A, its label aside, line for line the same: yes" "timeout: A' = A"
 [ $((30 * 1000)) = 30000 ] && [ $((2 * 1000)) = 2000 ] || die "timeout: seconds"
-echo "  timeout: metadata - 1 key, request-timeout, no default; A - the environment null, Tomcat's connector 30000 ms, the request's 30000 ms -> 503 problem detail Service Unavailable, Connection: close, onTimeout, 0/0; B 2s - the connector 30000, the request's 2000 -> the same 503; A' = A"
+# D (RED S4 #350): curl bounded to 10 s - with the key unset curl gives up first (exit 28, no status) and the server times out later,
+# into nothing (onTimeout, onCompletion, 0/0); with B's key the same bound gets the 503
+TD=$(blk timeout "D (labelled) - " "then B's JVM"); TE=$(blk timeout "then B's JVM" "")
+S_TD=$(seg "$TD" "$(gq 19504 0 10)"); S_TE=$(seg "$TE" "$(gq 19505 0 10)")
+has "$TD" "$T_A" "timeout D: A's JVM, the key unset"; has "$TE" "$T_B" "timeout D: B's JVM, 2s"
+has "$S_TD" "  curl's line: 000 · Content-Type: [] · curl's exit code: 28$Z00" "timeout D: unset - curl gave up first, no status"
+[ "$(hl "$S_TD")" = "$(TW 30000)" ] || die "timeout D: unset - later, the server's own 30000 ms timeout, onTimeout, onCompletion - got: $(hl "$S_TD")"
+[ "$(hl "$S_TE")" = "$(TW 2000)" ] || die "timeout D: 2s - the request's 2000 ms, onTimeout, onCompletion - got: $(hl "$S_TE")"
+has "$TD" "  WARN lines in this run's log, at Boot's default level: 0 · ERROR lines: 0" "timeout D: unset, 0/0"
+has "$S_TE" "  curl's line: 503 · Content-Type: [application/problem+json] · curl's exit code: 0$Z00" "timeout D: 2s - the 503 inside the bound"
+has "$S_TE" "$P503" "timeout D: 2s - the body"
+echo "  timeout: metadata - 1 key, request-timeout, no default; A - the environment null, Tomcat's connector 30000 ms, the request's 30000 ms -> 503 problem detail Service Unavailable, Connection: close, onTimeout, 0/0; B 2s - the connector 30000, the request's 2000 -> the same 503; A' = A; D curl bounded to 10 s - unset: exit 28, no status, the server's timeout later (onTimeout, onCompletion, 0/0); 2s: the 503"
 
 # "events, then the time runs out ... curl ends cleanly, exit zero, a two hundred it already had ... one warning: Response already
 # committed ... logged under Boot's handler; the sentence is its parent's, Spring MVC's" - committed
@@ -710,11 +733,13 @@ has "$GO" "$LOC" "gone: the locale"; has "$GO" "$T_A" "gone: the key unset"
 has "$S_G" "  curl's line: 200 · Content-Type: [text/event-stream] · curl's exit code: 28$Z00" "gone: curl exit 28, 0/0"
 has "$S_G" "$(EV 1 Meera 1)" "gone: the first event"
 printf '%s\n' "$S_G" | grep -qE "^  the body curl saved: its events - how many is timing, not shown · every one whole .*: yes · " || die "gone: every event curl saved whole"
-[ "$(hl "$S_G")" = "$HR - orders asked: endless|Timeouts the REQUEST dispatch leaves; the request is async, its timeout: 30000 ms|Feed sent event 1 (Meera) on kitchen-clock (virtual: false) - an endless feed prints its first send only|Feed onError on tomcat-handler-<n> (virtual: true): AsyncRequestNotUsableException: Servlet container error notification for disconnected client - the failed send, on the clock's thread: AsyncRequestNotUsableException: ServletResponse failed to flushBuffer: java.io.IOException: Broken pipe - the clock: stopped|$DONE" ] || die "gone: the harness's lines - got: $(hl "$S_G")"
+[ "$(hl "$S_G")" = "$HR - orders asked: endless|Timeouts the REQUEST dispatch leaves; the request is async, its timeout: 30000 ms|Feed sent event 1 (Meera) on kitchen-clock (virtual: false) - an endless feed prints its first send only|Feed onError on tomcat-handler-<n> (virtual: true): AsyncRequestNotUsableException: Servlet container error notification for disconnected client - the failed send, on the clock's thread: AsyncRequestNotUsableException: ServletResponse failed to flushBuffer: java.io.IOException: <the OS's words> - the clock: stopped|$DONE" ] || die "gone: the harness's lines - got: $(hl "$S_G")"
 has "$GO" "  WARN lines in this run's log, at Boot's default level: 0 · ERROR lines: 0" "gone: the run 0/0"
 for cb in onTimeout onError onCompletion; do grep -qE "emitter\.$cb\(" harness/probe/web/Feed.java || die "gone: Feed registers $cb"; done
 [ "$(grep -c 'stop(f)' harness/probe/web/Feed.java)" = 3 ] || die "gone: all three callbacks stop the clock"
-echo "  gone: curl --max-time 2 -> exit 28 (200 text/event-stream, every event whole); the server: onError (disconnected client; the failed send: Broken pipe), onCompletion, the clock stopped; 0/0"
+GOS=$(head -1 .harness/gone-os.txt 2> /dev/null || true)
+case "$GOS" in 'java.io.IOException: '?*) ;; *) die "gone: the failed send's exception must be a java.io.IOException with the OS's words - got: [$GOS]" ;; esac
+echo "  gone: curl --max-time 2 -> exit 28 (200 text/event-stream, every event whole); the server: onError (disconnected client; the failed send: an IOException), onCompletion, the clock stopped; 0/0 · the OS's words, this run (printed here, never in a capture): ${GOS#java.io.IOException: }"
 
 # the exercise's end state: the README's commands, then the solution's, in ONE env -i shell - each leaves the shell in this folder
 XS=$(blk exercise "the README's" "the solution's"); XE=$(blk exercise "the solution's" '')
@@ -730,7 +755,7 @@ for d in Meera Priya Ravi; do has "$XE" "    | data:$d" "exercise: the event for
 has "$XE" '    spring.mvc.async.request-timeout: 2s' "exercise: the key the README writes"
 grep -qxF 'N=3' exercise/solution/SOLUTION.md && grep -qxF 'N=0' exercise/README.md || die "exercise: N=0 shipped, N=3 the solution"
 [ "$(printf '%s\n' "$XE" | grep -c '^  \$ export ')" = 2 ] || die "exercise: SOLUTION.md gives the README's two export lines"
-EXQ="Your turn: the README's feed waits, then answers five oh three. Read the timeout key, ask for three orders, and count the events."
+EXQ="Your turn: the README's feed answers five oh three, after the key's two seconds, not thirty. Ask for three orders, and count the events."
 grep -qxF -- "**Your turn:** ${EXQ#Your turn: }" exercise/README.md || die "exercise/README.md: the spoken exercise line"
 [ "$(printf '%s\n' "$EXQ" | wc -w | tr -d ' ')" -le 25 ] || die "exercise: the spoken line is over 25 words"
 echo "  exercise: one env -i shell - the README as written (N=0, the key 2s) -> $l0; the solution (N=3) -> $l; the shell in this unit's folder after each"

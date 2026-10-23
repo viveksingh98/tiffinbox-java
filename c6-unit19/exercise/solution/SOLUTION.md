@@ -32,5 +32,6 @@ Measured (this unit's `exercise` capture, `receipts.sh` — run in the same shel
 the preflight: 200 · Access-Control-Allow-Origin: [http://127.0.0.1:19486] · Access-Control-Max-Age: [1800]
 ```
 
-The admin pages lose their rule with it. To keep one, give it to Spring MVC's CORS registry (`WebMvcConfigurer.addCorsMappings`)
+The admin pages lose their rule with it (no route lives under `/kitchen/admin/**` in this exercise, so nothing it measures is
+lost). To keep one, give it to Spring MVC's CORS registry (`WebMvcConfigurer.addCorsMappings`)
 instead: this unit's `ways` capture measured the registry answering a preflight line for line as `@CrossOrigin` does.

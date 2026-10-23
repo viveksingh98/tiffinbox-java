@@ -47,14 +47,54 @@ export PATH="$JAVA_HOME/bin:$PATH"
 from `receipts.md5` (it prints the `DIFFERS` line first). **Start it in a process group of its own** (a terminal's foreground job is one):
 two receipts started as background jobs of one shell share a group, and one run's clean-up would stop the other's JVMs (R.94).
 
-**Runs of record (2026-10-22, at a machine load of 140-240 from other work):** **615 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with HOME and a plain PATH, this folder, its own process group: exit 0, all 6 captures 3/3 = published, every check passed; `.m2-demo` still 5,891 files after) and **592 s under `bash receipts.sh`** (Homebrew bash 5.3.9, the same: exit 0, all 6 = published; 5,891 files after); a final bash 3.2 run after this README was written, the same. **A sealed fresh clone**: `git clone` of tiffinbox-java at 12bc4ff through `file://`, this unit's 13 files put in as git would take them (its `.gitignore` lines keep `.m2-demo`, `.harness` and `.r-*` out; `anchor` stays the link — `readlink` gives `../c6-unit16/after` in both, and the tree it points to diffed whole: 0 differences); `env -i`, a `HOME` of its own whose `.mavenrc` points every Java proxy at a refusing port (127.0.0.1:9), Maven settings sending every repository to a `file://` copy of Central's files made from this unit's `.m2-demo` (4,413 files), the proxy variables at the same refusing port, `/bin/bash` 3.2, a process group of its own: exit 0 in 720 s, all 6 = published, every check passed; **512 artifacts, every one from the `file://` copy, 0 from anywhere else**; the first build said `offline: no`, as a fresh clone's must, and every capture's build `offline: yes`. **How the hashes were made:** one development run (bash 3.2, each capture 3/3) fixed the captures; its six hashes went into `receipts.md5`; every run since reproduced them, 3 of 3 each (bash 3.2 twice, bash 5.3, the sealed clone).
+**Runs of record (2026-10-23, BLUE S4 part 1, this script as committed):** **264 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with
+HOME and a plain PATH, this folder, a session of its own: exit 0, all 6 captures 3/3 = published, every check passed) and **319 s under
+`bash receipts.sh`** (Homebrew bash 5.3.9, the same: exit 0, all 6 = published). **SIGINT** to its process group while `bill`'s
+JVM listened on 19496: exit 130 in 139 s, nothing of the group left, the JVM gone, 19490-19499 free, no `.r-lock`, no unfinished run, the
+published captures unchanged (md5). **How the hashes were made:** one development run (bash
+3.2, 234 s, every check passed, each capture 3/3) fixed `bill` (the `--raw` framing line, RED S4 #344); `limits`, `upload`, `limit`,
+`resource` and `exercise` reproduced their earlier hashes unchanged. **The sealed fresh clone** of 2026-10-22 (at 12bc4ff, 720 s) followed
+the earlier text of the recipe, which RED S4 #405 measured to leak as written, so its "every one from the `file://` copy" is not a proof from
+that text. It was **not re-run** for this change: only a capture changed (one more curl line; no dependency, plugin or build step), which a
+sealed clone cannot tell from a seeded run. The fixed recipe below was measured once, on c6-unit18 (its README gives the counts).
 
-Published hashes: limits `a6d33d7a4d8a85712fdd96a986ae1538` · upload `53ac7dccca92f27cc6c43b59d587f100` · limit `9543199f3c29ed51b82fa275691d7327` · bill `c4b59d80e22bcffe1e6acd4f8b4b3fda` · resource `c058f314e4eeed18cd39a316d7ddeee2` · exercise `caf64a386a863c7be143cef0ecb9bac8`.
+Published hashes: limits `a6d33d7a4d8a85712fdd96a986ae1538` · upload `53ac7dccca92f27cc6c43b59d587f100` · limit `9543199f3c29ed51b82fa275691d7327` · bill `8aa5137aae2631774518edf431442e60` · resource `c058f314e4eeed18cd39a316d7ddeee2` · exercise `caf64a386a863c7be143cef0ecb9bac8`.
+
+### A sealed fresh clone — the recipe (RED S4 #405)
+
+A sealed clone proves that a fresh clone's first build fetches only from a copy you control. **The earlier text of this paragraph did not
+seal** (RED S4 #405, measured): a `HOME` of its own whose `.mavenrc` set only `-Dhttp(s).proxyHost`, with Maven settings in `$HOME/.m2`,
+fetched from Maven Central — Java on macOS ignores `$HOME` (`user.home` stays your own folder, so Maven never read those settings), and
+Maven's resolver ignores the `-Dhttp.proxyHost` properties (it takes its proxies from `settings.xml`). The recipe that seals, step by step,
+with a pre-flight that refuses to start unless the only remote is `file://` and a post-check of where every artifact came from:
+
+```bash
+S=/tmp/sealed-20                                   # an empty folder of your own; T = your tiffinbox-java clone
+mkdir -p "$S/home/.m2" && git clone -q "file://$T" "$S/tiffinbox-java"
+rsync -a --exclude _remote.repositories --exclude '*.lastUpdated' --exclude resolver-status.properties "$T/c6-unit20/.m2-demo/" "$S/central/"
+printf 'MAVEN_OPTS="-Duser.home=%s"\n' "$S/home" > "$S/home/.mavenrc"     # mvn reads $HOME/.mavenrc; Java then reads this user.home
+cat > "$S/home/.m2/settings.xml" <<XML
+<settings>
+  <mirrors><mirror><id>sealed</id><mirrorOf>*</mirrorOf><url>file://$S/central</url></mirror></mirrors>
+  <proxies>
+    <proxy><id>dead-http</id><active>true</active><protocol>http</protocol><host>127.0.0.1</host><port>9</port></proxy>
+    <proxy><id>dead-https</id><active>true</active><protocol>https</protocol><host>127.0.0.1</host><port>9</port></proxy>
+  </proxies>
+</settings>
+XML
+X=http://127.0.0.1:9; E="env -i HOME=$S/home PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin http_proxy=$X https_proxy=$X HTTP_PROXY=$X HTTPS_PROXY=$X no_proxy=127.0.0.1,localhost NO_PROXY=127.0.0.1,localhost"
+# pre-flight: an artifact that exists nowhere, asked for through the sealed settings - it must fail, having asked file:// and nothing else
+$E JAVA_HOME=/opt/homebrew/opt/openjdk@25 mvn -B -Dmaven.repo.local="$S/preflight-m2" org.apache.maven.plugins:maven-dependency-plugin:3.8.1:get -Dartifact=org.example.sealed:absent:1 > "$S/preflight.log" 2>&1
+[ $? != 0 ] && grep -q 'Downloading from sealed: file://' "$S/preflight.log" && ! grep -qE 'Downloading from [^ ]+: https?://' "$S/preflight.log" && echo "sealed: file:// only" || echo "NOT SEALED - do not run receipts.sh"
+cd "$S/tiffinbox-java/c6-unit20" && $E ./receipts.sh            # a process group of its own (a terminal's foreground job is one)
+# post-check: every artifact's origin, by repository id - each line must say sealed; 0 central
+find .m2-demo -name _remote.repositories -exec cat {} + | grep -o '>[^=]*=' | sort | uniq -c
+```
 
 ## The commands this unit adds
 
 `anchor/README.md` — the anchor's own — gives every line `receipts.sh` runs or derives from (`mvn -B package`, the run line, the extract
-line, the class-path line, the readiness line, the Content-Type line, the POST of a customer) but these ten, which are this unit's, each
+line, the class-path line, the readiness line, the Content-Type line, the POST of a customer) but these eleven, which are this unit's, each
 read from the block below and asserted to be exactly this (on the anchor's port 18431; each capture swaps in its own port):
 
 ```bash
@@ -67,6 +107,7 @@ head -c 1048577 /dev/zero | tr '\0' 'm' > .harness/files/menu-1048577.txt
 curl -s -w ' %{http_code} · Content-Type: [%{content_type}] · Connection: [%header{connection}]\n' -F 'menu=@.harness/files/menu.csv' http://127.0.0.1:18431/probe/menu
 curl -s -D .harness/head.txt -o .harness/body.csv -w ' %{http_code} · Content-Type: [%{content_type}]\n' http://127.0.0.1:18431/probe/bill/Ravi
 cd .harness/dl && curl -s -O -J http://127.0.0.1:18431/probe/bill/Ravi
+curl -s --raw -o .harness/raw.txt http://127.0.0.1:18431/probe/bill/Ravi
 curl -s -w ' %{http_code}\n' -H 'Content-Type: application/json' --data '{"name":"Zoë K","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}' http://127.0.0.1:18431/customers
 ```
 
@@ -78,7 +119,8 @@ one test file (`mk()` swaps in the size, in both places). The upload line is the
 `Connection: [%header{connection}]` added to curl's `-w`, one `-F` part and the harness's path (`uq()` swaps the file, or adds `;type=`);
 the saved-answer line is the same line with `-D` and `-o` (headers and body to files, both removed before each request — R.119) and the
 bill's path (`gq()` swaps the path, or adds one curl option: `-r 0-15`); the `-O -J` line saves under the name the answer gives, from a
-folder of its own (`oj()` swaps the path); the POST is the anchor's POST of Asha with the name `Zoë K` and nothing else. The limits are
+folder of its own (`oj()` swaps the path); the `--raw` line keeps the chunked framing, so `chunks()` reads each chunk's size line
+(`rawq()` swaps the port; RED S4 #344); the POST is the anchor's POST of Asha with the name `Zoë K` and nothing else. The limits are
 read with the anchor's readiness line, its path made `/probe/multipart`. Each derivation is asserted.
 
 ## The repository, and what was downloaded
@@ -237,7 +279,10 @@ $ harness/shutdown.sh 19492 .harness/anchor/secrets/tiffinbox/shutdown-token
 
 ## 3 · limit — the line, A/B/A′; C labelled
 
-Four test files, one byte repeated: 1,048,576, 1,048,577, 1,500,000 and 12,000,000 bytes. **A** (Boot's limits): 1,048,576 → 200; 1,048,577 and 1,500,000 → `413 application/problem+json` "Maximum upload size exceeded", title "Content Too Large", `Connection: close`, 0 WARN 0 ERROR — `Refusals` names Tomcat's `FileSizeLimitExceededException`, and the route never ran; 12,000,000 → the same 413, Tomcat's `SizeLimitExceededException` (the request's 10,485,760). **B** (`--spring.servlet.multipart.max-file-size=2MB`, an option): the bean reads 2,097,152, and 1,500,000 → 200. **A′** = A, line for line (`asame`). **C** (labelled, B's key): 12,000,000 → 413, the request limit. Statuses, bodies, headers and Tomcat's sentence are asserted; how many bytes curl sent before a refusal is never captured (it moves with timing).
+Four test files, one byte repeated: 1,048,576, 1,048,577, 1,500,000 and 12,000,000 bytes. **A** (Boot's limits): 1,048,576 → 200; 1,048,577 and 1,500,000 → `413 application/problem+json` "Maximum upload size exceeded", title "Content Too Large", `Connection: close`, 0 WARN 0 ERROR (quiet because TiffinBox switches problem details on —
+`spring.mvc.problemdetails.enabled: true` in the anchor's `application.yaml`; Boot's own default is off, and RED S4 #341's probe measured that
+answer as an empty 413 with 2 WARN from `DefaultHandlerExceptionResolver` — not a capture here; `Connection: close` is Tomcat's, for any 413:
+`Http11Processor.statusDropsConnection`, RED S4 #345) — `Refusals` names Tomcat's `FileSizeLimitExceededException`, and the route never ran; 12,000,000 → the same 413, Tomcat's `SizeLimitExceededException` (the request's 10,485,760). **B** (`--spring.servlet.multipart.max-file-size=2MB`, an option): the bean reads 2,097,152, and 1,500,000 → 200. **A′** = A, line for line (`asame`). **C** (labelled, B's key): 12,000,000 → 413, the request limit. Statuses, bodies, headers and Tomcat's sentence are asserted; how many bytes curl sent before a refusal is never captured (it moves with timing).
 
 `.r-limit.out` · md5 `9543199f3c29ed51b82fa275691d7327` · 3 of 3
 
@@ -356,9 +401,12 @@ $ harness/shutdown.sh 19495 .harness/anchor/secrets/tiffinbox/shutdown-token
 
 ## 4 · bill — a customer's bill, streamed
 
-Ravi, as the anchor seeds him (2 meals a day at 120), read by `Files` from TiffinBox's own `CustomerRepository`: 200 `text/csv;charset=UTF-8`, `Transfer-Encoding: chunked`, **no `Content-Length`**, `Content-Disposition: attachment; filename="bill Ravi.csv"; filename*=UTF-8''bill%20Ravi.csv`; the body: 32 lines — the header, 30 days at 240, the month 7,200 (`monthlyBill()`). The harness's lines, in the order the program printed them: `Dispatches` in on the REQUEST dispatch; the handler returns on `tomcat-handler-<n>` with nothing written; the body written on `task-<n>` (Boot's task executor, virtual here), not the handler's thread; then `Dispatches` in and out on the **ASYNC** dispatch. A name nobody has: 404, `Content-Length: 0`, nothing written, one REQUEST dispatch.
+Ravi, as the anchor seeds him (2 meals a day at 120), read by `Files` from TiffinBox's own `CustomerRepository`: 200 `text/csv;charset=UTF-8`, `Transfer-Encoding: chunked`, **no `Content-Length`**, `Content-Disposition: attachment; filename="bill Ravi.csv"; filename*=UTF-8''bill%20Ravi.csv`; the body: 32 lines — the header, 30 days at 240, the month 7,200 (`monthlyBill()`). The harness's lines, in the order the program printed them: `Dispatches` in on the REQUEST dispatch; the handler returns on `tomcat-handler-<n>` with nothing written; the body written on `task-<n>` (Boot's task executor, virtual here), not the handler's thread; then `Dispatches` in and out on the **ASYNC** dispatch. A name nobody has: 404, `Content-Length: 0`, nothing written, one REQUEST dispatch. **The framing** (RED S4 #344): the same bill once more
+with `curl --raw`, its chunk-size lines read by `chunks()` — `[595, 0]`: one chunk of 595 bytes, then the empty last one, and the data equal
+to the bill byte for byte. Chunked because the code writes line by line after the handler returned, so no length is known when Tomcat
+sends; one chunk because Tomcat's buffer held all 595 bytes — "written in pieces" is not what goes out here.
 
-`.r-bill.out` · md5 `c4b59d80e22bcffe1e6acd4f8b4b3fda` · 3 of 3
+`.r-bill.out` · md5 `8aa5137aae2631774518edf431442e60` · 3 of 3
 
 ```
 a bill streamed - the anchor on its class path, the harness joined, port 19496: Ravi (a customer the anchor seeds), then a name nobody has:
@@ -416,6 +464,9 @@ $ curl -s -D .harness/head.txt -o .harness/body.csv -w ' %{http_code} · Content
      3 Files           bill: the body written, 32 lines, on task-<n> (virtual: true), the handler's thread: no
      4 Dispatches      in  ASYNC /probe/bill/Ravi
      5 Dispatches      out ASYNC /probe/bill/Ravi status 200
+the same bill once more, its framing kept - curl --raw writes each chunk's size line too (this unit's line):
+$ curl -s --raw -o .harness/raw.txt http://127.0.0.1:19496/probe/bill/Ravi
+  curl's exit code: 0 · the chunks' sizes, in bytes, as they came: [595, 0] · their data = the bill above, byte for byte: yes
 $ curl -s -D .harness/head.txt -o .harness/body.csv -w ' %{http_code} · Content-Type: [%{content_type}]\n' http://127.0.0.1:19496/probe/bill/Nobody
   curl's line: 404 · Content-Type: [] · curl's exit code: 0 · WARN lines it added: 0 · ERROR lines: 0
   the headers curl saved, as they came: 3 lines, the status line first (Date's value masked):
@@ -437,7 +488,10 @@ $ harness/shutdown.sh 19496 .harness/anchor/secrets/tiffinbox/shutdown-token
 
 ## 5 · resource — the bill whole, a range of it, a name that is not ASCII
 
-The same bill as a `ByteArrayResource`: `Content-Length: 595`, `Accept-Ranges: bytes`, not chunked — the same 595 bytes as the streamed bill (`cmp`); `-r 0-15` → 206, `Content-Range: bytes 0-15/595`, 16 bytes. Zoë K added with the anchor's POST (201); her streamed bill's disposition: `filename="bill Zoe K.csv"` (the ASCII fallback, `ë` → `e`) and `filename*=UTF-8''bill%20Zo%C3%AB%20K.csv` (the exact name). `curl -O -J`, from a folder of its own, saved `bill Ravi.csv` (the streamed bill, byte for byte) and `bill Zoe K.csv` — curl took the ASCII name; the file inside still says `Zoë K`.
+The same bill as a `ByteArrayResource`: `Content-Length: 595`, `Accept-Ranges: bytes`, not chunked — the same 595 bytes as the streamed bill (`cmp`); `-r 0-15` → 206, `Content-Range: bytes 0-15/595`, 16 bytes. Zoë K added with the anchor's POST (201); her streamed bill's disposition: `filename="bill Zoe K.csv"` (the ASCII fallback, `ë` → `e`) and `filename*=UTF-8''bill%20Zo%C3%AB%20K.csv` (the exact name). `curl -O -J`, from a folder of its own, saved `bill Ravi.csv` (the streamed bill, byte for byte) and `bill Zoe K.csv` — curl took the ASCII name (its manual, 8.7.1, `-J`: it does not yet support `filename*`, so curl never chooses; RED S4 #347); the file
+inside still says `Zoë K`. **Both names come from Spring's `ContentDisposition`** (spring-web), which `Files.disposition()` gives
+`StandardCharsets.UTF_8`: given a charset it writes `filename` and `filename*` for every name — Ravi's ASCII one too (`bill`) — so "twice
+when the name is not ASCII" was false (RED S4 #340); with no charset it writes one name, raw (RED's probe, not a capture here).
 
 `.r-resource.out` · md5 `c058f314e4eeed18cd39a316d7ddeee2` · 3 of 3
 
