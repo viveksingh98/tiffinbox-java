@@ -30,7 +30,9 @@ CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"   # the Ch
 #   browser    TiffinBox with Dump (the server's record of every request, the stylesheet's included, whole) and headless Chrome, a
 #              profile of its own made fresh for each visitor, sealed to 127.0.0.1: one tab visits the dashboard, TiffinBox is
 #              replaced by its new build on the same port, the tab visits again and reloads - the previous tree; C (labelled) it with
-#              Cache-Control: no-cache; after/; D (labelled) after/ with no-cache - each claim with two witnesses
+#              Cache-Control: no-cache; after/; D (labelled) after/ with no-cache - each claim with two witnesses; G (labelled), the
+#              control for the first: the previous tree with its static files read from a folder this run writes, so Last-Modified is
+#              seconds old - visited twice, eight seconds apart (Chrome's own lifetime for an answer with none is a guess from that age)
 #   forms      the native build of after/; what Spring's AOT step registers, on the previous tree and on after/; then four forms -
 #              the jar, the AOT jar, the binary, the image: each one's address, the seven (masked), exit 0; then, on a second start of
 #              each, the page's link, the versioned stylesheet's answer, a conditional GET by date and one by the ETag
@@ -110,7 +112,7 @@ dclean() { [ -n "$OURS" ] || return 0
   docker rm -f "$BOX" > /dev/null 2>&1 || true
   docker image rm -f "$IMG" $(sort -u .harness/imgids 2> /dev/null) > /dev/null 2>&1 || true; }
 trap 'trap "" INT TERM; for p in "$xpid" "$cpid"; do [ -z "$p" ] || killtree "$p"; done; for p in "$pid" "$xpid" "$cpid"; do if [ -n "$p" ] && kill "$p" 2> /dev/null; then wait "$p" 2> /dev/null || true; fi; done; sweep || true; dclean || true; rm -rf .harness/chrome 2> /dev/null || true; [ -z "$INTR" ] || rm -f .r-*.[123]; rmdir .r-lock 2> /dev/null || true' EXIT
-INTR=""; trap 'INTR=1; exit 130' INT TERM
+INTR=""; FRESHD=""; trap 'INTR=1; exit 130' INT TERM
 exec 3>&1                                            # die() speaks to the terminal even inside a redirected capture
 die() { echo "  *** $* ***" >&3; exit 1; }
 java -version 2>&1 | grep -q 'version "25' || die "JDK 25 needed; JAVA_HOME gives: $(java -version 2>&1 | head -1)"
@@ -221,6 +223,8 @@ L_FOLD=$(mine "java $JL -cp $FOLD")
 L_CCF=$(mine "$L_FOLD --spring.web.resources.chain.cache=false")
 L_DUMP=$(mine "java $JL -cp \"tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc\" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=18431 --spring.main.sources=probe.web.Dump")
 L_DUMPNC=$(mine "$L_DUMP --spring.web.resources.cache.cachecontrol.no-cache=true")
+L_FRESHL=$(mine "$L_DUMP --spring.web.resources.static-locations=file:../fresh/")
+L_FRESH=$(mine "mkdir -p .harness/fresh/css && cp .harness/before/$RS/$CSS .harness/fresh/css/tiffinbox.css")
 L_DEVT=$(mine "java $JL -cp \"tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:\$M2/org/springframework/boot/spring-boot-devtools/4.1.1/spring-boot-devtools-4.1.1.jar:../hc\" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=18431 --spring.devtools.livereload.enabled=false --spring.main.sources=probe.web.Keys")
 L_JAVAC=$(mine "javac -parameters -d .harness/hc -cp \".harness/after/tiffinbox-web/target/extracted/lib/*\" $HWS")
 L_NEWB=$(mine "cp $NEWCSS .harness/after-new/$RS/$CSS")
@@ -306,7 +310,7 @@ for a in org/springframework/boot/spring-boot-starter-thymeleaf/4.1.1/spring-boo
   [ -f "$M2/$a" ] || die "$a is not in .m2-demo after the first build - README.md, The repository"; done
 [ -f "$ZIP" ] || die "GraalVM's metadata repository is not in .m2-demo after the first build - README.md, The repository"
 echo "  .m2-demo holds Thymeleaf's starter, DevTools, GraalVM's native plugin 1.1.8 and its metadata repository"
-if [ $BROWSER = yes ]; then echo "  the browser: $("$CHROME" --version 2> /dev/null | head -1) · node $(node --version) - printed here, never in a capture"; else echo "  the browser: none - $WHYNOT"; fi
+if [ $BROWSER = yes ]; then echo "  the browser: $("$CHROME" --version 2> /dev/null | head -1) on $(uname -s) $(uname -m) (the platform its User-Agent and sec-ch-ua-platform name) · node $(node --version) - printed here, never in a capture"; else echo "  the browser: none - $WHYNOT"; fi
 
 # ---- helpers ------------------------------------------------------------------------------------------------------------
 raw() { local t=$1; shift; cat "$@" | LC_ALL=C grep -aoF -- "$t" | wc -l | tr -d ' '; }
@@ -360,14 +364,16 @@ seven() { local m
   logtok; }
 post() { echo "\$ harness/shutdown.sh $1 $2/$TF"; harness/shutdown.sh "$1" "$2/$TF" | tsmask | sed 's/^/  /'; }
 stop() { post "$1" "$2"; gone "$1"; echo "  exit $LASTE · listening on $1 now: 0"; logtok; }
-mask() { awk -v t="$TOKEN" -v g="${GRAALVM_HOME:-}" -v u="$U" -v up="$UP" -v hm="$HOME" -v me="$ME" -v tl="${#TOKEN}" '
+mask() { awk -v fd="${FRESHD:-}" -v t="$TOKEN" -v g="${GRAALVM_HOME:-}" -v u="$U" -v up="$UP" -v hm="$HOME" -v me="$ME" -v tl="${#TOKEN}" '
   function lit(x) { gsub(/[][\\.^$*+?(){}|\/]/, "\\\\&", x); return x }
   function enc(x) { gsub(/ /, "%20", x); return x }
   BEGIN { T = lit(t); G = lit(g); GE = lit(enc(g)); P = lit(u); Q = lit(up); H = lit(hm); PE = lit(enc(u)); QE = lit(enc(up)); M = "(^|[^A-Za-z0-9_])" lit(me) "([^A-Za-z0-9_]|$)" }
   { gsub(T, "[masked: the " tl "-character token]"); if (g != "") { gsub(G, "$GRAALVM_HOME"); gsub(GE, "$GRAALVM_HOME") }; gsub(P, "…"); gsub(PE, "…")
     gsub(Q, "…/.."); gsub(QE, "…/.."); gsub(H, "~"); gsub(/\$\$SpringCGLIB\$\$[0-9]+/, "$$SpringCGLIB$$<n>")
     gsub(/tomcat-handler-[0-9]+/, "tomcat-handler-<n>")
-    gsub(/Chrome\/[0-9][0-9.]*/, "Chrome/<version>")
+    if (fd != "") gsub(lit(fd), "(the file time of this run: masked)")
+    gsub(/Chrome\/[0-9][0-9.]*/, "Chrome/<version>"); gsub(/Mozilla\/5\.0 \([^)]*\)/, "Mozilla/5.0 (<platform masked>)")
+    if (match($0, /sec-ch-ua-platform: /)) $0 = substr($0, 1, RSTART + RLENGTH - 1) "(<platform masked>)"
     if (match($0, /sec-ch-ua: /)) $0 = substr($0, 1, RSTART + RLENGTH - 1) "(its brands and their versions: masked)"
     while (match($0, M)) { pre = substr($0, 1, RSTART - 1); s = substr($0, RSTART, RLENGTH); post = substr($0, RSTART + RLENGTH)
       sub(lit(me), "<user>", s); $0 = pre s post }
@@ -487,7 +493,7 @@ rm -f .harness/body.html
 printf 'a { }\n' > .harness/body.out; [ "$(bodyf)" = "  body: 6 bytes · md5 $(printf 'a { }\n' | md5 -q)" ] || die "bodyf: a stylesheet must come out as its bytes and its md5"
 : > .harness/body.out; [ "$(bodyf)" = '  body: none (0 bytes)' ] || die "bodyf: an empty body must come out as none"
 rm -f .harness/body.out; [ "$(bodyf)" = '  body: no file - curl wrote none' ] || die "bodyf: no file must come out as no file"
-[ "$(printf '%s\n' 'User-Agent: Mozilla/5.0 (Macintosh) HeadlessChrome/155.0.0.0 Safari/537.36' 'sec-ch-ua: "Google Chrome";v="155"' 'sec-ch-ua-mobile: ?0' '[x][tomcat-handler-12] x' | mask)" = "$(printf '%s\n' 'User-Agent: Mozilla/5.0 (Macintosh) HeadlessChrome/<version> Safari/537.36' 'sec-ch-ua: (its brands and their versions: masked)' 'sec-ch-ua-mobile: ?0' '[x][tomcat-handler-<n>] x')" ] || die "mask: Chrome's version and a request thread's number must be masked, and nothing else"
+[ "$(printf '%s\n' 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36' 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36' 'sec-ch-ua: "Google Chrome";v="155"' 'sec-ch-ua-mobile: ?0' 'sec-ch-ua-platform: "macOS"' 'sec-ch-ua-platform: "Linux"' '[x][tomcat-handler-12] x' | mask)" = "$(printf '%s\n' 'User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36' 'User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36' 'sec-ch-ua: (its brands and their versions: masked)' 'sec-ch-ua-mobile: ?0' 'sec-ch-ua-platform: (<platform masked>)' 'sec-ch-ua-platform: (<platform masked>)' '[x][tomcat-handler-<n>] x')" ] || die "mask: Chrome's version and the platform (User-Agent, sec-ch-ua-platform) and a request thread's number must be masked, and nothing else"
 echo "  the filters: the level counts (a harness line that says ERROR is no ERROR line), the record filter, the harness's lines, the header filters, the page and body filters and the masks print their planted inputs as declared"
 
 # ---- change: three keys in application.yaml; the new build -----------------------------------------------------------------------
@@ -752,7 +758,15 @@ browser() {
   echo "2 after/ - the keys - the same line as 1, a new visitor:"
   visitor 2 after after-new "$L_DUMP" 1
   echo "D (labelled) - after/ with Cache-Control: no-cache (this unit's line), a new visitor:"
-  visitor D after - "$L_DUMPNC" 2; }
+  visitor D after - "$L_DUMPNC" 2
+  echo "G (labelled) - the control for 1: the previous tree with its static files read from a folder this run writes (this unit's line), so the stylesheet's Last-Modified is seconds old, not weeks; a new visitor:"
+  run "$L_FRESH"; FRESHD=$(LC_ALL=C date -u -r .harness/fresh/css/tiffinbox.css '+%a, %d %b %Y %H:%M:%S GMT')
+  echo "  the file's time, as Last-Modified writes it: $FRESHD - written by the line above"
+  serve before "$L_FRESHL" ".harness/before, its static files from .harness/fresh"; chrome
+  echo "visit 1 - the dashboard's address, typed into a new tab:"; visit "$(vq 19527)"
+  echo "visit 2 - the address typed again, the same TiffinBox, eight seconds later (a wait, not a witness):"
+  echo "\$ sleep 8"; sleep 8; visit "$(aq 19527)"
+  unchrome 19527; WARNS; stop 19527 .harness/before; rm -rf .harness/fresh; }
 
 # ---- forms: the native build, what Spring's AOT step registered, then four forms ---------------------------------------------------
 nbuild() { local ci cn s0 s1
@@ -933,7 +947,11 @@ NBIN=0
 for f in .r-*.out $SHIP .harness/nat/$BIN; do [ -f "$f" ] || continue; case $f in .harness/nat*) NBIN=$((NBIN + 1)) ;; esac; [ "$(raw "$TOKEN" "$f")" = 0 ] || die "$f holds the demo token, raw"; done
 [ "$NBIN" = 1 ] || die "one binary was built, $NBIN were checked"
 # a capture may print two dates, and only these: the build's fixed time as Last-Modified writes it, and as unzip's listing writes it
-for f in .r-*.out; do ! grep -qE '/Users/|/private/|/home/|/var/folders/' "$f" || die "$f holds an absolute path"; [ -z "${GRAALVM_HOME:-}" ] || ! grep -qF "$GRAALVM_HOME" "$f" || die "$f holds the GraalVM's folder"; ! grep -qE 'c[0-9]-unit[0-9]|unit ?[0-9]' "$f" || die "$f holds a unit number"; ! grep -qE ' (with PID|started by) ' "$f" || die "$f holds Boot's process line"; ! sed "s/$OLDLM//g; s/09-15-2026 00:00//g" "$f" | grep -qE '^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T|"timestamp":"?[0-9]|(exec|handler|task|utility)-[0-9]|GMT|CES?T|<div id=.created|[A-Z][a-z][a-z], [0-9][0-9] [A-Z][a-z][a-z] |[A-Z][a-z][a-z] [A-Z][a-z][a-z] [0-9]+ [0-9][0-9]:[0-9][0-9]|[0-9][0-9]-[0-9][0-9]-20[0-9][0-9]' || die "$f holds a log line's time, a timestamp, a date or a thread's number"; ! grep -q "^$(printf '\t')at " "$f" || die "$f shows a stack frame"; ! grep -qE 'SpringCGLIB\$\$[0-9]' "$f" || die "$f holds a generated class's number"; ! grep -qE 'sha256:[0-9a-f]{64}' "$f" || [ "$(grep -cE 'sha256:[0-9a-f]{64}' "$f")" = "$(grep -cE 'eclipse-temurin(:25-jre)?@sha256:[0-9a-f]{64}' "$f")" ] || die "$f holds an ID other than the base image's digest"; ! grep -qE ':(8080|35729)([^0-9]|$)' "$f" || die "$f shows a bind on 8080 or 35729"; ! grep -q $'\r' "$f" || die "$f holds a carriage return"; ! grep -qiE '<html|<!doctype' "$f" || die "$f shows an HTML page whole"; ! grep -qE 'Chrome/[0-9]|v="[0-9]' "$f" || die "$f holds Chrome's version"; done
+for f in .r-*.out; do ! grep -qE '/Users/|/private/|/home/|/var/folders/' "$f" || die "$f holds an absolute path"; [ -z "${GRAALVM_HOME:-}" ] || ! grep -qF "$GRAALVM_HOME" "$f" || die "$f holds the GraalVM's folder"; ! grep -qE 'c[0-9]-unit[0-9]|unit ?[0-9]' "$f" || die "$f holds a unit number"; ! grep -qE ' (with PID|started by) ' "$f" || die "$f holds Boot's process line"; ! sed "s/$OLDLM//g; s/09-15-2026 00:00//g" "$f" | grep -qE '^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T|"timestamp":"?[0-9]|(exec|handler|task|utility)-[0-9]|GMT|CES?T|<div id=.created|[A-Z][a-z][a-z], [0-9][0-9] [A-Z][a-z][a-z] |[A-Z][a-z][a-z] [A-Z][a-z][a-z] [0-9]+ [0-9][0-9]:[0-9][0-9]|[0-9][0-9]-[0-9][0-9]-20[0-9][0-9]' || die "$f holds a log line's time, a timestamp, a date or a thread's number"; ! grep -q "^$(printf '\t')at " "$f" || die "$f shows a stack frame"; ! grep -qE 'SpringCGLIB\$\$[0-9]' "$f" || die "$f holds a generated class's number"; ! grep -qE 'sha256:[0-9a-f]{64}' "$f" || [ "$(grep -cE 'sha256:[0-9a-f]{64}' "$f")" = "$(grep -cE 'eclipse-temurin(:25-jre)?@sha256:[0-9a-f]{64}' "$f")" ] || die "$f holds an ID other than the base image's digest"; ! grep -qE ':(8080|35729)([^0-9]|$)' "$f" || die "$f shows a bind on 8080 or 35729"; ! grep -q $'\r' "$f" || die "$f holds a carriage return"; ! grep -qiE '<html|<!doctype' "$f" || die "$f shows an HTML page whole"; ! grep -qE 'Chrome/[0-9]|v="[0-9]' "$f" || die "$f holds Chrome's version"; ! grep -qE 'Macintosh|Mac OS X|Windows NT|X11;|Linux x86|sec-ch-ua-platform: "' "$f" || die "$f holds the platform (User-Agent or sec-ch-ua-platform)"; done
+# R.109: a JVM with DevTools on its class path exits 1 - Java's launcher, whose main thread DevTools ends with its SilentExitException
+# (the app runs on in restartedMain; README.md, "Found on the way"); every other JVM a capture stops exits 0
+for f in .r-*.out; do [ "$(grep -cE '^  exit [1-9][0-9]* · listening on [0-9]+ now: 0$' "$f" || true)" = "$(grep -cE '^  exit 1 · listening on 19523 now: 0$' "$f" || true)" ] || die "$f: a JVM without DevTools exited non-zero"; done
+[ "$(grep -cE '^  exit 1 · listening on 19523 now: 0$' .r-devtools.out)" = 2 ] && ! grep -qE '^  exit 0 · listening on 19523 now: 0$' .r-devtools.out || die "devtools: each of DevTools' 2 JVMs on 19523 exits 1, none 0 (R.109)"
 for f in receipts.sh README.md exercise/README.md exercise/solution/SOLUTION.md $HWS; do ! grep -qE "exposure\.include='?\*" "$f" || die "$f exposes every endpoint (R.42)"; done
 K3='server'; K3="$K3.error."
 for f in receipts.sh README.md exercise/README.md exercise/solution/SOLUTION.md $HWS; do ! grep -qF "$K3" "$f" || die "$f names one of Boot 3's error keys (S3.21)"; done
@@ -1057,11 +1075,11 @@ echo "  exercise: one env -i shell - the README as written (the strategy off in 
 # "In Chrome: no lifetime, so Chrome keeps the old stylesheet and asks nobody - even on reload ... no-cache: it asks, and the server says
 #  not modified ... the versioned name: a new build, a new name, fetched once ... the ETag matches nothing"
 if [ -f .r-browser.out ]; then BR=$(cat .r-browser.out)
-  B1=$(blk browser "1 the previous tree" "C (labelled)"); BC=$(blk browser "C (labelled)" "2 after/"); B2=$(blk browser "2 after/" "D (labelled)"); BD=$(blk browser "D (labelled)" "")
-  [ "$(cnt "$BR" '  its profile, .harness/chrome, made fresh for this visitor (it did not exist before this line): yes')" = 4 ] || die "browser: a fresh profile for each of the four visitors"
-  [ "$(cnt "$BR" "  Chrome's DevTools port: 127.0.0.1:19529 · loopback only: yes")" = 4 ] && [ "$(cnt "$BR" '  Chrome exit 0 · listening on 19529 now: 0 · its profile removed')" = 4 ] || die "browser: Chrome's port loopback, exit 0, the profile removed - four times"
-  [ "$(cnt "$BR" "  Chrome's NetLog - every address it connected to or tried, its own background requests included: 127.0.0.1 only: yes · ports 19527 among them: yes")" = 4 ] || die "browser: the seal, four times"
-  [ "$(cnt "$BR" '    WARN lines they added: 0 · ERROR lines: 0')" = 11 ] || die "browser: 0 and 0 for each of the eleven visits"
+  B1=$(blk browser "1 the previous tree" "C (labelled)"); BC=$(blk browser "C (labelled)" "2 after/"); B2=$(blk browser "2 after/" "D (labelled)"); BD=$(blk browser "D (labelled)" "G (labelled)"); BG=$(blk browser "G (labelled)" "")
+  [ "$(cnt "$BR" '  its profile, .harness/chrome, made fresh for this visitor (it did not exist before this line): yes')" = 5 ] || die "browser: a fresh profile for each of the five visitors"
+  [ "$(cnt "$BR" "  Chrome's DevTools port: 127.0.0.1:19529 · loopback only: yes")" = 5 ] && [ "$(cnt "$BR" '  Chrome exit 0 · listening on 19529 now: 0 · its profile removed')" = 5 ] || die "browser: Chrome's port loopback, exit 0, the profile removed - five times"
+  [ "$(cnt "$BR" "  Chrome's NetLog - every address it connected to or tried, its own background requests included: 127.0.0.1 only: yes · ports 19527 among them: yes")" = 5 ] || die "browser: the seal, five times"
+  [ "$(cnt "$BR" '    WARN lines they added: 0 · ERROR lines: 0')" = 13 ] || die "browser: 0 and 0 for each of the thirteen visits"
   PG() { printf '%s\n' "  the page Chrome shows: Dashboard · TiffinBox · its address: /dashboard · its stylesheet: $1 · its footer, coloured by it: $2"; }
   OLDC='rgb(0, 0, 0)'; NEWC='rgb(85, 85, 85)'
   vb() { awk -v a="visit $2 - " 'index($0, a) == 1 { f = 1; next } f && (/^visit / || /^  WARN lines in this run/) { exit } f' <<< "$1"; }
@@ -1091,8 +1109,19 @@ if [ -f .r-browser.out ]; then BR=$(cat .r-browser.out)
   # D: after/ with no-cache
   V=$(vb "$BD" 2); has "$V" "      the headers Chrome sent that ask about a kept copy: If-Modified-Since: $OLDLM · If-None-Match: W/\"$H0\" · its other headers: 13, not shown" "browser D, visit 2: both validators"
   has "$V" "    Stylesheet GET $V0 - from the server: 200 text/css" "browser D, visit 2: 200"; has "$V" '      50 Dump            <   body: 200 bytes' "browser D, visit 2: the whole file again"
-  [ "$(printf '%s\n' "$BR" | grep -c 'Stylesheet GET .* - from the server: 304 ')" = 2 ] || die "browser: two 304s in Chrome's record, both C's"
-  echo "  browser: four visitors, each a fresh sealed profile, NetLog 127.0.0.1 only; 1 - no lifetime: the new build's stylesheet never asked for, the old colour, reload too; C - no-cache: If-Modified-Since -> 304 in both records, the new build's 304 keeps the old colour; 2 - the new name fetched, the new colour, reload from the cache; D - both validators -> 200 and the whole file"; fi
+  # G, the control for 1: "with no lifetime, Chrome guesses one from how old Last-Modified is" - a date seconds old, asked again 8 s later
+  FM_="(the file time of this run: masked)"
+  has "$BG" "\$ $L_FRESH" "browser G: the folder's file written by the README's line"; has "$BG" "  the file's time, as Last-Modified writes it: $FM_ - written by the line above" "browser G: the file's time, masked"
+  has "$BG" "\$ $(at .harness/before 19527 "$L_FRESHL")" "browser G: the static files from .harness/fresh"
+  V=$(vb "$BG" 1); has "$V" "$(PG /css/tiffinbox.css "$OLDC")" "browser G, visit 1: the page, the plain name"
+  has "$V" '    Stylesheet GET /css/tiffinbox.css - from the server: 200 text/css' "browser G, visit 1: the stylesheet fetched"; has "$V" "      the answer's: Last-Modified: $FM_ · Content-Length: 200" "browser G, visit 1: no lifetime, the fresh date"
+  V=$(vb "$BG" 2); has "$V" '$ sleep 8' "browser G, visit 2: eight seconds after visit 1"
+  has "$V" '    Stylesheet GET /css/tiffinbox.css - from the server: 304 text/css' "browser G, visit 2: Chrome asked again - 304"
+  has "$V" "      the headers Chrome sent that ask about a kept copy: If-Modified-Since: $FM_ · its other headers: 13, not shown" "browser G, visit 2: the date Chrome sent"
+  printf '%s\n' "$V" | grep -qE '^ +[0-9]+ Dump +< 304 GET /css/tiffinbox\.css$' && printf '%s\n' "$V" | grep -qE "^ +[0-9]+ Dump +>   If-Modified-Since: \(the file time of this run: masked\)\$" || die "browser G, visit 2: the server's record - the date read, 304"
+  [ "$(printf '%s\n' "$BG" | grep -c "$OLDLM")" = 0 ] || die "browser G: the build's date nowhere in G - its file's own time only"
+  [ "$(printf '%s\n' "$BR" | grep -c 'Stylesheet GET .* - from the server: 304 ')" = 3 ] || die "browser: three 304s in Chrome's record, C's two and G's"
+  echo "  browser: five visitors, each a fresh sealed profile, NetLog 127.0.0.1 only; 1 - no lifetime: the new build's stylesheet never asked for, the old colour, reload too; C - no-cache: If-Modified-Since -> 304 in both records, the new build's 304 keeps the old colour; 2 - the new name fetched, the new colour, reload from the cache; D - both validators -> 200 and the whole file; G - a date seconds old: 8 s later Chrome asks again, 304"; fi
 
 # "Every form ... the jar, the AOT jar, the image: the same; the binary: its own date"
 if [ -f .r-forms.out ]; then FM=$(cat .r-forms.out)

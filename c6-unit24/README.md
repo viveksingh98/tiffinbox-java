@@ -62,11 +62,62 @@ settings file sat where Maven never looks (Java's `user.home` is the account's, 
 unit's only downloads; nothing went into this unit's `.m2-demo` or any other folder of the repository. Every native build took 153-299
 s (terminal only), under the 20-minute bound.
 
-Published hashes: change `f3389c040f0e6093d8ce6a1c97fec65a` · cookie `4610656da5e961d0c6ec198737b08015` · flash `15b5f967cfe6429cc508e70c2aafcdbf` · tracking `9950175fd8abbd4a1d79242a201e137f` · flags `25cea182335da92a21fc9d42cbda9742` · persistent `5120b0976bcba28874c429a984eb8b61` · exercise `26bdb3d3fec28afede73683955a23da7` · browser `14e693d6020b96e3436b2e3689442fb8` · forms `f36119eccf205f86b3b5739cf257b562`.
+**Runs after BLUE S4 part 2 (2026-10-23/24; RED S4 #380, #381, #384, #404, #405, #406):** `receipts.sh` changed — the platform
+masked beside Chrome's version, `browser` gained G (labelled, the control for F: the same server reached as `tiffin.test` — Chrome
+refuses the cookie, `SecureOnly`, 0 cookies, no note), the thirty minutes read from `cookie`'s `maxInactiveSeconds` (#406, no longer
+arithmetic on two literals) and DevTools' exit 1 asserted (R.109); the YAML's comment (line 24, after/ and c6-tiffinbox alike, every line
+number kept) and the exercise card now say "a copied link keeps, and so does every link on that page" (#380). `change` re-hashed
+`f3389c04…` → `d3ca321c…`, `browser` `14e693d6…` → `75c9f3a2…`, the other seven unchanged. One development run (bash 3.2, 1,324 s:
+all 9 captures 3/3, then it stopped at the hygiene check, which now allows `tiffin.test` in G's three lines alone) fixed the new hashes;
+a first run of record was cut off mid-`forms` when the session running it ended (no exit line — not counted). Then, each `env -i` (HOME,
+a plain PATH, `GRAALVM_HOME`, `DOCKER_CONFIG`), a session of its own: **1,052 s under `./receipts.sh`** (/bin/bash 3.2.57) and
+**1,122 s under `bash receipts.sh`** (Homebrew bash 5.3.9), each exit 0, all 9 captures 3/3 = published, every check passed; native
+builds 137-161 s (terminal only). The exercise by hand: README then SOLUTION twice in one `env -i` shell (`;jsessionid=<id>` → the
+clean address, the shell still in `c6-unit24`), and SOLUTION alone in a fresh shell whose `java` is 23 — the same. A SIGINT to the
+receipt's process group while `cookie`'s JVM listened on 19531: exit 130 in 42 s, nothing left in the group, no listener on 19530-19539,
+no `.r-lock`, the captures byte for byte as before, the author's Chrome untouched. **A sealed fresh clone by the recipe below**
+(`git clone` at 9bbcb0e, the chain's 176 files put in as git would take them — 0 differing but the three `before` links, which
+`readlink` reads as `../c6-unit16/after`, `../c6-unit22/after`, `../c6-unit23/after`; c6-tiffinbox = c6-unit24/after in the clone; a
+`file://` copy of 4,420 files; pre-flight: exit 1, 221 `Downloading from sealed: file://`, 0 from http(s)): **exit 0, all 9 =
+published, every check passed, 1376 s; `_remote.repositories` by repository id: 720 `>sealed=` (in 510 artifact folders),
+0 `central`**; the 5 lines with no id are TiffinBox's own three modules, installed by the run. The sealed-clone paragraph above was written before RED S4 #405: as described it does not seal — the recipe below does.
+
+Published hashes: change `d3ca321c40671555a45ec3c1c2f72cff` · cookie `4610656da5e961d0c6ec198737b08015` · flash `15b5f967cfe6429cc508e70c2aafcdbf` · tracking `9950175fd8abbd4a1d79242a201e137f` · flags `25cea182335da92a21fc9d42cbda9742` · persistent `5120b0976bcba28874c429a984eb8b61` · exercise `26bdb3d3fec28afede73683955a23da7` · browser `75c9f3a272cc7b0286a1766c597da781` · forms `f36119eccf205f86b3b5739cf257b562`.
+
+### A sealed fresh clone — the recipe (RED S4 #405)
+
+A sealed clone proves that a fresh clone's first build fetches only from a copy you control. **The earlier text of this paragraph did not
+seal** (RED S4 #405, measured): a `HOME` of its own whose `.mavenrc` set only `-Dhttp(s).proxyHost`, with Maven settings in `$HOME/.m2`,
+fetched from Maven Central — Java on macOS ignores `$HOME` (`user.home` stays your own folder, so Maven never read those settings), and
+Maven's resolver ignores the `-Dhttp.proxyHost` properties (it takes its proxies from `settings.xml`). The recipe that seals, step by step,
+with a pre-flight that refuses to start unless the only remote is `file://` and a post-check of where every artifact came from:
+
+```bash
+S=/tmp/sealed-24                                   # an empty folder of your own; T = your tiffinbox-java clone
+mkdir -p "$S/home/.m2" && git clone -q "file://$T" "$S/tiffinbox-java"
+rsync -a --exclude _remote.repositories --exclude '*.lastUpdated' --exclude resolver-status.properties "$T/c6-unit24/.m2-demo/" "$S/central/"
+printf 'MAVEN_OPTS="-Duser.home=%s"\n' "$S/home" > "$S/home/.mavenrc"     # mvn reads $HOME/.mavenrc; Java then reads this user.home
+cat > "$S/home/.m2/settings.xml" <<XML
+<settings>
+  <mirrors><mirror><id>sealed</id><mirrorOf>*</mirrorOf><url>file://$S/central</url></mirror></mirrors>
+  <proxies>
+    <proxy><id>dead-http</id><active>true</active><protocol>http</protocol><host>127.0.0.1</host><port>9</port></proxy>
+    <proxy><id>dead-https</id><active>true</active><protocol>https</protocol><host>127.0.0.1</host><port>9</port></proxy>
+  </proxies>
+</settings>
+XML
+X=http://127.0.0.1:9; E="env -i HOME=$S/home PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin http_proxy=$X https_proxy=$X HTTP_PROXY=$X HTTPS_PROXY=$X no_proxy=127.0.0.1,localhost NO_PROXY=127.0.0.1,localhost GRAALVM_HOME=$GRAALVM_HOME DOCKER_CONFIG=$HOME/.docker"     # this unit's native build and image need both (your own GraalVM and Docker)
+# pre-flight: an artifact that exists nowhere, asked for through the sealed settings - it must fail, having asked file:// and nothing else
+$E JAVA_HOME=/opt/homebrew/opt/openjdk@25 mvn -B -Dmaven.repo.local="$S/preflight-m2" org.apache.maven.plugins:maven-dependency-plugin:3.8.1:get -Dartifact=org.example.sealed:absent:1 > "$S/preflight.log" 2>&1
+[ $? != 0 ] && grep -q 'Downloading from sealed: file://' "$S/preflight.log" && ! grep -qE 'Downloading from [^ ]+: https?://' "$S/preflight.log" && echo "sealed: file:// only" || echo "NOT SEALED - do not run receipts.sh"
+cd "$S/tiffinbox-java/c6-unit24" && $E ./receipts.sh            # a process group of its own (a terminal's foreground job is one)
+# post-check: every artifact's origin, by repository id - each line must say sealed; 0 central
+find .m2-demo -name _remote.repositories -exec cat {} + | grep -o '>[^=]*=' | sort | uniq -c
+```
 
 ## The commands this unit adds
 
-`after/README.md` — the anchor's own — gives every line `receipts.sh` runs or derives from but twenty-nine, which are this unit's,
+`after/README.md` — the anchor's own — gives every line `receipts.sh` runs or derives from but thirty-two, which are this unit's,
 each read from the block below and asserted to be exactly this (on the anchor's port 18431; each capture swaps in its own port):
 
 ```bash
@@ -93,11 +144,14 @@ curl -s -D .harness/head.txt -o .harness/body.out -w ' %{http_code}\n' -H 'Conte
 curl -s -L -X POST -D .harness/head.txt -o .harness/body.out -w ' %{http_code}\n' --data 'name=Lata&mealsPerDay=2&pricePerMeal=110&mealType=VEG' http://127.0.0.1:18431/customers
 curl -s -L -b .harness/jar -c .harness/jar -D .harness/head.txt -o .harness/body.html -w ' %{http_code} · Content-Type: [%{content_type}]\n' -H 'Accept: text/html' --data 'name=Lata&mealsPerDay=2&pricePerMeal=110&mealType=VEG' http://127.0.0.1:18431/customers
 "$CHROME" --headless=new --user-data-dir="$PWD/.harness/chrome" --no-first-run --no-default-browser-check --disable-background-networking --disable-component-update --disable-sync --disable-domain-reliability --use-mock-keychain --password-store=basic --lang=en-US --proxy-server=http://127.0.0.1:9 --host-resolver-rules='MAP * ~NOTFOUND, EXCLUDE 127.0.0.1' --remote-debugging-address=127.0.0.1 --remote-debugging-port=19539 --log-net-log="$PWD/.harness/netlog.json" about:blank
+"$CHROME" --headless=new --user-data-dir="$PWD/.harness/chrome" --no-first-run --no-default-browser-check --disable-background-networking --disable-component-update --disable-sync --disable-domain-reliability --use-mock-keychain --password-store=basic --lang=en-US --proxy-server=http://127.0.0.1:9 --proxy-bypass-list=tiffin.test --host-resolver-rules='MAP tiffin.test 127.0.0.1, MAP * ~NOTFOUND, EXCLUDE 127.0.0.1' --remote-debugging-address=127.0.0.1 --remote-debugging-port=19539 --log-net-log="$PWD/.harness/netlog.json" about:blank
 node harness/cdp.mjs 19539 open http://127.0.0.1:18431/dashboard .harness/ev.json
 node harness/cdp.mjs 19539 form http://127.0.0.1:18431/customers/new .harness/ev.json 'name=Kiran&mealsPerDay=2&pricePerMeal=110&mealType=VEG'
+node harness/cdp.mjs 19539 form http://tiffin.test:18431/customers/new .harness/ev.json 'name=Kiran&mealsPerDay=2&pricePerMeal=110&mealType=VEG'
 node harness/cdp.mjs 19539 cookies
 node harness/cdp.mjs 19539 close
 python3 harness/net.py .harness/ev.json 18431
+python3 harness/net.py .harness/ev.json 18431 tiffin.test
 python3 harness/netlog.py .harness/netlog.json 18431
 ```
 
@@ -116,7 +170,7 @@ harness's `/probe/visits`; the JSON line is the POST line with a JSON body and i
 `-X POST` (curl then posts again) and without it, with the jar. The Chrome line starts headless Chrome with a profile made fresh under
 `.harness/chrome`, sealed (a dead proxy at `127.0.0.1:9`, every host name unresolvable but 127.0.0.1), its DevTools protocol on
 `127.0.0.1:19539`, a NetLog; `cdp.mjs` opens the dashboard in a new tab, or the form, fills it and sends it with its own button, prints
-Chrome's cookie store, or closes Chrome; `net.py` reads Chrome's record of a visit's documents, `netlog.py` the NetLog. Every other request
+Chrome's cookie store, or closes Chrome; `net.py` reads Chrome's record of a visit's documents, `netlog.py` the NetLog. The second Chrome line, the second form line and the second `net.py` line are G's (`browser`): Chrome's resolver maps one name, `tiffin.test`, to 127.0.0.1 and the proxy is bypassed for that name alone (every other name still unresolvable, every other request still to the dead proxy), the form is asked for at that name, and `net.py` reads the visit's documents at that name (its third argument; 127.0.0.1 unless named). Every other request
 is one of those with its port (`u`), its form body (`fd`) or its address (`lq`: a redirect's `Location`, quoted) changed, or the anchor's
 own form line with its port.
 
@@ -131,7 +185,7 @@ native build would start (exit 1).
 
 The `browser` capture needs **Chrome** (`CHROME=` at the top of `receipts.sh`) and **node 22 or later** (its built-in WebSocket drives
 Chrome's DevTools protocol; nothing is installed). Both are optional: without them every curl capture runs and is checked, and the
-script stops at the browser step with exit 2, naming this section — before the native build. Each of the three visitors is a Chrome of
+script stops at the browser step with exit 2, naming this section — before the native build. Each of the four visitors is a Chrome of
 its own: started with a profile made fresh under `.harness/` (never a user profile; the capture says it did not exist), sealed to
 127.0.0.1, stopped by its pid — never by its name (the author's own Chrome runs beside it, untouched) — and its profile removed, so its
 cookies die with it. Within one visitor every tab shares the cookie store: `open` and `form` each use a new tab. **Chrome auto-updates.**
@@ -201,10 +255,12 @@ The binary's line passes no locale option.
 1. **Paths, the GraalVM, the token, the user, a request thread's number, Chrome's version, a session's id** (`gsub()`, literals escaped),
    in every line: the demo token → `[masked: the 30-character token]`; the GraalVM's folder → `$GRAALVM_HOME`; this folder → `…`; the
    folder above → `…/..`; home → `~`; the user name, as a whole word → `<user>`; `tomcat-handler-<digits>` → `tomcat-handler-<n>`;
-   `Chrome/<digits>` → `Chrome/<version>`; a `sec-ch-ua:` value, whole → `(its brands and their versions: masked)`; `JSESSIONID=<hex>` →
+   `Chrome/<digits>` → `Chrome/<version>`; a `sec-ch-ua:` value, whole → `(its brands and their versions: masked)`; **The platform** (RED S4 #381): the User-Agent's first brackets → `Mozilla/5.0 (<platform masked>)` and
+   `sec-ch-ua-platform`'s value → `(<platform masked>)` — a viewer's Chrome on Linux or Windows sends other words there, so they never
+   reach a hash; the terminal prints them instead (`Chrome … on Darwin arm64`); `JSESSIONID=<hex>` →
    `JSESSIONID=<id>`, `jsessionid=<hex>` → `jsessionid=<id>`. A last check fails if any capture holds an absolute path, the GraalVM's
    folder, a unit number, Boot's process line, a log time, an unmasked timestamp, a date, a thread number, a stack frame, a whole HTML
-   page, a Chrome version, a session id, a `sha256:` ID other than the base image's digest, `:8080` or `:35729`, a carriage return, a java
+   page, a Chrome version, the platform (`Macintosh`, `Mac OS X`, `Windows NT`, `X11;`, `Linux x86`, a quoted `sec-ch-ua-platform`), a session id, a `sha256:` ID other than the base image's digest, `:8080` or `:35729`, a carriage return, a java
    line without its locale, or a command with a URL that is not `127.0.0.1`'s.
 2. **Headers** (`hall`): each answer's status line and every header, whole, in the order they came, on one line — under `curl -L`, one
    line per answer; a `Date` header's value → `(the time - not printed)`. `hv` reads one header's value, `none` when absent. **`ids`**
@@ -248,7 +304,7 @@ and the run it watched ran to its end instead: exit 0, all 9 = published — a t
 
 The previous tree and after/, copied and built (offline), their jars extracted; the harness compiled; the files that differ; the three diffs whole; where the key sits in `application.yaml`; Boot's metadata for the session's keys; the jars' libraries.
 
-`.r-change.out` · md5 `f3389c040f0e6093d8ce6a1c97fec65a` · 3 of 3
+`.r-change.out` · md5 `d3ca321c40671555a45ec3c1c2f72cff` · 3 of 3
 
 ```
 the previous tree and after/, both copied under .harness/ with a config tree, each built with the README's line (offline):
@@ -297,7 +353,7 @@ $ diff -rq -x target -x secrets .harness/before .harness/after
     @@ -21,0 +22,6 @@
     +  # Course 6: a session's id travels in its cookie, JSESSIONID, and nowhere else. Tomcat's default, cookie and url, also
     +  # writes it into the address of a redirect to a client that sent no cookie yet (/dashboard;jsessionid=...) - an address
-    +  # a log, a browser's history or a copied link keeps. Above the "---": below it, only the rush profile would keep it out.
+    +  # a copied link keeps, and so does every link on that page. Above the "---": below it, only the rush profile would keep it out.
     +  servlet:
     +    session:
     +      tracking-modes: cookie
@@ -883,9 +939,9 @@ the solution's 4 lines, next, in the same shell:
 
 ## 8 · browser — a real browser, two witnesses for every claim
 
-Headless Chrome, a fresh sealed profile per visitor, `Dump` and `Sessions` on the server: 1 after/ — the dashboard, the form typed and sent, the cookie store, the dashboard again; C (labelled) cookie,url — the id in Chrome's address; F (labelled) `Secure` and `SameSite=Strict` over plain http to 127.0.0.1.
+Headless Chrome, a fresh sealed profile per visitor, `Dump` and `Sessions` on the server: 1 after/ — the dashboard, the form typed and sent, the cookie store, the dashboard again; C (labelled) cookie,url — the id in Chrome's address; F (labelled) `Secure` and `SameSite=Strict` over plain http to 127.0.0.1. **G (labelled) — the control for F** (RED S4 #384): the same server and line as F, a new visitor whose Chrome reaches it as `tiffin.test` — its resolver maps that one name to 127.0.0.1 and its proxy is bypassed for that name alone (`--proxy-bypass-list=tiffin.test`; every other name still unresolvable, the NetLog still 127.0.0.1 only). The same Set-Cookie arrives (`Secure; HttpOnly; SameSite=Strict`), and Chrome refuses it — `a cookie Chrome refused: SecureOnly` — so its store holds 0 cookies, the redirected GET sends none (the server's record) and the page shows no note. Same address, another origin: Chrome's exception for plain http is for a loopback origin (127.0.0.1), not for the address.
 
-`.r-browser.out` · md5 `14e693d6020b96e3436b2e3689442fb8` · 3 of 3
+`.r-browser.out` · md5 `75c9f3a272cc7b0286a1766c597da781` · 3 of 3
 
 ```
 1 after/ - the harness line (Dump, Sessions and Visits joined: the server's record of every request, whole); Chrome headless, a profile of its own, sealed to 127.0.0.1 (its proxy a dead address, every name but 127.0.0.1 unresolvable), its DevTools protocol on 127.0.0.1:19539:
@@ -916,10 +972,10 @@ $ python3 harness/net.py .harness/ev.json 19537
         Sec-Fetch-Site: none
         Sec-Fetch-User: ?1
         Upgrade-Insecure-Requests: 1
-        User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
         sec-ch-ua: (its brands and their versions: masked)
         sec-ch-ua-mobile: ?0
-        sec-ch-ua-platform: "macOS"
+        sec-ch-ua-platform: (<platform masked>)
   the page's other requests - its stylesheet, the site's icon - not listed: whether Chrome asks for them again is its cache's call
   the server's record:
     the harness's lines it printed, in order: 23
@@ -928,9 +984,9 @@ $ python3 harness/net.py .harness/ev.json 19537
        3 Dump            >   Connection: keep-alive
        4 Dump            >   sec-ch-ua: (its brands and their versions: masked)
        5 Dump            >   sec-ch-ua-mobile: ?0
-       6 Dump            >   sec-ch-ua-platform: "macOS"
+       6 Dump            >   sec-ch-ua-platform: (<platform masked>)
        7 Dump            >   Upgrade-Insecure-Requests: 1
-       8 Dump            >   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+       8 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
        9 Dump            >   Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
       10 Dump            >   Sec-Fetch-Site: none
       11 Dump            >   Sec-Fetch-Mode: navigate
@@ -965,10 +1021,10 @@ $ python3 harness/net.py .harness/ev.json 19537
         Sec-Fetch-Site: none
         Sec-Fetch-User: ?1
         Upgrade-Insecure-Requests: 1
-        User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
         sec-ch-ua: (its brands and their versions: masked)
         sec-ch-ua-mobile: ?0
-        sec-ch-ua-platform: "macOS"
+        sec-ch-ua-platform: (<platform masked>)
     POST /customers - the answer Chrome got: 302 · Location: http://127.0.0.1:19537/dashboard
       its Set-Cookie, as Chrome received it: JSESSIONID=<id>; Path=/; HttpOnly
       the form's body, as Chrome sent it: name=Kiran&mealsPerDay=2&pricePerMeal=110&mealType=VEG
@@ -987,10 +1043,10 @@ $ python3 harness/net.py .harness/ev.json 19537
         Sec-Fetch-Mode: navigate
         Sec-Fetch-Site: same-origin
         Upgrade-Insecure-Requests: 1
-        User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
         sec-ch-ua: (its brands and their versions: masked)
         sec-ch-ua-mobile: ?0
-        sec-ch-ua-platform: "macOS"
+        sec-ch-ua-platform: (<platform masked>)
     GET /dashboard - the answer Chrome got: 200 text/html
       its Set-Cookie, as Chrome received it: none
       as Chrome sent it, its 16 headers:
@@ -1006,10 +1062,10 @@ $ python3 harness/net.py .harness/ev.json 19537
         Sec-Fetch-Mode: navigate
         Sec-Fetch-Site: same-origin
         Upgrade-Insecure-Requests: 1
-        User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
         sec-ch-ua: (its brands and their versions: masked)
         sec-ch-ua-mobile: ?0
-        sec-ch-ua-platform: "macOS"
+        sec-ch-ua-platform: (<platform masked>)
   the page's other requests - its stylesheet, the site's icon - not listed: whether Chrome asks for them again is its cache's call
   the server's record:
     the harness's lines it printed, in order: 72
@@ -1018,9 +1074,9 @@ $ python3 harness/net.py .harness/ev.json 19537
        3 Dump            >   Connection: keep-alive
        4 Dump            >   sec-ch-ua: (its brands and their versions: masked)
        5 Dump            >   sec-ch-ua-mobile: ?0
-       6 Dump            >   sec-ch-ua-platform: "macOS"
+       6 Dump            >   sec-ch-ua-platform: (<platform masked>)
        7 Dump            >   Upgrade-Insecure-Requests: 1
-       8 Dump            >   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+       8 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
        9 Dump            >   Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
       10 Dump            >   Sec-Fetch-Site: none
       11 Dump            >   Sec-Fetch-Mode: navigate
@@ -1043,10 +1099,10 @@ $ python3 harness/net.py .harness/ev.json 19537
       28 Dump            >   Cache-Control: max-age=0
       29 Dump            >   sec-ch-ua: (its brands and their versions: masked)
       30 Dump            >   sec-ch-ua-mobile: ?0
-      31 Dump            >   sec-ch-ua-platform: "macOS"
+      31 Dump            >   sec-ch-ua-platform: (<platform masked>)
       32 Dump            >   Upgrade-Insecure-Requests: 1
       33 Dump            >   Content-Type: application/x-www-form-urlencoded
-      34 Dump            >   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+      34 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
       35 Dump            >   Origin: http://127.0.0.1:19537
       36 Dump            >   Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
       37 Dump            >   Sec-Fetch-Site: same-origin
@@ -1065,14 +1121,14 @@ $ python3 harness/net.py .harness/ev.json 19537
       50 Dump            >   Connection: keep-alive
       51 Dump            >   Cache-Control: max-age=0
       52 Dump            >   Upgrade-Insecure-Requests: 1
-      53 Dump            >   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+      53 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
       54 Dump            >   Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
       55 Dump            >   Sec-Fetch-Site: same-origin
       56 Dump            >   Sec-Fetch-Mode: navigate
       57 Dump            >   Sec-Fetch-Dest: document
       58 Dump            >   sec-ch-ua: (its brands and their versions: masked)
       59 Dump            >   sec-ch-ua-mobile: ?0
-      60 Dump            >   sec-ch-ua-platform: "macOS"
+      60 Dump            >   sec-ch-ua-platform: (<platform masked>)
       61 Dump            >   Referer: http://127.0.0.1:19537/customers/new
       62 Dump            >   Accept-Encoding: gzip, deflate, br, zstd
       63 Dump            >   Accept-Language: en-US,en;q=0.9
@@ -1110,10 +1166,10 @@ $ python3 harness/net.py .harness/ev.json 19537
         Sec-Fetch-Site: none
         Sec-Fetch-User: ?1
         Upgrade-Insecure-Requests: 1
-        User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
         sec-ch-ua: (its brands and their versions: masked)
         sec-ch-ua-mobile: ?0
-        sec-ch-ua-platform: "macOS"
+        sec-ch-ua-platform: (<platform masked>)
   the page's other requests - its stylesheet, the site's icon - not listed: whether Chrome asks for them again is its cache's call
   the server's record:
     the harness's lines it printed, in order: 24
@@ -1122,9 +1178,9 @@ $ python3 harness/net.py .harness/ev.json 19537
        3 Dump            >   Connection: keep-alive
        4 Dump            >   sec-ch-ua: (its brands and their versions: masked)
        5 Dump            >   sec-ch-ua-mobile: ?0
-       6 Dump            >   sec-ch-ua-platform: "macOS"
+       6 Dump            >   sec-ch-ua-platform: (<platform masked>)
        7 Dump            >   Upgrade-Insecure-Requests: 1
-       8 Dump            >   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+       8 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
        9 Dump            >   Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
       10 Dump            >   Sec-Fetch-Site: none
       11 Dump            >   Sec-Fetch-Mode: navigate
@@ -1179,10 +1235,10 @@ $ python3 harness/net.py .harness/ev.json 19537
         Sec-Fetch-Site: none
         Sec-Fetch-User: ?1
         Upgrade-Insecure-Requests: 1
-        User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
         sec-ch-ua: (its brands and their versions: masked)
         sec-ch-ua-mobile: ?0
-        sec-ch-ua-platform: "macOS"
+        sec-ch-ua-platform: (<platform masked>)
     POST /customers - the answer Chrome got: 302 · Location: http://127.0.0.1:19537/dashboard;jsessionid=<id>
       its Set-Cookie, as Chrome received it: JSESSIONID=<id>; Path=/; HttpOnly
       the form's body, as Chrome sent it: name=Kiran&mealsPerDay=2&pricePerMeal=110&mealType=VEG
@@ -1201,10 +1257,10 @@ $ python3 harness/net.py .harness/ev.json 19537
         Sec-Fetch-Mode: navigate
         Sec-Fetch-Site: same-origin
         Upgrade-Insecure-Requests: 1
-        User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
         sec-ch-ua: (its brands and their versions: masked)
         sec-ch-ua-mobile: ?0
-        sec-ch-ua-platform: "macOS"
+        sec-ch-ua-platform: (<platform masked>)
     GET /dashboard;jsessionid=<id> - the answer Chrome got: 200 text/html
       its Set-Cookie, as Chrome received it: none
       as Chrome sent it, its 16 headers:
@@ -1220,10 +1276,10 @@ $ python3 harness/net.py .harness/ev.json 19537
         Sec-Fetch-Mode: navigate
         Sec-Fetch-Site: same-origin
         Upgrade-Insecure-Requests: 1
-        User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
         sec-ch-ua: (its brands and their versions: masked)
         sec-ch-ua-mobile: ?0
-        sec-ch-ua-platform: "macOS"
+        sec-ch-ua-platform: (<platform masked>)
   the page's other requests - its stylesheet, the site's icon - not listed: whether Chrome asks for them again is its cache's call
   the server's record:
     the harness's lines it printed, in order: 72
@@ -1232,9 +1288,9 @@ $ python3 harness/net.py .harness/ev.json 19537
        3 Dump            >   Connection: keep-alive
        4 Dump            >   sec-ch-ua: (its brands and their versions: masked)
        5 Dump            >   sec-ch-ua-mobile: ?0
-       6 Dump            >   sec-ch-ua-platform: "macOS"
+       6 Dump            >   sec-ch-ua-platform: (<platform masked>)
        7 Dump            >   Upgrade-Insecure-Requests: 1
-       8 Dump            >   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+       8 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
        9 Dump            >   Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
       10 Dump            >   Sec-Fetch-Site: none
       11 Dump            >   Sec-Fetch-Mode: navigate
@@ -1257,10 +1313,10 @@ $ python3 harness/net.py .harness/ev.json 19537
       28 Dump            >   Cache-Control: max-age=0
       29 Dump            >   sec-ch-ua: (its brands and their versions: masked)
       30 Dump            >   sec-ch-ua-mobile: ?0
-      31 Dump            >   sec-ch-ua-platform: "macOS"
+      31 Dump            >   sec-ch-ua-platform: (<platform masked>)
       32 Dump            >   Upgrade-Insecure-Requests: 1
       33 Dump            >   Content-Type: application/x-www-form-urlencoded
-      34 Dump            >   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+      34 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
       35 Dump            >   Origin: http://127.0.0.1:19537
       36 Dump            >   Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
       37 Dump            >   Sec-Fetch-Site: same-origin
@@ -1279,14 +1335,14 @@ $ python3 harness/net.py .harness/ev.json 19537
       50 Dump            >   Connection: keep-alive
       51 Dump            >   Cache-Control: max-age=0
       52 Dump            >   Upgrade-Insecure-Requests: 1
-      53 Dump            >   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+      53 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
       54 Dump            >   Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
       55 Dump            >   Sec-Fetch-Site: same-origin
       56 Dump            >   Sec-Fetch-Mode: navigate
       57 Dump            >   Sec-Fetch-Dest: document
       58 Dump            >   sec-ch-ua: (its brands and their versions: masked)
       59 Dump            >   sec-ch-ua-mobile: ?0
-      60 Dump            >   sec-ch-ua-platform: "macOS"
+      60 Dump            >   sec-ch-ua-platform: (<platform masked>)
       61 Dump            >   Referer: http://127.0.0.1:19537/customers/new
       62 Dump            >   Accept-Encoding: gzip, deflate, br, zstd
       63 Dump            >   Accept-Language: en-US,en;q=0.9
@@ -1342,10 +1398,10 @@ $ python3 harness/net.py .harness/ev.json 19537
         Sec-Fetch-Site: none
         Sec-Fetch-User: ?1
         Upgrade-Insecure-Requests: 1
-        User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
         sec-ch-ua: (its brands and their versions: masked)
         sec-ch-ua-mobile: ?0
-        sec-ch-ua-platform: "macOS"
+        sec-ch-ua-platform: (<platform masked>)
     POST /customers - the answer Chrome got: 302 · Location: http://127.0.0.1:19537/dashboard
       its Set-Cookie, as Chrome received it: JSESSIONID=<id>; Path=/; Secure; HttpOnly; SameSite=Strict
       the form's body, as Chrome sent it: name=Kiran&mealsPerDay=2&pricePerMeal=110&mealType=VEG
@@ -1364,10 +1420,10 @@ $ python3 harness/net.py .harness/ev.json 19537
         Sec-Fetch-Mode: navigate
         Sec-Fetch-Site: same-origin
         Upgrade-Insecure-Requests: 1
-        User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
         sec-ch-ua: (its brands and their versions: masked)
         sec-ch-ua-mobile: ?0
-        sec-ch-ua-platform: "macOS"
+        sec-ch-ua-platform: (<platform masked>)
     GET /dashboard - the answer Chrome got: 200 text/html
       its Set-Cookie, as Chrome received it: none
       as Chrome sent it, its 16 headers:
@@ -1383,10 +1439,10 @@ $ python3 harness/net.py .harness/ev.json 19537
         Sec-Fetch-Mode: navigate
         Sec-Fetch-Site: same-origin
         Upgrade-Insecure-Requests: 1
-        User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
         sec-ch-ua: (its brands and their versions: masked)
         sec-ch-ua-mobile: ?0
-        sec-ch-ua-platform: "macOS"
+        sec-ch-ua-platform: (<platform masked>)
   the page's other requests - its stylesheet, the site's icon - not listed: whether Chrome asks for them again is its cache's call
   the server's record:
     the harness's lines it printed, in order: 72
@@ -1395,9 +1451,9 @@ $ python3 harness/net.py .harness/ev.json 19537
        3 Dump            >   Connection: keep-alive
        4 Dump            >   sec-ch-ua: (its brands and their versions: masked)
        5 Dump            >   sec-ch-ua-mobile: ?0
-       6 Dump            >   sec-ch-ua-platform: "macOS"
+       6 Dump            >   sec-ch-ua-platform: (<platform masked>)
        7 Dump            >   Upgrade-Insecure-Requests: 1
-       8 Dump            >   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+       8 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
        9 Dump            >   Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
       10 Dump            >   Sec-Fetch-Site: none
       11 Dump            >   Sec-Fetch-Mode: navigate
@@ -1420,10 +1476,10 @@ $ python3 harness/net.py .harness/ev.json 19537
       28 Dump            >   Cache-Control: max-age=0
       29 Dump            >   sec-ch-ua: (its brands and their versions: masked)
       30 Dump            >   sec-ch-ua-mobile: ?0
-      31 Dump            >   sec-ch-ua-platform: "macOS"
+      31 Dump            >   sec-ch-ua-platform: (<platform masked>)
       32 Dump            >   Upgrade-Insecure-Requests: 1
       33 Dump            >   Content-Type: application/x-www-form-urlencoded
-      34 Dump            >   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+      34 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
       35 Dump            >   Origin: http://127.0.0.1:19537
       36 Dump            >   Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
       37 Dump            >   Sec-Fetch-Site: same-origin
@@ -1442,14 +1498,14 @@ $ python3 harness/net.py .harness/ev.json 19537
       50 Dump            >   Connection: keep-alive
       51 Dump            >   Cache-Control: max-age=0
       52 Dump            >   Upgrade-Insecure-Requests: 1
-      53 Dump            >   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+      53 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
       54 Dump            >   Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
       55 Dump            >   Sec-Fetch-Site: same-origin
       56 Dump            >   Sec-Fetch-Mode: navigate
       57 Dump            >   Sec-Fetch-Dest: document
       58 Dump            >   sec-ch-ua: (its brands and their versions: masked)
       59 Dump            >   sec-ch-ua-mobile: ?0
-      60 Dump            >   sec-ch-ua-platform: "macOS"
+      60 Dump            >   sec-ch-ua-platform: (<platform masked>)
       61 Dump            >   Referer: http://127.0.0.1:19537/customers/new
       62 Dump            >   Accept-Encoding: gzip, deflate, br, zstd
       63 Dump            >   Accept-Language: en-US,en;q=0.9
@@ -1468,6 +1524,129 @@ $ node harness/cdp.mjs 19539 cookies
   Chrome's cookie store: 1 cookie
     JSESSIONID=<id> · domain 127.0.0.1 · path / · httpOnly true · secure true · sameSite Strict · session true
   compared: the id Chrome keeps is the one the server's record shows set: yes · the one Chrome sent back last: yes · a redirect's Location in the server's record carried an id: no
+$ node harness/cdp.mjs 19539 close
+  Chrome exit 0 · listening on 19539 now: 0 · its profile removed
+$ python3 harness/netlog.py .harness/netlog.json 19537
+  Chrome's NetLog - every address it connected to or tried, its own background requests included: 127.0.0.1 only: yes · ports 19537 among them: yes
+  WARN lines in this run's log, at Boot's default level: 0 · ERROR lines: 0
+$ harness/shutdown.sh 19537 .harness/after/secrets/tiffinbox/shutdown-token
+  POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
+  exit 0 · listening on 19537 now: 0
+  its log: the demo token 0 times · X-Shutdown-Token 0 times
+G (labelled) - the control for F: the same server and line, a new visitor whose Chrome reaches it by a name its resolver maps to 127.0.0.1 (tiffin.test, this unit's line) - the same address over plain http, another origin:
+  TiffinBox - after/, Secure and SameSite=Strict, port 19537:
+$ cd .harness/after && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19537 --spring.main.sources=probe.web.Dump,probe.web.Sessions,probe.web.Visits --server.servlet.session.cookie.secure=true --server.servlet.session.cookie.same-site=strict
+  listens on: 127.0.0.1:19537 · loopback only: yes
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+$ curl -s -w ' %{http_code}\n' http://127.0.0.1:19537/actuator/health/readiness
+  {"status":"UP"} 200
+$ "$CHROME" --headless=new --user-data-dir="$PWD/.harness/chrome" --no-first-run --no-default-browser-check --disable-background-networking --disable-component-update --disable-sync --disable-domain-reliability --use-mock-keychain --password-store=basic --lang=en-US --proxy-server=http://127.0.0.1:9 --proxy-bypass-list=tiffin.test --host-resolver-rules='MAP tiffin.test 127.0.0.1, MAP * ~NOTFOUND, EXCLUDE 127.0.0.1' --remote-debugging-address=127.0.0.1 --remote-debugging-port=19539 --log-net-log="$PWD/.harness/netlog.json" about:blank
+  its profile, .harness/chrome, made fresh for this visitor (it did not exist before this line): yes
+  Chrome's DevTools port: 127.0.0.1:19539 · loopback only: yes
+visit 1 - the form's address at that name, typed into a new tab; the form filled in and sent with its own button:
+$ node harness/cdp.mjs 19539 form http://tiffin.test:19537/customers/new .harness/ev.json 'name=Kiran&mealsPerDay=2&pricePerMeal=110&mealType=VEG'
+  the page Chrome shows: Dashboard · TiffinBox · its address: /dashboard · its notes: none · its links that carry a session id: 0
+$ python3 harness/net.py .harness/ev.json 19537 tiffin.test
+  Chrome's own record (its DevTools protocol) - the documents the tab asked TiffinBox for: 3
+    GET /customers/new - the answer Chrome got: 200 text/html
+      its Set-Cookie, as Chrome received it: none
+      as Chrome sent it, its 7 headers:
+        Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+        Accept-Encoding: gzip, deflate
+        Accept-Language: en-US,en;q=0.9
+        Connection: keep-alive
+        Host: tiffin.test:19537
+        Upgrade-Insecure-Requests: 1
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+    POST /customers - the answer Chrome got: 302 · Location: http://tiffin.test:19537/dashboard
+      its Set-Cookie, as Chrome received it: JSESSIONID=<id>; Path=/; Secure; HttpOnly; SameSite=Strict
+      a cookie Chrome refused: SecureOnly
+      the form's body, as Chrome sent it: name=Kiran&mealsPerDay=2&pricePerMeal=110&mealType=VEG
+      as Chrome sent it, its 12 headers:
+        Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+        Accept-Encoding: gzip, deflate
+        Accept-Language: en-US,en;q=0.9
+        Cache-Control: max-age=0
+        Connection: keep-alive
+        Content-Length: 54
+        Content-Type: application/x-www-form-urlencoded
+        Host: tiffin.test:19537
+        Origin: http://tiffin.test:19537
+        Referer: http://tiffin.test:19537/customers/new
+        Upgrade-Insecure-Requests: 1
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+    GET /dashboard - the answer Chrome got: 200 text/html
+      its Set-Cookie, as Chrome received it: none
+      as Chrome sent it, its 9 headers:
+        Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+        Accept-Encoding: gzip, deflate
+        Accept-Language: en-US,en;q=0.9
+        Cache-Control: max-age=0
+        Connection: keep-alive
+        Host: tiffin.test:19537
+        Referer: http://tiffin.test:19537/customers/new
+        Upgrade-Insecure-Requests: 1
+        User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+  the page's other requests - its stylesheet, the site's icon - not listed: whether Chrome asks for them again is its cache's call
+  the server's record:
+    the harness's lines it printed, in order: 52
+       1 Dump            > GET /customers/new
+       2 Dump            >   Host: tiffin.test:19537
+       3 Dump            >   Connection: keep-alive
+       4 Dump            >   Upgrade-Insecure-Requests: 1
+       5 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+       6 Dump            >   Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+       7 Dump            >   Accept-Encoding: gzip, deflate
+       8 Dump            >   Accept-Language: en-US,en;q=0.9
+       9 Dump            < 200 GET /customers/new
+      10 Dump            <   Content-Type: text/html;charset=UTF-8
+      11 Dump            <   Content-Language: en-US
+      12 Dump            <   Transfer-Encoding: chunked
+      13 Dump            <   Date: (the time: not printed)
+      14 Dump            <   Keep-Alive: timeout=60
+      15 Dump            <   Connection: keep-alive
+      16 Dump            <   body: 839 bytes
+      17 Dump            > POST /customers
+      18 Dump            >   Host: tiffin.test:19537
+      19 Dump            >   Connection: keep-alive
+      20 Dump            >   Content-Length: 54
+      21 Dump            >   Cache-Control: max-age=0
+      22 Dump            >   Upgrade-Insecure-Requests: 1
+      23 Dump            >   Content-Type: application/x-www-form-urlencoded
+      24 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+      25 Dump            >   Origin: http://tiffin.test:19537
+      26 Dump            >   Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+      27 Dump            >   Referer: http://tiffin.test:19537/customers/new
+      28 Dump            >   Accept-Encoding: gzip, deflate
+      29 Dump            >   Accept-Language: en-US,en;q=0.9
+      30 Sessions        a session was created
+      31 Dump            < 302 POST /customers
+      32 Dump            <   Set-Cookie: JSESSIONID=<id>; Path=/; Secure; HttpOnly; SameSite=Strict
+      33 Dump            <   Location: http://tiffin.test:19537/dashboard
+      34 Dump            <   body: 0 bytes
+      35 Dump            > GET /dashboard
+      36 Dump            >   Host: tiffin.test:19537
+      37 Dump            >   Connection: keep-alive
+      38 Dump            >   Cache-Control: max-age=0
+      39 Dump            >   Upgrade-Insecure-Requests: 1
+      40 Dump            >   User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36
+      41 Dump            >   Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+      42 Dump            >   Referer: http://tiffin.test:19537/customers/new
+      43 Dump            >   Accept-Encoding: gzip, deflate
+      44 Dump            >   Accept-Language: en-US,en;q=0.9
+      45 Dump            < 200 GET /dashboard
+      46 Dump            <   Content-Type: text/html;charset=UTF-8
+      47 Dump            <   Content-Language: en-US
+      48 Dump            <   Transfer-Encoding: chunked
+      49 Dump            <   Date: (the time: not printed)
+      50 Dump            <   Keep-Alive: timeout=60
+      51 Dump            <   Connection: keep-alive
+      52 Dump            <   body: 1037 bytes
+    WARN lines they added: 0 · ERROR lines: 0
+the cookie store, after visit 1:
+$ node harness/cdp.mjs 19539 cookies
+  Chrome's cookie store: 0 cookies
+  compared: the id Chrome keeps is the one the server's record shows set: no · the one Chrome sent back last: no · a redirect's Location in the server's record carried an id: no
 $ node harness/cdp.mjs 19539 close
   Chrome exit 0 · listening on 19539 now: 0 · its profile removed
 $ python3 harness/netlog.py .harness/netlog.json 19537
@@ -1811,6 +1990,20 @@ static-resource section's versioned link (the stylesheet is untouched; the page 
 
 ## Found on the way
 
+- **BLUE S4 part 2 (RED S4 #380, #387, #406):** the YAML's comment (line 24, in after/ and `c6-tiffinbox`) and the exercise card said
+  a log and a browser's history keep the `;jsessionid=` address — unmeasured, and TiffinBox's own log never holds it (Tomcat's access
+  log would, and Boot ships it off). Both now say what the captures show: a copied link keeps it, and so does every link on that page
+  (B: 3). The voice's "Tomcat counts whole minutes" is Boot's doing — spring-boot-tomcat-4.1.1's
+  `TomcatServletWebServerFactory.getSessionTimeoutInMinutes()` (javap: `Duration.toMinutes`, then `Math.max(1, …)`) hands Tomcat's
+  `Context.setSessionTimeout(int)` whole minutes; the voice says "Boot hands Tomcat whole minutes". The thirty-minute check now reads
+  `maxInactiveSeconds` from the capture (it was arithmetic on two literals, a check that could not fail).
+- **DevTools' JVM exits 1 — explained and asserted** (RED S4 #404; R.109): DevTools' restarter runs the application again on a
+  thread of its own (`restartedMain`) and ends the first `main` thread by throwing its `SilentExitException`; the handler it installs
+  (`SilentExitExceptionHandler`, javap of spring-boot-devtools-4.1.1) stays silent and calls `System.exit(0)` only when that thread is
+  the last one alive — it is not, so it just returns, and Java's launcher, whose `main` thread ended with an uncaught exception, exits
+  1 when the last thread stops after POST /shutdown. A ten-line probe (a `main` that starts a thread, then throws with a silent
+  handler) exits 1 the same way. `receipts.sh` asserts it now: each DevTools JVM a capture stops, on DevTools' port (19533), exits 1, and
+  every other JVM a capture stops exits 0. Not spoken.
 - **Every new check fails on a planted fault first** (R.65, S4.10): the checks block runs alone — `receipts.sh` with no build and no
   capture, on a copy of the published captures and this unit's files in a scratch folder (with the siblings it reads: `c5-unit11`'s
   `curlset.sh`, `c6-unit19`'s and `c6-unit22`'s harness, `c6-unit23/after`, the anchor's README) — with one thing changed per plant

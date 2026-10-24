@@ -1,6 +1,6 @@
 # The course's harness, never TiffinBox's: Chrome's own record of one visit's navigations to TiffinBox, read from the Network events
-# cdp.mjs saved (Chrome's DevTools protocol). python3 harness/net.py EVENTS.json PORT prints every document request the tab made to
-# 127.0.0.1:PORT - each hop of a redirect its own line, in the order Chrome made them - with its method and path, the status and the
+# cdp.mjs saved (Chrome's DevTools protocol). python3 harness/net.py EVENTS.json PORT [HOST] prints every document request the tab made
+# to HOST:PORT (HOST 127.0.0.1 unless named) - each hop of a redirect its own line, in the order Chrome made them - with its method and path, the status and the
 # Content-Type Chrome got back (and a redirect's Location), the Set-Cookie headers of that answer as Chrome received them
 # (responseReceivedExtraInfo, matched to the hop by its status), a form's body as Chrome sent it, and every header Chrome put on the
 # wire (requestWillBeSentExtraInfo), whole. The page's other requests - its stylesheet, the site's icon - are named once and not
@@ -8,7 +8,7 @@
 import json, sys
 
 events, port = json.load(open(sys.argv[1])), sys.argv[2]
-base = "http://127.0.0.1:" + port
+base = "http://" + (sys.argv[3] if len(sys.argv) > 3 else "127.0.0.1") + ":" + port
 hops, order, sent, extra = {}, [], {}, {}
 for e in events:
     p, m = e["params"], e["method"]

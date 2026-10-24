@@ -32,8 +32,8 @@ M="$PWD/.m2-demo" && (cd .harness/mine/after && mvn -o -B -q -Dmaven.repo.local=
 ```
 
 As shipped, it prints `the redirect: 302 · http://127.0.0.1:19538/dashboard;jsessionid=<id>`: the form's note made a session, the
-client sent no cookie, so Tomcat wrote the session's id into the address too — where a log, a browser's history or a copied link keeps
-it. Find the key the copy's `tiffinbox-local.yaml` sets, keep only the cookie in that file
+client sent no cookie, so Tomcat wrote the session's id into the address too — where a copied link keeps it, and every link on
+that page carries it. Find the key the copy's `tiffinbox-local.yaml` sets, keep only the cookie in that file
 (`.harness/mine/after/tiffinbox-local.yaml`), and run the last line again from the same shell.
 
 **Done** when you can print

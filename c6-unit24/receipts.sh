@@ -31,7 +31,8 @@ CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"   # the Ch
 #   browser    TiffinBox with Dump and Sessions (the server's record of every request, whole) and headless Chrome, a profile of its
 #              own made fresh for each visitor, sealed to 127.0.0.1: after/ - the dashboard, the form typed and sent, the dashboard
 #              again, Chrome's cookie store; C (labelled) cookie,url; F (labelled) Secure and SameSite=Strict - each claim with
-#              two witnesses
+#              two witnesses; G (labelled), the control for F: the same server, Chrome reaching it by a name its resolver maps to
+#              127.0.0.1 (tiffin.test) - the same address, another origin
 #   forms      the native build of after/; what Spring's AOT step registers, on the previous tree and on after/; then four forms -
 #              the jar, the AOT jar, the binary, the image: each one's address, the seven (masked), exit 0; then, on a second start
 #              of each, the form's first POST, the note once; on a third, the same POST with cookie,url
@@ -232,6 +233,10 @@ L_CHROME=$(mine "\"\$CHROME\" --headless=new --user-data-dir=\"\$PWD/.harness/ch
 L_OPEN=$(mine "node harness/cdp.mjs 19539 open http://127.0.0.1:18431/dashboard .harness/ev.json")
 L_FORM=$(mine "node harness/cdp.mjs 19539 form http://127.0.0.1:18431/customers/new .harness/ev.json 'name=Kiran&mealsPerDay=2&pricePerMeal=110&mealType=VEG'")
 L_COOK=$(mine "node harness/cdp.mjs 19539 cookies")
+R0_="--host-resolver-rules='MAP * ~NOTFOUND, EXCLUDE 127.0.0.1'"; R1_="--proxy-bypass-list=tiffin.test --host-resolver-rules='MAP tiffin.test 127.0.0.1, MAP * ~NOTFOUND, EXCLUDE 127.0.0.1'"
+L_CHROMET=$(mine "${L_CHROME/"$R0_"/$R1_}")
+L_FORMT=$(mine "${L_FORM/http:\/\/127.0.0.1:18431\//http://tiffin.test:18431/}")
+L_NETT=$(mine "python3 harness/net.py .harness/ev.json 18431 tiffin.test")
 L_CLOSE=$(mine "node harness/cdp.mjs 19539 close")
 L_NET=$(mine "python3 harness/net.py .harness/ev.json 18431")
 L_NETLOG=$(mine "python3 harness/netlog.py .harness/netlog.json 18431")
@@ -308,7 +313,7 @@ for a in org/springframework/boot/spring-boot-starter-thymeleaf/4.1.1/spring-boo
   [ -f "$M2/$a" ] || die "$a is not in .m2-demo after the first build - README.md, The repository"; done
 [ -f "$ZIP" ] || die "GraalVM's metadata repository is not in .m2-demo after the first build - README.md, The repository"
 echo "  .m2-demo holds Thymeleaf's starter, DevTools, GraalVM's native plugin 1.1.8 and its metadata repository"
-if [ $BROWSER = yes ]; then echo "  the browser: $("$CHROME" --version 2> /dev/null | head -1) · node $(node --version) - printed here, never in a capture"; else echo "  the browser: none - $WHYNOT"; fi
+if [ $BROWSER = yes ]; then echo "  the browser: $("$CHROME" --version 2> /dev/null | head -1) on $(uname -s) $(uname -m) (the platform its User-Agent and sec-ch-ua-platform name) · node $(node --version) - printed here, never in a capture"; else echo "  the browser: none - $WHYNOT"; fi
 
 # ---- helpers ------------------------------------------------------------------------------------------------------------
 raw() { local t=$1; shift; cat "$@" | LC_ALL=C grep -aoF -- "$t" | wc -l | tr -d ' '; }
@@ -369,8 +374,9 @@ mask() { awk -v t="$TOKEN" -v g="${GRAALVM_HOME:-}" -v u="$U" -v up="$UP" -v hm=
   { gsub(T, "[masked: the " tl "-character token]"); if (g != "") { gsub(G, "$GRAALVM_HOME"); gsub(GE, "$GRAALVM_HOME") }; gsub(P, "…"); gsub(PE, "…")
     gsub(Q, "…/.."); gsub(QE, "…/.."); gsub(H, "~"); gsub(/\$\$SpringCGLIB\$\$[0-9]+/, "$$SpringCGLIB$$<n>")
     gsub(/tomcat-handler-[0-9]+/, "tomcat-handler-<n>")
-    gsub(/Chrome\/[0-9][0-9.]*/, "Chrome/<version>")
+    gsub(/Chrome\/[0-9][0-9.]*/, "Chrome/<version>"); gsub(/Mozilla\/5\.0 \([^)]*\)/, "Mozilla/5.0 (<platform masked>)")
     gsub(/JSESSIONID=[0-9A-F]+/, "JSESSIONID=<id>"); gsub(/jsessionid=[0-9A-F]+/, "jsessionid=<id>")
+    if (match($0, /sec-ch-ua-platform: /)) $0 = substr($0, 1, RSTART + RLENGTH - 1) "(<platform masked>)"
     if (match($0, /sec-ch-ua: /)) $0 = substr($0, 1, RSTART + RLENGTH - 1) "(its brands and their versions: masked)"
     while (match($0, M)) { pre = substr($0, 1, RSTART - 1); s = substr($0, RSTART, RLENGTH); post = substr($0, RSTART + RLENGTH)
       sub(lit(me), "<user>", s); $0 = pre s post }
@@ -502,7 +508,7 @@ rm -f .harness/body.out; [ "$(bodyf)" = '  body: no file - curl wrote none' ] ||
 printf '# Netscape HTTP Cookie File\n# planted\n\n#HttpOnly_127.0.0.1\tFALSE\t/\tFALSE\t0\tJSESSIONID\t0123456789ABCDEF0123456789ABCDEF\n' > .harness/jar
 [ "$(jarf | mask)" = "$(printf '%s\n' "  curl's cookie jar: 1 cookie" '    #HttpOnly_127.0.0.1 · subdomains FALSE · path / · secure only FALSE · expires 0 · JSESSIONID=<id>')" ] || die "jarf: the planted jar does not come out as declared"
 rm -f .harness/jar
-[ "$(printf '%s\n' 'User-Agent: Mozilla/5.0 (Macintosh) HeadlessChrome/155.0.0.0 Safari/537.36' 'sec-ch-ua: "Google Chrome";v="155"' 'sec-ch-ua-mobile: ?0' '[x][tomcat-handler-12] x' 'Set-Cookie: JSESSIONID=0123456789ABCDEF0123456789ABCDEF; Path=/' 'Location: /dashboard;jsessionid=0123456789ABCDEF0123456789ABCDEF' | mask)" = "$(printf '%s\n' 'User-Agent: Mozilla/5.0 (Macintosh) HeadlessChrome/<version> Safari/537.36' 'sec-ch-ua: (its brands and their versions: masked)' 'sec-ch-ua-mobile: ?0' '[x][tomcat-handler-<n>] x' 'Set-Cookie: JSESSIONID=<id>; Path=/' 'Location: /dashboard;jsessionid=<id>')" ] || die "mask: Chrome's version, a request thread's number and a session's id must be masked, and nothing else"
+[ "$(printf '%s\n' 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36' 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36' 'sec-ch-ua: "Google Chrome";v="155"' 'sec-ch-ua-mobile: ?0' 'sec-ch-ua-platform: "macOS"' 'sec-ch-ua-platform: "Linux"' '[x][tomcat-handler-12] x' 'Set-Cookie: JSESSIONID=0123456789ABCDEF0123456789ABCDEF; Path=/' 'Location: /dashboard;jsessionid=0123456789ABCDEF0123456789ABCDEF' | mask)" = "$(printf '%s\n' 'User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36' 'User-Agent: Mozilla/5.0 (<platform masked>) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/<version> Safari/537.36' 'sec-ch-ua: (its brands and their versions: masked)' 'sec-ch-ua-mobile: ?0' 'sec-ch-ua-platform: (<platform masked>)' 'sec-ch-ua-platform: (<platform masked>)' '[x][tomcat-handler-<n>] x' 'Set-Cookie: JSESSIONID=<id>; Path=/' 'Location: /dashboard;jsessionid=<id>')" ] || die "mask: Chrome's version and the platform (User-Agent, sec-ch-ua-platform), a request thread's number and a session's id must be masked, and nothing else"
 echo "  the filters: the level counts (a harness line that says ERROR is no ERROR line), the record filter, the harness's lines, the header filters, the session-id comparison, the page and body filters, the cookie jar's filter and the masks print their planted inputs as declared"
 
 # asame A B C D: whether block A..B and block C..D of this run's output, masked, are line for line the same (and not empty)
@@ -713,8 +719,8 @@ DRV
 cup() { local l i=0 a=""; while [ $i -lt 480 ]; do a=$(addrs "$cpid"); case " $a " in *":19539 "*) break ;; esac; kill -0 "$cpid" 2> /dev/null || break; sleep 0.25; i=$((i + 1)); done
   case " $a " in *":19539 "*) ;; *) die "Chrome never listened on 19539" ;; esac
   l=$(printf '%s\n' "$a" | tr ' ' '\n' | grep ':19539$' | paste -sd' ' -); echo "  Chrome's DevTools port: $l · loopback only: $(lb "$l")"; }
-chrome() { local f; [ -e .harness/chrome ] && f=no || f=yes; rm -f .harness/netlog.json
-  echo "\$ $L_CHROME"; (eval "exec $L_CHROME") > .harness/chrome.out 2>&1 < /dev/null & cpid=$!
+chrome() { local f c=${1:-$L_CHROME}; [ -e .harness/chrome ] && f=no || f=yes; rm -f .harness/netlog.json
+  echo "\$ $c"; (eval "exec $c") > .harness/chrome.out 2>&1 < /dev/null & cpid=$!
   echo "  its profile, .harness/chrome, made fresh for this visitor (it did not exist before this line): $f"; cup; }
 unchrome() { local i=0 e=0; echo "\$ $L_CLOSE"; (eval "$L_CLOSE") > .harness/close.out 2>&1 < /dev/null || true
   while kill -0 "$cpid" 2> /dev/null && [ $i -lt 60 ]; do sleep 0.25; i=$((i + 1)); done
@@ -724,8 +730,8 @@ unchrome() { local i=0 e=0; echo "\$ $L_CLOSE"; (eval "$L_CLOSE") > .harness/clo
   echo "\$ $(nlq "$@")"; (eval "$(nlq "$@")") 2>&1 < /dev/null || true; }
 # visit 'CDP LINE': the line printed and run - the page Chrome shows; Chrome's own record of the visit's documents (net.py); then
 # the server's record: every harness line the requests printed (Dump, Sessions), and the WARN and ERROR lines they added
-visit() { local n0 w e; n0=$(mark); rm -f .harness/ev.json; echo "\$ $1"; (eval "$1") 2>&1 < /dev/null | sed 's/^/  /'
-  echo "\$ ${L_NET/ 18431/ 19537}"; (eval "${L_NET/ 18431/ 19537}") 2>&1 < /dev/null; settle
+visit() { local n0 w e q=${2:-$L_NET}; q=${q/ 18431/ 19537}; n0=$(mark); rm -f .harness/ev.json; echo "\$ $1"; (eval "$1") 2>&1 < /dev/null | sed 's/^/  /'
+  echo "\$ $q"; (eval "$q") 2>&1 < /dev/null; settle
   w=$(logl "$n0" WARN | grep -c . || true); e=$(logl "$n0" ERROR | grep -c . || true)
   echo "  the server's record:"; hk "$n0" | sed 's/^/  /'; echo "    WARN lines they added: $w · ERROR lines: $e"; }
 # cook: Chrome's cookie store (cdp.mjs cookies), and - compared before any mask - whether the session id Chrome keeps is the one
@@ -756,6 +762,11 @@ browser() {
   echo "F (labelled) - Secure and SameSite=Strict, the attributes Course 10 decides (this unit's line), a new visitor over plain http to 127.0.0.1:"
   serve "$L_VF" "after/, Secure and SameSite=Strict"; chrome
   echo "visit 1 - the form's address, typed into a new tab; the form filled in and sent with its own button:"; visit "$(u 19537 "$L_FORM")"
+  echo "the cookie store, after visit 1:"; cook
+  unchrome 19537; WARNS; stop 19537 .harness/after
+  echo "G (labelled) - the control for F: the same server and line, a new visitor whose Chrome reaches it by a name its resolver maps to 127.0.0.1 (tiffin.test, this unit's line) - the same address over plain http, another origin:"
+  serve "$L_VF" "after/, Secure and SameSite=Strict"; chrome "$L_CHROMET"
+  echo "visit 1 - the form's address at that name, typed into a new tab; the form filled in and sent with its own button:"; visit "$(u 19537 "$L_FORMT")" "$L_NETT"
   echo "the cookie store, after visit 1:"; cook
   unchrome 19537; WARNS; stop 19537 .harness/after; }
 # ---- forms: the native build, what Spring's AOT step registered, then four forms ---------------------------------------------------
@@ -947,7 +958,11 @@ NBIN=0
 for f in .r-*.out $SHIP .harness/nat/$BIN; do [ -f "$f" ] || continue; case $f in .harness/nat*) NBIN=$((NBIN + 1)) ;; esac; [ "$(raw "$TOKEN" "$f")" = 0 ] || die "$f holds the demo token, raw"; done
 [ "$NBIN" = 1 ] || die "one binary was built, $NBIN were checked"
 # no capture prints a date, and none prints a session's id: no run of 32 capital hex digits, no JSESSIONID= or jsessionid= but <id>
-for f in .r-*.out; do ! grep -qE '/Users/|/private/|/home/|/var/folders/' "$f" || die "$f holds an absolute path"; [ -z "${GRAALVM_HOME:-}" ] || ! grep -qF "$GRAALVM_HOME" "$f" || die "$f holds the GraalVM's folder"; ! grep -qE 'c[0-9]-unit[0-9]|unit ?[0-9]' "$f" || die "$f holds a unit number"; ! grep -qE ' (with PID|started by) ' "$f" || die "$f holds Boot's process line"; ! grep -qE '^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T|"timestamp":"?[0-9]|(exec|handler|task|utility)-[0-9]|GMT|CES?T|<div id=.created|[A-Z][a-z][a-z], [0-9][0-9] [A-Z][a-z][a-z] |[A-Z][a-z][a-z] [A-Z][a-z][a-z] [0-9]+ [0-9][0-9]:[0-9][0-9]|[0-9][0-9]-[0-9][0-9]-20[0-9][0-9]' "$f" || die "$f holds a log line's time, a timestamp, a date or a thread's number"; ! grep -q "^$(printf '\t')at " "$f" || die "$f shows a stack frame"; ! grep -qE 'SpringCGLIB\$\$[0-9]' "$f" || die "$f holds a generated class's number"; ! grep -qE 'sha256:[0-9a-f]{64}' "$f" || [ "$(grep -cE 'sha256:[0-9a-f]{64}' "$f")" = "$(grep -cE 'eclipse-temurin(:25-jre)?@sha256:[0-9a-f]{64}' "$f")" ] || die "$f holds an ID other than the base image's digest"; ! grep -qE ':(8080|35729)([^0-9]|$)' "$f" || die "$f shows a bind on 8080 or 35729"; ! grep -q $'\r' "$f" || die "$f holds a carriage return"; ! grep -qiE '<html|<!doctype' "$f" || die "$f shows an HTML page whole"; ! grep -qE 'Chrome/[0-9]|v="[0-9]' "$f" || die "$f holds Chrome's version"; ! grep -qE '[0-9A-F]{32}' "$f" || die "$f holds a session id (32 capital hex digits)"; ! grep -qE '(JSESSIONID|jsessionid)=[0-9A-Fa-f]' "$f" || die "$f holds a session id after JSESSIONID= or jsessionid="; done
+for f in .r-*.out; do ! grep -qE '/Users/|/private/|/home/|/var/folders/' "$f" || die "$f holds an absolute path"; [ -z "${GRAALVM_HOME:-}" ] || ! grep -qF "$GRAALVM_HOME" "$f" || die "$f holds the GraalVM's folder"; ! grep -qE 'c[0-9]-unit[0-9]|unit ?[0-9]' "$f" || die "$f holds a unit number"; ! grep -qE ' (with PID|started by) ' "$f" || die "$f holds Boot's process line"; ! grep -qE '^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T|"timestamp":"?[0-9]|(exec|handler|task|utility)-[0-9]|GMT|CES?T|<div id=.created|[A-Z][a-z][a-z], [0-9][0-9] [A-Z][a-z][a-z] |[A-Z][a-z][a-z] [A-Z][a-z][a-z] [0-9]+ [0-9][0-9]:[0-9][0-9]|[0-9][0-9]-[0-9][0-9]-20[0-9][0-9]' "$f" || die "$f holds a log line's time, a timestamp, a date or a thread's number"; ! grep -q "^$(printf '\t')at " "$f" || die "$f shows a stack frame"; ! grep -qE 'SpringCGLIB\$\$[0-9]' "$f" || die "$f holds a generated class's number"; ! grep -qE 'sha256:[0-9a-f]{64}' "$f" || [ "$(grep -cE 'sha256:[0-9a-f]{64}' "$f")" = "$(grep -cE 'eclipse-temurin(:25-jre)?@sha256:[0-9a-f]{64}' "$f")" ] || die "$f holds an ID other than the base image's digest"; ! grep -qE ':(8080|35729)([^0-9]|$)' "$f" || die "$f shows a bind on 8080 or 35729"; ! grep -q $'\r' "$f" || die "$f holds a carriage return"; ! grep -qiE '<html|<!doctype' "$f" || die "$f shows an HTML page whole"; ! grep -qE 'Chrome/[0-9]|v="[0-9]' "$f" || die "$f holds Chrome's version"; ! grep -qE 'Macintosh|Mac OS X|Windows NT|X11;|Linux x86|sec-ch-ua-platform: "' "$f" || die "$f holds the platform (User-Agent or sec-ch-ua-platform)"; ! grep -qE '[0-9A-F]{32}' "$f" || die "$f holds a session id (32 capital hex digits)"; ! grep -qE '(JSESSIONID|jsessionid)=[0-9A-Fa-f]' "$f" || die "$f holds a session id after JSESSIONID= or jsessionid="; done
+# R.109: a JVM with DevTools on its class path exits 1 - Java's launcher, whose main thread DevTools ends with its SilentExitException
+# (the app runs on in restartedMain; README.md, "Found on the way"); every other JVM a capture stops exits 0
+for f in .r-*.out; do [ "$(grep -cE '^  exit [1-9][0-9]* · listening on [0-9]+ now: 0$' "$f" || true)" = "$(grep -cE '^  exit 1 · listening on 19533 now: 0$' "$f" || true)" ] || die "$f: a JVM without DevTools exited non-zero"; done
+[ "$(grep -cE '^  exit 1 · listening on 19533 now: 0$' .r-persistent.out)" = 6 ] && ! grep -qE '^  exit 0 · listening on 19533 now: 0$' .r-persistent.out || die "persistent: each of DevTools' 6 JVMs on 19533 exits 1, none 0 (R.109)"
 for f in receipts.sh README.md exercise/README.md exercise/solution/SOLUTION.md $HWS; do ! grep -qE "exposure\.include='?\*" "$f" || die "$f exposes every endpoint (R.42)"; done
 K3='server'; K3="$K3.error."
 for f in receipts.sh README.md exercise/README.md exercise/solution/SOLUTION.md $HWS; do ! grep -qF "$K3" "$f" || die "$f names one of Boot 3's error keys (S3.21)"; done
@@ -955,7 +970,10 @@ for f in receipts.sh README.md exercise/README.md exercise/solution/SOLUTION.md 
 ! grep -rq 'probe\.web' after/tiffinbox-web after/tiffinbox-core || die "after/'s code names the course's harness - it is never TiffinBox's"
 for f in receipts.sh README.md exercise/README.md exercise/solution/SOLUTION.md; do ! grep -E 'docker run ' "$f" | grep -vE '^#' | grep -E ' -p "?[0-9]+:' > /dev/null || die "$f publishes a port on every address (-p without 127.0.0.1:)"; done
 for f in receipts.sh exercise/README.md exercise/solution/SOLUTION.md; do ! grep -nE '(^|[;&|({] *)wait *($|[;&|)}])' "$f" | grep -vE '^[0-9]+: *#' > /dev/null || die "$f has a bare wait (S3.9)"; done
-for f in .r-*.out; do ! grep -E '^\$ ' "$f" | grep -oE 'https?://[^ '"'"']+' | grep -vE '^http://127\.0\.0\.1:' > /dev/null || die "$f runs a command with a URL that is not 127.0.0.1's"; done
+# every URL a command names is 127.0.0.1's - but G's: tiffin.test, a name Chrome's own resolver maps to 127.0.0.1 (its NetLog: 127.0.0.1 only)
+for f in .r-*.out; do ! grep -E '^\$ ' "$f" | grep -oE 'https?://[^ '"'"']+' | grep -vE '^http://(127\.0\.0\.1|tiffin\.test):' > /dev/null || die "$f runs a command with a URL that is not 127.0.0.1's"; done
+for f in .r-*.out; do [ "$f" = .r-browser.out ] || ! grep -q 'tiffin\.test' "$f" || die "$f names tiffin.test - only browser's G may"; done
+[ "$(grep -E '^\$ ' .r-browser.out | grep -c 'tiffin\.test')" = 3 ] && [ "$(grep -E '^\$ ' .r-browser.out | grep 'tiffin\.test' | sort -u | wc -l | tr -d ' ')" = 3 ] && grep -qxF "\$ $L_CHROMET" .r-browser.out && grep -qxF "\$ $(u 19537 "$L_FORMT")" .r-browser.out && grep -qxF "\$ ${L_NETT/ 18431/ 19537}" .r-browser.out || die "browser: tiffin.test only in G's three lines - Chrome's mapping, the form, net.py"
 for f in .r-*.out; do ! grep -E '^\$ (cd [^ ]+ && )?(exec )?java ' "$f" | grep -vF -- "java $JL " | grep -vF -- 'java -Djarmode=tools ' > /dev/null || die "$f starts a JVM without its locale pinned (S4.1)"; done
 K1='pki''ll'; K2='kill''all'; for f in receipts.sh harness/cdp.mjs harness/net.py harness/netlog.py; do ! grep -v '^ *#' "$f" | grep -qwE "$K1|$K2" || die "$f names $K1 or $K2 - Chrome is stopped by its pid (S4.9)"; done
 case "$L_CHROME" in *' --user-data-dir="$PWD/.harness/chrome" '*'--proxy-server=http://127.0.0.1:9 '*"--host-resolver-rules='MAP * ~NOTFOUND, EXCLUDE 127.0.0.1'"*'--remote-debugging-address=127.0.0.1 '*) ;; *) die "Chrome's line must name this unit's profile, the dead proxy, the resolver seal and a loopback DevTools address" ;; esac
@@ -1007,7 +1025,7 @@ for q in "$(u 19530 "$L_GET")" "$(u 19530 "$L_PAGE")" "$(u 19530 "${L_PAGE%/dash
 [ "$(seg "$CA" "$(u 19530 "$L_VIS")" | sed -n 2,4p)" = "$(printf '%s\n' "  HTTP/1.1 200 · $CK · Content-Type: application/json · Content-Length: 116 · Date: (the time - not printed)" "$(VJ 1 true 1800 '"COOKIE"')" "$(REC 1 1 1)")" ] || die "cookie: Visits without a cookie - the cookie, new, 1800 s, cookie alone"
 [ "$(segn 1 "$CA" "$(u 19530 "$L_VISJ")" | sed -n 3,7p)" = "$(printf '%s\n' "$(VJ 1 true 1800 '"COOKIE"')" "$(REC 1 1 1)" "  curl's cookie jar: 1 cookie" '    #HttpOnly_127.0.0.1 · subdomains FALSE · path / · secure only FALSE · expires 0 · JSESSIONID=<id>')" ] || die "cookie: the jar's first visit - new, the jar keeps the HttpOnly session cookie"
 [ "$(segn 2 "$CA" "$(u 19530 "$L_VISJ")" | sed -n 2,4p)" = "$(printf '%s\n' "  HTTP/1.1 200 · Content-Type: application/json · Content-Length: 117 · Date: (the time - not printed)" "$(VJ 2 false 1800 '"COOKIE"')" "$(REC 1 0 0)")" ] || die "cookie: the jar's second visit - the cookie sent back, not new, no new cookie"
-[ $((1800 / 60)) = 30 ] && has "$CO" '  server.servlet.session.timeout - type Duration · default "30m" · Session timeout. If a duration suffix is not specified, seconds will be used.' "cookie: 1800 s = Boot's 30m" || die "cookie: thirty minutes"
+m_=$(printf '%s\n' "$CA" | sed -n 's/^  body: {"visits":1,"new":true,"maxInactiveSeconds":\([0-9]*\),.*/\1/p' | head -1); [ -n "$m_" ] && [ "$m_" = $((30 * 60)) ] && has "$CO" '  server.servlet.session.timeout - type Duration · default "30m" · Session timeout. If a duration suffix is not specified, seconds will be used.' "cookie: 1800 s = Boot's 30m" || die "cookie: thirty minutes"
 echo "  cookie: the seven $S466 on both trees and with the harness (no Set-Cookie, no session); the previous tree's form POST makes none; after/'s makes one - JSESSIONID, Path=/, HttpOnly, the address clean; the customers and both pages none; Visits new -> not new with curl's jar, 1800 s; the previous tree's modes COOKIE,URL, after/'s COOKIE"
 
 # "The note: once, then gone ... without the cookie, no note ... a refused form, a JSON POST: no session ... curl -L -X POST posts again"
@@ -1072,11 +1090,11 @@ echo "  exercise: one env -i shell - the README as written (cookie,url in the co
 # "In Chrome: the POST comes back with the Set-Cookie; the redirected GET sends it back - the same id ... the note; again, none ... the store's
 #  flags ... C: the id in Chrome's address ... F: Secure kept over plain http, on loopback"
 if [ -f .r-browser.out ]; then BR=$(cat .r-browser.out)
-  B1=$(blk browser "1 after/" "C (labelled)"); BC=$(blk browser "C (labelled)" "F (labelled)"); BF=$(blk browser "F (labelled)" "")
-  [ "$(cnt "$BR" '  its profile, .harness/chrome, made fresh for this visitor (it did not exist before this line): yes')" = 3 ] || die "browser: a fresh profile for each of the three visitors"
-  [ "$(cnt "$BR" "  Chrome's DevTools port: 127.0.0.1:19539 · loopback only: yes")" = 3 ] && [ "$(cnt "$BR" '  Chrome exit 0 · listening on 19539 now: 0 · its profile removed')" = 3 ] || die "browser: Chrome's port loopback, exit 0, the profile removed - for each visitor"
-  [ "$(cnt "$BR" "  Chrome's NetLog - every address it connected to or tried, its own background requests included: 127.0.0.1 only: yes · ports 19537 among them: yes")" = 3 ] || die "browser: the seal, three times"
-  [ "$(cnt "$BR" '    WARN lines they added: 0 · ERROR lines: 0')" = 5 ] || die "browser: 0 and 0 for each of the five visits"
+  B1=$(blk browser "1 after/" "C (labelled)"); BC=$(blk browser "C (labelled)" "F (labelled)"); BF=$(blk browser "F (labelled)" "G (labelled)"); BG=$(blk browser "G (labelled)" "")
+  [ "$(cnt "$BR" '  its profile, .harness/chrome, made fresh for this visitor (it did not exist before this line): yes')" = 4 ] || die "browser: a fresh profile for each of the four visitors"
+  [ "$(cnt "$BR" "  Chrome's DevTools port: 127.0.0.1:19539 · loopback only: yes")" = 4 ] && [ "$(cnt "$BR" '  Chrome exit 0 · listening on 19539 now: 0 · its profile removed')" = 4 ] || die "browser: Chrome's port loopback, exit 0, the profile removed - for each visitor"
+  [ "$(cnt "$BR" "  Chrome's NetLog - every address it connected to or tried, its own background requests included: 127.0.0.1 only: yes · ports 19537 among them: yes")" = 4 ] || die "browser: the seal, four times"
+  [ "$(cnt "$BR" '    WARN lines they added: 0 · ERROR lines: 0')" = 6 ] || die "browser: 0 and 0 for each of the six visits"
   CP_() { printf '%s\n' "  the page Chrome shows: Dashboard · TiffinBox · its address: $1 · its notes: $2 · its links that carry a session id: 0"; }
   has "$B1" "$(CP_ /dashboard none)" "browser 1: the dashboard, no note"; has "$B1" "$(CP_ /dashboard 'Kiran added')" "browser 1: the note after the form"
   [ "$(cnt "$B1" "$(CP_ /dashboard none)")" = 2 ] || die "browser 1: visit 3 shows no note"
@@ -1096,8 +1114,18 @@ if [ -f .r-browser.out ]; then BR=$(cat .r-browser.out)
   has "$BF" '    JSESSIONID=<id> · domain 127.0.0.1 · path / · httpOnly true · secure true · sameSite Strict · session true' "browser F: kept with both flags"
   has "$BF" "$(CP_ /dashboard 'Kiran added')" "browser F: the note - the Secure cookie went back over http to 127.0.0.1"
   has "$BF" '  compared: the id Chrome keeps is the one the server'"'"'s record shows set: yes · the one Chrome sent back last: yes · a redirect'"'"'s Location in the server'"'"'s record carried an id: no' "browser F: sent back"
-  ! printf '%s\n' "$BR" | grep -q 'a cookie Chrome refused' || die "browser: Chrome refused a cookie"
-  echo "  browser: three visitors, each a fresh sealed profile, NetLog 127.0.0.1 only; 1 - POST 302 with Set-Cookie HttpOnly, the redirected GET with the same cookie, Kiran added, visit 3 no note; the store: httpOnly true, secure false, sameSite none, session true; C - the id in Chrome's address, the cookie's; F - Secure and SameSite=Strict kept and sent over http to 127.0.0.1"
+  ! printf '%s\n' "$B1" "$BC" "$BF" | grep -q 'a cookie Chrome refused' || die "browser: Chrome refused a cookie in 1, C or F"
+  # G, the control for F: "only because this is a loopback address" - a name for the same address: the Secure cookie refused, no note
+  has "$BG" "\$ $L_CHROMET" "browser G: Chrome's resolver maps tiffin.test to 127.0.0.1"
+  has "$BG" "\$ $(u 19537 "$L_FORMT")" "browser G: the form at tiffin.test"
+  has "$BG" '    POST /customers - the answer Chrome got: 302 · Location: http://tiffin.test:19537/dashboard' "browser G: Chrome's record of the 302, at the name"
+  has "$BG" '      its Set-Cookie, as Chrome received it: JSESSIONID=<id>; Path=/; Secure; HttpOnly; SameSite=Strict' "browser G: the same Set-Cookie received"
+  has "$BG" '      a cookie Chrome refused: SecureOnly' "browser G: Chrome refused it - SecureOnly"
+  has "$BG" "$(CP_ /dashboard none)" "browser G: no note - the flash lost with its session"
+  has "$BG" "  Chrome's cookie store: 0 cookies" "browser G: nothing kept"
+  ! printf '%s\n' "$BG" | grep -qE '^ +[0-9]+ Dump +>   [Cc]ookie: ' || die "browser G: the server's record - no cookie came back"
+  [ "$(printf '%s\n' "$BG" | grep -cE '^ +[0-9]+ Dump +>   [Hh]ost: tiffin\.test:19537$')" -ge 2 ] || die "browser G: the server's record - both requests named tiffin.test"
+  echo "  browser: four visitors, each a fresh sealed profile, NetLog 127.0.0.1 only; 1 - POST 302 with Set-Cookie HttpOnly, the redirected GET with the same cookie, Kiran added, visit 3 no note; the store: httpOnly true, secure false, sameSite none, session true; C - the id in Chrome's address, the cookie's; F - Secure and SameSite=Strict kept and sent over http to 127.0.0.1; G - the same server by a name for 127.0.0.1: SecureOnly, nothing kept, no note"
 fi
 
 # "Every form: the clean redirect, the HttpOnly cookie, the note once; cookie,url at start writes the id into the address in each"

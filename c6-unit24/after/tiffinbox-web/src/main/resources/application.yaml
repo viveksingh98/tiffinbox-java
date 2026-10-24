@@ -21,7 +21,7 @@ server:
   port: ${tiffinbox.port}
   # Course 6: a session's id travels in its cookie, JSESSIONID, and nowhere else. Tomcat's default, cookie and url, also
   # writes it into the address of a redirect to a client that sent no cookie yet (/dashboard;jsessionid=...) - an address
-  # a log, a browser's history or a copied link keeps. Above the "---": below it, only the rush profile would keep it out.
+  # a copied link keeps, and so does every link on that page. Above the "---": below it, only the rush profile would keep it out.
   servlet:
     session:
       tracking-modes: cookie
