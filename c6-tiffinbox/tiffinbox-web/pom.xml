@@ -14,6 +14,13 @@
   <name>TiffinBox Web</name>
   <description>Spring MVC's routes over TiffinBox's core. No SQL in here.</description>
 
+  <!-- Course 6: Surefire runs the tests in a JVM of its own (a fork), and passes it this property's options: Maven's own
+       (MAVEN_OPTS) never reach it. The locale pinned there, as on every run line - Hibernate Validator writes its messages
+       in the JVM's language, and a test asserts en_US. -->
+  <properties>
+    <argLine>-Duser.language=en -Duser.country=US</argLine>
+  </properties>
+
   <dependencies>
     <!-- No version: the parent manages it. Course 6: Jackson 2's jackson-databind, beside it since Core Java II, is gone -
          Spring MVC's Jackson 3 reads and writes every JSON body TiffinBox sends or receives. -->
@@ -69,6 +76,14 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-thymeleaf</artifactId>
+    </dependency>
+    <!-- Course 6: TiffinBox's tests, in src/test. Test scope: on the tests' class path only - the executable jar holds the
+         same libraries without it. Boot's starter brings JUnit, AssertJ, Mockito, spring-test (MockMvc, @MockitoBean,
+         RestTestClient) and Boot's test modules (@WebMvcTest, @SpringBootTest). Boot's parent manages its version. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc-test</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 

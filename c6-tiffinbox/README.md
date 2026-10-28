@@ -953,6 +953,95 @@ read at run time in all four. The seven are the previous tree's, byte for byte �
 
 Evidence for every sentence in this section: `../c6-unit24/` (`receipts.sh`, nine captures).
 
+## Course 6 · unit 28 — the first tests: a slice of the web layer, and the whole application on a random port (2026-10-28)
+
+TiffinBox has answered requests since the course began, and until this unit it had no test: there was no `src/test`, and every
+build's test step said `No tests to run.` (`change`). From this unit the web module has a **test** — code that runs TiffinBox's code
+and checks one answer, so a change that breaks it fails the build — eleven of them, and the build runs them. One file changed, three
+are new, besides this README:
+- `tiffinbox-web/pom.xml` — **`spring-boot-starter-webmvc-test`, in test scope** (five lines): Boot's test starter for Spring MVC. Its
+  POM names five dependencies; one, Spring MVC's starter, TiffinBox already had; the other four — `spring-boot-starter-test`,
+  `spring-boot-webmvc-test`, `spring-boot-resttestclient`, `spring-boot-starter-jackson-test` — put 33 jars on the tests' class path,
+  every one in test scope (JUnit Jupiter 6.0.3, AssertJ 3.27.7, Mockito 5.23.0, spring-test 7.0.9 among them). None reaches what ships:
+  the executable jar's 61 libraries are the same names, its one changed entry of 218 is the copy of this POM Maven puts in every jar, and
+  `tiffinbox-core`'s jar is byte for byte the one before. And one property, `argLine`, `-Duser.language=en -Duser.country=US`: Surefire
+  (Maven's test plugin, 3.5.6) runs the tests in a JVM of its own — a fork — and passes it this property's options. Maven's own options
+  never reach that JVM: with `MAVEN_OPTS` set to German words, Maven's JVM said `Default locale: de_DE` and the test JVM `en_US`. Nothing
+  in `<build>` changed.
+- `src/test/java/slice/WebSlice.java` (new) — the configuration the web slice starts from (below), outside `com.tiffinbox`.
+- `src/test/java/com/tiffinbox/web/TiffinBoxWebTest.java` (new) — nine tests of the web layer alone, through MockMvc.
+- `src/test/java/com/tiffinbox/web/FullStackTest.java` (new) — two tests of the whole application, on a real Tomcat.
+
+```bash
+mvn -B clean test
+mvn -B install
+mvn -B -pl tiffinbox-web -Dtest=TiffinBoxWebTest clean test
+```
+
+**`package` and `install` run the tests now.** `mvn -B package`, `mvn -B install` and their `-Pnative` forms run Surefire's `test` before they
+package: the eleven tests, and a failing test fails the build (exit 1, `BUILD FAILURE`). `-DskipTests` skips them: Course 4's
+`mvn -q -DskipTests package` builds the jar and writes no report.
+`-pl tiffinbox-web` builds the web module alone and takes `tiffinbox-core` from your local Maven repository, so `mvn -B install` comes
+once first; `-Dtest=TiffinBoxWebTest` runs that one class (`TiffinBoxWebTest#theTestsRunInEnglish`, one method). The course's
+commands use `-Dtest=` with `-pl tiffinbox-web`, and `clean` every time, so no report of an earlier run is read. The tests' token is a
+literal written in them, `not-the-real-token` — not a secret: the tests run in `tiffinbox-web/`, where no `secrets/` folder is, and the
+settings record will not start without a token.
+
+**A test slice, and why it needed a configuration of its own** (`slice`). `TiffinBoxWebTest` is a **test slice**: `@WebMvcTest`
+(spring-boot-webmvc-test) starts Spring MVC with TiffinBox's controllers, its advice and its page, and leaves the rest of the
+application out. It looks for a `@SpringBootConfiguration` in the test's package and every package above it — and TiffinBox has none:
+`TiffinBoxApp` is Course 5's hand-built `@Configuration @EnableAutoConfiguration @ComponentScan("com.tiffinbox")`. So the slice alone
+fails before any test runs: `Unable to find a @SpringBootConfiguration by searching packages upwards from the test.` `WebSlice` is what a
+`@SpringBootApplication` would have given it: the same scan, with Boot's `TypeExcludeFilter` — the filter a slice uses to leave out
+every class it does not test — and the settings record. Pointed at `WebSlice`, the slice's context holds 130 beans, 7 of them
+TiffinBox's (by the `com.tiffinbox` filter): `tiffinBoxServer`, `dashboardPage`, `tiffinBoxErrors`, the settings record and three
+**mocks** — stand-ins Mockito makes, which answer only what a test tells them — put in place of `CustomerRepository`, `Dashboard` and
+`OrderQueue` by `@MockitoBean` (spring-test's; Boot 4.1.1's test jars have no `MockBean`). The whole application's context, in
+`FullStackTest`, holds 293, 11 of them TiffinBox's — on Boot 4.1.1, here. Pointed at `TiffinBoxApp` instead, the slice holds 134, all
+11 TiffinBox's, `database` among them, and `theSliceLeavesTheDatabaseOut` fails: TiffinBoxApp's scan has no `TypeExcludeFilter`, so the
+slice's filter never applies. `WebSlice` lives outside `com.tiffinbox` on purpose: a copy of it inside that package was picked up by
+TiffinBoxApp's own scan, and the whole application's context held 12 of TiffinBox's beans. Mockito mocks TiffinBox's `final` classes, and
+says so once per test JVM on the console — one line of Mockito's own (`Mockito is currently self-attaching to enable the
+inline-mock-maker…`) and five of the JVM's (four `WARNING:` lines about a Java agent loaded dynamically, one `OpenJDK 64-Bit Server VM
+warning: Sharing is only supported…`): not errors, and not a logger's.
+
+**Requests without a socket** (`requests`). **MockMvc** — Spring's request simulator: the `DispatcherServlet` runs, with no socket and
+no Tomcat — and `MockMvcTester`, its AssertJ form (both spring-test's), answer the slice's requests: `GET /customers` 200
+`application/json`, Ravi first (a mock's list); `GET /customers/Nobody` 404 `application/problem+json`, `"name":"Nobody"` — the problem
+detail TiffinBox's own advice writes; an invalid customer's `POST` 400 `application/problem+json` with three messages — TiffinBox's own
+too — in English with no `Accept-Language` (the mock request's own language) and in German with `Accept-Language: de`; `GET /shutdown`
+405, `Allow: POST`, a problem detail because TiffinBox switched them on (`spring.mvc.problemdetails.enabled: true`, which the slice
+loads): with the key off for one run the 404 and the 400 are unchanged, and the 405 comes back with no body; `/dashboard` asked for HTML,
+200, `<title>Dashboard · TiffinBox</title>`. With the test JVM's own locale made `de_DE` for one run (`-DargLine`, which replaces the
+POM's), `theTestsRunInEnglish` failed and the three messages stayed English.
+
+**What the slice leaves untested** (`untested`), here, for an exception nobody handled: a repository that throws leaves **no status and
+no body** — MockMvc's result is the failure itself (`hasFailed()`, `jakarta.servlet.ServletException: Request processing failed:
+java.lang.IllegalStateException: kitchen on fire`), and the older `MockMvc.perform` throws it. **No error dispatch**: in the slice the
+request ran one chain (`REQUEST`); on Tomcat the same failure ran two — the `REQUEST`, then an `ERROR` dispatch to `/error`, where Boot
+writes its 500 — so no `/error` and no `error/5xx.html` in a slice: the dashboard's page, failing, is an unresolved exception too.
+**Other filters**: MockMvc runs 4 (`OrderedCharacterEncodingFilter`, `OrderedFormContentFilter`, `OrderedRequestContextFilter`,
+`ResourceUrlEncodingFilter`); Tomcat's chain for the same request holds 6 (`characterEncodingFilter`, `webMvcObservationFilter`,
+`formContentFilter`, `requestContextFilter`, `resourceUrlEncodingFilter`, `Tomcat WebSocket (JSR356) Filter`), besides the harness's own.
+**No socket, no bind address, no connector**: the slice runs on a mock servlet context (`SpringBootMockServletContext`) with no web
+server. The CORS lesson's preflight cache is not reached either: named here, not measured.
+
+**The whole application, on a random port** (`fullstack`). `FullStackTest` is a **full-stack test**: `@SpringBootTest(classes =
+TiffinBoxApp.class, webEnvironment = RANDOM_PORT)` starts the whole application — TiffinBoxApp — on a real Tomcat, with one mock
+(`CustomerRepository`, so a test can make it throw); a **random port** is one the operating system picks free when Tomcat starts —
+here in macOS's ephemeral range (49152-65535, on this Mac), not one of the course's 19300-19799 — and TiffinBox's address stays `application.yaml`'s
+`127.0.0.1`: the test JVM's own listening socket, read with `lsof` off its own pid, is `127.0.0.1:<port>`. `RestTestClient` (spring-test's
+client for tests, wired by `@AutoConfigureRestTestClient`) calls it: the same failing repository is a real 500, `application/json`,
+Boot's four keys (`error`, `path`, `status`, `timestamp`) — Tomcat logs it at ERROR (`[dispatcherServlet]`, "Servlet.service() … threw
+exception") — and the dashboard's page, failing, is TiffinBox's `error/5xx.html` (`Something broke · TiffinBox`); `GET /nowhere` 404,
+a problem detail. Not `TestRestTemplate`: on this class path its auto-configuration fails to start (`NoClassDefFoundError:
+org/springframework/boot/restclient/RestTemplateBuilder`) — it needs Boot's RestClient module, which this POM does not bring.
+
+**Every form** (`forms`): the native build ran the eleven tests first; the jar, the AOT jar, the native binary and the image give the
+seven — `466c20ed7e0d5439cb052f32ce09de1b` (masked), the previous tree's — and answer the invalid customer with the same three messages.
+
+Evidence for every sentence in this section: `../c6-unit28/` (`receipts.sh`, seven captures).
+
 ---
 
 # c5-tiffinbox — Course 5 (Spring Boot)'s long-lived project
@@ -1397,7 +1486,8 @@ compiled into the jar) and as data
 (`reachability-metadata.json` — not Course 3's `reflect-config.json` — the file a native build reads). With the plugin
 declared, the profile also runs the plugin's `add-reachability-metadata`, which copies metadata for the jars TiffinBox uses
 from GraalVM's shared repository (a zip Maven downloads from Central on the first build; for H2 2.5.250 it has no entry, and
-takes 2.1.210's):
+takes 2.1.210's) *(Course 6, unit 28: and these builds, like every `package` and `install`, run TiffinBox's eleven tests first —
+`-Pnative install` ran them before the binary was built; `../c6-unit28/`, `forms`)*:
 
 ```bash
 mvn -B -Pnative package
@@ -2165,14 +2255,17 @@ mvn -version           # Java version: 25.0.4.1
 
 The first build downloads H2 2.5.250 and Jackson 2.22.2 from Maven Central; after that,
 nothing. *(Course 6, unit 08: no Jackson 2.22.2 — the build names no Jackson 2 library, and the annotations jar Jackson 3 needs
-comes at 2.21; `../c6-unit08/`, `jackson`.)*
+comes at 2.21; `../c6-unit08/`, `jackson`.)* *(Course 6, unit 28: and the tests' class path needs 33 more jars, every one in test
+scope — JUnit Jupiter, AssertJ, Mockito, spring-test and Boot's test modules among them; `../c6-unit28/`, `change`.)*
 
 ## Build
 
 > **Stale since Course 5, unit 13.** Web's build no longer runs `copy-dependencies`, its jar's manifest has no
 > `Class-Path`, and there is no `tiffinbox-web/target/lib/`: the jar is Boot's executable jar (unit 13's section at the
 > top). The manifest and the `lib/` listing below are Course 3's, kept as they were written. *(Course 6, unit 08: and Jackson 2's
-> `jackson-databind` and `jackson-core` are out of the build — `../c6-unit08/`, `jackson`.)*
+> `jackson-databind` and `jackson-core` are out of the build — `../c6-unit08/`, `jackson`.)* *(Course 6, unit 28: and web's test
+> step — Surefire's `surefire:3.5.6:test`, which said `No tests to run.` until then — runs TiffinBox's eleven tests before the jar is
+> made; `../c6-unit28/`, `change`.)*
 
 ```bash
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
@@ -2404,7 +2497,8 @@ modules.
 Built and run on **JDK 25.0.4.1** (`/opt/homebrew/opt/openjdk@25`) with **Maven 3.9.16**,
 macOS on Apple silicon, **2026-09-14**, from a clean copy outside the repository, with an
 isolated local repository (`-Dmaven.repo.local=`) so nothing of ours reaches `~/.m2`.
-Offline receipt after one warm build: `mvn -o -B verify` → `BUILD SUCCESS`, exit 0, three runs.
+Offline receipt after one warm build: `mvn -o -B verify` → `BUILD SUCCESS`, exit 0, three runs. *(Course 6, unit 28: measured
+when TiffinBox had no tests; `package` and `install` run its eleven since — `../c6-unit28/`, `change` and `forms`.)*
 
 
 ---
@@ -2449,7 +2543,9 @@ java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar 18431
 ```
 
 (Course 5: since unit 06 that bare `18431` is ignored, and since unit 27 it is refused — exit 2, nothing listens; the
-port is `--tiffinbox.port=18431`.)
+port is `--tiffinbox.port=18431`.) *(Course 6, unit 28: `-DskipTests` skips something since then — TiffinBox's tests, in
+`tiffinbox-web/src/test`: this line builds the jar and writes no test report, and without it `package` runs the eleven tests first, and a
+failing test fails the build; `../c6-unit28/`, `change`.)*
 
 The project as it was before the rewire is frozen in `../c4-unit31/before/`; the evidence that the two serve
 byte-identical responses, and everything else the capstone claims, is `../c4-unit31/receipts.sh`.
