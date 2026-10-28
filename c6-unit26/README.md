@@ -58,7 +58,15 @@ export PATH="$JAVA_HOME/bin:$PATH"
 from `receipts.md5` (it prints the `DIFFERS` line first). **Start it in a process group of its own** (a terminal's foreground job is one):
 two receipts started as background jobs of one shell share a group, and one run's clean-up would stop the other's JVMs (R.94).
 
-**Runs of record (2026-10-27, this script as committed):** **228 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with HOME and a
+**Runs of record after BLUE S5 (2026-10-28, this script as committed):** the JDK-version mask (R.151) and the RED S5 fixes (#430: the
+map key's type printed whole in `group`; #432: `ways` B re-made, the hand-made call a GET) changed six captures (`exercise` unchanged;
+each new capture against RED A's copy of the old, the version normalised: `interface`, `proxy`, `calls`, `aot` 0 lines differ, `group`
+the one added line, `ways` B's lines); a development run under `/bin/bash` 3.2 made them (229 s); then **233 s under `./receipts.sh`**
+(/bin/bash 3.2.57, `env -i`, a process group of its own: exit 0, all 7 = published, every check passed) and **233 s under `bash
+receipts.sh`** (Homebrew bash 5.3.9: the same). The sealed clone was not re-run for this change (BLUE S5 ran unit 28's); the one below is
+the 10-27 run, before the change.
+
+**Runs of record (2026-10-27, before BLUE S5):** **228 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with HOME and a
 plain PATH, this folder, a session — so a process group — of its own: exit 0, all 7 captures 3/3 = published, every check passed) and
 **229 s under `bash receipts.sh`** (Homebrew bash 5.3.9, the same: exit 0, all 7 = published). The hashes were first made by a 3.2 run and
 reproduced, unchanged, by every run since, under both bashes. **A sealed fresh clone**, by the recipe below: a `git clone` of the
@@ -69,7 +77,7 @@ no`, as a fresh clone's must (the anchor's log: 533 downloads, the AOT app's: 19
 `-q`, which prints none), every capture's build `offline: yes`; **`_remote.repositories` by repository id: 713 `>sealed=` (in 504
 artifact folders), 0 `central`**, no line with another id.
 
-Published hashes: interface `cf0a201687b189a28e3c3d55a061732d` · proxy `c1f65cdf35858aab07e3d5f2f8ea721c` · calls `473f6d7b472f8a3e85fe0e601f5bd3f2` · group `78694faea587c3d5614b27655bc02488` · aot `603c9317f4f6f015235bd1d8a1eee8a9` · ways `d86df4e2d7ebd6baf99826e915f6111f` · exercise `3b6a993aee34df472c51db1cf37aa216`.
+Published hashes: interface `b2f68b12d6bae0a27f1a0714acf200c6` · proxy `684ff6fa89974ed9f94bb56e80616fda` · calls `47953141e40981859f170a8f96f45746` · group `625cd3ca6df1e07d29ef01751a4b17a2` · aot `f37bb94c3b32f349a4c0d3dbb976611d` · ways `8727321f8d6d8710d5491e31e4adb570` · exercise `3b6a993aee34df472c51db1cf37aa216`.
 
 ### A sealed fresh clone — the recipe (RED S4 #405, fixed)
 
@@ -186,9 +194,10 @@ starts one (R.124). Receipts run under bash (`#!/bin/bash`), never zsh, where th
    **A JDK proxy class's number**: `$Proxy<digits>` → `$Proxy<n>` (it moves with the class path — `$Proxy84` in TiffinBox's JVM, another
    number in the AOT app's), the raw class name printed once on the terminal; CGLIB's `$$SpringCGLIB$$<digits>` → `$$SpringCGLIB$$<n>`. A
    last check fails if any capture holds `/Users/`, `/private/`, `/home/`, `/var/folders/`, a unit number, Boot's process line, a log time,
-   an unmasked timestamp, a thread number, a client's JDK version, a proxy number, a platform word, a stack frame, `:8080` or `:35729`, a
-   carriage return, a duration, or a command with a URL that is not `127.0.0.1`'s. (Boot's first line keeps "using Java 25.0.4.1": the
-   JDK this unit is verified on, which `receipts.sh` requires.)
+   an unmasked timestamp, a thread number, a JDK version (a client's, or ` using Java <digits>`), a proxy number, a platform word, a stack frame, `:8080` or `:35729`, a
+   carriage return, a duration, or a command with a URL that is not `127.0.0.1`'s. **The JDK's version in Boot's first line** (R.151,
+   RED S5 #426): ` using Java <digits and dots>` → ` using Java <version>` in every line — unit 25's, 27's and 28's mask text — the version
+   printed once on the terminal; before BLUE S5 it was hashed (every capture but `exercise`).
 2. **Spring's error timestamp** (`tsmask`): both forms → `…`, in every answer printed and in the seven (the mask runs; the seven print its
    count, 0).
 3. **The stub's dump** (`sdump`, `sreqs`, `sonly`): **whole** where a capture reads what a client sent (`calls`: every line, every header,
@@ -235,7 +244,7 @@ on every harness source: no `implements … Payments`, no `new Payments(`). **Th
 `PayRoutes` joined and the group's base URL: `466c20ed…` both times, **the same, byte for byte: 7**, 1 WARN each (`PageNotFound`, Spring
 MVC's, the seven's 405).
 
-`.r-interface.out` · md5 `cf0a201687b189a28e3c3d55a061732d` · 3 of 3
+`.r-interface.out` · md5 `b2f68b12d6bae0a27f1a0714acf200c6` · 3 of 3
 
 ```
 the anchor - anchor/, copied under .harness/ with a config tree, built with its README's line (offline), its jar extracted (the README's line):
@@ -302,7 +311,7 @@ whose classes - each read off the one jar on that class path that holds it (unzi
 the seven - the anchor, the README's run line (its locale pinned), port 19550, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19550
   listens on: 127.0.0.1:19550 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19550/actuator/health/readiness
   {"status":"UP"} 200
 $ $CURLSET 19550 .harness/anchor/secrets/tiffinbox/shutdown-token
@@ -314,7 +323,7 @@ $ $CURLSET 19550 .harness/anchor/secrets/tiffinbox/shutdown-token
 the seven - the anchor on its class path, the two jars and the harness joined (PaymentConfig, Pays, PayRoutes; the group's base URL; no cases), port 19551, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19551 --spring.main.sources=probe.web.PaymentConfig,probe.web.Pays,probe.web.PayRoutes --spring.http.serviceclient.payments.base-url=http://127.0.0.1:19556
   listens on: 127.0.0.1:19551 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19551/actuator/health/readiness
   {"status":"UP"} 200
 $ $CURLSET 19551 .harness/anchor/secrets/tiffinbox/shutdown-token
@@ -340,13 +349,13 @@ the terminal it read `$Proxy84`), its superclass **`java.lang.reflect.Proxy`**, 
 invocation handler **`JdkDynamicAopProxy`** — Spring AOP's JDK proxy: the kind Course 4 built by hand (a class the JDK makes at run time,
 parent `Proxy`, every call to one handler). 0 WARN, 0 ERROR.
 
-`.r-proxy.out` · md5 `c1f65cdf35858aab07e3d5f2f8ea721c` · 3 of 3
+`.r-proxy.out` · md5 `684ff6fa89974ed9f94bb56e80616fda` · 3 of 3
 
 ```
 who answers for the interface - the anchor on its class path, the two jars and the harness joined (PaymentConfig, Pays), the group's base URL, the cases types, beans and proxy, port 19552, a fresh JVM (no stub: no case calls one):
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19552 --spring.main.sources=probe.web.PaymentConfig,probe.web.Pays --probe.cases=types,beans,proxy --spring.http.serviceclient.payments.base-url=http://127.0.0.1:19556
   listens on: 127.0.0.1:19552 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19552/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Pays): en_US
@@ -391,7 +400,7 @@ chunks, with **no `content-length`** header (0 of 5 requests) — and its body `
 `User-Agent`'s version masked. The stub accepts a chunked body; a server that refused one would refuse these POSTs (named, not measured).
 0 tokens in the dump.
 
-`.r-calls.out` · md5 `473f6d7b472f8a3e85fe0e601f5bd3f2` · 3 of 3
+`.r-calls.out` · md5 `47953141e40981859f170a8f96f45746` · 3 of 3
 
 ```
 the stub - this unit's line, port 19556:
@@ -400,7 +409,7 @@ $ java -Duser.language=en -Duser.country=US harness/stub/Stub.java --port=19556 
 the calls - the anchor on its class path, the two jars and the harness joined (PaymentConfig, Pays), the group's base URL, the case calls, port 19553, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19553 --spring.main.sources=probe.web.PaymentConfig,probe.web.Pays --probe.cases=calls --spring.http.serviceclient.payments.base-url=http://127.0.0.1:19556
   listens on: 127.0.0.1:19553 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19553/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Pays): en_US
@@ -483,7 +492,9 @@ $ harness/shutdown.sh 19553 .harness/anchor/secrets/tiffinbox/shutdown-token
 `Map<String, HttpClientProperties>` — a group's name, then that class's properties. `javap` on the class (its 22 lines kept to the class
 lines and setters, 8): `HttpClientProperties` has `setBaseUrl` and `setDefaultHeader`; its parent `HttpClientSettingsProperties` has
 `setRedirects`, `setConnectTimeout`, **`setReadTimeout`**, `setCookieHandling` — so `spring.http.serviceclient.payments.base-url` and
-`…payments.read-timeout`. **The group's read timeout at one second**, against the stub's `/payments/slow` (its own three-second wait):
+`…payments.read-timeout`, by Boot's relaxed binding (a setter's name after `set`, in kebab case, after the group's name — the rule, R.150;
+its effect measured below and in `exercise`). `keys.py` prints a type from its last dot on (`HttpClientProperties>` for this map); the
+key's type whole is printed beside it (RED S5 #430). **The group's read timeout at one second**, against the stub's `/payments/slow` (its own three-second wait):
 the five calls answered as before, and `slow()` → **`ResourceAccessException … Request cancelled`**, cause
 `java.net.http.HttpTimeoutException: Request cancelled`. **One scrape of the same JVM**: every call observed under its **URI template** —
 `uri="/payments"` (201 ×2, 422 ×1), `uri="/payments/{id}"` (200 ×1, 404 ×1; no line names `pay-1` or `pay-99`), and the cancelled
@@ -491,13 +502,14 @@ the five calls answered as before, and `slow()` → **`ResourceAccessException �
 the stub's whole wait: the timeout was the group's key, and there is no default. Outcomes only, never a clock; the stub's answers cut
 (two `GET /payments/slow`, each a fresh JVM).
 
-`.r-group.out` · md5 `78694faea587c3d5614b27655bc02488` · 3 of 3
+`.r-group.out` · md5 `625cd3ca6df1e07d29ef01751a4b17a2` · 3 of 3
 
 ```
 the group's keys - what Boot's own metadata declares (in spring-boot-http-client-4.1.1.jar, one of the two jars the starter adds), and the class each group binds to (this unit's lines):
 $ python3 harness/keys.py .harness/xlib/spring-boot-http-client-4.1.1.jar spring.http.serviceclient
   spring.http.serviceclient · default none · HttpClientProperties>
   1 keys under spring.http.serviceclient
+  that key's type, whole (keys.py keeps what follows its last dot): java.util.Map<String,org.springframework.boot.http.client.autoconfigure.HttpClientProperties> - a map: a group's name to the settings it binds
 $ javap -cp .harness/xlib/spring-boot-http-client-4.1.1.jar org.springframework.boot.http.client.autoconfigure.HttpClientProperties org.springframework.boot.http.client.autoconfigure.HttpClientSettingsProperties
   what javap printed: 22 lines · kept: its two class lines and their setters, 8 lines
   class org.springframework.boot.http.client.autoconfigure.HttpClientProperties extends org.springframework.boot.http.client.autoconfigure.HttpClientSettingsProperties
@@ -514,7 +526,7 @@ $ java -Duser.language=en -Duser.country=US harness/stub/Stub.java --port=19556 
 the group's read timeout at one second - the anchor on its class path, the two jars and the harness joined (PaymentConfig, Pays), the cases calls and slow, port 19550, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19550 --spring.main.sources=probe.web.PaymentConfig,probe.web.Pays --probe.cases=calls,slow --spring.http.serviceclient.payments.base-url=http://127.0.0.1:19556 --spring.http.serviceclient.payments.read-timeout=1s
   listens on: 127.0.0.1:19550 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19550/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Pays): en_US
@@ -544,7 +556,7 @@ $ harness/shutdown.sh 19550 .harness/anchor/secrets/tiffinbox/shutdown-token
 C (labelled) - the group's base URL alone, no timeout key, the case slow, port 19551, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19551 --spring.main.sources=probe.web.PaymentConfig,probe.web.Pays --probe.cases=slow --spring.http.serviceclient.payments.base-url=http://127.0.0.1:19556
   listens on: 127.0.0.1:19551 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19551/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Pays): en_US
@@ -582,7 +594,7 @@ the JVM** — "Starting App …"; **with `-Dspring.aot.enabled=true`** — Boot'
 proxy (`jdk.proxy2.$Proxy<n>`, `isJdkDynamicProxy` true, the four interfaces) and `pay` → the record (pay-1, then pay-2: one stub). No web
 server in its jar (0 server jars): it pays once and exits 0. **No native image was built**: nothing here says "in the binary".
 
-`.r-aot.out` · md5 `603c9317f4f6f015235bd1d8a1eee8a9` · 3 of 3
+`.r-aot.out` · md5 `f37bb94c3b32f349a4c0d3dbb976611d` · 3 of 3
 
 ```
 C (labelled) - ahead of time, on the aot app: harness/aot-app/, its own POM, five classes, Boot's RestClient starter, no web server (the anchor and the harness cannot be processed together: the harness joins TiffinBox only at run time):
@@ -609,7 +621,7 @@ $ java -Duser.language=en -Duser.country=US harness/stub/Stub.java --port=19556 
   the stub listens on: 127.0.0.1:19556 · loopback only: yes · its locale: en_US
 on the JVM - the app's jar, the group's base URL (this unit's line):
 $ cd .harness/aot && java -Duser.language=en -Duser.country=US -jar target/aot-app-1.0.0.jar --spring.http.serviceclient.payments.base-url=http://127.0.0.1:19556
-  exit 0 · Boot's first line: Starting App v1.0.0 using Java 25.0.4.1
+  exit 0 · Boot's first line: Starting App v1.0.0 using Java <version>
   its lines (App), in the order they printed: 4
     the JVM's locale: en_US
     proxy class: jdk.proxy2.$Proxy<n> | Proxy.isProxyClass: true | AopUtils.isJdkDynamicProxy: true
@@ -619,7 +631,7 @@ $ cd .harness/aot && java -Duser.language=en -Duser.country=US -jar target/aot-a
   its log: the demo token 0 times · X-Shutdown-Token 0 times
 ahead of time - the same jar with -Dspring.aot.enabled=true: the generated code instead of the configuration classes (this unit's line):
 $ cd .harness/aot && java -Duser.language=en -Duser.country=US -Dspring.aot.enabled=true -jar target/aot-app-1.0.0.jar --spring.http.serviceclient.payments.base-url=http://127.0.0.1:19556
-  exit 0 · Boot's first line: Starting AOT-processed App v1.0.0 using Java 25.0.4.1
+  exit 0 · Boot's first line: Starting AOT-processed App v1.0.0 using Java <version>
   its lines (App), in the order they printed: 4
     the JVM's locale: en_US
     proxy class: jdk.proxy2.$Proxy<n> | Proxy.isProxyClass: true | AopUtils.isJdkDynamicProxy: true
@@ -637,14 +649,15 @@ $ cd .harness/aot && java -Duser.language=en -Duser.country=US -Dspring.aot.enab
 
 19559 asserted free. Each run a fresh stub and a fresh JVM. **A** — the group's client (`@ImportHttpServices`, Boot's builder
 underneath): the proxy (`JdkDynamicAopProxy`, the four interfaces), `pay` → the record, the stub saw 1 POST, and the scrape holds
-**`uri="/payments"`, `status="201"`, count 1** — observed. **B** — the same interface by hand:
+**`uri="/payments"`, `status="201"`, count 1** — observed. **B** — the group's `pay`, then the same interface by hand in the same JVM:
 `HttpServiceProxyFactory.builderFor(RestClientAdapter.create(RestClient.create(stub))).build().createClient(Payments.class)` → the same
-kind of proxy (**the same class as the group's: true**), `pay` → `Payment[id=pay-1, …, customer=Priya, amount=3600]`; then the group's
-`pay` in the same JVM. The stub saw **2 POSTs**; the one scrape still holds **1 line, count 1** — the group's call; the hand-made call was
-**not observed** (R.140, both ways in one scrape): `RestClient.create()` is not Boot's builder. **A′** = A, its `$` line shown, its block
+kind of proxy (**the same class as the group's: true**), its `find("pay-1")` → the group's payment read back (a GET). The stub saw **one
+POST and one GET**; the one scrape holds **1 line, `uri="/payments"`, count 1** — a POST, so the group's — and **no
+`uri="/payments/{id}"`**: the hand-made call was **not observed**, read off one scrape (R.140, R.149; RED S5 #432 — the first B had both
+calls POST, one line for two calls): `RestClient.create()` is not Boot's builder. **A′** = A, its `$` line shown, its block
 the same as A's line for line ("yes").
 
-`.r-ways.out` · md5 `d86df4e2d7ebd6baf99826e915f6111f` · 3 of 3
+`.r-ways.out` · md5 `8727321f8d6d8710d5491e31e4adb570` · 3 of 3
 
 ```
   19559, never bound: listening 0 (lsof, by port)
@@ -653,7 +666,7 @@ $ java -Duser.language=en -Duser.country=US harness/stub/Stub.java --port=19556 
   the stub listens on: 127.0.0.1:19556 · loopback only: yes · its locale: en_US
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19552 --spring.main.sources=probe.web.PaymentConfig,probe.web.Pays --probe.cases=proxy,pay --spring.http.serviceclient.payments.base-url=http://127.0.0.1:19556
   listens on: 127.0.0.1:19552 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19552/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Pays): en_US
@@ -678,28 +691,28 @@ $ harness/shutdown.sh 19552 .harness/anchor/secrets/tiffinbox/shutdown-token
   exit 0 · listening on 19552 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
   the stub: stopped by its pid · exit 143 · listening on 19556 now: 0 · requests in its dump: 1 · the demo token 0 times · X-Shutdown-Token 0 times
-B - the same interface by hand (HttpServiceProxyFactory over RestClient.create(), the case hand), then the group's pay, a fresh stub, port 19553, a fresh JVM:
+B - the group's pay, then the same interface by hand (HttpServiceProxyFactory over RestClient.create(), the case hand: a GET, find pay-1), a fresh stub, port 19553, a fresh JVM:
 $ java -Duser.language=en -Duser.country=US harness/stub/Stub.java --port=19556 --www=harness/stub/www
   the stub listens on: 127.0.0.1:19556 · loopback only: yes · its locale: en_US
-$ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19553 --spring.main.sources=probe.web.PaymentConfig,probe.web.Pays --probe.cases=hand,pay --spring.http.serviceclient.payments.base-url=http://127.0.0.1:19556
+$ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19553 --spring.main.sources=probe.web.PaymentConfig,probe.web.Pays --probe.cases=pay,hand --spring.http.serviceclient.payments.base-url=http://127.0.0.1:19556
   listens on: 127.0.0.1:19553 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19553/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Pays): en_US
   the harness's lines (Pays), in the order they printed: 9
     the JVM's locale: en_US
+    pay the group's client -> Payment[id=pay-1, status=PAID, customer=Ravi, amount=7200]
     hand class: jdk.proxy2.$Proxy<n> | its superclass: java.lang.reflect.Proxy
     hand Proxy.isProxyClass: true | AopUtils.isJdkDynamicProxy: true | AopUtils.isCglibProxy: false
     hand interfaces: [org.springframework.aop.SpringProxy, org.springframework.aop.framework.Advised, org.springframework.core.DecoratingProxy, probe.web.Payments]
     hand invocation handler: org.springframework.aop.framework.JdkDynamicAopProxy
     hand the same class as the group's: true
-    hand pay -> Payment[id=pay-1, status=PAID, customer=Priya, amount=3600]
-    pay the group's client -> Payment[id=pay-2, status=PAID, customer=Ravi, amount=7200]
+    hand find pay-1 -> Payment[id=pay-1, status=PAID, customer=Ravi, amount=7200]
     done
   the stub's dump since, one line a request:
-    POST /payments · headers: 9 · the stub answered 201 application/json 63 bytes
     POST /payments · headers: 9 · the stub answered 201 application/json 62 bytes
+    GET /payments/pay-1 · headers: 7 · the stub answered 200 application/json 62 bytes
   what was observed - one scrape of the same JVM's /actuator/prometheus (this unit's line):
 $ curl -s -o .harness/prom.txt -w ' %{http_code}\n' http://127.0.0.1:19553/actuator/prometheus
    200
@@ -716,7 +729,7 @@ $ java -Duser.language=en -Duser.country=US harness/stub/Stub.java --port=19556 
   the stub listens on: 127.0.0.1:19556 · loopback only: yes · its locale: en_US
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19552 --spring.main.sources=probe.web.PaymentConfig,probe.web.Pays --probe.cases=proxy,pay --spring.http.serviceclient.payments.base-url=http://127.0.0.1:19556
   listens on: 127.0.0.1:19552 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19552/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Pays): en_US
@@ -837,8 +850,9 @@ clone.
   "every Boot key spelled from Boot's metadata" is met by the map's type and the class it binds, not by a listed key.
 - **The JDK proxy class is shared.** The hand-made client (B) is not just "the same proxy kind" — it is **the same class** as the group's
   (`hand the same class as the group's: true`): the JDK reuses one proxy class per interface list.
-- **"0 observations" is shown as "1, not 2"** (R.140, both ways in one scrape): B's JVM pays once by hand and once through the group; the
-  stub saw **2** POSTs and the scrape holds **1** `uri="/payments"` line, count 1 — the group's.
+- **"Not observed" is read off one scrape** (R.140, R.149): B's JVM pays through the group, then calls `find` by hand (a GET); the stub
+  saw one POST and one GET, and the scrape holds `uri="/payments"` (a POST: the group's) and no `uri="/payments/{id}"`. (Until BLUE S5
+  B paid twice, by hand and through the group — two POSTs, one line, which could not say whose: RED S5 #432.)
 - **The failed call's words are the JDK client's.** `URI with undefined scheme` is thrown inside module `java.net.http` (the first stack
   frame under the root cause, `exercise`): with no base URL the client hands the JDK's `HttpClient` a bare `/payments`.
 - **The group's timed-out call is observed too** — `uri="/payments/slow"`, `outcome="UNKNOWN"`, `status="CLIENT_ERROR"`,
@@ -894,7 +908,7 @@ clone.
   **the proxy-number mask** (`$Proxy<n>`, the raw class name on the terminal only, and the AOT app's number differs from TiffinBox's);
   **the two `HttpExchange` types on every slide that shows both** (package named: Spring's annotation from spring-web, the JDK server's type
   from `jdk.httpserver`); every "sent / not sent" line against the stub's dump (`calls`: `content-type: application/json`,
-  `transfer-encoding: chunked`, 0 `content-length`, 0 `Accept`); the "observed / not observed" pair in one scrape (`ways` B: 2 POSTs, 1
-  observation); the group's timeout judged by `answered:` / `cancelled:`, never a clock; the bean name quoted; the exercise under Java 23
+  `transfer-encoding: chunked`, 0 `content-length`, 0 `Accept`); the "observed / not observed" pair in one scrape (`ways` B since BLUE S5: the
+  group's POST observed, the hand-made GET's `/payments/{id}` absent); the group's timeout judged by `answered:` / `cancelled:`, never a clock; the bean name quoted; the exercise under Java 23
   (refused at compile), with `JAVA_HOME` unset (Homebrew's 26), and twice in one shell; that no harness class reached the anchor; Boot 3's
   client key nowhere (R.138).

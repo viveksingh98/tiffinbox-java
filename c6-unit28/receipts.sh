@@ -167,7 +167,7 @@ TOKEN=demo-token-for-the-first-tests
 LIT=not-the-real-token
 CURLSET=../c5-unit11/curlset.sh
 [ -f "$CURLSET" ] || die "$CURLSET is missing"
-HTS='Answers.java Census.java ChainDump.java Chains.java SliceLimits.java TemplateCheck.java Traced.java'
+HTS='Answers.java Census.java ChainDump.java Chains.java FullMock.java SliceLimits.java TemplateCheck.java Traced.java'
 for f in harness/shutdown.sh harness/surefire.py harness/test/resources/META-INF/spring.factories exercise/README.md exercise/RevenueTest.java exercise/solution/SOLUTION.md README.md; do [ -f "$f" ] || die "$f is missing"; done
 [ "$(ls harness/test/java/probe/web | paste -sd' ' -)" = "$HTS" ] || die "harness/test/java/probe/web holds another file: Maven compiles all of it"
 [ "$(ls harness | paste -sd' ' -)" = 'shutdown.sh surefire.py test' ] && [ "$(ls harness/test | paste -sd' ' -)" = 'java resources' ] || die "harness/ holds another file"
@@ -221,15 +221,16 @@ L_FULL=$(mine 'mvn -B -pl tiffinbox-web -Dtest=FullStackTest,Answers clean test'
 L_INT=$(mine 'mvn -B -pl tiffinbox-web -Dtest=FullStackTest clean test')
 L_IN=$(mine "sed 's/^package slice;/package com.tiffinbox.web;/; s/^public class WebSlice /public class WebSliceInside /' $TT/slice/WebSlice.java > $TT/com/tiffinbox/web/WebSliceInside.java")
 L_TRT=$(mine 'mvn -B -pl tiffinbox-web -Dtest=TemplateCheck clean test')
+L_MOCK=$(mine 'mvn -B -pl tiffinbox-web -Dtest=FullMock clean test')
 MO_="MAVEN_OPTS='-Duser.language=de -Duser.country=DE'"
 L_MV=$(mine "$MO_ mvn -v")
-L_MO=$(mine "$MO_ mvn -B -pl tiffinbox-web -Dtest='TiffinBoxWebTest#theTestsRunInEnglish' clean test")
+L_MO=$(mine "$MO_ mvn -B -pl tiffinbox-web -Dtest='TiffinBoxWebTest#theTestsRunInEnglish' -DargLine= clean test")
 INV='{"name":"","mealsPerDay":0,"pricePerMeal":0,"mealType":"VEG"}'
 L_INV=$(mine "curl -s -w ' %{http_code}\n' -H 'Content-Type: application/json' --data '$INV' http://127.0.0.1:18431/customers")
 # The derivations, each asserted: one change each, and nothing else
 P_='java '; Q_="java $JL "; [ "${R_RUN/"$P_"/$Q_}" = "$L_RUNL" ] && [ "${R_AOTRUN/"$P_"/$Q_}" = "$L_AOTL" ] || die "the pinned lines must be the anchor's run lines with $JL after java, and nothing else"
 [ "$R_PLAIN dependency:list -DoutputFile=target/deps.txt" = "$L_DEPS" ] || die "the deps line must be the README's package line with dependency:list writing target/deps.txt, and nothing else"
-P_=' -Dtest=TiffinBoxWebTest '; for l_ in "$L_SLICE" "$L_LIM" "$L_FULL" "$L_INT" "$L_TRT"; do
+P_=' -Dtest=TiffinBoxWebTest '; for l_ in "$L_SLICE" "$L_LIM" "$L_FULL" "$L_INT" "$L_TRT" "$L_MOCK"; do
   case $l_ in "mvn -B -pl tiffinbox-web -Dtest="*" clean test") o_=${l_#mvn -B -pl tiffinbox-web }; o_=${o_% clean test}; [ "${R_TESTW/"$P_"/ $o_ }" = "$l_" ] || die "not the README's test line with another -Dtest: $l_" ;; *) die "not the README's test line with another -Dtest: $l_" ;; esac
   case ${o_#-Dtest=} in *' '*) die "one -Dtest, no other option: $l_" ;; esac; done
 # (a replacement that holds quotes goes in a variable: bash 3.2 and 5.3 treat quotes inside ${x/a/b} differently, within "...")
@@ -237,7 +238,8 @@ P_=' clean test'; Q_=" '-DargLine=-Duser.language=de -Duser.country=DE' clean te
 Q_=" '-DargLine=$JL -Dspring.mvc.problemdetails.enabled=false' clean test"; [ "${R_TESTW/"$P_"/$Q_}" = "$L_PD" ] || die "the problem-details line must be the README's test line with -DargLine: the POM's locale and the key off, and nothing else"
 P_='mvn -q '; Q_='mvn -o -B -Dmaven.repo.local="$M2" -q '; C_SKIP="cd .harness/after && ${R_SKIP/"$P_"/$Q_}"; C_SKIP=${C_SKIP/ package/ clean package}
 [ "$C_SKIP" = "cd .harness/after && mvn -o -B -Dmaven.repo.local=\"\$M2\" -q -DskipTests clean package" ] || die "the skip line must be the README's with the offline changes and clean: $C_SKIP"
-P_=' -Dtest=TiffinBoxWebTest '; Q_=" -Dtest='TiffinBoxWebTest#theTestsRunInEnglish' "; [ "$MO_ ${L_MO#"$MO_ "}" = "$L_MO" ] && [ "${L_MO#"$MO_ "}" = "${R_TESTW/"$P_"/$Q_}" ] || die "the MAVEN_OPTS line must be the README's test line, one test method named, MAVEN_OPTS before it, and nothing else"
+# RED S5 #479: -DargLine= takes the POM's pin out for this one run, so the fork's locale can only be MAVEN_OPTS's or the JVM's default
+P_=' -Dtest=TiffinBoxWebTest '; Q_=" -Dtest='TiffinBoxWebTest#theTestsRunInEnglish' -DargLine= "; [ "$MO_ ${L_MO#"$MO_ "}" = "$L_MO" ] && [ "${L_MO#"$MO_ "}" = "${R_TESTW/"$P_"/$Q_}" ] || die "the MAVEN_OPTS line must be the README's test line, one test method named, the POM's argLine emptied, MAVEN_OPTS before it, and nothing else"
 P_="--data '{\"name\":\"Asha\",\"mealsPerDay\":2,\"pricePerMeal\":110,\"mealType\":\"VEG\"}'"; Q_="--data '$INV'"; [ "${R_POST/"$P_"/$Q_}" = "$L_INV" ] || die "the invalid POST must be the README's POST with the slice test's invalid customer, and nothing else"
 off() { local c=${2/mvn -B /mvn -o -B -Dmaven.repo.local=\"\$M2\" }
   [ -n "${3:-}" ] && c=${c/ $3/ clean $3}
@@ -502,7 +504,7 @@ diff = sorted(n for n in na & nb if a.read(n) != b.read(n))
 print("  entries: %d -> %d · only in the previous tree's: %d · only in after/'s: %d · in both, bytes that differ: %d - %s" % (len(na), len(nb), len(na - nb), len(nb - na), len(diff), ", ".join(diff) or "none"))
 PY
   echo "  the jar files themselves, byte for byte: $(cmp -s .harness/before/$JARP .harness/after/$JARP && echo the same || echo different) · tiffinbox-core's jar ($CJAR), byte for byte: $(cmp -s .harness/before/$CJAR .harness/after/$CJAR && echo the same || echo different) · after/'s jar holds a test class: $(unzip -Z1 .harness/after/$JARP | grep -cE 'Test\.class$|/slice/' || true)"
-  echo "Maven's own JVM and the test JVM - MAVEN_OPTS for one command each, its words de_DE; the second runs one test, in after/'s copy:"
+  echo "Maven's own JVM and the test JVM - MAVEN_OPTS for one command each, its words de_DE; the second runs one test, in after/'s copy, the POM's pin taken out (-DargLine=): the fork's locale is then MAVEN_OPTS's, or the JVM's own default (this Mac's language):"
   echo "\$ cd .harness/after && $L_MV"
   (cd .harness/after && eval "$L_MV") > .harness/mv.log 2>&1 < /dev/null || die "mvn -v failed"
   echo "  its line that names the locale (the others - Maven's, Java's and the system's versions and folders - not shown): $(grep -m1 '^Default locale: ' .harness/mv.log | sed 's/, platform encoding.*//')"
@@ -556,7 +558,9 @@ requests() {
 untested() {
   echo "a failure nobody handled, in the slice and on Tomcat - after/, Census, Traced (ChainDump for the REQUEST and the ERROR dispatch), SliceLimits and Chains (.harness/lim):"
   hcopy lim
-  mrun lim .harness/lim "$(off .harness/lim "$L_LIM" | sed 's/^cd [^ ]* && //')"; }
+  mrun lim .harness/lim "$(off .harness/lim "$L_LIM" | sed 's/^cd [^ ]* && //')"
+  echo "B (labelled) - MockMvc on the whole application, no slice: the harness's FullMock (@SpringBootTest in its mock environment - no Tomcat, no port bound - and @AutoConfigureMockMvc), Census joined (.harness/lim):"
+  mrun mock .harness/lim "$(off .harness/lim "$L_MOCK" | sed 's/^cd [^ ]* && //')"; }
 
 # ---- fullstack: the real server ----------------------------------------------------------------------------------------------------
 fullstack() {
@@ -823,7 +827,7 @@ echo "  change: pom.xml +15 (argLine; the starter, test scope), <build> untouche
 
 # "WebMvcTest alone ... unable to find ... A: a hundred and thirty, seven ... three mocks ... B: TiffinBoxApp, eleven, the database, the test fails ... A again ... C"
 SL=$(cat .r-slice.out); SA=$(blk slice "A - after/" "B - the slice"); SB=$(blk slice "B - the slice" "A' - A again"); SA2=$(blk slice "A' - A again" "A' against A"); SC=$(blk slice "C (labelled)" "")
-for l in '  @Configuration' '  @EnableAutoConfiguration' '  @ComponentScan("com.tiffinbox")' "  a @SpringBootConfiguration or @SpringBootApplication anywhere in after/'s main sources: 0 files · in its test sources: slice/WebSlice.java" \
+for l in '  @Configuration' '  @EnableAutoConfiguration' '  @ComponentScan("com.tiffinbox")' '  @EnableConfigurationProperties(TiffinBoxProperties.class)' "  a @SpringBootConfiguration or @SpringBootApplication anywhere in after/'s main sources: 0 files · in its test sources: slice/WebSlice.java" \
          '  the three classes the slice mocks, as tiffinbox-core declares them: public final class CustomerRepository · public final class Dashboard · public final class OrderQueue' \
          '  package slice;' '  @SpringBootConfiguration' '    -@ContextConfiguration(classes = WebSlice.class)' \
          '      ERROR  (the class: no test method ran) - java.lang.IllegalStateException' '    +@ContextConfiguration(classes = TiffinBoxApp.class)'; do has "$SL" "$l" "slice"; done
@@ -843,7 +847,7 @@ printf '%s\n' "$SA2" | grep -qxF "\$ $(off .harness/sliceA "$L_SLICE")" || die "
 [ "$(printf '%s\n' "$SA" | grep -cE '^    (Mockito is currently self-attaching|WARNING: |OpenJDK 64-Bit Server VM warning: )')" = 6 ] && [ "$(printf '%s\n' "$SB" "$SA2" "$SC" | grep -cE '^    (Mockito is currently self-attaching|WARNING: |OpenJDK 64-Bit Server VM warning: )')" = 0 ] || die "slice: Mockito's and the JVM's six lines shown once, in A"
 has "$SA" '    WARNING: A Java agent has been loaded dynamically (…/.m2-demo/net/bytebuddy/byte-buddy-agent/1.18.11/byte-buddy-agent-1.18.11.jar)' "slice A: the JVM's line, its path masked"
 printf '%s\n' "$SC" | grep "^    CENSUS FullStackTest the context's beans: " | grep -F "· TiffinBox's (com.tiffinbox): 12 - " | grep -qF 'webSliceInside (WebSliceInside$$SpringCGLIB$$<n>)' || die "slice C: WebSlice inside com.tiffinbox joins the whole application's context - 12"
-echo "  slice: TiffinBoxApp's three annotations, no @SpringBootConfiguration in main; alone - Unable to find a @SpringBootConfiguration; A 130 beans, 7 TiffinBox's (3 mocks com.tiffinbox.X#0), the application 293/11, the database out; B TiffinBoxApp - 134, 11, ['database'], the test fails; A' = A; C inside com.tiffinbox - the application 12; Mockito 1 + the JVM 5, shown once"
+echo "  slice: TiffinBoxApp's four annotations, no @SpringBootConfiguration in main; alone - Unable to find a @SpringBootConfiguration; A 130 beans, 7 TiffinBox's (3 mocks com.tiffinbox.X#0), the application 293/11, the database out; B TiffinBoxApp - 134, 11, ['database'], the test fails; A' = A; C inside com.tiffinbox - the application 12; Mockito 1 + the JVM 5, shown once"
 
 # "Customers two hundred ... Nobody four oh four ... three messages, English ... de, German ... four oh five, Allow POST ... the page's title ... C: German JVM ... D: the key off"
 RA=$(blk requests "TiffinBoxWebTest - after/" "C (labelled)"); RC=$(blk requests "C (labelled)" "D (labelled)"); RD=$(blk requests "D (labelled)" "")
@@ -880,7 +884,19 @@ for l in '    LIMIT SliceLimits the older MockMvc API, perform(GET /revenue): th
 [ "$(printf '%s\n' "$UT" | grep -c '^    CHAIN ERROR ')" = 1 ] && [ "$(printf '%s\n' "$UT" | grep -c '^    CHAIN .*MockFilterChain')" = 2 ] || die "untested: the ERROR dispatch on Tomcat once, none in the slice (its two requests, one chain each)"
 TC=$(printf '%s\n' "$UT" | sed -n 's/^    CHAIN REQUEST \/revenue - the chain it runs in: ApplicationFilterChain, \([0-9]*\) filters: .*/\1/p'); MC=$(printf '%s\n' "$UT" | sed -n "s/^    CENSUS TiffinBoxWebTest MockMvc's filters: \([0-9]*\) - .*/\1/p")
 [ "$((TC - 1))" = 6 ] && [ "$MC" = 4 ] || die "untested: Tomcat's 6 besides the harness's own, MockMvc's 4 ($TC, $MC)"
-echo "  untested: the slice - no status, no body (hasFailed, getResponse throws, perform throws ServletException), one REQUEST chain, the page unresolved too; Tomcat - REQUEST then ERROR /error, 500; MockMvc's 4 filters, Tomcat's 6 (+ the harness's); a mock servlet context, no web server"
+# RED S5 #478: B - MockMvc on the whole application (the harness's FullMock, no port): its filters are the slice's four and one more,
+# the observation filter - so the slice's cut and Tomcat's own WebSocket filter are told apart, each read off a chain or a MockMvc
+UTB=$(blk untested "B (labelled) - MockMvc on the whole application" "")
+F5=$(printf '%s\n' "$UTB" | grep "^    CENSUS FullMock MockMvc's filters: " || true)
+[ "$(printf '%s\n' "$F5" | grep -c .)" = 1 ] && [ "$(printf '%s\n' "$UT" | grep -c "^    CENSUS FullMock MockMvc's filters: ")" = 1 ] || die "untested B: one FullMock filter line"
+F5N=${F5#*: }; F5C=${F5N%% - *}; F5L=${F5N#* - }
+[ "$F5C" = 5 ] && [ "$(printf '%s\n' "$F5L" | tr ',' '\n' | sed 's/^ *//' | grep -c .)" = 5 ] || die "untested B: a whole-application MockMvc runs 5 filters (got: $F5N)"
+for f in OrderedCharacterEncodingFilter OrderedFormContentFilter OrderedRequestContextFilter ResourceUrlEncodingFilter; do printf '%s\n' "$F5L" | tr ',' '\n' | sed 's/^ *//' | grep -qxF "$f" || die "untested B: the slice's $f among the whole application's"; done
+[ "$(printf '%s\n' "$F5L" | tr ',' '\n' | sed 's/^ *//' | grep -c 'Observation')" = 1 ] || die "untested B: the fifth is the observation filter"
+has "$UTB" "    CENSUS FullMock the web server: none" "untested B: no web server, no port"
+has "$UTB" "      passed  theWholeApplicationThroughMockMvc" "untested B: FullMock passed"
+! printf '%s\n' "$UTB" | grep -q 'WebSocket' || die "untested B: no WebSocket filter without Tomcat"
+echo "  untested (B: a whole-application MockMvc, 5 filters - the slice's 4 and the observation filter): the slice - no status, no body (hasFailed, getResponse throws, perform throws ServletException), one REQUEST chain, the page unresolved too; Tomcat - REQUEST then ERROR /error, 500; MockMvc's 4 filters, Tomcat's 6 (+ the harness's); a mock servlet context, no web server"
 
 # "a random port ... one two seven, zero, zero, one ... a real five hundred, Boot's four keys ... Tomcat logs it at ERROR ... the error page ... TestRestTemplate"
 FS=$(blk fullstack "FullStackTest, and" "C (labelled)"); FC=$(blk fullstack "C (labelled)" "")

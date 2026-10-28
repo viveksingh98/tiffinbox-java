@@ -36,7 +36,7 @@ M="$PWD/.m2-demo" && H="$PWD/harness" && (cd .harness/mine/anchor && mvn -o -B -
 ```
 
 As shipped, it prints `the old call: 200 · the moved call: 200 · requests at the stub with X-Via: 1 of 2 · observed calls: 1` — both routes answer Ravi's row, but the stub saw `X-Via` on one request of two, the old call's: the moved
-client sent none, and nothing failed. The scrape counted one call, the template's; the moved call is not there at all. The moved client
+client sent none, and nothing failed. The scrape counted one call — both routes ask for the same path, so that line alone cannot say whose; this unit's `migrate` capture shows, in one scrape, that a plain `RestClient.create()` is never observed. The moved client
 is `RestClient.create()` in `.harness/mine/src/TemplateRoutes.java`: read what the template was set up with (this unit's `migrate` capture
 builds RestClient two ways from one), change that one call in the copy, from the same shell, and run the last line again.
 

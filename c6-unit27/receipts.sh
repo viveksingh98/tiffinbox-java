@@ -100,6 +100,10 @@ INTR=""; trap 'INTR=1; exit 130' INT TERM
 exec 3>&1                                            # die() speaks to the terminal even inside a redirected capture
 die() { echo "  *** $* ***" >&3; exit 1; }
 java -version 2>&1 | grep -q 'version "25' || die "JDK 25 needed; JAVA_HOME gives: $(java -version 2>&1 | head -1)"
+# Boot's first line names the JDK ("using Java 25.0.4.1"): machine data, masked in every capture as "using Java <version>" (RED S5
+# #426/#472) - the version printed here once, on the terminal
+JV=$(java -version 2>&1 | sed -n '1s/.*version "\([^"]*\)".*/\1/p')
+echo "  (terminal only) the JDK is $JV - Boot's first line names it; the captures say Java <version>"
 for t in python3 curl rsync lsof unzip javac javap mvn cmp md5; do command -v $t > /dev/null || die "$t is needed"; done
 # A variable of yours must not become a property source, a JVM flag or a build setting: every TIFFINBOX_*, SPRING_*, MANAGEMENT_*,
 # SERVER_* and LOGGING_* variable, DEBUG (Boot reads it as --debug), the variables that inject JVM flags, MAVEN_OPTS, MAVEN_ARGS and
@@ -329,6 +333,7 @@ mask() { awk -v t="$TOKEN" -v u="$U" -v up="$UP" -v hm="$HOME" -v me="$ME" -v tl
     gsub(Q, "…/.."); gsub(QE, "…/.."); gsub(H, "~"); gsub(/\$\$SpringCGLIB\$\$[0-9]+/, "$$SpringCGLIB$$<n>")
     gsub(/\$Proxy[0-9]+/, "$Proxy<n>")
     gsub(/Java-http-client\/[0-9][0-9.]*/, "Java-http-client/<version>")
+    gsub(/ using Java [0-9][0-9.]*/, " using Java <version>")
     gsub(/Java\/[0-9][0-9.]*/, "Java/<version>")
     if (match($0, /java\.io\.IOException: /)) { pre = substr($0, 1, RSTART + RLENGTH - 1); post = substr($0, RSTART + RLENGTH); i = index(post, " - ")
       $0 = pre "<the OS'"'"'s words>" (i ? substr(post, i) : "") }
@@ -412,6 +417,7 @@ printf '%s\n' '# HELP x' 'http_client_requests_seconds_count{uri="/payments/{id}
 PL=$(promf .harness/p1); [ "$PL" = "$(printf '%s\n' '  kept: 2 of the scrape'"'"'s lines, by the filter ^http_client_requests_seconds_count, sorted · the others not shown: 2' '    http_client_requests_seconds_count{uri="/payments"} 1' '    http_client_requests_seconds_count{uri="/payments/{id}"} 2')" ] || die "promf: the planted scrape does not come out as declared (got: $PL)"
 printf '%s\n' 'Java-http-client/25.0.4.1 and Java-http-client/23 and Java/25.0.4.1' 'jdk.proxy2.$Proxy84 and jdk.proxy3.$Proxy7 and App$$SpringCGLIB$$0' "$TOKEN" > .harness/p1
 [ "$(mask < .harness/p1)" = "$(printf '%s\n' 'Java-http-client/<version> and Java-http-client/<version> and Java/<version>' 'jdk.proxy2.$Proxy<n> and jdk.proxy3.$Proxy<n> and App$$SpringCGLIB$$<n>' '[masked: the 32-character token]')" ] || die "mask: the planted User-Agent versions, proxy numbers and token must be masked"
+[ "$(printf '%s\n' 'Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1' | mask)" = 'Starting TiffinBoxServer v1.0.0 using Java <version>' ] || die "mask: the planted Boot first line's JDK version must be masked (RED S5 #426/#472)"
 rm -f .harness/run.out .harness/stub.out .harness/p1
 echo "  the filters: the record filter, the stub's dump filters, the scrape filter and the masks print their planted inputs as declared; a harness line that says ERROR is no ERROR line; a header given twice is two lines"
 
@@ -602,7 +608,7 @@ cnt() { printf '%s\n' "$1" | grep -cxF -- "$2" || true; }
 for f in .harness/raw-*; do [ "$(cat "$f")" = "0" ] || die "a capture's raw output held the token ($f: $(cat "$f"))"; done
 SHIP="README.md exercise/README.md exercise/solution/SOLUTION.md receipts.md5 harness/pom.xml harness/stub/Stub.java harness/shutdown.sh harness/deps.py harness/who.py $HWS"
 for f in .r-*.out $SHIP; do [ "$(raw "$TOKEN" "$f")" = 0 ] || die "$f holds the demo token, raw"; done
-for f in .r-*.out; do ! grep -qE '/Users/|/private/|/home/|/var/folders/' "$f" || die "$f holds an absolute path"; ! grep -qE 'c[0-9]-unit[0-9]|unit ?[0-9]' "$f" || die "$f holds a unit number"; ! grep -qE ' (with PID|started by) ' "$f" || die "$f holds Boot's process line"; ! grep -qE '^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T|"timestamp":"?[0-9]|(exec|handler|task|omcat-handler)-[0-9]' "$f" || die "$f holds a log time, a timestamp or a thread number"; ! grep -qE 'Java-http-client/[0-9]|Java/[0-9]+\.[0-9]|Macintosh|Mac OS X|Windows NT|X11;|Linux x86' "$f" || die "$f holds a client's JDK version or a platform (R.128, R.136)"; ! grep -qE '\$Proxy[0-9]|SpringCGLIB\$\$[0-9]' "$f" || die "$f holds a proxy class's number (masked: it moves with the class path)"; ! grep -qE ':8080|:35729|:18425/' "$f" || die "$f names 8080, 35729 or 18425"; ! grep -q "$(printf '\r')" "$f" || die "$f holds a carriage return"; ! grep -qE '[0-9]+ ?ms\b|[0-9]+\.[0-9]+ ?s(econds)?\b|Started .* in ' "$f" || die "$f holds a duration (R.121, R.139)"; ! grep -qE '^\s+at [a-z]' "$f" || die "$f holds a stack frame"; done
+for f in .r-*.out; do ! grep -qE '/Users/|/private/|/home/|/var/folders/' "$f" || die "$f holds an absolute path"; ! grep -qE 'c[0-9]-unit[0-9]|unit ?[0-9]' "$f" || die "$f holds a unit number"; ! grep -qE ' (with PID|started by) ' "$f" || die "$f holds Boot's process line"; ! grep -qE '^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T|"timestamp":"?[0-9]|(exec|handler|task|omcat-handler)-[0-9]' "$f" || die "$f holds a log time, a timestamp or a thread number"; ! grep -qE 'Java-http-client/[0-9]|Java/[0-9]+\.[0-9]| using Java [0-9]|Macintosh|Mac OS X|Windows NT|X11;|Linux x86' "$f" || die "$f holds a JDK version (a client's, or Boot's first line's) or a platform (R.128, R.136)"; ! grep -qE '\$Proxy[0-9]|SpringCGLIB\$\$[0-9]' "$f" || die "$f holds a proxy class's number (masked: it moves with the class path)"; ! grep -qE ':8080|:35729|:18425/' "$f" || die "$f names 8080, 35729 or 18425"; ! grep -q "$(printf '\r')" "$f" || die "$f holds a carriage return"; ! grep -qE '[0-9]+ ?ms\b|[0-9]+\.[0-9]+ ?s(econds)?\b|Started .* in ' "$f" || die "$f holds a duration (R.121, R.139)"; ! grep -qE '^\s+at [a-z]' "$f" || die "$f holds a stack frame"; done
 # S3.9 (R.105): no wait in this script, its checks or the exercise is bare - each names its pid ($! or a variable)
 for f in receipts.sh exercise/README.md exercise/solution/SOLUTION.md; do ! grep -nE '(^|[;&|({] *)wait *($|[;&|)}])' "$f" | grep -vE '^[0-9]+: *#' > /dev/null || die "$f has a bare wait (S3.9)"; done
 # R.79/S1.3: nothing is stopped by name - no pkill, no killall

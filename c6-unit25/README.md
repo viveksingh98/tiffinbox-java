@@ -54,7 +54,14 @@ from `receipts.md5` (it prints the `DIFFERS` line first). **Start it in a proces
 two receipts started as background jobs of one shell share a group, and one run's clean-up would stop the other's JVMs (R.94). A run takes
 about five minutes: `timeouts` waits out the stub's three seconds several times, three times over.
 
-**Runs of record (2026-10-27, this script as committed):** **312 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with HOME and a
+**Runs of record after BLUE S5 (2026-10-28, this script as committed):** the JDK-version mask (R.151) changed six captures' hashes and
+nothing else (each new capture against RED A's copy of the old, the version normalised: 0 lines differ); a development run under
+`/bin/bash` 3.2 made the six (293 s, `exercise` = published, unchanged); then **287 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i`
+with HOME and a plain PATH, a process group of its own: exit 0, all 7 captures 3/3 = published, every check passed) and **292 s under
+`bash receipts.sh`** (Homebrew bash 5.3.9: exit 0, all 7 = published). The sealed fresh clone was not re-run for this change (BLUE S5 ran
+unit 28's, whose tree changed); the clone below is the 10-27 one, on the hashes before the mask.
+
+**Runs of record (2026-10-27, before BLUE S5):** **312 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with HOME and a
 plain PATH, this folder, a process group of its own: exit 0, all 7 captures 3/3 = published, every check passed) and **298 s under
 `bash receipts.sh`** (Homebrew bash 5.3.9, the same: exit 0, all 7 = published). The hashes were first made by a 3.2 run (312 s) and
 reproduced, unchanged, by every run since — under both bashes, before and after the last checks were added. **A sealed fresh clone**, by
@@ -65,7 +72,7 @@ passed, 297 s**; the first two builds said `offline: no`, as a fresh clone's mus
 `file://`; the harness POM's runs with `-q`, which prints none), every capture's build `offline: yes`; **`_remote.repositories` by
 repository id: 694 `>sealed=` (in 492 artifact folders), 0 `central`**, no line with another id.
 
-Published hashes: change `bb7933b8d551f6d7f3706cf0ea8a9047` · same `378e6e4a1f6b7c20870ca07f642dccaf` · status `efc2fb3ba89996c338630fa8fc232fe1` · timeouts `95e598dc111453cb08a03dd4bc97336c` · defaults `2bf72aafbdbacef835fffb80b9cd8e50` · failure `d36bb8c2ef3006f7c868161b6a07e485` · exercise `841602d150543aa82a86c3971623caa8`.
+Published hashes: change `f746464baa10f38a848d3c23983923a3` · same `4bf510b34539ae198f701fe5864f6a10` · status `f1d359afaa4aefdd44bc8b3325d3074a` · timeouts `005fe920322306c405f81ebaa328cb5f` · defaults `c8b2f3fa027a5b46425a7003c79ac610` · failure `1ebac860f4d9a5346b49edf3e0cf3130` · exercise `841602d150543aa82a86c3971623caa8`.
 
 ### A sealed fresh clone — the recipe (RED S4 #405)
 
@@ -176,9 +183,12 @@ lines are ASCII (a JVM under the C locale writes `?` for anything else).
 1. **Paths, the token, the user** (`gsub()`, literals escaped), in every line: the demo token → `[masked: the 32-character token]`; this
    folder → `…`; the folder above → `…/..`; home → `~`; the user name, as a whole word → `<user>`. **The JDK's version in the client's
    `User-Agent`** (R.136): `Java-http-client/<digits and dots>` → `Java-http-client/<version>`; the raw value is asserted to be a
-   `Java-http-client/` version and printed once on the terminal, never in a capture. A last check fails if any capture holds `/Users/`,
-   `/private/`, `/home/`, `/var/folders/`, a unit number, Boot's process line, a log time, an unmasked timestamp, a thread number, a client's
-   JDK version, a platform word, a stack frame, `:8080` or `:35729`, a carriage return, a duration, or a command with a URL that is not
+   `Java-http-client/` version and printed once on the terminal, never in a capture. **The JDK's version in Boot's first line** (R.151, RED S5
+   #426): ` using Java <digits and dots>` → ` using Java <version>` in every line — the same mask text as units 26-28 — the version printed once
+   on the terminal (`(terminal only) the JDK is 25.0.4.1 …`); it was hashed before BLUE S5, so another JDK patch would have changed six of the seven hashes.
+   A last check fails if any capture holds `/Users/`,
+   `/private/`, `/home/`, `/var/folders/`, a unit number, Boot's process line, a log time, an unmasked timestamp, a thread number, a JDK
+   version (a client's, or ` using Java <digits>`), a platform word, a stack frame, `:8080` or `:35729`, a carriage return, a duration, or a command with a URL that is not
    `127.0.0.1`'s.
 2. **Spring's error timestamp** (`tsmask`): `"timestamp":"<anything>"` → `"timestamp":"…"`, both forms, in every answer printed and in the
    seven (problem details and Boot's four keys here: the mask runs, and the seven print its count, 0).
@@ -229,7 +239,7 @@ place that asks (two constructor parameters of `Calls`: two objects, `false`); `
 client's own field): Boot's builder bean, `RestClient.create()` and `RestClient.builder()` all get **`JdkClientHttpRequestFactory`** — the
 JDK's `HttpClient`, on this class path.
 
-`.r-change.out` · md5 `bb7933b8d551f6d7f3706cf0ea8a9047` · 3 of 3
+`.r-change.out` · md5 `f746464baa10f38a848d3c23983923a3` · 3 of 3
 
 ```
 the anchor - anchor/, copied under .harness/ with a config tree, built with its README's line (offline), its jar extracted (the README's line):
@@ -262,7 +272,7 @@ whose classes - each read off the one jar on that class path that holds it (unzi
 the seven - the anchor, the README's run line (its locale pinned), port 19540, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19540
   listens on: 127.0.0.1:19540 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19540/actuator/health/readiness
   {"status":"UP"} 200
 $ $CURLSET 19540 .harness/anchor/secrets/tiffinbox/shutdown-token
@@ -274,7 +284,7 @@ $ $CURLSET 19540 .harness/anchor/secrets/tiffinbox/shutdown-token
 the seven - the anchor on its class path, the two jars and the harness joined (Calls, CallRoutes; no cases), port 19541, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19541 --spring.main.sources=probe.web.Calls,probe.web.CallRoutes
   listens on: 127.0.0.1:19541 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19541/actuator/health/readiness
   {"status":"UP"} 200
 $ $CURLSET 19541 .harness/anchor/secrets/tiffinbox/shutdown-token
@@ -288,7 +298,7 @@ the lines that moved - the README's run line's seven against the harness line's,
 the client's beans - the same line, the cases beans and factory, port 19542, a fresh JVM (no stub: neither case calls one):
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19542 --spring.main.sources=probe.web.Calls --probe.cases=beans,factory
   listens on: 127.0.0.1:19542 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19542/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Calls): en_US
@@ -323,7 +333,7 @@ Upgrade, HTTP2-Settings`, `upgrade: h2c`, `http2-settings: AAEAAEAAAAIAAAAAAAMAA
 Java II's README printed (48 characters each, compared in the receipt), `host`, `user-agent: Java-http-client/<version>` — and **two
 `accept-encoding` values, `gzip` and `deflate`**, and **no `Accept` header** (0: `body(...)` into a record or a list sent none).
 
-`.r-same.out` · md5 `378e6e4a1f6b7c20870ca07f642dccaf` · 3 of 3
+`.r-same.out` · md5 `4bf510b34539ae198f701fe5864f6a10` · 3 of 3
 
 ```
 the files - this unit's www/ against Core Java II's (this unit's line):
@@ -340,7 +350,7 @@ $ java -Duser.language=en -Duser.country=US harness/stub/Stub.java --port=19546 
 the job - the anchor on its class path, the two jars and the harness joined (Calls), the cases factory and same, port 19540, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19540 --spring.main.sources=probe.web.Calls --probe.cases=factory,same
   listens on: 127.0.0.1:19540 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19540/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Calls): en_US
@@ -402,7 +412,7 @@ the stub's JSON); 503 → `$ServiceUnavailable`. **C (labelled)**: the second in
 built, then built again — **the later client carries the handler** (`MenuMissing`): a builder is mutable (R.141); configure a `clone()`, or
 one builder per client. 0 WARN, 0 ERROR: every exception here was caught by the harness.
 
-`.r-status.out` · md5 `efc2fb3ba89996c338630fa8fc232fe1` · 3 of 3
+`.r-status.out` · md5 `f1d359afaa4aefdd44bc8b3325d3074a` · 3 of 3
 
 ```
 the stub - this unit's line, port 19546:
@@ -411,7 +421,7 @@ $ java -Duser.language=en -Duser.country=US harness/stub/Stub.java --port=19546 
 the statuses - the anchor on its class path, the two jars and the harness joined (Calls), five cases, port 19541, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19541 --spring.main.sources=probe.web.Calls --probe.cases=404,exchange,onstatus,default,5xx
   listens on: 127.0.0.1:19541 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19541/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Calls): en_US
@@ -444,7 +454,7 @@ $ harness/shutdown.sh 19541 .harness/anchor/secrets/tiffinbox/shutdown-token
 C (labelled) - one injected builder configured, then built twice, never cloned (the case leak), port 19542, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19542 --spring.main.sources=probe.web.Calls --probe.cases=leak
   listens on: 127.0.0.1:19542 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19542/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Calls): en_US
@@ -478,7 +488,7 @@ key in Boot 3's spelling, `--spring.http.client.read-timeout=1s` → **answered*
 alone → answered (connecting worked); **D (labelled)** no key → answered. The stub saw five calls, one per JVM; its answers are cut
 (declared above).
 
-`.r-timeouts.out` · md5 `95e598dc111453cb08a03dd4bc97336c` · 3 of 3
+`.r-timeouts.out` · md5 `005fe920322306c405f81ebaa328cb5f` · 3 of 3
 
 ```
 the keys - what Boot's own metadata declares (in spring-boot-http-client-4.1.1.jar, one of the two jars the starter adds; this unit's lines):
@@ -500,7 +510,7 @@ $ java -Duser.language=en -Duser.country=US harness/stub/Stub.java --port=19546 
 A - the anchor on its class path, the two jars and the harness joined (Calls, the case slow), the read timeout at one second, port 19543, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19543 --spring.main.sources=probe.web.Calls --probe.cases=slow --spring.http.clients.read-timeout=1s
   listens on: 127.0.0.1:19543 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19543/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Calls): en_US
@@ -516,7 +526,7 @@ $ harness/shutdown.sh 19543 .harness/anchor/secrets/tiffinbox/shutdown-token
 B - the same, the key in Boot 3's spelling (the singular), port 19544, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19544 --spring.main.sources=probe.web.Calls --probe.cases=slow --spring.http.client.read-timeout=1s
   listens on: 127.0.0.1:19544 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19544/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Calls): en_US
@@ -532,7 +542,7 @@ $ harness/shutdown.sh 19544 .harness/anchor/secrets/tiffinbox/shutdown-token
 A' - A again, port 19543, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19543 --spring.main.sources=probe.web.Calls --probe.cases=slow --spring.http.clients.read-timeout=1s
   listens on: 127.0.0.1:19543 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19543/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Calls): en_US
@@ -549,7 +559,7 @@ A' against A, its label aside, line for line the same: yes
 C (labelled) - the connect timeout alone, at one second, port 19544, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19544 --spring.main.sources=probe.web.Calls --probe.cases=slow --spring.http.clients.connect-timeout=1s
   listens on: 127.0.0.1:19544 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19544/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Calls): en_US
@@ -565,7 +575,7 @@ $ harness/shutdown.sh 19544 .harness/anchor/secrets/tiffinbox/shutdown-token
 D (labelled) - no timeout key at all, port 19543, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19543 --spring.main.sources=probe.web.Calls --probe.cases=slow
   listens on: 127.0.0.1:19543 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19543/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Calls): en_US
@@ -597,7 +607,7 @@ JDK factory, on this class path). An **observation** — Spring's record of one 
 (`uri="/redirect"`, 1); `create()`'s three calls, under `/{name}`, which the stub saw, **nowhere** (2 lines kept). **C (labelled)**
 `--spring.http.clients.redirects=dont-follow` → Boot's builder 302 too, and no request for `ravi.json`.
 
-`.r-defaults.out` · md5 `2bf72aafbdbacef835fffb80b9cd8e50` · 3 of 3
+`.r-defaults.out` · md5 `c8b2f3fa027a5b46425a7003c79ac610` · 3 of 3
 
 ```
 the stub - this unit's line, port 19546 (its /redirect answers 302, Location: /ravi.json):
@@ -606,7 +616,7 @@ $ java -Duser.language=en -Duser.country=US harness/stub/Stub.java --port=19546 
 both ways in one JVM - the anchor on its class path, the two jars and the harness joined (Calls), the cases redirect and metrics, port 19540, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19540 --spring.main.sources=probe.web.Calls --probe.cases=redirect,metrics
   listens on: 127.0.0.1:19540 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19540/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Calls): en_US
@@ -639,7 +649,7 @@ $ harness/shutdown.sh 19540 .harness/anchor/secrets/tiffinbox/shutdown-token
 C (labelled) - the redirects key at dont-follow (this unit's line, as an option), the case redirect, port 19541, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19541 --spring.main.sources=probe.web.Calls --probe.cases=redirect --spring.http.clients.redirects=dont-follow
   listens on: 127.0.0.1:19541 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19541/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Calls): en_US
@@ -670,7 +680,7 @@ stub's words, in TiffinBox's log; the stub's **404** → TiffinBox's **500** too
 request, the stub's answer and TiffinBox's, both printed; the control, `ravi.json` → 200 `text/plain` (the stub's JSON as a string), 0/0.
 The stub's dump: 3 requests, the demo token 0 times, `X-Shutdown-Token` 0 times.
 
-`.r-failure.out` · md5 `d36bb8c2ef3006f7c868161b6a07e485` · 3 of 3
+`.r-failure.out` · md5 `1ebac860f4d9a5346b49edf3e0cf3130` · 3 of 3
 
 ```
 the stub - this unit's line, port 19546:
@@ -680,7 +690,7 @@ $ java -Duser.language=en -Duser.country=US harness/stub/Stub.java --port=19546 
 a route that calls the stub - the anchor on its class path, the two jars and the harness joined (Calls, CallRoutes), the case down, port 19542, a fresh JVM:
 $ cd .harness/anchor && java -Duser.language=en -Duser.country=US -cp "tiffinbox-web/target/extracted/tiffinbox-web-1.0.0.jar:tiffinbox-web/target/extracted/lib/*:../xlib/*:../hc" com.tiffinbox.web.TiffinBoxServer --tiffinbox.port=19542 --spring.main.sources=probe.web.Calls,probe.web.CallRoutes --probe.cases=down
   listens on: 127.0.0.1:19542 · loopback only: yes
-  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1
+  Boot's first line: Starting TiffinBoxServer v1.0.0 using Java <version>
 $ curl -s -w ' %{http_code}\n' http://127.0.0.1:19542/actuator/health/readiness
   {"status":"UP"} 200
   the JVM's locale (the harness's Calls): en_US

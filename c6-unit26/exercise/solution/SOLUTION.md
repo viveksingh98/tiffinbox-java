@@ -1,8 +1,8 @@
 # Solution — tell the group where the payment service lives
 
 A service group's client takes its address from one key: `spring.http.serviceclient.<group>.base-url` — `spring.http.serviceclient` is,
-in Boot 4.1.1's metadata, a map from a group's name to `HttpClientProperties`, whose `setBaseUrl` is the `base-url` (this unit's `group`
-capture). With no key the group's client is still built, and TiffinBox still starts — nothing checks the address until a call needs one.
+in Boot 4.1.1's metadata, a map from a group's name to `HttpClientProperties`, whose `setBaseUrl` Boot binds as `base-url` — relaxed binding: the setter's
+name in kebab case, after the group's name (this unit's `group` capture; the done line below is its effect). With no key the group's client is still built, and TiffinBox still starts — nothing checks the address until a call needs one.
 One line changes — `B=` — and the README's last line runs again, unchanged, in the same shell. A new shell's `java` may be another JDK (the
 Mac's own is 23, which refuses the anchor's Java 25 at compile), so the two export lines come first:
 

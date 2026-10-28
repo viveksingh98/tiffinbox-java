@@ -955,8 +955,9 @@ Evidence for every sentence in this section: `../c6-unit24/` (`receipts.sh`, nin
 
 ## Course 6 · unit 28 — the first tests: a slice of the web layer, and the whole application on a random port (2026-10-28)
 
-TiffinBox has answered requests since the course began, and until this unit it had no test: there was no `src/test`, and every
-build's test step said `No tests to run.` (`change`). From this unit the web module has a **test** — code that runs TiffinBox's code
+TiffinBox has answered requests since the course began, and until this unit its own tree kept no test: there was no `src/test`, and
+every build's test step said `No tests to run.` (`change`). (Course 3, *Build & Test Like a Pro*, wrote JUnit and Mockito tests on
+TiffinBox's classes in its lessons' own folders; none of them reached this tree.) From this unit the web module has a **test** — code that runs TiffinBox's code
 and checks one answer, so a change that breaks it fails the build — eleven of them, and the build runs them. One file changed, three
 are new, besides this README:
 - `tiffinbox-web/pom.xml` — **`spring-boot-starter-webmvc-test`, in test scope** (five lines): Boot's test starter for Spring MVC. Its
@@ -966,7 +967,8 @@ are new, besides this README:
   the executable jar's 61 libraries are the same names, its one changed entry of 218 is the copy of this POM Maven puts in every jar, and
   `tiffinbox-core`'s jar is byte for byte the one before. And one property, `argLine`, `-Duser.language=en -Duser.country=US`: Surefire
   (Maven's test plugin, 3.5.6) runs the tests in a JVM of its own — a fork — and passes it this property's options. Maven's own options
-  never reach that JVM: with `MAVEN_OPTS` set to German words, Maven's JVM said `Default locale: de_DE` and the test JVM `en_US`. Nothing
+  never reach that JVM: with `MAVEN_OPTS` set to German words and this property emptied for the run (`-DargLine=`), Maven's JVM said
+`Default locale: de_DE` and the test JVM `en_US`, its own default here. Nothing
   in `<build>` changed.
 - `src/test/java/slice/WebSlice.java` (new) — the configuration the web slice starts from (below), outside `com.tiffinbox`.
 - `src/test/java/com/tiffinbox/web/TiffinBoxWebTest.java` (new) — nine tests of the web layer alone, through MockMvc.
@@ -982,7 +984,7 @@ mvn -B -pl tiffinbox-web -Dtest=TiffinBoxWebTest clean test
 package: the eleven tests, and a failing test fails the build (exit 1, `BUILD FAILURE`). `-DskipTests` skips them: Course 4's
 `mvn -q -DskipTests package` builds the jar and writes no report.
 `-pl tiffinbox-web` builds the web module alone and takes `tiffinbox-core` from your local Maven repository, so `mvn -B install` comes
-once first; `-Dtest=TiffinBoxWebTest` runs that one class (`TiffinBoxWebTest#theTestsRunInEnglish`, one method). The course's
+once first; `-Dtest=TiffinBoxWebTest` runs that one class (`-Dtest=TiffinBoxWebTest#theTestsRunInEnglish`: one method). The course's
 commands use `-Dtest=` with `-pl tiffinbox-web`, and `clean` every time, so no report of an earlier run is read. The tests' token is a
 literal written in them, `not-the-real-token` — not a secret: the tests run in `tiffinbox-web/`, where no `secrets/` folder is, and the
 settings record will not start without a token.
@@ -990,7 +992,8 @@ settings record will not start without a token.
 **A test slice, and why it needed a configuration of its own** (`slice`). `TiffinBoxWebTest` is a **test slice**: `@WebMvcTest`
 (spring-boot-webmvc-test) starts Spring MVC with TiffinBox's controllers, its advice and its page, and leaves the rest of the
 application out. It looks for a `@SpringBootConfiguration` in the test's package and every package above it — and TiffinBox has none:
-`TiffinBoxApp` is Course 5's hand-built `@Configuration @EnableAutoConfiguration @ComponentScan("com.tiffinbox")`. So the slice alone
+`TiffinBoxApp` is Course 5's four hand-built annotations, `@Configuration @EnableAutoConfiguration @ComponentScan("com.tiffinbox")
+@EnableConfigurationProperties(TiffinBoxProperties.class)` — none of them a `@SpringBootConfiguration`. So the slice alone
 fails before any test runs: `Unable to find a @SpringBootConfiguration by searching packages upwards from the test.` `WebSlice` is what a
 `@SpringBootApplication` would have given it: the same scan, with Boot's `TypeExcludeFilter` — the filter a slice uses to leave out
 every class it does not test — and the settings record. Pointed at `WebSlice`, the slice's context holds 130 beans, 7 of them
@@ -1000,8 +1003,8 @@ TiffinBox's (by the `com.tiffinbox` filter): `tiffinBoxServer`, `dashboardPage`,
 `FullStackTest`, holds 293, 11 of them TiffinBox's — on Boot 4.1.1, here. Pointed at `TiffinBoxApp` instead, the slice holds 134, all
 11 TiffinBox's, `database` among them, and `theSliceLeavesTheDatabaseOut` fails: TiffinBoxApp's scan has no `TypeExcludeFilter`, so the
 slice's filter never applies. `WebSlice` lives outside `com.tiffinbox` on purpose: a copy of it inside that package was picked up by
-TiffinBoxApp's own scan, and the whole application's context held 12 of TiffinBox's beans. Mockito mocks TiffinBox's `final` classes, and
-says so once per test JVM on the console — one line of Mockito's own (`Mockito is currently self-attaching to enable the
+TiffinBoxApp's own scan, and the whole application's context held 12 of TiffinBox's beans. Mockito mocks TiffinBox's `final` classes with its
+inline mock maker, its default, which announces itself once per test JVM on the console — one line of Mockito's own (`Mockito is currently self-attaching to enable the
 inline-mock-maker…`) and five of the JVM's (four `WARNING:` lines about a Java agent loaded dynamically, one `OpenJDK 64-Bit Server VM
 warning: Sharing is only supported…`): not errors, and not a logger's.
 
@@ -1020,11 +1023,13 @@ no body** — MockMvc's result is the failure itself (`hasFailed()`, `jakarta.se
 java.lang.IllegalStateException: kitchen on fire`), and the older `MockMvc.perform` throws it. **No error dispatch**: in the slice the
 request ran one chain (`REQUEST`); on Tomcat the same failure ran two — the `REQUEST`, then an `ERROR` dispatch to `/error`, where Boot
 writes its 500 — so no `/error` and no `error/5xx.html` in a slice: the dashboard's page, failing, is an unresolved exception too.
-**Other filters**: MockMvc runs 4 (`OrderedCharacterEncodingFilter`, `OrderedFormContentFilter`, `OrderedRequestContextFilter`,
+**Other filters**: the slice's MockMvc runs 4 (`OrderedCharacterEncodingFilter`, `OrderedFormContentFilter`, `OrderedRequestContextFilter`,
 `ResourceUrlEncodingFilter`); Tomcat's chain for the same request holds 6 (`characterEncodingFilter`, `webMvcObservationFilter`,
 `formContentFilter`, `requestContextFilter`, `resourceUrlEncodingFilter`, `Tomcat WebSocket (JSR356) Filter`), besides the harness's own.
+The two differences have two causes: a MockMvc on the whole application (`@SpringBootTest` in its mock environment with
+`@AutoConfigureMockMvc`) runs 5 — the observation (metrics) filter is the slice's cut — and the WebSocket filter is Tomcat's own.
 **No socket, no bind address, no connector**: the slice runs on a mock servlet context (`SpringBootMockServletContext`) with no web
-server. The CORS lesson's preflight cache is not reached either: named here, not measured.
+server. The CORS lesson's preflight cache is the caller's (a browser keeps it), not the server's: no test here reaches it.
 
 **The whole application, on a random port** (`fullstack`). `FullStackTest` is a **full-stack test**: `@SpringBootTest(classes =
 TiffinBoxApp.class, webEnvironment = RANDOM_PORT)` starts the whole application — TiffinBoxApp — on a real Tomcat, with one mock

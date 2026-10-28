@@ -15,8 +15,8 @@
   <description>Spring MVC's routes over TiffinBox's core. No SQL in here.</description>
 
   <!-- Course 6: Surefire runs the tests in a JVM of its own (a fork), and passes it this property's options: Maven's own
-       (MAVEN_OPTS) never reach it. The locale pinned there, as on every run line - Hibernate Validator writes its messages
-       in the JVM's language, and a test asserts en_US. -->
+       (MAVEN_OPTS) never reach it. The locale pinned there, as on every run line: a test asserts the JVM's is en_US
+       (MockMvc's requests carry a language of their own - English, unless a test sends Accept-Language). -->
   <properties>
     <argLine>-Duser.language=en -Duser.country=US</argLine>
   </properties>

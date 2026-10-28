@@ -105,6 +105,10 @@ INTR=""; trap 'INTR=1; exit 130' INT TERM
 exec 3>&1                                            # die() speaks to the terminal even inside a redirected capture
 die() { echo "  *** $* ***" >&3; exit 1; }
 java -version 2>&1 | grep -q 'version "25' || die "JDK 25 needed; JAVA_HOME gives: $(java -version 2>&1 | head -1)"
+# Boot's first line names the JDK ("using Java 25.0.4.1"): machine data, masked in every capture as "using Java <version>" (RED S5
+# #426/#472) - the version printed here once, on the terminal
+JV=$(java -version 2>&1 | sed -n '1s/.*version "\([^"]*\)".*/\1/p')
+echo "  (terminal only) the JDK is $JV - Boot's first line names it; the captures say Java <version>"
 for t in python3 curl rsync lsof unzip javac javap mvn cmp md5; do command -v $t > /dev/null || die "$t is needed"; done
 # A variable of yours must not become a property source, a JVM flag or a build setting: every TIFFINBOX_*, SPRING_*, MANAGEMENT_*,
 # SERVER_* and LOGGING_* variable, DEBUG (Boot reads it as --debug), the variables that inject JVM flags, MAVEN_OPTS, MAVEN_ARGS and
@@ -338,6 +342,7 @@ mask() { awk -v t="$TOKEN" -v u="$U" -v up="$UP" -v hm="$HOME" -v me="$ME" -v tl
     gsub(Q, "…/.."); gsub(QE, "…/.."); gsub(H, "~"); gsub(/\$\$SpringCGLIB\$\$[0-9]+/, "$$SpringCGLIB$$<n>")
     gsub(/\$Proxy[0-9]+/, "$Proxy<n>")
     gsub(/Java-http-client\/[0-9][0-9.]*/, "Java-http-client/<version>")
+    gsub(/ using Java [0-9][0-9.]*/, " using Java <version>")
     if (match($0, /java\.io\.IOException: /)) { pre = substr($0, 1, RSTART + RLENGTH - 1); post = substr($0, RSTART + RLENGTH); i = index(post, " - ")
       $0 = pre "<the OS'"'"'s words>" (i ? substr(post, i) : "") }
     while (match($0, M)) { pre = substr($0, 1, RSTART - 1); s = substr($0, RSTART, RLENGTH); post = substr($0, RSTART + RLENGTH)
@@ -425,6 +430,7 @@ printf '%s\n' '# HELP x' 'http_client_requests_seconds_count{uri="/payments/{id}
 PL=$(promf .harness/p1); [ "$PL" = "$(printf '%s\n' '  kept: 2 of the scrape'"'"'s lines, by the filter ^http_client_requests_seconds_count, sorted · the others not shown: 2' '    http_client_requests_seconds_count{uri="/payments"} 1' '    http_client_requests_seconds_count{uri="/payments/{id}"} 2')" ] || die "promf: the planted scrape does not come out as declared (got: $PL)"
 printf '%s\n' 'Java-http-client/25.0.4.1 and Java-http-client/23' 'jdk.proxy2.$Proxy84 and jdk.proxy3.$Proxy7 and App$$SpringCGLIB$$0' "$TOKEN" > .harness/p1
 [ "$(mask < .harness/p1)" = "$(printf '%s\n' 'Java-http-client/<version> and Java-http-client/<version>' 'jdk.proxy2.$Proxy<n> and jdk.proxy3.$Proxy<n> and App$$SpringCGLIB$$<n>' '[masked: the 32-character token]')" ] || die "mask: the planted User-Agent versions, proxy numbers and token must be masked"
+[ "$(printf '%s\n' 'Starting TiffinBoxServer v1.0.0 using Java 25.0.4.1' | mask)" = 'Starting TiffinBoxServer v1.0.0 using Java <version>' ] || die "mask: the planted Boot first line's JDK version must be masked (RED S5 #426/#472)"
 rm -f .harness/run.out .harness/stub.out .harness/p1
 echo "  the filters: the record filter, the stub's dump filters, the scrape filter and the masks print their planted inputs as declared; a harness line that says ERROR is no ERROR line; a header given twice is two lines"
 
@@ -497,6 +503,9 @@ calls() { local s0
 group() { local s0
   echo "the group's keys - what Boot's own metadata declares (in spring-boot-http-client-4.1.1.jar, one of the two jars the starter adds), and the class each group binds to (this unit's lines):"
   echo "\$ $L_KEYS"; (eval "$L_KEYS") 2>&1 < /dev/null | sed 's/^/  /'
+  # RED S5 #430: keys.py (byte for byte the upload lesson's) prints a type from its last dot on - for this key, a map, the tail
+  # "HttpClientProperties>"; its type whole, read off the same metadata, beside it
+  echo "  that key's type, whole (keys.py keeps what follows its last dot): $(python3 -c 'import json,sys,zipfile; m=json.loads(zipfile.ZipFile(sys.argv[1]).read("META-INF/spring-configuration-metadata.json")); print([p["type"] for p in m["properties"] if p["name"]=="spring.http.serviceclient"][0])' "$HTTPJ") - a map: a group's name to the settings it binds"
   echo "\$ $L_JAVAP"; (eval "$L_JAVAP") > .harness/javap.out 2>&1 < /dev/null || die "javap could not read the two classes"
   echo "  what javap printed: $(wc -l < .harness/javap.out | tr -d ' ') lines · kept: its two class lines and their setters, $(grep -cE '(^public|^  public void set)' .harness/javap.out) lines"
   grep -E '(^public|^  public void set)' .harness/javap.out | sed 's/^  public void /    set /; s/^public /  /; s/ {$//'
@@ -558,8 +567,8 @@ ways() {
   echo "  19559, never bound: listening $(listeners 19559) (lsof, by port)"
   echo "A - the group's client (@ImportHttpServices, Boot's builder underneath), the cases proxy and pay, a fresh stub, port 19552, a fresh JVM:"
   wrun 19552 proxy,pay
-  echo "B - the same interface by hand (HttpServiceProxyFactory over RestClient.create(), the case hand), then the group's pay, a fresh stub, port 19553, a fresh JVM:"
-  wrun 19553 hand,pay
+  echo "B - the group's pay, then the same interface by hand (HttpServiceProxyFactory over RestClient.create(), the case hand: a GET, find pay-1), a fresh stub, port 19553, a fresh JVM:"
+  wrun 19553 pay,hand
   echo "A' - A again, a fresh stub, port 19552, a fresh JVM:"
   wrun 19552 proxy,pay
   echo "A' against A, its label aside, line for line the same: $(asame "A - " "B - " "A' - " "A' against A")"; }
@@ -637,7 +646,7 @@ cnt() { printf '%s\n' "$1" | grep -cxF -- "$2" || true; }
 for f in .harness/raw-*; do [ "$(cat "$f")" = "0" ] || die "a capture's raw output held the token ($f: $(cat "$f"))"; done
 SHIP="README.md exercise/README.md exercise/solution/SOLUTION.md receipts.md5 harness/pom.xml harness/aot-app/pom.xml harness/stub/Stub.java harness/shutdown.sh harness/keys.py harness/meta.py harness/hints.py $HWS $AWS"
 for f in .r-*.out $SHIP; do [ "$(raw "$TOKEN" "$f")" = 0 ] || die "$f holds the demo token, raw"; done
-for f in .r-*.out; do ! grep -qE '/Users/|/private/|/home/|/var/folders/' "$f" || die "$f holds an absolute path"; ! grep -qE 'c[0-9]-unit[0-9]|unit ?[0-9]' "$f" || die "$f holds a unit number"; ! grep -qE ' (with PID|started by) ' "$f" || die "$f holds Boot's process line"; ! grep -qE '^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T|"timestamp":"?[0-9]|(exec|handler|task|omcat-handler)-[0-9]' "$f" || die "$f holds a log time, a timestamp or a thread number"; ! grep -qE 'Java-http-client/[0-9]|Java/[0-9]+\.[0-9]|Macintosh|Mac OS X|Windows NT|X11;|Linux x86' "$f" || die "$f holds a client's JDK version or a platform (R.128, R.136)"; ! grep -qE '\$Proxy[0-9]|SpringCGLIB\$\$[0-9]' "$f" || die "$f holds a proxy class's number (masked: it moves with the class path)"; ! grep -qE ':8080|:35729|:18425/' "$f" || die "$f names 8080, 35729 or 18425"; ! grep -q "$(printf '\r')" "$f" || die "$f holds a carriage return"; ! grep -qE '[0-9]+ ?ms\b|[0-9]+\.[0-9]+ ?s(econds)?\b|Started .* in ' "$f" || die "$f holds a duration (R.121, R.139)"; ! grep -qE '^\s+at [a-z]' "$f" || die "$f holds a stack frame"; done
+for f in .r-*.out; do ! grep -qE '/Users/|/private/|/home/|/var/folders/' "$f" || die "$f holds an absolute path"; ! grep -qE 'c[0-9]-unit[0-9]|unit ?[0-9]' "$f" || die "$f holds a unit number"; ! grep -qE ' (with PID|started by) ' "$f" || die "$f holds Boot's process line"; ! grep -qE '^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T|"timestamp":"?[0-9]|(exec|handler|task|omcat-handler)-[0-9]' "$f" || die "$f holds a log time, a timestamp or a thread number"; ! grep -qE 'Java-http-client/[0-9]|Java/[0-9]+\.[0-9]| using Java [0-9]|Macintosh|Mac OS X|Windows NT|X11;|Linux x86' "$f" || die "$f holds a JDK version (a client's, or Boot's first line's) or a platform (R.128, R.136)"; ! grep -qE '\$Proxy[0-9]|SpringCGLIB\$\$[0-9]' "$f" || die "$f holds a proxy class's number (masked: it moves with the class path)"; ! grep -qE ':8080|:35729|:18425/' "$f" || die "$f names 8080, 35729 or 18425"; ! grep -q "$(printf '\r')" "$f" || die "$f holds a carriage return"; ! grep -qE '[0-9]+ ?ms\b|[0-9]+\.[0-9]+ ?s(econds)?\b|Started .* in ' "$f" || die "$f holds a duration (R.121, R.139)"; ! grep -qE '^\s+at [a-z]' "$f" || die "$f holds a stack frame"; done
 # S3.9 (R.105): no wait in this script, its checks or the exercise is bare - each names its pid ($! or a variable)
 for f in receipts.sh exercise/README.md exercise/solution/SOLUTION.md; do ! grep -nE '(^|[;&|({] *)wait *($|[;&|)}])' "$f" | grep -vE '^[0-9]+: *#' > /dev/null || die "$f has a bare wait (S3.9)"; done
 # R.79/S1.3: nothing is stopped by name - no pkill, no killall
@@ -747,6 +756,7 @@ echo "  calls: pay -> $REC1; payForEntity -> 201, Location /payments/pay-2; find
 GO=$(cat .r-group.out); GA=$(blk group "the group's read timeout" "C (labelled)"); GC=$(blk group "C (labelled)" "the requests the stub saw")
 has "$GO" '  spring.http.serviceclient · default none · HttpClientProperties>' "group: the metadata's one key, a map"
 has "$GO" '  1 keys under spring.http.serviceclient' "group: one key"
+has "$GO" '  that key'"'"'s type, whole (keys.py keeps what follows its last dot): java.util.Map<String,org.springframework.boot.http.client.autoconfigure.HttpClientProperties> - a map: a group'"'"'s name to the settings it binds' "group: the key's type whole, a map (RED S5 #430)"
 has "$GO" '  class org.springframework.boot.http.client.autoconfigure.HttpClientProperties extends org.springframework.boot.http.client.autoconfigure.HttpClientSettingsProperties' "group: HttpClientProperties"
 has "$GO" '    set setBaseUrl(java.lang.String);' "group: base-url"
 has "$GO" '    set setReadTimeout(java.time.Duration);' "group: read-timeout, inherited"
@@ -778,8 +788,8 @@ has "$AO" '  JDK-proxy hints: 1' "aot: one proxy hint"
 has "$AO" '    proxy: [probe.aot.Payments, org.springframework.aop.SpringProxy, org.springframework.aop.framework.Advised, org.springframework.core.DecoratingProxy]' "aot: the hint's four interfaces"
 has "$AO" '    probe.aot.Charge · allDeclaredFields allDeclaredConstructors · methods: amount() customer()' "aot: Charge's binding hints"
 has "$AO" '    probe.aot.Payment · allDeclaredFields allDeclaredConstructors · methods: amount() customer() id() status()' "aot: Payment's binding hints"
-has "$AJ" '  exit 0 · Boot'"'"'s first line: Starting App v1.0.0 using Java 25.0.4.1' "aot: the JVM run's first line"
-has "$AA" '  exit 0 · Boot'"'"'s first line: Starting AOT-processed App v1.0.0 using Java 25.0.4.1' "aot: Boot's AOT-processed line"
+has "$AJ" '  exit 0 · Boot'"'"'s first line: Starting App v1.0.0 using Java <version>' "aot: the JVM run's first line"
+has "$AA" '  exit 0 · Boot'"'"'s first line: Starting AOT-processed App v1.0.0 using Java <version>' "aot: Boot's AOT-processed line"
 [ "$(printf '%s\n' "$AJ" | grep -c 'AOT-processed')" = 0 ] || die "aot: the JVM run says AOT-processed"
 for b in "$AJ" "$AA"; do has "$b" '    the JVM'"'"'s locale: en_US' "aot: the locale"; has "$b" '    proxy class: jdk.proxy2.$Proxy<n> | Proxy.isProxyClass: true | AopUtils.isJdkDynamicProxy: true' "aot: a JDK proxy"
   has "$b" '    proxy interfaces: [org.springframework.aop.SpringProxy, org.springframework.aop.framework.Advised, org.springframework.core.DecoratingProxy, probe.aot.Payments]' "aot: the four interfaces"
@@ -802,14 +812,17 @@ has "$WB" '    hand class: jdk.proxy2.$Proxy<n> | its superclass: java.lang.refl
 has "$WB" '    hand Proxy.isProxyClass: true | AopUtils.isJdkDynamicProxy: true | AopUtils.isCglibProxy: false' "ways B: the same kind"
 has "$WB" "    hand interfaces: $PROXYI" "ways B: the same interfaces"
 has "$WB" '    hand the same class as the group'"'"'s: true' "ways B: the same class"
-has "$WB" '    hand pay -> Payment[id=pay-1, status=PAID, customer=Priya, amount=3600]' "ways B: the record"
-has "$WB" '    pay the group'"'"'s client -> Payment[id=pay-2, status=PAID, customer=Ravi, amount=7200]' "ways B: the group's pay beside it"
-[ "$(printf '%s\n' "$WB" | grep -c '^    POST /payments · headers: 9 · the stub answered 201 ')" = 2 ] || die "ways B: two POSTs reached the stub, one observed"
-has "$WB" "\$ $(hcp .harness/anchor 19553 probe.web.PaymentConfig,probe.web.Pays "--probe.cases=hand,pay $O_B")" "ways B: its line"
+has "$WB" "    pay the group's client -> $REC1" "ways B: the group's pay first"
+has "$WB" "    hand find pay-1 -> $REC1" "ways B: the hand-made GET reads the group's payment back"
+# RED S5 #432: the hand-made call is a GET, the group's a POST - so the scrape's one POST line can only be the group's, and the
+# hand-made call's tag (uri="/payments/{id}") is absent from the same scrape: who was observed is read off one scrape
+[ "$(printf '%s\n' "$WB" | grep -c '^    POST /payments · headers: 9 · the stub answered 201 ')" = 1 ] && [ "$(printf '%s\n' "$WB" | grep -c '^    GET /payments/pay-1 · headers: [0-9]* · the stub answered 200 ')" = 1 ] || die "ways B: one POST (the group's) and one GET (by hand) reached the stub"
+[ "$(printf '%s\n' "$WB" | grep -cF 'uri="/payments/{id}"')" = 0 ] || die "ways B: the hand-made GET must be absent from the scrape"
+has "$WB" "\$ $(hcp .harness/anchor 19553 probe.web.PaymentConfig,probe.web.Pays "--probe.cases=pay,hand $O_B")" "ways B: its line"
 has "$WA2" "\$ $(hcp .harness/anchor 19552 probe.web.PaymentConfig,probe.web.Pays "--probe.cases=proxy,pay $O_B")" "ways A': its \$ line (R.16, S5.2)"
 has "$WO" "A' against A, its label aside, line for line the same: yes" "ways: A' = A"
 grep -qF 'HttpServiceProxyFactory.builderFor(RestClientAdapter.create(RestClient.create(stub))).build()' harness/probe/web/Pays.java || die "ways B: the hand-made client is HttpServiceProxyFactory over RestClient.create()"
-echo "  ways: A the group's - JdkDynamicAopProxy, the record, uri=\"/payments\" 201 1; B by hand - the same proxy class, the record, 2 POSTs at the stub and still 1 observation (the group's); A' = A"
+echo "  ways: A the group's - JdkDynamicAopProxy, the record, uri=\"/payments\" 201 1; B by hand - the same proxy class; the group's POST and the hand-made GET at the stub, one scrape: the POST observed, uri=\"/payments/{id}\" absent; A' = A"
 
 # the exercise's files as shipped (read again here, so a check that the exercise capture makes cannot be skipped)
 XR=$(block exercise/README.md); XL=$(block exercise/solution/SOLUTION.md)

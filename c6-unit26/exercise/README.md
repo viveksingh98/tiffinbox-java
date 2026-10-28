@@ -36,8 +36,11 @@ M="$PWD/.m2-demo" && H="$PWD/harness" && (cd .harness/mine/anchor && mvn -o -B -
 As shipped, it prints `readiness: 200 · the pay call: 500 · its payment: none · URI with undefined scheme in its log: 1 · requests the stub saw: 0`
 — TiffinBox started and said it was ready, not one WARN line in its log; then the call failed inside TiffinBox, before any request left it:
 the stub saw nothing. The words come from the JDK's own client, which was handed a path with no `http://127.0.0.1:…` in front of it.
-Read the keys a group takes in Boot's own metadata — this unit's `group` capture prints them, and the class each group binds to — then set
-`B=`, from the same shell, and run the last line again.
+Boot's own metadata lists one key for groups, `spring.http.serviceclient`: a map from a group's name to the class its settings bind to,
+`HttpClientProperties` — this unit's `group` capture prints the key, its type whole, and that class's setters. A setter becomes a key by
+Boot's relaxed binding: its name after `set`, in kebab case, after the group's name — the `group` capture sets
+`spring.http.serviceclient.payments.read-timeout` (from `setReadTimeout`), and its effect is measured there. Find the setter for the
+address, spell its key the same way, set `B=`, from the same shell, and run the last line again.
 
 **Done** when you can print
 

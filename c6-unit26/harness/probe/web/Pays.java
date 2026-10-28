@@ -128,7 +128,7 @@ public class Pays implements ApplicationRunner {
                         .createClient(Payments.class);
                 kind("hand", byHand);
                 out("hand the same class as the group's: " + (byHand.getClass() == payments.getClass()));
-                out("hand pay -> " + byHand.pay(new Charge("Priya", 3600)));
+                out("hand find pay-1 -> " + byHand.find("pay-1"));
             }
             default -> out("unknown case " + k);
         }

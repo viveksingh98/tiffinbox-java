@@ -3,8 +3,9 @@
 Course 6 · Spring Web MVC · Section 5 (Calling Out), its fourth and last unit, and the section's only anchor change · Verified on
 **JDK 25.0.4.1, Apache Maven 3.9.16, Spring Boot 4.1.1** (Spring Framework 7.0.9, Tomcat 11.0.24, Jackson 3.1.5, Hibernate Validator
 9.1.3.Final, Thymeleaf 3.1.5; JUnit Jupiter 6.0.3, AssertJ 3.27.7, Mockito 5.23.0, Surefire 3.5.6), **GraalVM CE 25.3.4.1** (native-image
-25.0.4.1), **Docker on OrbStack**, 2026-10-28. TiffinBox has answered requests since the course began, and it has never had a test.
-This unit gives it its first: a **test** (code that runs TiffinBox's code and checks one answer, so a change that breaks it fails the
+25.0.4.1), **Docker on OrbStack**, 2026-10-28. TiffinBox has answered requests since the course began, and its own tree has never kept a
+test (Course 3, *Build & Test Like a Pro*, wrote JUnit and Mockito tests on TiffinBox's classes in its lessons' own folders). This unit
+gives the tree its first: a **test** (code that runs TiffinBox's code and checks one answer, so a change that breaks it fails the
 build), a **test slice** (`@WebMvcTest`: Spring MVC and TiffinBox's web classes started alone, the rest of the application left out),
 **mocks** (stand-ins Mockito makes, which answer only what a test tells them) put in the slice by **`@MockitoBean`**, requests through
 **MockMvc** (Spring's request simulator: the `DispatcherServlet` runs, with no socket and no Tomcat), and one **full-stack test** (the
@@ -51,7 +52,22 @@ pulls. It **dies** when a capture's md5 differs from `receipts.md5`. One native 
 Hibernate Validator file" below). **Start it in a process group of its own** (a terminal's foreground job is one): two receipts started
 as background jobs of one shell share a group, and one run's clean-up would stop the other's processes (R.94).
 
-**Runs (2026-10-28):** each `env -i` (`HOME`, `PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin`, `GRAALVM_HOME`,
+**Runs after BLUE S5 (2026-10-28, the script as committed):** BLUE changed after/ (= `c6-tiffinbox`: the POM's comment, WebSlice's
+Javadoc, the anchor README), the harness (`FullMock`, `untested` B) and `change`'s `MAVEN_OPTS` line (`-DargLine=`), so every capture
+re-ran: a development run under `/bin/bash` 3.2 (1,070 s, every check passed) made `change`, `slice`, `requests`, `untested` and
+`fullstack` new (against RED B's copies: the POM comment's two lines, the README's added-line count and the `-DargLine=` line in `change`;
+`FullMock.java` in the copies' file list; `untested`'s B block) — `exercise` and `forms` unchanged; then **1,071 s under `./receipts.sh`**
+(/bin/bash 3.2.57) and **1,117 s under `bash receipts.sh`** (Homebrew bash 5.3.9): each exit 0, all 7 = published, every check passed,
+`GRAALVM_HOME` and `DOCKER_CONFIG=~/.docker` in the `env -i`. HV sizes: `157308 157308 157308` (development), `157308 157308 157308`
+(3.2), **`2306 2306 157308` (5.3) — two binaries with the small file, both validated** (`forms` = published). **A sealed fresh clone by the recipe below**
+(a `git clone` of tiffinbox-java at c5e5ef9 with c6-unit25..28 and c6-tiffinbox put in from the working tree as git would take them —
+158 files, 0 differing but the four links, `before` → `../c6-unit24/after`; a `file://` copy of 4,449 files; pre-flight: exit 1, 221
+`Downloading from sealed: file://`, 0 from http(s)): **exit 0 in 1,077 s, all 7 = published, every check passed; `_remote.repositories`
+by repository id: 802 `>sealed=`, 5 `>=` (TiffinBox's own three modules, installed by the run), 0 `central`; build logs: 802 `Downloaded
+from`, 0 from http(s)**; HV sizes `157308 2306 2306`, every binary validated. SIGINT was re-tested on unit 26 (BLUE S5's choice: the stub
+and TiffinBox up): exit 130, nothing left.
+
+**Runs (2026-10-28, before BLUE S5):** each `env -i` (`HOME`, `PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin`, `GRAALVM_HOME`,
 `DOCKER_CONFIG=~/.docker`), a process group of its own, `.m2-demo` re-seeded from `_research/m2-seed-s5/` alone. Development runs fixed
 the hashes (a run with no `receipts.md5` makes every capture 3/3 and then stops at "no published hash"): one found a race — the JVM's own
 console warning and the others reach Maven's log in either order, so a bash 5.3 run's `slice` drifted — and `slice`'s shown lines are
@@ -72,7 +88,7 @@ one `env -i` shell — `exit 1 · … failures 1` and its two lines, then `exit 
 in `.harness/mine/test.log`; the line prints `exit 1 · RevenueTest:` and `sed`'s "No such file"); the same line with no `JAVA_HOME` —
 Homebrew's `mvn` runs on its openjdk 26.0.2.1 and passes. Planted faults: 33 of 33 stop under each bash ("Found on the way").
 
-Published hashes: change `6718da19d26287c405f8276c3b8fb624` · slice `caf0232b9d3429272fcd8cc0bb20b498` · requests `4b2b78cfef4fa62065cc4d80bceb4951` · untested `57eb93281036262d002d7feb602a77da` · fullstack `87afa0a3acf2da027d0e1262042e044b` · exercise `8d38b0b5f0478b9f7377f677d273e9b1` · forms `c6fd936b099b211f480a6c41339b90b5`.
+Published hashes: change `a58ca55c059e49dd7966ff0a4d54f14e` · slice `8b51b50724073b56d0b3ba1486de0dc7` · requests `dbd84907c7a7f38b25ff9d6a74d02d2f` · untested `5151db7500e7ccd0e8e569292e4b283e` · fullstack `37c26245f2b53091fe724ad89db99651` · exercise `8d38b0b5f0478b9f7377f677d273e9b1` · forms `c6fd936b099b211f480a6c41339b90b5`.
 
 ### A sealed fresh clone — the recipe (R.129; RED S4 #405), with one change
 
@@ -135,8 +151,9 @@ mvn -B -pl tiffinbox-web -Dtest=FullStackTest,Answers clean test
 mvn -B -pl tiffinbox-web -Dtest=FullStackTest clean test
 sed 's/^package slice;/package com.tiffinbox.web;/; s/^public class WebSlice /public class WebSliceInside /' tiffinbox-web/src/test/java/slice/WebSlice.java > tiffinbox-web/src/test/java/com/tiffinbox/web/WebSliceInside.java
 mvn -B -pl tiffinbox-web -Dtest=TemplateCheck clean test
+mvn -B -pl tiffinbox-web -Dtest=FullMock clean test
 MAVEN_OPTS='-Duser.language=de -Duser.country=DE' mvn -v
-MAVEN_OPTS='-Duser.language=de -Duser.country=DE' mvn -B -pl tiffinbox-web -Dtest='TiffinBoxWebTest#theTestsRunInEnglish' clean test
+MAVEN_OPTS='-Duser.language=de -Duser.country=DE' mvn -B -pl tiffinbox-web -Dtest='TiffinBoxWebTest#theTestsRunInEnglish' -DargLine= clean test
 curl -s -w ' %{http_code}\n' -H 'Content-Type: application/json' --data '{"name":"","mealsPerDay":0,"pricePerMeal":0,"mealType":"VEG"}' http://127.0.0.1:18431/customers
 ```
 
@@ -250,9 +267,13 @@ three builds each), the sizes as the terminal printed them: `157308 2306 157308`
 157308` (the sealed clone) · `157308 2306 157308` · `157308 157308 157308` (the last /bin/bash 3.2 run of record) · `157308 2306 157308`
 (the last bash 5.3 run of record). **36 native builds: 2,306 bytes 7 times, 157,308 bytes 29 times, and every binary validated** (the
 three messages, the seven `466c20ed…`, the page — each `forms` capture 3/3 and its checks passed). RE-MEASURE 11 settled for these
-builds: a binary that shipped the 2,306-byte file answered as the 157,308-byte ones did — here, on this Mac, in 7 builds. Which file a
-build gets is still decided by the native plugin's mapping, not by TiffinBox; no capture depends on it, and the receipt still stops if a
-binary fails (§BLOCKED stays BLUE's to close in the anchor, or the capstone's).
+builds: a binary that shipped the 2,306-byte file answered as the 157,308-byte ones did — here, on this Mac, in 7 builds.
+
+**BLUE S5's runs (2026-10-28), four more `forms` runs on the changed after/:** `157308 157308 157308` (development) · `157308 157308
+157308` (3.2 run of record) · `2306 2306 157308` (5.3 run of record) · `157308 2306 2306` (the sealed clone) — **48 native builds in
+all: 2,306 bytes 11 times, 157,308 bytes 37 times, every binary validated.** Which file a build gets is still decided by the native
+plugin's mapping, not by TiffinBox; no capture depends on it, and the receipt still stops if a binary fails. **§BLOCKED is closed** (the
+S5 brief's AMENDMENT, item 9): harmless as measured; no fix in the anchor; the capstone inherits R.145's check, not a fix.
 
 ## Interrupted
 
@@ -288,7 +309,8 @@ module: 70 artifacts → 103 — compile 67 and runtime 3 both times, **33 new, 
 same names; 218 entries each, one differs — `META-INF/maven/com.tiffinbox/tiffinbox-web/pom.xml`; tiffinbox-core's jar the same, byte for
 byte; no test class in after/'s jar. Course 4's `mvn -q -DskipTests package` (a copy): exit 0, nothing printed, 0 reports, the jar built,
 its libraries the same 61. `MAVEN_OPTS='-Duser.language=de -Duser.country=DE' mvn -v` → `Default locale: de_DE`; the same `MAVEN_OPTS`
-on one test method → passed, the fork `en_US`, the test's own line `the test JVM's locale: en_US`.
+on one test method **with the POM's pin emptied (`-DargLine=`, RED S5 #479)** → passed, the fork `en_US` — the JVM's own default here,
+not the POM's and not `MAVEN_OPTS`'s — the test's own line `the test JVM's locale: en_US`.
 
 ## 2 · slice — alone; A/B/A′; C (labelled)
 
@@ -331,8 +353,10 @@ dashboard that throws — the same, `page on fire`; each request ran one chain, 
 spring-test's `ServletFilterProxy`). **Tomcat** (`Chains`, the full stack): the same failing `GET /revenue` ran `REQUEST` —
 `ApplicationFilterChain`, 7 filters (`characterEncodingFilter`, `webMvcObservationFilter`, `formContentFilter`, `requestContextFilter`,
 `chainDump`, `resourceUrlEncodingFilter`, `Tomcat WebSocket (JSR356) Filter`) — then `ERROR /error` (5 filters), and answered 500
-`application/json`; Tomcat's ERROR record (`[dispatcherServlet]`). MockMvc's filters (`TiffinBoxWebTest`'s): 4; Tomcat's, less the
-harness's own: 6. The slice's servlet context `SpringBootMockServletContext`, no web server; the full stack's `ApplicationContextFacade`,
+`application/json`; Tomcat's ERROR record (`[dispatcherServlet]`). MockMvc's filters (`TiffinBoxWebTest`'s, the slice's): 4; Tomcat's, less the
+harness's own: 6. **B (labelled, RED S5 #478)** — the harness's `FullMock` (`@SpringBootTest` in its mock environment, no port bound,
+`@AutoConfigureMockMvc`; `-Dtest=FullMock`): MockMvc on the whole application runs 5 — the slice's 4 and the observation filter — so the
+observation (metrics) filter is the slice's cut, and `Tomcat WebSocket (JSR356) Filter` is Tomcat's own; no web server. The slice's servlet context `SpringBootMockServletContext`, no web server; the full stack's `ApplicationContextFacade`,
 `TomcatWebServer`. `aFailingRepositoryLeavesNoStatus` passed.
 
 ## 5 · fullstack — the real server
@@ -397,6 +421,12 @@ test`; the second was already the buildpack section's line) and **five history n
 - Course 5 unit 19's native-profile paragraph (what `-Pnative package` runs) — these builds, like every `package` and `install`, run the
   tests first; `-Pnative install` ran them before the binary (`forms`).
 
+**BLUE S5 (2026-10-28) amended the section itself, in both trees (`c6-tiffinbox` and `after/`, still identical):** its first sentence
+("its own tree kept no test", Course 3's tests called back by title — RED B #481); TiffinBoxApp's four annotations (#474); the `-Dtest=`
+sentence and the Mockito sentence (#492; the inline mock maker announces itself, not the `final` classes); the filters paragraph (B's 5,
+#478); the preflight cache (the caller's, #486); the `MAVEN_OPTS` sentence (`-DargLine=`, #479). The POM's comment (#480) and WebSlice's
+Javadoc (#474) changed with it: a POM change, so `change` and every capture that builds after/ re-ran (below).
+
 Left as they were, and still true (each read): every other `mvn -B package` line (Course 6 unit 04's run block; Course 5's Docker block (unit 16), Actuator block
 (unit 21), banner block (unit 27) and `dependency:build-classpath` lines (units 17 and 27)) — each still builds what it says,
 now after the tests, which the new section says once for all of them; Course 3's `mvn -B clean install` + `exec:exec` (two commands,
@@ -410,7 +440,7 @@ Course 3's header's list of what Course 3 would add ("a test source tree" — Co
 |---|---|---|
 | **C6-31**'s U28 flag (MockMvc: if a course uses it, a course teaches it) | MockMvc glossed where it is first used ("Spring's request simulator: the `DispatcherServlet` runs, with no socket and no Tomcat"), used (`requests`), its limits measured (`untested`); a test, a test slice, a mock, `@MockitoBean`, a full-stack test, a random port glossed at first use; Mockito's console lines labelled | script, `requests`, `untested` |
 | **S3 CARRIED** "`/error` and the Whitelabel page are not rendered there; problem details assert by `application/problem+json`" | no ERROR dispatch, no `/error`, no `error/5xx.html` in the slice (`untested`); the slice's 404, 400, 405 are `application/problem+json` (`requests`) — the 405's because of TiffinBox's key (D) | `requests`, `untested` |
-| **S4 CARRIED** "no ERROR dispatch, no filter chain as the filters lesson printed it; no real preflight cache" | ERROR dispatch measured both ways; MockMvc's 4 filters beside Tomcat's 6, read off each chain; the preflight cache named, not measured | `untested` |
+| **S4 CARRIED** "no ERROR dispatch, no filter chain as the filters lesson printed it; no real preflight cache" | ERROR dispatch measured both ways; the slice's MockMvc's 4 filters, a whole-application MockMvc's 5 (B) and Tomcat's 6, read off each chain; the preflight cache named — the caller's, no test reaches it | `untested` |
 | Roadmap Amendment A (the point-of-use slice; Course 7's `@DataJpaTest` in the same `src/test`) | the anchor's `src/test` exists, with a slice and a full-stack test | `after/` |
 | #385 `@Size(max = 60)` (deferred to the capstone) | not paid here: the tests do not pin the 61-letter 500 (the full stack's 500 comes from a mock) | — |
 
@@ -419,11 +449,11 @@ Course 3's header's list of what Course 3 would add ("a test source tree" — Co
 | # | What | Settled |
 |---|---|---|
 | 8 | the slice and full-stack tests as the anchor's own files | `TiffinBoxWebTest`, `FullStackTest` in after/ (`change`, `slice`, `requests`, `fullstack`) |
-| 9 | `argLine` as a POM property | the fork `en_US` in every run but C, which `-DargLine` makes `de_DE`; `MAVEN_OPTS` reaches Maven only (`change`) |
+| 9 | `argLine` as a POM property | the fork `en_US` in every run but C, which `-DargLine` makes `de_DE`; `MAVEN_OPTS` reaches Maven only (`change`, the pin emptied for that run) |
 | 10 | the four forms on 28/after, the image included; the HV file per build; the binary's invalid POST | `forms`, 3 builds a run; sizes below |
 | 11 | a binary with the 2,306-B HV file | built and validated in this unit's development runs (below) |
 | 13 | the exercise as viewers run it | one `env -i` shell (`exercise`); by hand under Java 23 and with no `JAVA_HOME` (below) |
-| 15 | Tomcat's chain on 28/after beside MockMvc's | `untested`: 6 (+ the harness's) and 4 |
+| 15 | Tomcat's chain on 28/after beside MockMvc's | `untested`: 6 (+ the harness's) and 4; B, a whole-application MockMvc, 5 |
 | 16 | 7/130 and 11/293 on 28/after's class path | `slice` A, A′ |
 
 ## LINES OVERTURNED OR SHARPENED BY THIS UNIT'S MEASUREMENT
@@ -440,6 +470,12 @@ Course 3's header's list of what Course 3 would add ("a test source tree" — Co
 6. **The full context's 293 holds `FullStackTest`'s mock** in the repository's place (`customerRepository`, the same 11 names); B's slice
    holds 134 — the same 11 TiffinBox names as the application.
 7. **C (WebSlice inside `com.tiffinbox`) measured, not carried**: the application's context 294, TiffinBox's 12.
+8. **(BLUE S5) TiffinBoxApp has four annotations**, not the brief's three (`@EnableConfigurationProperties`, Course 5 unit 08) — voice,
+   slide, WebSlice's Javadoc, the summary line and the anchor README now say four (RED B #474).
+9. **(BLUE S5) "MockMvc 4, Tomcat 6" was two differences** — B (a whole-application MockMvc, 5) tells the slice's cut from Tomcat's own
+   filter (RED B #478).
+10. **(BLUE S5) The anchor POM's comment** no longer gives Hibernate Validator as the pin's reason: `requests` C shows MockMvc's messages
+    follow the mock request, not the JVM (RED B #480).
 
 ## Found on the way
 
@@ -482,7 +518,7 @@ Course 3's header's list of what Course 3 would add ("a test source tree" — Co
   it: 11 tests, 0 failures.
 - **Re-check (RED B):** the four forms and the seven `466c20ed7e0d5439cb052f32ce09de1b` in each; the Hibernate Validator file's size in each
   native build you make and that binary's validation answer (the three messages) — a failing binary is a stop (R.145); 7 of 130 and 11 of
-  293 (`slice` A) on after/'s class path, 134 / 11 for B, 12 for C; MockMvc's 4 filters beside Tomcat's 6 (`untested`); the bind read off
+  293 (`slice` A) on after/'s class path, 134 / 11 for B, 12 for C; the slice's MockMvc's 4 filters, a whole-application MockMvc's 5, Tomcat's 6 (`untested`); the bind read off
   the test JVM's pid (`fullstack`: `127.0.0.1:<port>`, the port in 49152-65535); every README line the tests made false (the five notes
   above) — and any this unit missed; the exercise in one shell, under `JAVA_HOME` = the Mac's 23, and with no `JAVA_HOME`.
 - **SIGINT** during a capture's JVM, during Maven's test fork and during the native build; the sealed clone by the recipe above
