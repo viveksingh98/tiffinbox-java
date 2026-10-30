@@ -140,7 +140,7 @@ request of three seconds, sent before POST /shutdown, answers 200; with `--serve
 (`../c6-unit04/`, `stop`). Tomcat is TiffinBox's only server: with two servers in one JVM, Boot's `container-0` kept it alive
 after TiffinBox's own server stopped (Course 6's servlet-container lesson). *(Course 6, unit 31: an answer that never ends
 holds that wait — the feed's event stream, `GET /customers/feed`: with a listener connected and nothing to end its answer, the
-shutdown waited out Boot's phase, Framework's `still running after timeout of 30000ms: [webServer]`; `CustomerFeed` completes
+shutdown waited out Boot's phase, Framework's `still running after timeout of 30000ms: [webServerGracefulShutdown]`; `CustomerFeed` completes
 every stream when the context starts to close, and the same POST /shutdown with a listener connected says `Graceful shutdown
 complete`, the listener's curl exits 0; `../c6-unit31/`, `feed`.)* *(Course 6, unit 06: POST /shutdown is a controller method — it starts the close
 on a platform thread of its own and returns its answer. The answer arrived with Boot's graceful shutdown and with
@@ -841,8 +841,8 @@ Each seen twice: in Chrome's own record of the request and in the server's (the 
 
 **When it breaks** (`errors`): a name of 61 letters — the table's column holds 60, and nothing checks the length — is H2's refusal
 (22001), which nobody handles *(Course 6, unit 31: true of this unit's tree; `Customer`'s `@Size(max = 60)` checks the length since —
-a 400, `size must be between 0 and 60`, before any SQL runs, and no request this course sends reaches the error page any more:
-`FullStackTest` proves it with a repository that throws; `../c6-unit31/`, `length` and `tests`)*: `500`, Tomcat's ERROR line, and for a client that asks for HTML the error page is TiffinBox's own,
+a 400, `size must be between 0 and 60`, before any SQL runs, and no request this course sends reaches the error page any more; the page itself is kept honest by
+`FullStackTest`, which asks a failing repository for HTML and gets the page; `../c6-unit31/`, `length` and `tests`)*: `500`, Tomcat's ERROR line, and for a client that asks for HTML the error page is TiffinBox's own,
 `templates/error/5xx.html` (`<title>Something broke · TiffinBox</title>`); curl's own Accept still gets Boot's JSON body. A template
 with a misspelt name (the exercise's) fails only when the page is asked for: `500`, the same error page, and two ERROR lines —
 Thymeleaf's `TemplateEngine` naming the template, the expression and its line, then Tomcat's — while the JSON `/dashboard` stays 200.
@@ -1013,7 +1013,7 @@ every class it does not test — and the settings record. Pointed at `WebSlice`,
 TiffinBox's (by the `com.tiffinbox` filter): `tiffinBoxServer`, `dashboardPage`, `tiffinBoxErrors`, the settings record and three
 **mocks** — stand-ins Mockito makes, which answer only what a test tells them — put in place of `CustomerRepository`, `Dashboard` and
 `OrderQueue` by `@MockitoBean` (spring-test's; Boot 4.1.1's test jars have no `MockBean`). The whole application's context, in
-`FullStackTest`, holds 293, 11 of them TiffinBox's — on Boot 4.1.1, here. Pointed at `TiffinBoxApp` instead, the slice holds 134, all
+`FullStackTest`, holds 293, 11 of them TiffinBox's — on Boot 4.1.1, here *(Course 6, unit 31: 132 / 9 and 295 / 13 since — `tests`)*. Pointed at `TiffinBoxApp` instead, the slice holds 134, all
 11 TiffinBox's, `database` among them, and `theSliceLeavesTheDatabaseOut` fails: TiffinBoxApp's scan has no `TypeExcludeFilter`, so the
 slice's filter never applies. `WebSlice` lives outside `com.tiffinbox` on purpose: a copy of it inside that package was picked up by
 TiffinBoxApp's own scan, and the whole application's context held 12 of TiffinBox's beans. Mockito mocks TiffinBox's `final` classes with its

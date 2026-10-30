@@ -17,7 +17,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #           context a path reaches
 #   pieces  the web module's files, each with its lines and the three things a grep can tell about it (it imports the JDK's HTTP
 #           server; it is the annotation the router reads; it explains the failed bind of the server's start); the core's files
-#   readme  the repository's own README: the roadmap line as the last commit before this unit had it, and as it is now; the
+#   readme  the repository's own README: the roadmap line as the last commit before this unit had it, and as commit 0458d2b (Course 6's capstone) had it - pinned by Course 6's finale (R.163); the
 #           courses its opening lines name, and the sections it has
 # The course's counts (30 lessons, 5 sections, 19 courses, the next one) and the next course's lesson titles are NOT captured here:
 # their sources (TRACK-ROADMAP.md, java5_series.py) are not in this repository. The deck's builder reads them on the day (Course 4's

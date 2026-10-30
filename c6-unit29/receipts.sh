@@ -236,7 +236,7 @@ rm -rf .harness; mkdir -p .harness
 mbuild() { local how=yes ec=0 c=$1
   (eval "$c") > "$2" 2>&1 < /dev/null || ec=$?
   if [ $ec != 0 ] && grep -qE 'offline mode|Could not resolve|could not be resolved|Cannot access|No plugin found for prefix' "$2"; then
-    how="no - the offline build could not resolve an artifact, so Maven Central was asked"; ec=0
+    how="no - the offline build could not resolve an artifact, so the configured repository was asked (Maven Central unless your settings name a mirror)"; ec=0
     (eval "${c/mvn -o -B /mvn -B }") > "$2" 2>&1 < /dev/null || ec=$?; fi
   [ $ec = 0 ] || { tail -30 "$2" >&3
     ! grep -qE 'Could not resolve|could not be resolved|Could not transfer|Cannot access' "$2" || die "build failed: $3 - Maven could resolve Boot's parent and plugins neither from .m2-demo nor from Maven Central: a fresh clone's first run needs the network once, to fill .m2-demo"
@@ -643,8 +643,8 @@ block() { awk '/^```bash$/ { if (!d) { f = 1 }; next } f && /^```$/ { f = 0; d =
 # bound, the shell and every process under it are stopped (killtree).
 # where DIR: the folder the shell was left in - this unit's folder, a folder under it (named), or elsewhere
 where() { case "$1" in "$U") echo "this unit's folder" ;; "$U"/*) echo "${1#"$U"/}" ;; *) echo "outside this unit's folder" ;; esac; }
-VX='V=--spring.mvc.apiversion.use.header=API-Version'
-VS='V="--spring.mvc.apiversion.use.header=API-Version --spring.mvc.apiversion.default=1.0"'
+VX='V=(--spring.mvc.apiversion.use.header=API-Version)'
+VS='V=(--spring.mvc.apiversion.use.header=API-Version --spring.mvc.apiversion.default=1.0)'
 exercise() { local setup sol i=0 e1 d1 e2 d2 l1 l2 tk
   setup=$(block exercise/README.md); sol=$(block exercise/solution/SOLUTION.md)
   [ -n "$setup" ] && [ -n "$sol" ] || die "exercise/README.md or SOLUTION.md no longer gives its commands"
@@ -657,26 +657,33 @@ exercise() { local setup sol i=0 e1 d1 e2 d2 l1 l2 tk
   ! printf '%s\n' "$setup" | grep -qF 'apiversion.default' || die "exercise/README.md must not name the default's key: it is the exercise"
   l1=$(printf '%s\n' "$setup" | tail -1); l2=$(printf '%s\n' "$sol" | sed -n 5p)
   [ "$l1" = "$l2" ] || die "SOLUTION.md's last line must be the README's last line, unchanged: the fix is the key, not the command"
-  rm -f .harness/ex-*
+  rm -f .harness/ex-* .harness/exz-*
   printf '%s\n' "$setup" > .harness/ex-readme.sh; printf '%s\n' "$sol" > .harness/ex-sol.sh
   cat > .harness/ex-drive.sh <<'DRV'
 cd "$1" || exit 1
-. "$1/.harness/ex-readme.sh" > "$1/.harness/ex-readme.out" 2>&1 < /dev/null
-echo "$? $PWD" > "$1/.harness/ex-readme.st"
-cp "$1/.harness/mine/run.log" "$1/.harness/ex-readme.log" 2> /dev/null
-cp "$1/.harness/mine/seven.txt" "$1/.harness/ex-readme.seven" 2> /dev/null
-. "$1/.harness/ex-sol.sh" > "$1/.harness/ex-sol.out" 2>&1 < /dev/null
-echo "$? $PWD" > "$1/.harness/ex-sol.st"
+. "$1/.harness/ex-readme.sh" > "$1/.harness/$2readme.out" 2>&1 < /dev/null
+echo "$? $PWD" > "$1/.harness/$2readme.st"
+cp "$1/.harness/mine/run.log" "$1/.harness/$2readme.log" 2> /dev/null
+cp "$1/.harness/mine/seven.txt" "$1/.harness/$2readme.seven" 2> /dev/null
+. "$1/.harness/ex-sol.sh" > "$1/.harness/$2sol.out" 2>&1 < /dev/null
+echo "$? $PWD" > "$1/.harness/$2sol.st"
 DRV
-  env -i HOME="$HOME" PATH="$XPATH" /bin/bash --noprofile --norc .harness/ex-drive.sh "$U" > .harness/ex-shell.out 2>&1 < /dev/null & xpid=$!
+  # the same driver twice: /bin/bash, then /bin/zsh -f (the Mac's Terminal shell, which never splits an unquoted variable - RED S6 #527)
+  env -i HOME="$HOME" PATH="$XPATH" /bin/bash --noprofile --norc .harness/ex-drive.sh "$U" ex- > .harness/ex-shell.out 2>&1 < /dev/null & xpid=$!
   while kill -0 "$xpid" 2> /dev/null && [ $i -lt 2400 ]; do sleep 0.25; i=$((i + 1)); done
   kill -0 "$xpid" 2> /dev/null && { killtree "$xpid"; die "the exercise's shell still ran after 600 s"; }
   wait "$xpid" || true; xpid=""
+  cp .harness/mine/run.log .harness/ex-sol.log 2> /dev/null; cp .harness/mine/seven.txt .harness/ex-sol.seven 2> /dev/null; i=0
+  tk=$(head -1 .harness/mine/anchor/$TF 2> /dev/null)
+  env -i HOME="$HOME" PATH="$XPATH" /bin/zsh -f .harness/ex-drive.sh "$U" exz- > .harness/exz-shell.out 2>&1 < /dev/null & xpid=$!
+  while kill -0 "$xpid" 2> /dev/null && [ $i -lt 2400 ]; do sleep 0.25; i=$((i + 1)); done
+  kill -0 "$xpid" 2> /dev/null && { killtree "$xpid"; die "the exercise's zsh shell still ran after 600 s"; }
+  wait "$xpid" || true; xpid=""
+  [ -f .harness/exz-readme.st ] && [ -f .harness/exz-sol.st ] || { cat .harness/exz-shell.out .harness/exz-readme.out .harness/exz-sol.out 2> /dev/null | tail -20 >&3; die "the exercise's zsh shell did not reach the end of both blocks"; }
   [ -f .harness/ex-readme.st ] && [ -f .harness/ex-sol.st ] || { cat .harness/ex-shell.out .harness/ex-readme.out .harness/ex-sol.out 2> /dev/null | tail -20 >&3; die "the exercise's shell did not reach the end of both blocks"; }
   read -r e1 d1 < .harness/ex-readme.st; read -r e2 d2 < .harness/ex-sol.st
   [ "$e1" = 0 ] || { tail -20 .harness/ex-readme.out >&3; die "the exercise's commands failed: exit $e1"; }
   [ "$e2" = 0 ] || { tail -20 .harness/ex-sol.out >&3; die "the solution's lines failed: exit $e2"; }
-  tk=$(head -1 .harness/mine/anchor/$TF)
   echo "exercise/README.md's commands, then the solution's lines (exercise/solution/SOLUTION.md), exactly as written, one after the other in ONE shell - env -i (HOME, and the PATH this script was started with), /bin/bash --noprofile --norc, started in this folder:"
   echo "the README's $(printf '%s\n' "$setup" | grep -c .) lines:"
   printf '%s\n' "$setup" | sed 's/^/  $ /'
@@ -686,8 +693,14 @@ DRV
   echo "the solution's $(printf '%s\n' "$sol" | grep -c .) lines, next, in the same shell:"
   printf '%s\n' "$sol" | sed 's/^/  $ /'
   echo "  exit $e2 · what they printed:"; sed 's/^/    /' .harness/ex-sol.out
-  echo "  the seven it saved:"; sed 's/^/    /' .harness/mine/seven.txt
-  echo "  the shell is now in: $(where "$d2") · the copy's own token in its log: $(raw "$tk" .harness/mine/run.log) times, in the seven: $(raw "$tk" .harness/mine/seven.txt) times · WARN lines in its log: $(lvl WARN .harness/mine/run.log) · ERROR lines: $(lvl ERROR .harness/mine/run.log) · listening on 19585 now: $(listeners 19585)"; }
+  echo "  the seven it saved:"; sed 's/^/    /' .harness/ex-sol.seven
+  echo "  the shell is now in: $(where "$d2") · the copy's own token in its log: $(raw "$tk" .harness/ex-sol.log) times, in the seven: $(raw "$tk" .harness/ex-sol.seven) times · WARN lines in its log: $(lvl WARN .harness/ex-sol.log) · ERROR lines: $(lvl ERROR .harness/ex-sol.log) · listening on 19585 now: $(listeners 19585)"
+  read -r e1 d1 < .harness/exz-readme.st; read -r e2 d2 < .harness/exz-sol.st
+  echo "the same two blocks again, in ONE new shell - env -i, /bin/zsh -f (zsh, the Mac's Terminal shell; it never splits an unquoted variable):"
+  echo "  the README's lines: exit $e1 · what they printed:"; sed 's/^/    /' .harness/exz-readme.out
+  echo "  the solution's lines: exit $e2 · what they printed:"; sed 's/^/    /' .harness/exz-sol.out
+  tz=$(head -1 .harness/mine/anchor/$TF)
+  echo "  the shell is now in: $(where "$d2") · its copy's own token in its log: $(raw "$tz" .harness/mine/run.log) times, in the seven: $(raw "$tz" .harness/mine/seven.txt) times · listening on 19585 now: $(listeners 19585)"; }
 
 cap surface surface
 cap strategy strategy
@@ -900,7 +913,7 @@ echo "  client: the stub md5 = the RestClient lesson's ($SMD5), 6 of 6; header -
 # the exercise's files as shipped (read again here, so a check that the exercise capture makes cannot be skipped)
 XR=$(block exercise/README.md); XL=$(block exercise/solution/SOLUTION.md)
 [ "$(printf '%s\n' "$XL" | grep -c .)" = 5 ] && [ "$(printf '%s\n' "$XL" | sed -n 1,2p)" = "$(printf '%s\n' "$XR" | sed -n 1,2p)" ] && [ "$(printf '%s\n' "$XL" | sed -n 4p)" = "$VS" ] && [ "$(printf '%s\n' "$XL" | sed -n 5p)" = "$(printf '%s\n' "$XR" | tail -1)" ] && printf '%s\n' "$XR" | grep -qxF -- "$VX" && ! printf '%s\n' "$XR" | grep -qF apiversion.default || die "exercise: SOLUTION.md must be the README's two exports, its CURLSET line, $VS and the README's last line; the README must ship $VX and no default"
-XS=$(blk exercise "the README's" "the solution's"); XE=$(blk exercise "the solution's" '')
+XS=$(blk exercise "the README's" "the solution's"); XE=$(blk exercise "the solution's" 'the same two blocks again'); XZ=$(blk exercise 'the same two blocks again' '')
 l="the seven: md5 $S466 · answered 400: 0 · TiffinBox stopped by: POST /shutdown"; l0="the seven: md5 $S7D3 · answered 400: 5 · TiffinBox stopped by: its pid - POST /shutdown answered 400"
 has "$XE" "    $l" "exercise: the solution"; has "$XS" "    $l0" "exercise: as shipped"
 awk '/^\*\*Done\*\*/ { f = 1 } f' exercise/README.md | grep -qxF -- "$l" || die "exercise/README.md: Done names no such line"
@@ -910,10 +923,17 @@ has "$XS" '  exit 0 · what they printed:' "exercise: the README's commands, exi
 has "$XS" "  the shell is now in: this unit's folder · the copy's own token in its log: 0 times, in the seven: 0 times · WARN lines in its log: 1 · ERROR lines: 0 · listening on 19585 now: 0" "exercise: as shipped, the 405's WARN, nothing left"
 has "$XE" "  the shell is now in: this unit's folder · the copy's own token in its log: 0 times, in the seven: 0 times · WARN lines in its log: 1 · ERROR lines: 0 · listening on 19585 now: 0" "exercise: the solution, nothing left"
 [ "$(printf '%s\n' "$XE" | grep -c '^  \$ export ')" = 2 ] || die "exercise: SOLUTION.md gives the README's two export lines"
+# RED S6 #527: the same two blocks in zsh (the Mac's Terminal shell) print the same two lines - and no block passes an unquoted variable
+# that could hold two options (zsh never splits one: the two would arrive as one word)
+has "$XZ" "    $l0" "exercise (zsh): as shipped"; has "$XZ" "    $l" "exercise (zsh): the solution"
+has "$XZ" "  the README's lines: exit 0 · what they printed:" "exercise (zsh): the README's commands, exit 0"; has "$XZ" "  the solution's lines: exit 0 · what they printed:" "exercise (zsh): the solution's lines, exit 0"
+has "$XZ" "  the shell is now in: this unit's folder · its copy's own token in its log: 0 times, in the seven: 0 times · listening on 19585 now: 0" "exercise (zsh): nothing left"
+[ "$(printf '%s\n' "$XZ" | grep -c '^    the seven: md5 ')" = 2 ] || die "exercise (zsh): two lines printed, one per block"
+for f in exercise/README.md exercise/solution/SOLUTION.md; do ! block "$f" | grep -qE '(^|[^"{])\$V([^A-Za-z0-9_{]|$)|^V="[^"]* ' || die "$f passes V unquoted or as one string - zsh would hand the options over as one word (RED S6 #527): V=( ... ) and \"\${V[@]}\""; done
 EXQ="Your turn: the README turns on header versioning, and old routes now answer four hundred. Give unversioned requests a version, and run the seven again."
 grep -qxF -- "**Your turn:** ${EXQ#Your turn: }" exercise/README.md || die "exercise/README.md: the spoken exercise line"
 [ "$(printf '%s\n' "$EXQ" | wc -w | tr -d ' ')" -le 25 ] || die "exercise: the spoken line is over 25 words"
-echo "  exercise: one env -i shell - the README as written (the header key alone) -> $l0; the solution (+ the default 1.0) -> $l; the shell in this unit's folder after each, 19585 free"
+echo "  exercise: one env -i shell - the README as written (the header key alone) -> $l0; the solution (+ the default 1.0) -> $l; the shell in this unit's folder after each, 19585 free; the same two lines again in one zsh shell; no block passes V unquoted (RED S6 #527)"
 
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
 echo "c6-unit29: every capture 3/3 and = published; every spoken number asserted; 0 raw demo tokens in every capture, every log and every stub dump"

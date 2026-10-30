@@ -5,7 +5,7 @@ Course 6 · Spring Web MVC · Section 6 (Close), its first unit · Verified on *
 **API versioning** is a version number the client sends, so one path can answer in two shapes. Spring Framework 7.0.9 has it built in —
 a `version` attribute on `@RequestMapping` and `@GetMapping`, read off spring-web 7.0.9 — and Boot 4.1.1 switches it on with eight
 `spring.mvc.apiversion.*` keys. This unit measures the mechanism, its trap and both ends: the start failure with no strategy, the four
-places a version travels, what a strategy does to every route of TiffinBox's that never asked for a version, the baseline, deprecation
+places a version travels, what a strategy does to TiffinBox's own controller routes, which never asked for a version, the baseline, deprecation
 (read off the headers), and the client side against the stub. **Which strategy an API should choose, and how it retires a version, is a
 design question: Course 9's *Versioning Strategies*.** Everything here is "in Framework 7.0.9" — the only class files read.
 
@@ -53,7 +53,11 @@ export PATH="$JAVA_HOME/bin:$PATH"
 `receipts.md5` (it prints the `DIFFERS` line first). **Start it in a process group of its own** (a terminal's foreground job is one): two
 receipts started as background jobs of one shell share a group, and one run's clean-up would stop the other's JVMs (R.94).
 
-**Runs of record (2026-10-29, this script as committed):** **296 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with HOME and a
+**Runs of record (BLUE S6, 2026-10-30, the script as committed after RED S6):** **375 s under `./receipts.sh`** (/bin/bash 3.2.57)
+and **462 s under `bash receipts.sh`** (Homebrew bash 5.3.9), each `env -i`, a process group of its own: exit 0, all 8 captures 3/3 =
+published — seven unchanged, `exercise` `40b8682e…` → `55838e7e6d445cd0b2b5d305570db900` (the array `V`, and the zsh run beside the bash
+one, RED S6 #527), made by one development run first; every check passed; no `grep:` line in either terminal. (The runs below are
+the builder's, on the script before BLUE S6.) **Runs of record (2026-10-29, this script as committed then):** **296 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with HOME and a
 plain PATH, this folder, a session — so a process group — of its own: exit 0, all 8 captures 3/3 = published, every check passed) and
 **317 s under `bash receipts.sh`** (Homebrew bash 5.3.9, the same: exit 0, all 8 = published). The hashes were first made by a 3.2
 development run and reproduced, unchanged, by every run since, under both bashes (four full runs, an interrupted one, and the sealed
@@ -65,9 +69,12 @@ anchor's log and the harness POM's: 604 downloads, every one from `file://`), ne
 **`_remote.repositories` by repository id: 765 `>sealed=` (in 530 artifact folders), 0 `central`**, no line with another id. The
 durations are the terminal's, never a capture's.
 
-Published hashes: surface `fc139d7a46b1c07918320bca18548aee` · strategy `da872447bb02e32acaf3e0c6e7422e0c` · where `0af0fe7e60f90cf3d15c3cc3fd7db62d` · unversioned `c98eacc28097f3c63186d857c3a87e67` · baseline `e71dea9fb71af2162d36c6059d1ed082` · deprecation `242ecc7cd8e189594d3a24406c3111a9` · client `f41a42073b0c7914974f0a8c4fee62d6` · exercise `40b8682e15a936c76c438eda22bed5a4`.
+Published hashes: surface `fc139d7a46b1c07918320bca18548aee` · strategy `da872447bb02e32acaf3e0c6e7422e0c` · where `0af0fe7e60f90cf3d15c3cc3fd7db62d` · unversioned `c98eacc28097f3c63186d857c3a87e67` · baseline `e71dea9fb71af2162d36c6059d1ed082` · deprecation `242ecc7cd8e189594d3a24406c3111a9` · client `f41a42073b0c7914974f0a8c4fee62d6` · exercise `55838e7e6d445cd0b2b5d305570db900`.
 
 ### A sealed fresh clone — the recipe (RED S4 #405, fixed; unit 24's)
+
+**Paste it into bash** (type `bash` first if your Terminal is zsh): zsh does not split the unquoted `$E`, so the pre-flight would print
+`NOT SEALED` — safe, but for the wrong reason (RED S6 #521).
 
 `-Duser.home` in the sealed `.mavenrc` (Java on macOS ignores `$HOME`, so Maven would never read settings kept there), Maven's own
 `<proxies>` at a refusing port (its resolver ignores `-Dhttp.proxyHost`), a mirror `*` → `file://`; a pre-flight that refuses to start
@@ -157,8 +164,9 @@ everywhere. The header's name, `X-Shutdown-Token`, is counted too: 0 in every lo
 Every java line this script starts — TiffinBox's and the stub's — carries `-Duser.language=en -Duser.country=US` right after `java` (S6.1,
 R.100), and every one prints its locale (`Versions`, `Stub`) — `en_US`, asserted in every capture that starts one (R.124). The exercise's
 one JVM runs TiffinBox's jar alone (no harness class prints there): its line pins the two options (a last check), and its messages are the
-seven's. No request sends `Accept-Language`. Receipts run under bash (`#!/bin/bash`), never zsh, where the two options would arrive as one
-word.
+seven's. No request sends `Accept-Language`. Receipts run under bash (`#!/bin/bash`). The exercise's blocks pass their options as an array (`V=( … )`, `"${V[@]}"`), one word
+each in bash and in zsh alike, and `exercise` runs them under both (RED S6 #527: the shipped `V="--a --b"` reached TiffinBox as one
+word in zsh, the Mac's Terminal shell).
 
 ## The folders, the names and the ports
 
@@ -222,7 +230,10 @@ is bare: each names its pid (R.105; a check refuses a bare one); nothing is stop
 **Measured (2026-10-29):** `./receipts.sh` started in a session of its own with SIGINT at its default disposition; `kill -INT` to its
 process group while `client`'s stub (127.0.0.1:19587) and a TiffinBox (127.0.0.1:19580) were both listening → **exit 130**; afterwards
 nothing listened on 19580-19589, no process of that group was left (the stub included), `.r-lock` was gone, and the eight published
-captures were byte for byte what they were before. (A first try, launched as a background job of a non-interactive shell, ran to its
+captures were byte for byte what they were before. **Measured again (BLUE S6, 2026-10-30), during the new zsh run:** SIGINT to the
+run's group once the exercise's `/bin/zsh -f` shell had TiffinBox listening on 19585 → `processes in the group at SIGINT 6 · exit 130 ·
+5 s later in the group: 0 · TiffinBox/stub/zsh-exercise processes anywhere: 0 · ports listening: none · .r-lock: no · unfinished runs: 0 ·
+captures unchanged: yes`. (A first try, launched as a background job of a non-interactive shell, ran to its
 end: such a job starts with SIGINT ignored, and a shell cannot trap a signal it was started ignoring — the test was re-made, not the
 script.)
 
@@ -852,9 +863,9 @@ $ harness/shutdown.sh 19584 .harness/anchor/secrets/tiffinbox/shutdown-token
   the stub: stopped by its pid · exit 143 · listening on 19587 now: 0 · requests in its dump: 11 · the demo token 0 times · X-Shutdown-Token 0 times
 ```
 
-## 8 · exercise — the exercise, run as written, in one shell
+## 8 · exercise — the exercise, run as written, in one bash shell, then in one zsh shell
 
-`.r-exercise.out`, md5 `40b8682e15a936c76c438eda22bed5a4`, 3 of 3 — whole:
+`.r-exercise.out`, md5 `55838e7e6d445cd0b2b5d305570db900`, 3 of 3 — whole:
 
 ```
 exercise/README.md's commands, then the solution's lines (exercise/solution/SOLUTION.md), exactly as written, one after the other in ONE shell - env -i (HOME, and the PATH this script was started with), /bin/bash --noprofile --norc, started in this folder:
@@ -865,8 +876,8 @@ the README's 8 lines:
   $ mkdir -p .harness/mine/anchor/secrets/tiffinbox && chmod 700 .harness/mine/anchor/secrets .harness/mine/anchor/secrets/tiffinbox
   $ (umask 077 && openssl rand -hex 13 > .harness/mine/anchor/secrets/tiffinbox/shutdown-token)
   $ CURLSET="$PWD/../c5-unit11/curlset.sh"
-  $ V=--spring.mvc.apiversion.use.header=API-Version
-  $ M="$PWD/.m2-demo" && (cd .harness/mine/anchor && mvn -o -B -q -Dmaven.repo.local="$M" -DskipTests clean package && { java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19585 $V > ../run.log 2>&1 & } && p=$! && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19585/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && "$CURLSET" 19585 secrets/tiffinbox/shutdown-token > ../seven.txt && if grep -qE '^POST +/shutdown +-> 2' ../seven.txt; then how="POST /shutdown"; else kill "$p" && how="its pid - POST /shutdown answered $(grep -E '^POST +/shutdown' ../seven.txt | awk '{ print $4 }')"; fi && { wait "$p"; echo "the seven: md5 $(md5 -q ../seven.txt) · answered 400: $(grep -c -- ' -> 400 ' ../seven.txt) · TiffinBox stopped by: $how"; })
+  $ V=(--spring.mvc.apiversion.use.header=API-Version)
+  $ M="$PWD/.m2-demo" && (cd .harness/mine/anchor && mvn -o -B -q -Dmaven.repo.local="$M" -DskipTests clean package && { java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19585 "${V[@]}" > ../run.log 2>&1 & } && p=$! && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19585/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && "$CURLSET" 19585 secrets/tiffinbox/shutdown-token > ../seven.txt && if grep -qE '^POST +/shutdown +-> 2' ../seven.txt; then how="POST /shutdown"; else kill "$p" && how="its pid - POST /shutdown answered $(grep -E '^POST +/shutdown' ../seven.txt | awk '{ print $4 }')"; fi && { wait "$p"; echo "the seven: md5 $(md5 -q ../seven.txt) · answered 400: $(grep -c -- ' -> 400 ' ../seven.txt) · TiffinBox stopped by: $how"; })
   exit 0 · what they printed:
     the seven: md5 7d36b99ea48f2bb5fc961fbac1fd8a6a · answered 400: 5 · TiffinBox stopped by: its pid - POST /shutdown answered 400
   the seven it saved (.harness/mine/seven.txt, kept before the solution's run):
@@ -882,8 +893,8 @@ the solution's 5 lines, next, in the same shell:
   $ export JAVA_HOME=/opt/homebrew/opt/openjdk@25
   $ export PATH="$JAVA_HOME/bin:$PATH"
   $ CURLSET="$PWD/../c5-unit11/curlset.sh"
-  $ V="--spring.mvc.apiversion.use.header=API-Version --spring.mvc.apiversion.default=1.0"
-  $ M="$PWD/.m2-demo" && (cd .harness/mine/anchor && mvn -o -B -q -Dmaven.repo.local="$M" -DskipTests clean package && { java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19585 $V > ../run.log 2>&1 & } && p=$! && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19585/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && "$CURLSET" 19585 secrets/tiffinbox/shutdown-token > ../seven.txt && if grep -qE '^POST +/shutdown +-> 2' ../seven.txt; then how="POST /shutdown"; else kill "$p" && how="its pid - POST /shutdown answered $(grep -E '^POST +/shutdown' ../seven.txt | awk '{ print $4 }')"; fi && { wait "$p"; echo "the seven: md5 $(md5 -q ../seven.txt) · answered 400: $(grep -c -- ' -> 400 ' ../seven.txt) · TiffinBox stopped by: $how"; })
+  $ V=(--spring.mvc.apiversion.use.header=API-Version --spring.mvc.apiversion.default=1.0)
+  $ M="$PWD/.m2-demo" && (cd .harness/mine/anchor && mvn -o -B -q -Dmaven.repo.local="$M" -DskipTests clean package && { java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19585 "${V[@]}" > ../run.log 2>&1 & } && p=$! && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19585/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && "$CURLSET" 19585 secrets/tiffinbox/shutdown-token > ../seven.txt && if grep -qE '^POST +/shutdown +-> 2' ../seven.txt; then how="POST /shutdown"; else kill "$p" && how="its pid - POST /shutdown answered $(grep -E '^POST +/shutdown' ../seven.txt | awk '{ print $4 }')"; fi && { wait "$p"; echo "the seven: md5 $(md5 -q ../seven.txt) · answered 400: $(grep -c -- ' -> 400 ' ../seven.txt) · TiffinBox stopped by: $how"; })
   exit 0 · what they printed:
     the seven: md5 466c20ed7e0d5439cb052f32ce09de1b · answered 400: 0 · TiffinBox stopped by: POST /shutdown
   the seven it saved:
@@ -895,19 +906,30 @@ the solution's 5 lines, next, in the same shell:
     GET   /shutdown   -> 405 application/problem+json  {"detail":"Method 'GET' is not supported.","instance":"/shutdown","status":405,"title":"Method Not Allowed"}
     POST  /shutdown   -> 200 application/json  {"stopping":true}
   the shell is now in: this unit's folder · the copy's own token in its log: 0 times, in the seven: 0 times · WARN lines in its log: 1 · ERROR lines: 0 · listening on 19585 now: 0
+the same two blocks again, in ONE new shell - env -i, /bin/zsh -f (zsh, the Mac's Terminal shell; it never splits an unquoted variable):
+  the README's lines: exit 0 · what they printed:
+    the seven: md5 7d36b99ea48f2bb5fc961fbac1fd8a6a · answered 400: 5 · TiffinBox stopped by: its pid - POST /shutdown answered 400
+  the solution's lines: exit 0 · what they printed:
+    the seven: md5 466c20ed7e0d5439cb052f32ce09de1b · answered 400: 0 · TiffinBox stopped by: POST /shutdown
+  the shell is now in: this unit's folder · its copy's own token in its log: 0 times, in the seven: 0 times · listening on 19585 now: 0
 ```
 
 
 ## Exercise
 
 `exercise/README.md`: **Your turn:** the README turns on header versioning, and old routes now answer four hundred. Give unversioned
-requests a version, and run the seven again. (25 words.) As shipped — `V=--spring.mvc.apiversion.use.header=API-Version` on TiffinBox's
+requests a version, and run the seven again. (25 words.) As shipped — `V=(--spring.mvc.apiversion.use.header=API-Version)` on TiffinBox's
 own jar — the seven hash `7d36b99ea48f2bb5fc961fbac1fd8a6a` (5 answer 400) and POST /shutdown answers 400, so the line stops TiffinBox by
 its pid and says so; the solution (`exercise/solution/SOLUTION.md`) adds `--spring.mvc.apiversion.default=1.0` → `466c20ed7e0d5439cb052f32ce09de1b`,
 stopped by POST /shutdown. "Run the seven again" is the README's `$CURLSET` line (`../c5-unit11/curlset.sh PORT TOKENFILE`). Both ran in
-ONE `env -i` `/bin/bash` shell, the README's block then the solution's, as a viewer pastes them (`exercise`); a second run in the same
-shell starts a fresh copy and a fresh JVM (S6.4); `JAVA_HOME` is exported first (the Mac's `/usr/bin/java` 23 refuses the anchor's Java
-25 at compile; with none, Homebrew's `mvn` runs on 26).
+ONE `env -i` `/bin/bash` shell, the README's block then the solution's, as a viewer pastes them (`exercise`), and again in ONE `env -i`
+`/bin/zsh -f` shell — the same two lines (RED S6 #527: the options travel as an array, `"${V[@]}"`, so zsh hands them over as two
+words); a second run in the same shell starts a fresh copy and a fresh JVM (S6.4); `JAVA_HOME` is exported first (the Mac's
+`/usr/bin/java` 23 can neither compile nor run the anchor's Java 25 classes — class file 69, `UnsupportedClassVersionError` at run, RED
+S6 #518; with none, Homebrew's `mvn` runs on 26 and the build succeeds, then the run fails on 23). **Re-run by BLUE S6
+(2026-10-30), outside the receipt:** README + SOLUTION + SOLUTION in one `env -i /bin/zsh -f` shell and in one `env -i` bash shell →
+`7d36b99e… · 5 · its pid`, then `466c20ed… · 0 · POST /shutdown` twice, the shell back in this folder; SOLUTION alone with `/usr/bin`
+(java 23.0.1) first and `JAVA_HOME` unset → `466c20ed… · 0 · POST /shutdown`, under each shell; 19585 free after each.
 
 ## The ledger rows and hand-offs this unit pays
 
@@ -979,6 +1001,14 @@ shell starts a fresh copy and a fresh JVM (S6.4); `JAVA_HOME` is exported first 
   **21. (a real run) the header sent to the query JVM → the query JVM's 1.0 `200` check fails** (it answered 400); **22. (a real run) the
   deprecation bean removed (`@Bean` commented out) → `Deprecation` absent, the check fails**; 23. (the builder) a slide naming the JDK's
   `com.sun.net.httpserver.HttpExchange` alone → `R.146: HttpExchange on a slide without both packages`.
+- **BLUE S6 (2026-10-30), the checks RED S6 asked for, each shown failing first** (a check-only copy of `receipts.sh` — its builds and
+  captures cut — on the final captures, baseline exit 0): **24.** the zsh run's solution printing the README's line (`7d36b99e…`, as the
+  shipped `V="--a --b"` did in zsh) → `exercise (zsh): the solution: expected the line …466c20ed…`; **25.** the zsh run's solution exit 1 →
+  `exercise (zsh): the solution's lines, exit 0`; **26.** an unquoted `$V` on both blocks' last line → `exercise/README.md passes V
+  unquoted or as one string`; the same check on the README and SOLUTION as `b50b410` shipped them (`V="--a --b"`, `$V`) → refused
+  (both); **27.** (the builder) the A′ panel without A′'s label and `$` line → `S6.2: an A' panel without A's label and $ line`; **28.**
+  (the builder) a duration word ("quick", "3 ms", "latency") in a SAY line → `⚑10: no duration word` (the shared pattern,
+  `_builders/dur6.py`, RED S6 #511).
 
 ## For RED
 

@@ -55,6 +55,9 @@ Published hashes: tour `335e1bd4d258084ff9bd0bce0db62d16` · seven `31dfef90413a
 
 ### A sealed fresh clone — the recipe (R.129; RED S4 #405, unit 28's form)
 
+**Paste it into bash** (type `bash` first if your Terminal is zsh): zsh does not split the unquoted `$E`, so the pre-flight would print
+`NOT SEALED` — safe, but for the wrong reason (RED S6 #550).
+
 **Run (2026-10-29):** a `git clone` of tiffinbox-java at b884170, with `c6-unit31/` and `c6-tiffinbox/` put in as git would
 take them (`git ls-files -co --exclude-standard`: 91 files, each `cmp`-equal to the working tree; `before` → `../c6-unit28/after` by
 `readlink`); a `file://` copy of the seed (4,441 files); pre-flight: exit 1, 221 `Downloading from sealed: file://`, 0 from http(s);
@@ -215,8 +218,8 @@ customer's three messages, the size message); a last check refuses a run whose b
 **A binary whose validation failed would stop the run** (exit 3, "STOP (R.145) … do not re-run"); none did.
 
 **Measured here** — every `forms` run of this unit that reached its end, the sizes as the terminal printed them: `2306 157308 157308` · `157308 157308 2306` (development) · `157308 157308 2306` (3.2 run of record) · `157308 157308 157308`
-(5.3 run of record) · `157308 157308 157308` (the sealed clone) — **15 native builds: 2,306 bytes 3 times, 157,308 bytes 12 times, and
-every binary validated** (the three messages, the size message, the seven `466c20ed…`, the upload, its event, the page, a graceful
+(5.3 run of record) · `157308 157308 157308` (the sealed clone) · `2306 157308 157308` (RED B's run) · `2306 157308 157308` (BLUE S6, 3.2)
+· `2306 2306 2306` (BLUE S6, 5.3) — **24 native builds: 2,306 bytes 8 times, 157,308 bytes 16 times, and every binary validated** (the three messages, the size message, the seven `466c20ed…`, the upload, its event, the page, a graceful
 shutdown — each `forms` capture 3/3 and its checks passed).
 
 ## Interrupted
@@ -227,7 +230,26 @@ builder — `killtree`), the exercise's shell (`$xpid`, with every process under
 binary, listener, Maven, Surefire fork or `native-image` left, removes the container and the image, deletes the capture runs it had not
 finished (`.r-NAME.1-3`), and removes `.r-lock`. The published captures are untouched. No `wait` in the script or the exercise is bare.
 
-SIGINT_GO_HERE
+**Measured (2026-10-30, RED S6 #540 — the builder's own terminal lines were lost with its session, so these are RED B's, re-recorded on
+the script as committed at `0458d2b`, the R.147 check of #548 aside, which runs after every capture):** `./receipts.sh` (/bin/bash 3.2)
+started in a process group of its own with SIGINT at its default, `kill -INT` to that group once the condition held, the state read
+5 s later — five trials, each **exit 130, nothing left**:
+
+```
+jvm: processes in the group at SIGINT 4 · exit 130 · 5 s later in the group: 0 · java/curl-feed/surefire/native-image of the run anywhere: 0 · ports listening: none · container: 0 · image: no · .r-lock: no · unfinished runs: 0 · captures unchanged: yes
+fork: processes in the group at SIGINT 5 · exit 130 · 5 s later in the group: 0 · java/curl-feed/surefire/native-image of the run anywhere: 0 · ports listening: none · container: 0 · image: no · .r-lock: no · unfinished runs: 0 · captures unchanged: yes
+listener: processes in the group at SIGINT 9 · exit 130 · 5 s later in the group: 0 · java/curl-feed/surefire/native-image of the run anywhere: 0 · ports listening: none · container: 0 · image: no · .r-lock: no · unfinished runs: 0 · captures unchanged: yes
+native2: processes in the group at SIGINT 4 · exit 130 · 5 s later in the group: 0 · java/curl-feed/surefire/native-image of the run anywhere: 0 · ports listening: none · container: 0 · image: no · .r-lock: no · unfinished runs: 0 · captures unchanged: yes
+container: processes in the group at SIGINT 3 · exit 130 · 5 s later in the group: 0 · java/curl-feed/surefire/native-image of the run anywhere: 0 · ports listening: none · container: 0 · image: no · .r-lock: no · unfinished runs: 0 · captures unchanged: yes
+```
+
+`jvm` — a capture's JVM listening on 1960x; `fork` — Surefire's `surefirebooter` in the group; `listener` — the feed's `curl -s -N`;
+`native2` — inside `forms`, the condition `pgrep -g <group> -f 'svm.hosted|native-image'` (and `pgrep -fl 'svm.hosted|native-image|tiffinbox-web'`
+empty after); `container` — `tiffinbox-capstone` running. **The builder's own native trial never interrupted the build**: its
+condition looked for `com.oracle.svm` in `ps -axo command=`, which macOS truncates, so the run went on to `forms … 3/3 = published`
+(RED B's first native trial, with the same condition, did the same: "the run ended before the condition"); RED B's `pgrep` trial
+(`native2`) did interrupt it. The commit message's "SIGINT during a JVM, the listener, the test fork, the native build and the
+container: exit 130, nothing left" rests on these five lines.
 
 ## 1 · tour — the boxes, one path two answers, the routes
 
@@ -426,13 +448,42 @@ Left as they were, and still true (each read): every other `/customers` line; Co
   `length A` check), `fieldMessages` back to one message (one JVM `must not be blank` → `length C`), the `ContextClosedEvent` listener
   removed (A's shutdown line Framework's 30000ms one → `feed`), the form's add not publishing (2 events → `feed`), the test count from the
   console only (the reports' line gone → `tests`, R.144), the HV size line missing and a size neither file's (→ R.145), a second file in
-  `secrets/` (the pre-start listing stops the run, R.158 — run on `sec()` itself, both bashes). And: a raw token in a capture and in a
+  `secrets/` (the pre-start listing stops the run, R.158 — run on `sec()` itself, both bashes). **The tallies (RED B, 2026-10-30, re-recorded —
+the builder's tally lines were lost with its session; RED S6 #544):** `plants: 41 caught, 0 missed (under /bin/bash)` and `plants: 41
+caught, 0 missed (under /opt/homebrew/bin/bash)`, and the 42nd (R.158, `sec()` on a config tree with `server.ssl.key` beside the token)
+exit 1 under both, exit 0 on the clean tree under both. **Plant 43 (BLUE S6, RED S6 #548):** the R.147 loopback check could never fail —
+its pattern was split by a quoting slip, so grep printed `brackets ([ ]) not balanced` and the "nothing but loopback" half passed
+whatever it read; fixed (`grep -vE "^127\.0\.0\.1:<[a-z' ]+>\$"`, a grep that cannot run fails the check too) and planted: FeedTest's
+sockets line given `*:<another context's port> 127.0.0.1:<port>` → stopped, `tests: FeedTest's sockets loopback only (R.147)`, under
+each bash (`plants: 42 caught, 0 missed` under `/bin/bash` and under `/opt/homebrew/bin/bash` — RED B's 41 and plant 43, on a check-only
+copy of the final captures and files after BLUE's runs of record; no `brackets` line in either; the R.158 `sec()` plant not re-run: `sec()`
+is unchanged). And: a raw token in a capture and in a
   shipped file; an unmasked ` using Java 25.0.4.1`; a random port; a connector name with its port; a java line without its locale; a URL
   not 127.0.0.1's; a start without its listing; the seven on one tree only; four the same; an `@Service`; 20 rows; `ActuatorRoutes` still a
   file; the second TiffinBox started; B with no ERROR line; A′ not A; the upload's `added 2`; the no-file 400 gone; the listener cut off in
   A; a clean shutdown in C; a held fork in `tests`; FeedTest's server on every address; StreamWait passing; the exercise still refusing;
   the binary German to `de`; the binary's three messages gone; a token in an image layer; a form that held its shutdown; a bare `wait`; a
   `pkill`; a harness class in `com.tiffinbox`; a port published on every address; Boot 3's error key; a German fork.
+
+## BLUE S6 (2026-10-30) — what changed after RED S6, and what re-ran
+
+- **`receipts.sh`**: the R.147 "loopback only" check (#548) — the one code change; it runs after every capture, so no capture changed
+  because of it — all nine published md5s reproduced, 3/3, under both bashes.
+- **The anchor README** (`after/README.md` = `../c6-tiffinbox/README.md`, byte for byte; `diff -rq -x target` empty): "What stops it"
+  names `[webServerGracefulShutdown]` (#551); the "When it breaks" note says the error page is kept honest by `FullStackTest` — a failing
+  repository, asked for HTML, gets the page — never that the test proves no request reaches it (#546); the unit 28 section's bean counts
+  carry "132 / 9 and 295 / 13 since" (#552). No shipped code, test or POM changed, so the jar, the AOT jar, the binary and the image are
+  the same build inputs; `forms` re-ran in both runs of record all the same.
+- **This README**: the SIGINT "Measured" paragraph (#540), the plant tallies and plant 43 (#544, #548), "paste it into bash" (#550).
+- **The voice and deck** (`_builders/s631.py`): the A′ panel's label and `$` line (#542), slide 8's error-page sentence (#546), three
+  glosses (#563); 669 spoken words, `check_unit6.py 31` PASS.
+- **Re-run (R.104):** this unit, both bashes — **1,300 s under `./receipts.sh`** (/bin/bash 3.2.57) and **1,076 s under `bash
+  receipts.sh`** (5.3.9), each `env -i`, a process group of its own: exit 0, all 9 = published, every check passed, no `grep:` or `brackets`
+  line in either terminal; the HV file per native build `2306 157308 157308` (3.2) and `2306 2306 2306` (5.3), every binary validated; the
+  exercise outside the receipt (README + SOLUTION + SOLUTION in one `env -i /bin/zsh -f` shell and in one bash shell → `added 0`, every
+  line `4 values expected, 1 found`, then `added 2`, `refused {}` twice; SOLUTION alone with `/usr/bin`'s java 23.0.1 first and
+  `JAVA_HOME` unset → `added 2`; 19600 free); `../c6-unit32/` (`memory` reads this tree), both bashes; `../c5-unit30/` 3/3
+  under both bashes (its header comment changed, #553).
 
 ## For RED
 

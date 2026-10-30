@@ -37,7 +37,15 @@ export PATH="$JAVA_HOME/bin:$PATH"
 `receipts.md5`. **Start it in a process group of its own** (a terminal's foreground job is one): two receipts started as background jobs
 of one shell share a group, and one run's clean-up would stop the other's JVMs (R.94).
 
-**Runs of record (2026-10-29, this script as committed):** **268 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with HOME and a
+**Runs of record (BLUE S6, 2026-10-30, the script as committed after RED S6):** **366 s under `./receipts.sh`** (/bin/bash 3.2.57)
+and **422 s under `bash receipts.sh`** (Homebrew bash 5.3.9), each `env -i`, a process group of its own: exit 0, all 8 captures 3/3 =
+published — six unchanged; `decode` `7b278aad…` → `51ba6c938eda4a91e73d960618e3b993` (the javap read of who unzips for RestClient, RED S6
+#510) and `exercise` `4e025847…` → `eed9e1ac0970045666024d78fc1467e7` (the array `V` and the zsh run, #527), made by one development
+run first; every check passed (health's chunked answer asserted, #529); no `grep:` line in either terminal. The exercise outside the
+receipt, by BLUE S6: README + SOLUTION + SOLUTION in one `env -i /bin/zsh -f` shell and in one `env -i` bash shell → `282 bytes · none`,
+then `129 bytes · gzip` twice; SOLUTION alone with `/usr/bin` (java 23.0.1) first and `JAVA_HOME` unset → `129 bytes · gzip`, under each
+shell; 19596 free after each. (The runs below are the builder's, on the script before BLUE S6.) **Runs of record (2026-10-29, this
+script as committed then):** **268 s under `./receipts.sh`** (/bin/bash 3.2.57, `env -i` with HOME and a
 plain PATH, this folder, a session — so a process group — of its own: exit 0, all 8 captures 3/3 = published, every check passed) and
 **273 s under `bash receipts.sh`** (Homebrew bash 5.3.9, the same: exit 0, all 8 = published). **A sealed fresh clone**, by the recipe
 below: a `git clone` of the repository at `071f634` with this folder's files beside it (the `anchor` link by `readlink`:
@@ -51,9 +59,12 @@ disposition): while `which`'s first TiffinBox listened on 127.0.0.1:19590, and w
 was left, and the eight published captures were byte for byte what they were. The durations are the terminal's, never a capture's.
 
 
-Published hashes: which `a6b542a6582d957e60266d55c88fd0bd` · switch `5e0f88c168f38f4cdf0c4442444fe639` · floor `861e5f8abd48d2643eb31dbd289f5c21` · decode `7b278aad0312df6f208b6309564d2f5e` · h2c `7895d870ccf41c3def5b48d470dbc4cc` · together `6f5a19e687d8d4d48e364fbeb1be4604` · aot `0c59fb7ae3cd4471d45d2fd30fd18d35` · exercise `4e0258475cb2530009120277ea22c457`.
+Published hashes: which `a6b542a6582d957e60266d55c88fd0bd` · switch `5e0f88c168f38f4cdf0c4442444fe639` · floor `861e5f8abd48d2643eb31dbd289f5c21` · decode `51ba6c938eda4a91e73d960618e3b993` · h2c `7895d870ccf41c3def5b48d470dbc4cc` · together `6f5a19e687d8d4d48e364fbeb1be4604` · aot `0c59fb7ae3cd4471d45d2fd30fd18d35` · exercise `eed9e1ac0970045666024d78fc1467e7`.
 
 ### A sealed fresh clone — the recipe (RED S4 #405, fixed; unit 24's)
+
+**Paste it into bash** (type `bash` first if your Terminal is zsh): zsh does not split the unquoted `$E`, so the pre-flight would print
+`NOT SEALED` — safe, but for the wrong reason (RED S6 #521).
 
 `-Duser.home` in the sealed `.mavenrc` (Java on macOS ignores `$HOME`), Maven's own `<proxies>` at a refusing port, a mirror `*` →
 `file://`; a pre-flight that refuses to start unless an absent artifact fails having asked `file://` alone; a post-check counting
@@ -103,11 +114,12 @@ curl -s -v -Z -H 'Accept: text/html' -o /dev/null -o /dev/null -w '%{http_versio
 curl -s -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' --data '{"name":"Guest1","mealsPerDay":2,"pricePerMeal":110,"mealType":"VEG"}' http://127.0.0.1:18431/customers
 jcmd "$pid" VM.system_properties
 grep -n -A1 'virtual threads too. Under Spring.s AOT step' anchor/tiffinbox-web/src/main/resources/application.yaml
+javap -cp .harness/anchor/tiffinbox-web/target/extracted/lib/spring-web-7.0.9.jar -p org.springframework.http.client.JdkClientHttpRequestFactory 'org.springframework.http.client.JdkClientHttpRequest$DecompressingBodyHandler'
 ```
 
 `anchor/README.md` — the anchor's own — gives seven lines `receipts.sh` runs or derives from (`mvn -B package`, `mvn -B -Pnative
 package`, the run line, the extract line, the readiness line, the line that reads the stylesheet's URL off the page, and the AOT run
-line whose three extra options are left off here); the fourteen above are this unit's, each read from this block and asserted (on the
+line whose three extra options are left off here); the fifteen above are this unit's, each read from this block and asserted (on the
 anchor's port 18431; each capture swaps in its own port, path and curl options; `/css/tiffinbox.css` stands for the URL read off the
 page). The run lines are the anchor's with `-Duser.language=en -Duser.country=US` after `java` — asserted — and the AOT line is that line
 with `-Dspring.aot.enabled=true`, asserted. The options a capture adds after the run line, each spelled from Boot's metadata (a last
@@ -116,7 +128,10 @@ check refuses any `--server.*` option, and any `server.compression.*`/`server.ht
 `--server.http2.enabled=true`, the exercise's `--server.compression.min-response-size=128`, and the access log —
 `--server.tomcat.basedir=../tomcat --server.tomcat.accesslog.enabled=true --server.tomcat.accesslog.rotate=false
 --server.tomcat.accesslog.buffered=false '--server.tomcat.accesslog.pattern=%m %U %H %s upgrade:%{Upgrade}i accept-encoding:%{Accept-Encoding}i content-encoding:%{Content-Encoding}o'`.
-`jcmd "$pid" VM.system_properties` reads the JVM's locale off its pid (`$pid` is the JVM the capture started). The curl `-v` lines
+`jcmd "$pid" VM.system_properties` reads the JVM's locale off its pid (`$pid` is the JVM the capture started). The `javap` line
+(BLUE S6, RED S6 #510, R.134) reads who unzips for RestClient off spring-web 7.0.9's jar: `JdkClientHttpRequestFactory`'s
+`compression` field and `enableCompression(boolean)`, and `JdkClientHttpRequest$DecompressingBodyHandler` with its `decompressStream` —
+printed in `decode` by a declared filter, `class |ompression|decompress`, 5 of its 22 lines kept. The curl `-v` lines
 write to `.harness/v.txt`; the file is read after curl exits (S6.8).
 
 ## The repository, and what was downloaded
@@ -555,7 +570,7 @@ $ harness/shutdown.sh 19590 .harness/anchor/secrets/tiffinbox/shutdown-token
 The floor in force is Boot's default (no `min-response-size` on the run line; `2KB` from the metadata, `which`). `/customers` with gzip asked: **282 B, `Content-Length: 282`, not compressed**. Thirty POSTs in this JVM only (R.97; `201 ×30`). Grown: **2,403 B with `Content-Length: 2403`** (and `vary` — over the floor, compressible) → gzip asked **229 B, `Content-Encoding: gzip`, `Transfer-Encoding: chunked`** (the compressed answer loses its length); three rounds, the gzip bytes `55750658…` each time, unzipped = the plain `bc553574…` each time. **Why the page was zipped below the floor:** Tomcat tests the floor against a *known length* — the page is a chunked answer (no `Content-Length`), so there is nothing to test; `/customers` says its length. Never "answers under 2 KB are never compressed" (R.157). 229/2,403 is **about a tenth — a list of near-identical rows**, this list (S6.14); 477/962 **about half**, this page.
 ## 4 · decode — who unzips: curl, the JDK's HttpClient, RestClient — and Tomcat's access log
 
-`.r-decode.out`, md5 `7b278aad0312df6f208b6309564d2f5e`, 3 of 3 — whole:
+`.r-decode.out`, md5 `51ba6c938eda4a91e73d960618e3b993`, 3 of 3 — whole:
 
 ```
 who unzips - the key on, Tomcat's access log on (the harness's options), port 19591, a fresh JVM, the list grown past the floor:
@@ -612,6 +627,14 @@ $ harness/shutdown.sh 19591 .harness/anchor/secrets/tiffinbox/shutdown-token
   POST /shutdown -> 200 application/json · Content-Length: none · {"stopping":true} · curl exit 0
   exit 0 · listening on 19591 now: 0
   its log: the demo token 0 times · X-Shutdown-Token 0 times
+  who unzips for RestClient - read off spring-web's jar (this unit's javap line), kept by the declared filter 'class |ompression|decompress':
+$ javap -cp .harness/anchor/tiffinbox-web/target/extracted/lib/spring-web-7.0.9.jar -p org.springframework.http.client.JdkClientHttpRequestFactory 'org.springframework.http.client.JdkClientHttpRequest$DecompressingBodyHandler'
+  javap's lines: 22 · kept: 5
+    public class org.springframework.http.client.JdkClientHttpRequestFactory implements org.springframework.http.client.ClientHttpRequestFactory {
+    private boolean compression;
+    public void enableCompression(boolean);
+    final class org.springframework.http.client.JdkClientHttpRequest$DecompressingBodyHandler implements java.net.http.HttpResponse$BodyHandler<java.io.InputStream> {
+    private static java.io.InputStream decompressStream(java.io.InputStream, java.lang.String);
 ```
 
 The list grown past the floor (a fresh JVM, 30 POSTs). `curl --compressed`: **229 B on the wire, the plain md5 saved**. The harness's `Unzip` (a main class compiled with `-parameters` against the anchor's `lib/`, run on that class path — not the source launcher): **the JDK's `HttpClient` with no header → 2,403 B plain; with `Accept-Encoding: gzip` set by hand → `Content-Encoding: gzip`, 229 bytes handed back, the gzip md5 — the JDK's HttpClient does not unzip**; **`RestClient.create()` — its request factory read off the client: `JdkClientHttpRequestFactory` (no httpclient5, Jetty or Reactor Netty client on this class path, asserted) — → 2,403 B, the plain md5, no `Content-Encoding` left**. **Tomcat's access log** (a harness option: `server.tomcat.*` keys from `spring-boot-tomcat`'s metadata, the log under `.harness/tomcat/logs`) shows each request: curl `--compressed` asked `deflate, gzip`, the JDK client `gzip`, RestClient **`gzip,deflate`** — the header the *RestClient* lesson's stub printed — and each was sent `content-encoding:gzip`. So RestClient was sent gzip and unzipped it (gzip only; deflate not measured). The JDK client and RestClient each offer `upgrade: h2c` on their first request (ignored here: HTTP/2 off).
@@ -872,7 +895,7 @@ $ harness/shutdown.sh 19594 .harness/aot/secrets/tiffinbox/shutdown-token
 The anchor copied to `.harness/aot` (never built in place), built with its README's `mvn -B -Pnative package` made offline, `-DskipTests` (the copy's tests are the web-layer testing lesson's; this build is the AOT jar's) and `clean`: `offline: yes`, **0 files gained by `.m2-demo`**, process-aot 1, GraalVM's metadata repository read from a `file:` URL (a build that went to http(s) for it stops the run). The anchor's own `application.yaml` says threading is fixed when the jar is built under AOT (*Embedded Tomcat, Threads and Connectors* measured it, `../c6-unit04/`, `threads` C). The AOT jar (`Starting AOT-processed …`) **with both switches → the page 477 gzip, prior knowledge HTTP/2; with neither → 962, no answer (`000`)**: both stay run-time keys ahead of time, unlike virtual threads. The binary is not built (RE-MEASURE 7: unspoken).
 ## 8 · exercise — the exercise, run as written, in one shell
 
-`.r-exercise.out`, md5 `4e0258475cb2530009120277ea22c457`, 3 of 3 — whole:
+`.r-exercise.out`, md5 `eed9e1ac0970045666024d78fc1467e7`, 3 of 3 — whole:
 
 ```
 exercise/README.md's commands, then the solution's lines (exercise/solution/SOLUTION.md), exactly as written, one after the other in ONE shell - env -i (HOME, and the PATH this script was started with), /bin/bash --noprofile --norc, started in this folder:
@@ -883,8 +906,8 @@ the README's 8 lines:
   $ mkdir -p .harness/mine/anchor/secrets/tiffinbox && chmod 700 .harness/mine/anchor/secrets .harness/mine/anchor/secrets/tiffinbox
   $ (umask 077 && openssl rand -hex 13 > .harness/mine/anchor/secrets/tiffinbox/shutdown-token)
   $ S="$PWD/harness/shutdown.sh"
-  $ V=--server.compression.enabled=true
-  $ M="$PWD/.m2-demo" && (cd .harness/mine/anchor && mvn -o -B -q -Dmaven.repo.local="$M" -DskipTests clean package && { java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19596 $V > ../run.log 2>&1 & } && p=$! && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19596/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && b=$(curl -s -o /dev/null -D ../head.txt -H 'Accept-Encoding: gzip' -w '%{size_download}' http://127.0.0.1:19596/customers) && "$S" 19596 secrets/tiffinbox/shutdown-token > ../stop.txt && { wait "$p"; echo "/customers, gzip asked: $b bytes · Content-Encoding: $(tr -d '\r' < ../head.txt | grep -i '^content-encoding: ' | cut -d' ' -f2 | grep . || echo none) · TiffinBox stopped by: POST /shutdown, $(awk '{ print $4 }' ../stop.txt)"; })
+  $ V=(--server.compression.enabled=true)
+  $ M="$PWD/.m2-demo" && (cd .harness/mine/anchor && mvn -o -B -q -Dmaven.repo.local="$M" -DskipTests clean package && { java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19596 "${V[@]}" > ../run.log 2>&1 & } && p=$! && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19596/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && b=$(curl -s -o /dev/null -D ../head.txt -H 'Accept-Encoding: gzip' -w '%{size_download}' http://127.0.0.1:19596/customers) && "$S" 19596 secrets/tiffinbox/shutdown-token > ../stop.txt && { wait "$p"; echo "/customers, gzip asked: $b bytes · Content-Encoding: $(tr -d '\r' < ../head.txt | grep -i '^content-encoding: ' | cut -d' ' -f2 | grep . || echo none) · TiffinBox stopped by: POST /shutdown, $(awk '{ print $4 }' ../stop.txt)"; })
   exit 0 · what they printed:
     /customers, gzip asked: 282 bytes · Content-Encoding: none · TiffinBox stopped by: POST /shutdown, 200
   the shell is now in: this unit's folder · the copy's own token in its log: 0 times · WARN lines in its log: 0 · ERROR lines: 0 · listening on 19596 now: 0
@@ -892,11 +915,17 @@ the solution's 5 lines, next, in the same shell:
   $ export JAVA_HOME=/opt/homebrew/opt/openjdk@25
   $ export PATH="$JAVA_HOME/bin:$PATH"
   $ S="$PWD/harness/shutdown.sh"
-  $ V="--server.compression.enabled=true --server.compression.min-response-size=128"
-  $ M="$PWD/.m2-demo" && (cd .harness/mine/anchor && mvn -o -B -q -Dmaven.repo.local="$M" -DskipTests clean package && { java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19596 $V > ../run.log 2>&1 & } && p=$! && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19596/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && b=$(curl -s -o /dev/null -D ../head.txt -H 'Accept-Encoding: gzip' -w '%{size_download}' http://127.0.0.1:19596/customers) && "$S" 19596 secrets/tiffinbox/shutdown-token > ../stop.txt && { wait "$p"; echo "/customers, gzip asked: $b bytes · Content-Encoding: $(tr -d '\r' < ../head.txt | grep -i '^content-encoding: ' | cut -d' ' -f2 | grep . || echo none) · TiffinBox stopped by: POST /shutdown, $(awk '{ print $4 }' ../stop.txt)"; })
+  $ V=(--server.compression.enabled=true --server.compression.min-response-size=128)
+  $ M="$PWD/.m2-demo" && (cd .harness/mine/anchor && mvn -o -B -q -Dmaven.repo.local="$M" -DskipTests clean package && { java -Duser.language=en -Duser.country=US -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=19596 "${V[@]}" > ../run.log 2>&1 & } && p=$! && for i in $(seq 240); do [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19596/actuator/health/readiness)" = 200 ] && break; sleep 0.25; done && b=$(curl -s -o /dev/null -D ../head.txt -H 'Accept-Encoding: gzip' -w '%{size_download}' http://127.0.0.1:19596/customers) && "$S" 19596 secrets/tiffinbox/shutdown-token > ../stop.txt && { wait "$p"; echo "/customers, gzip asked: $b bytes · Content-Encoding: $(tr -d '\r' < ../head.txt | grep -i '^content-encoding: ' | cut -d' ' -f2 | grep . || echo none) · TiffinBox stopped by: POST /shutdown, $(awk '{ print $4 }' ../stop.txt)"; })
   exit 0 · what they printed:
     /customers, gzip asked: 129 bytes · Content-Encoding: gzip · TiffinBox stopped by: POST /shutdown, 200
   the shell is now in: this unit's folder · the copy's own token in its log: 0 times · WARN lines in its log: 0 · ERROR lines: 0 · listening on 19596 now: 0
+the same two blocks again, in ONE new shell - env -i, /bin/zsh -f (zsh, the Mac's Terminal shell; it never splits an unquoted variable):
+  the README's lines: exit 0 · what they printed:
+    /customers, gzip asked: 282 bytes · Content-Encoding: none · TiffinBox stopped by: POST /shutdown, 200
+  the solution's lines: exit 0 · what they printed:
+    /customers, gzip asked: 129 bytes · Content-Encoding: gzip · TiffinBox stopped by: POST /shutdown, 200
+  the shell is now in: this unit's folder · its copy's own token in its log: 0 times · listening on 19596 now: 0
 ```
 
 
@@ -911,7 +940,12 @@ anchor's Java 25; with none, Homebrew's `mvn` runs on 26).
 
 `exercise/README.md`: **Your turn:** the README switches compression on, yet the customer list still arrives unzipped. Find the setting
 that skips it, change it, and fetch again. (25 words.) "Fetch again" is the README's curl with `-H 'Accept-Encoding: gzip'` and
-`-w '%{size_download}'`. The answer: `server.compression.min-response-size` (the floor) — `exercise/solution/SOLUTION.md`.
+`-w '%{size_download}'`. The answer: `server.compression.min-response-size` (the floor) — `exercise/solution/SOLUTION.md`. The options
+travel as an array, `V=( … )` passed as `"${V[@]}"`, so the blocks run the same in bash and in zsh, the Mac's Terminal shell (RED S6
+#527: the shipped `V="--a --b"` made TiffinBox fail to start in zsh — `Failed to bind properties under 'server.compression.enabled'`);
+`exercise` runs README + SOLUTION in one `env -i` bash shell, then in one `env -i /bin/zsh -f` shell: `282 bytes · none`, then `129 bytes ·
+gzip`, in each. `JAVA_HOME` is exported first: the Mac's `/usr/bin/java` 23 can neither compile nor run the anchor's Java 25 classes
+(class file 69, RED S6 #518).
 
 ## The ledger rows and hand-offs this unit pays
 
@@ -976,6 +1010,14 @@ that skips it, change it, and fetch again. (25 words.) "Fetch again" is the READ
     `floor: the list under the floor` fails.
   - **3 in the builder (⚑10)**: "faster" in a spoken line → refused; "milliseconds" in a spoken line → refused; "latency" in the
     builder's own source → refused.
+- **BLUE S6 (2026-10-30), the checks RED S6 asked for, each shown failing first** (a check-only copy of `receipts.sh` — its builds and
+  captures cut — on the final captures, baseline exit 0): health's key-on `Transfer-Encoding: chunked` → `Content-Length: 49` → `which ON:
+  health is a chunked answer with no Content-Length …` (#529); the zsh run's solution printing the README's `282 bytes · none` →
+  `exercise (zsh): the solution: expected the line …129 bytes…`; an unquoted `$V` on both blocks' last line → `exercise/README.md passes V
+  unquoted or as one string` (and `b50b410`'s SOLUTION as shipped → refused, #527); spring-web's `enableCompression(boolean)` line removed
+  from `decode` → `decode: spring-web's own line …` (#510). The builder: the A′ rows removed from slide 2 and from slide 5 → `S6.2: an A'
+  panel without A's label and $ line` (each, #508); a duration word ("quickly") → refused by the shared pattern (`_builders/dur6.py`,
+  #511).
 
 
 ## For RED

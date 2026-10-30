@@ -157,6 +157,7 @@ L_PAR=$(mine "curl -s -v -Z -H 'Accept: text/html' -o /dev/null -o /dev/null -w 
 L_POST=$(mine "curl -s -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' --data '{\"name\":\"Guest1\",\"mealsPerDay\":2,\"pricePerMeal\":110,\"mealType\":\"VEG\"}' http://127.0.0.1:18431/customers")
 L_JCMD=$(mine 'jcmd "$pid" VM.system_properties')
 L_YAML=$(mine "grep -n -A1 'virtual threads too. Under Spring.s AOT step' anchor/tiffinbox-web/src/main/resources/application.yaml")
+L_JAVAP=$(mine "javap -cp $LIBD/spring-web-7.0.9.jar -p org.springframework.http.client.JdkClientHttpRequestFactory 'org.springframework.http.client.JdkClientHttpRequest\$DecompressingBodyHandler'")
 # The derivations, each asserted
 P_='java '; Q_="java $JL "; r=${R_RUN/"$P_"/$Q_}
 [ "$r" = "$L_RUNL" ] || die "the pinned run line must be the anchor's run line with $JL after java, and nothing else"
@@ -185,7 +186,7 @@ H2='--server.http2.enabled=true'
 FL='--server.compression.min-response-size=128'
 AL="--server.tomcat.basedir=../tomcat --server.tomcat.accesslog.enabled=true --server.tomcat.accesslog.rotate=false --server.tomcat.accesslog.buffered=false '--server.tomcat.accesslog.pattern=%m %U %H %s upgrade:%{Upgrade}i accept-encoding:%{Accept-Encoding}i content-encoding:%{Content-Encoding}o'"
 GZ="-H 'Accept-Encoding: gzip'"; HT="-H 'Accept: text/html'"
-echo "  the commands: anchor/README.md gives the 7 lines this script runs or derives from; README.md the 14 this unit adds"
+echo "  the commands: anchor/README.md gives the 7 lines this script runs or derives from; README.md the 15 this unit adds"
 
 # ---- build: before the captures - the anchor built once, plain and with the profile native (on a fresh clone these fill
 # ---- .m2-demo); what .m2-demo holds ---------------------------------------------------------------------------------------------
@@ -196,10 +197,10 @@ ZIP="$M2/org/graalvm/buildtools/graalvm-reachability-metadata/1.1.8/graalvm-reac
 # mbuild 'COMMAND' LOG LABEL: the command, run as printed (eval) as a job of its own ($pid, so Ctrl-C reaches the trap), its log kept
 # in LOG; Maven Central only if the offline build could not resolve something - and the line says which (offline: yes / no)
 mbuild() { local how=yes ec=0 c=$1
-  case $c in *' -Pnative '*) [ -f "$ZIP" ] || { c=${c/mvn -o -B /mvn -B }; how="no - GraalVM's metadata repository was not in .m2-demo, so Maven Central was asked for it"; } ;; esac
+  case $c in *' -Pnative '*) [ -f "$ZIP" ] || { c=${c/mvn -o -B /mvn -B }; how="no - GraalVM's metadata repository was not in .m2-demo, so the configured repository was asked for it (Maven Central unless your settings name a mirror)"; } ;; esac
   (eval "$c") > "$2" 2>&1 < /dev/null & pid=$!; wait "$pid" || ec=$?; pid=""
   if [ $ec != 0 ] && grep -qE 'offline mode|Could not resolve|could not be resolved|Cannot access|No plugin found for prefix' "$2"; then
-    how="no - the offline build could not resolve an artifact, so Maven Central was asked"; ec=0
+    how="no - the offline build could not resolve an artifact, so the configured repository was asked (Maven Central unless your settings name a mirror)"; ec=0
     (eval "${c/mvn -o -B /mvn -B }") > "$2" 2>&1 < /dev/null & pid=$!; wait "$pid" || ec=$?; pid=""; fi
   [ $ec = 0 ] || { tail -30 "$2" >&3; die "build failed: $3"; }
   if ghub "$2"; then die "$3: GraalVM's native plugin went over the network for its metadata repository"; fi
@@ -464,7 +465,12 @@ decode() { local m p g c
   echo "  curl --compressed's saved bytes against the plain list, md5 for md5: $( [ "$(md5f $c)" = "$(md5f $p)" ] && echo the same || echo they differ) · against the gzip bytes: $( [ "$(md5f $c)" = "$(md5f $g)" ] && echo the same || echo they differ)"
   echo "  the md5s to compare the clients' lines with - the plain list: $(md5f $p) · the gzip bytes: $(md5f $g)"
   echo "  the JDK's HttpClient and Spring's RestClient - the harness's Unzip, on the anchor's class path (this unit's line):"; unz 19591
-  alog "$m"; halt 19591 .harness/anchor; }
+  alog "$m"; halt 19591 .harness/anchor
+  # who unzips for RestClient: the owner read off the jar (R.134, RED S6 #510) - spring-web's JDK request factory and its body handler
+  echo "  who unzips for RestClient - read off spring-web's jar (this unit's javap line), kept by the declared filter 'class |ompression|decompress':"
+  echo "\$ $L_JAVAP"; (eval "$L_JAVAP") > .harness/javap.txt 2>&1 < /dev/null || { cat .harness/javap.txt >&3; die "javap could not read spring-web's jar"; }
+  echo "  javap's lines: $(grep -c . .harness/javap.txt) · kept: $(grep -cE 'class |ompression|decompress' .harness/javap.txt)"
+  grep -E 'class |ompression|decompress' .harness/javap.txt | sed 's/^ *//; s/^/    /'; }
 # ---- h2c: HTTP/2 without TLS - A the key on, B the key off, A' = A ------------------------------------------------------------------
 hrun() { local m; rm -rf .harness/tomcat; start "$(at .harness/anchor "$1" "$L_RUNL" "$2")"; up "$1"; ready "$1"; m=$(amark)
   verb "$1" --http2; ver "$1"; ver "$1" --http2; ver "$1" --http2-prior-knowledge; unz "$1"; alog "$m"; halt "$1" .harness/anchor; }
@@ -497,8 +503,8 @@ aot() { local n0 n1
 # ---- exercise ---------------------------------------------------------------------------------------------------------------------
 block() { awk '/^```bash$/ { if (!d) { f = 1 }; next } f && /^```$/ { f = 0; d = 1 } f' "$1"; }
 where() { case "$1" in "$U") echo "this unit's folder" ;; "$U"/*) echo "${1#"$U"/}" ;; *) echo "outside this unit's folder" ;; esac; }
-VX="V=$CZ"
-VS="V=\"$CZ $FL\""
+VX="V=($CZ)"
+VS="V=($CZ $FL)"
 exercise() { local setup sol i=0 e1 d1 e2 d2 l1 l2 tk
   setup=$(block exercise/README.md); sol=$(block exercise/solution/SOLUTION.md)
   [ -n "$setup" ] && [ -n "$sol" ] || die "exercise/README.md or SOLUTION.md no longer gives its commands"
@@ -511,25 +517,32 @@ exercise() { local setup sol i=0 e1 d1 e2 d2 l1 l2 tk
   ! printf '%s\n' "$setup" | grep -qF 'min-response-size' || die "exercise/README.md must not name the floor's key: it is the exercise"
   l1=$(printf '%s\n' "$setup" | tail -1); l2=$(printf '%s\n' "$sol" | sed -n 5p)
   [ "$l1" = "$l2" ] || die "SOLUTION.md's last line must be the README's last line, unchanged: the fix is the key, not the command"
-  rm -f .harness/ex-*
+  rm -f .harness/ex-* .harness/exz-*
   printf '%s\n' "$setup" > .harness/ex-readme.sh; printf '%s\n' "$sol" > .harness/ex-sol.sh
   cat > .harness/ex-drive.sh <<'DRV'
 cd "$1" || exit 1
-. "$1/.harness/ex-readme.sh" > "$1/.harness/ex-readme.out" 2>&1 < /dev/null
-echo "$? $PWD" > "$1/.harness/ex-readme.st"
-cp "$1/.harness/mine/run.log" "$1/.harness/ex-readme.log" 2> /dev/null
-. "$1/.harness/ex-sol.sh" > "$1/.harness/ex-sol.out" 2>&1 < /dev/null
-echo "$? $PWD" > "$1/.harness/ex-sol.st"
+. "$1/.harness/ex-readme.sh" > "$1/.harness/$2readme.out" 2>&1 < /dev/null
+echo "$? $PWD" > "$1/.harness/$2readme.st"
+cp "$1/.harness/mine/run.log" "$1/.harness/$2readme.log" 2> /dev/null
+. "$1/.harness/ex-sol.sh" > "$1/.harness/$2sol.out" 2>&1 < /dev/null
+echo "$? $PWD" > "$1/.harness/$2sol.st"
 DRV
-  env -i HOME="$HOME" PATH="$XPATH" CURL_HOME="$CURL_HOME" /bin/bash --noprofile --norc .harness/ex-drive.sh "$U" > .harness/ex-shell.out 2>&1 < /dev/null & xpid=$!
+  # the same driver twice: /bin/bash, then /bin/zsh -f (the Mac's Terminal shell, which never splits an unquoted variable - RED S6 #527)
+  env -i HOME="$HOME" PATH="$XPATH" CURL_HOME="$CURL_HOME" /bin/bash --noprofile --norc .harness/ex-drive.sh "$U" ex- > .harness/ex-shell.out 2>&1 < /dev/null & xpid=$!
   while kill -0 "$xpid" 2> /dev/null && [ $i -lt 2400 ]; do sleep 0.25; i=$((i + 1)); done
   kill -0 "$xpid" 2> /dev/null && { killtree "$xpid"; die "the exercise's shell still ran after 600 s"; }
   wait "$xpid" || true; xpid=""
+  cp .harness/mine/run.log .harness/ex-sol.log 2> /dev/null; i=0
+  tk=$(head -1 .harness/mine/anchor/$TF 2> /dev/null)
+  env -i HOME="$HOME" PATH="$XPATH" CURL_HOME="$CURL_HOME" /bin/zsh -f .harness/ex-drive.sh "$U" exz- > .harness/exz-shell.out 2>&1 < /dev/null & xpid=$!
+  while kill -0 "$xpid" 2> /dev/null && [ $i -lt 2400 ]; do sleep 0.25; i=$((i + 1)); done
+  kill -0 "$xpid" 2> /dev/null && { killtree "$xpid"; die "the exercise's zsh shell still ran after 600 s"; }
+  wait "$xpid" || true; xpid=""
+  [ -f .harness/exz-readme.st ] && [ -f .harness/exz-sol.st ] || { cat .harness/exz-shell.out .harness/exz-readme.out .harness/exz-sol.out 2> /dev/null | tail -20 >&3; die "the exercise's zsh shell did not reach the end of both blocks"; }
   [ -f .harness/ex-readme.st ] && [ -f .harness/ex-sol.st ] || { cat .harness/ex-shell.out .harness/ex-readme.out .harness/ex-sol.out 2> /dev/null | tail -20 >&3; die "the exercise's shell did not reach the end of both blocks"; }
   read -r e1 d1 < .harness/ex-readme.st; read -r e2 d2 < .harness/ex-sol.st
   [ "$e1" = 0 ] || { tail -20 .harness/ex-readme.out >&3; die "the exercise's commands failed: exit $e1"; }
   [ "$e2" = 0 ] || { tail -20 .harness/ex-sol.out >&3; die "the solution's lines failed: exit $e2"; }
-  tk=$(head -1 .harness/mine/anchor/$TF)
   echo "exercise/README.md's commands, then the solution's lines (exercise/solution/SOLUTION.md), exactly as written, one after the other in ONE shell - env -i (HOME, and the PATH this script was started with), /bin/bash --noprofile --norc, started in this folder:"
   echo "the README's $(printf '%s\n' "$setup" | grep -c .) lines:"
   printf '%s\n' "$setup" | sed 's/^/  $ /'
@@ -538,7 +551,12 @@ DRV
   echo "the solution's $(printf '%s\n' "$sol" | grep -c .) lines, next, in the same shell:"
   printf '%s\n' "$sol" | sed 's/^/  $ /'
   echo "  exit $e2 · what they printed:"; sed 's/^/    /' .harness/ex-sol.out
-  echo "  the shell is now in: $(where "$d2") · the copy's own token in its log: $(raw "$tk" .harness/mine/run.log) times · WARN lines in its log: $(lvl WARN .harness/mine/run.log) · ERROR lines: $(lvl ERROR .harness/mine/run.log) · listening on 19596 now: $(listeners 19596)"; }
+  echo "  the shell is now in: $(where "$d2") · the copy's own token in its log: $(raw "$tk" .harness/ex-sol.log) times · WARN lines in its log: $(lvl WARN .harness/ex-sol.log) · ERROR lines: $(lvl ERROR .harness/ex-sol.log) · listening on 19596 now: $(listeners 19596)"
+  read -r e1 d1 < .harness/exz-readme.st; read -r e2 d2 < .harness/exz-sol.st; tz=$(head -1 .harness/mine/anchor/$TF)
+  echo "the same two blocks again, in ONE new shell - env -i, /bin/zsh -f (zsh, the Mac's Terminal shell; it never splits an unquoted variable):"
+  echo "  the README's lines: exit $e1 · what they printed:"; sed 's/^/    /' .harness/exz-readme.out
+  echo "  the solution's lines: exit $e2 · what they printed:"; sed 's/^/    /' .harness/exz-sol.out
+  echo "  the shell is now in: $(where "$d2") · its copy's own token in its log: $(raw "$tz" .harness/mine/run.log) times · listening on 19596 now: $(listeners 19596)"; }
 
 cap which which
 cap switch switch
@@ -656,6 +674,7 @@ for B in OFF ON; do p=19591; [ $B = ON ] && p=19592; eval "b=\$W$B"
   kept "$b" "$QLG" | grep -qxF '    Content-Length: 282' && ! kept "$b" "$QLG" | grep -qi 'content-encoding' || die "which $B: the list keeps its Content-Length: 282, no Content-Encoding (R.157)"
   kept "$b" "$QSG" | grep -qxF '    Content-Length: 200' && ! kept "$b" "$QSG" | grep -qi 'content-encoding' || die "which $B: the stylesheet keeps its Content-Length: 200, no Content-Encoding"
   ! kept "$b" "$QHG" | grep -qi 'content-encoding' && kept "$b" "$QHG" | grep -qxF '    Content-Type: application/vnd.spring-boot.actuator.v3+json' || die "which $B: health not compressed, its type not on the list"
+  kept "$b" "$QHG" | grep -qxF '    Transfer-Encoding: chunked' && ! kept "$b" "$QHG" | grep -qi '^    content-length' || die "which $B: health is a chunked answer with no Content-Length - so the 2KB floor never judged it, and its type is the one reason it stays 49 (RED S6 #529)"
   kept "$b" "$QP" | grep -qxF '    Transfer-Encoding: chunked' && kept "$b" "$QF" | grep -qxF '    Transfer-Encoding: chunked' || die "which $B: the two pages are chunked answers - no Content-Length"
   ! kept "$b" "$QP" | grep -qi '^    content-length' || die "which $B: the page has no Content-Length"; done
 QPG1="$FQ -H 'Accept: text/html' -H 'Accept-Encoding: gzip' http://127.0.0.1:19591/dashboard"; QFG1="$FQ -H 'Accept: text/html' -H 'Accept-Encoding: gzip' http://127.0.0.1:19591/customers/new"
@@ -702,6 +721,9 @@ echo "  floor: 282 B with Content-Length: 282 under the 2KB floor, not compresse
 DO=$(cat .r-decode.out)
 has "$DO" "\$ cd .harness/anchor && ${L_RUNL/18431/19591} $CZ $AL" "decode: its \$ line - the key and the access log (the harness's options)"
 has "$DO" "  their statuses: 201 ×30" "decode: thirty POSTs"
+# RED S6 #510: who unzips for RestClient, read off spring-web 7.0.9 - Spring's JDK request factory has the switch, its request the handler
+has "$DO" "\$ $L_JAVAP" "decode: the javap line"; has "$DO" "  javap's lines: 22 · kept: 5" "decode: javap, 5 of 22 lines kept"
+for l in '    public class org.springframework.http.client.JdkClientHttpRequestFactory implements org.springframework.http.client.ClientHttpRequestFactory {' '    private boolean compression;' '    public void enableCompression(boolean);' '    final class org.springframework.http.client.JdkClientHttpRequest$DecompressingBodyHandler implements java.net.http.HttpResponse$BodyHandler<java.io.InputStream> {' '    private static java.io.InputStream decompressStream(java.io.InputStream, java.lang.String);'; do has "$DO" "$l" "decode: spring-web's own line: $l"; done
 QDC="$FQ --compressed http://127.0.0.1:19591/customers"
 [ "$(after "$DO" "$QDC" | sed -n 1p)" = "  -> 200 229 · md5 $L2403 · its header lines: 6 · kept, by ^(Content-Type|Content-Encoding|Content-Length|Transfer-Encoding|Vary): (any case): 4" ] || die "decode: curl --compressed - 229 B on the wire, the plain md5 saved"
 has "$DO" "  curl --compressed's saved bytes against the plain list, md5 for md5: the same · against the gzip bytes: they differ" "decode: curl unzips"
@@ -772,7 +794,7 @@ echo "  aot (C): the AOT jar built offline on a copy (0 files gained, process-ao
 # the exercise's files as shipped (read again here, so a check that the exercise capture makes cannot be skipped)
 XR=$(block exercise/README.md); XL=$(block exercise/solution/SOLUTION.md)
 [ "$(printf '%s\n' "$XL" | grep -c .)" = 5 ] && [ "$(printf '%s\n' "$XL" | sed -n 1,2p)" = "$(printf '%s\n' "$XR" | sed -n 1,2p)" ] && [ "$(printf '%s\n' "$XL" | sed -n 4p)" = "$VS" ] && [ "$(printf '%s\n' "$XL" | sed -n 5p)" = "$(printf '%s\n' "$XR" | tail -1)" ] && printf '%s\n' "$XR" | grep -qxF -- "$VX" && ! printf '%s\n' "$XR" | grep -qF min-response-size || die "exercise: SOLUTION.md must be the README's two exports, its S= line, $VS and the README's last line; the README must ship $VX"
-XS=$(blk exercise "the README's" "the solution's"); XE=$(blk exercise "the solution's" '')
+XS=$(blk exercise "the README's" "the solution's"); XE=$(blk exercise "the solution's" 'the same two blocks again'); XZ=$(blk exercise 'the same two blocks again' '')
 l="/customers, gzip asked: 129 bytes · Content-Encoding: gzip · TiffinBox stopped by: POST /shutdown, 200"; l0="/customers, gzip asked: 282 bytes · Content-Encoding: none · TiffinBox stopped by: POST /shutdown, 200"
 has "$XE" "    $l" "exercise: the solution"; has "$XS" "    $l0" "exercise: as shipped"
 awk '/^\*\*Done\*\*/ { f = 1 } f' exercise/README.md | grep -qxF -- "$l" || die "exercise/README.md: Done names no such line"
@@ -781,12 +803,19 @@ grep -qF -- "\`$l0\`" exercise/README.md || die "exercise/README.md: the shipped
 has "$XS" '  exit 0 · what they printed:' "exercise: the README's commands, exit 0"; has "$XE" '  exit 0 · what they printed:' "exercise: the solution's lines, exit 0"
 for b in "$XS" "$XE"; do has "$b" "  the shell is now in: this unit's folder · the copy's own token in its log: 0 times · WARN lines in its log: 0 · ERROR lines: 0 · listening on 19596 now: 0" "exercise: the shell back in this folder, nothing left"; done
 [ "$(printf '%s\n' "$XE" | grep -c '^  \$ export ')" = 2 ] || die "exercise: SOLUTION.md gives the README's two export lines"
+# RED S6 #527: the same two blocks in zsh (the Mac's Terminal shell) print the same two lines - and no block passes an unquoted variable
+# that could hold two options (zsh never splits one: the two would arrive as one word)
+has "$XZ" "    $l0" "exercise (zsh): as shipped"; has "$XZ" "    $l" "exercise (zsh): the solution"
+has "$XZ" "  the README's lines: exit 0 · what they printed:" "exercise (zsh): the README's commands, exit 0"; has "$XZ" "  the solution's lines: exit 0 · what they printed:" "exercise (zsh): the solution's lines, exit 0"
+has "$XZ" "  the shell is now in: this unit's folder · its copy's own token in its log: 0 times · listening on 19596 now: 0" "exercise (zsh): nothing left"
+[ "$(printf '%s\n' "$XZ" | grep -c '^    /customers, gzip asked: ')" = 2 ] || die "exercise (zsh): two lines printed, one per block"
+for f in exercise/README.md exercise/solution/SOLUTION.md; do ! block "$f" | grep -qE '(^|[^"{])\$V([^A-Za-z0-9_{]|$)|^V="[^"]* ' || die "$f passes V unquoted or as one string - zsh would hand the options over as one word (RED S6 #527): V=( ... ) and \"\${V[@]}\""; done
 [ "$(printf '%s\n' "$XR" | grep -c -- "-H 'Accept-Encoding: gzip' -w '%{size_download}' http://127.0.0.1:19596/customers")" = 1 ] || die "exercise: \"fetch again\" is the README's curl with gzip asked and %{size_download}"
 ! printf '%s\n' "$XR$XL" | grep -qE -- "--data|-X POST|-d '[{]" || die "exercise: no POST - a second run in one shell measures the same list (S6.4)"
 EXQ="Your turn: the README switches compression on, yet the customer list still arrives unzipped. Find the setting that skips it, change it, and fetch again."
 grep -qxF -- "**Your turn:** ${EXQ#Your turn: }" exercise/README.md || die "exercise/README.md: the spoken exercise line"
 [ "$(printf '%s\n' "$EXQ" | wc -w | tr -d ' ')" -le 25 ] || die "exercise: the spoken line is over 25 words"
-echo "  exercise: one env -i shell - the README as written (the switch alone) -> $l0; the solution (+ $FL) -> $l; the shell in this unit's folder after each, 19596 free"
+echo "  exercise: one env -i shell - the README as written (the switch alone) -> $l0; the solution (+ $FL) -> $l; the shell in this unit's folder after each, 19596 free; the same two lines again in one zsh shell; no block passes V unquoted (RED S6 #527)"
 
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
 echo "c6-unit30: every capture 3/3 and = published; every spoken number asserted; 0 raw demo tokens in every capture and every log"

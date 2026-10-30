@@ -289,7 +289,9 @@ Course 6's finale pinned it in the same commit (R.163): the "as it is now" half 
 commit before the finale's, the last commit of Course 6's capstone — and its two `$` lines say so; every other line of the capture,
 and every check on it, is unchanged, and so are its numbers (19 courses, 9 names, Spring Web MVC after Spring Boot, the five-course
 title, sections 2 3 4 5): they are true of that commit. Its md5 moved with the two `$` lines (`bb4db1ef…` → `4456fd19…`), re-run 3/3
-under `./receipts.sh` and `bash receipts.sh` before and after the README changed. The video is unchanged. `../c6-unit32/` shows the
+under `./receipts.sh` and `bash receipts.sh` before and after the README changed. The video is unchanged. Its `receipts.sh` header comment, which still said "and as it is now", says "as commit 0458d2b (Course 6's
+capstone) had it" since Course 6's BLUE S6 (2026-10-30, RED S6 #553) — a comment only; re-run 3/3 under `./receipts.sh` and `bash
+receipts.sh` after it, each exit 0, all three = published. `../c6-unit32/` shows the
 README now and re-runs this capture's function.
 
 Before (`git show 53379bd:README.md`): `Spring Boot → JPA`, skipping Spring Web MVC, and Build & Test Like a Pro with it. Now: the

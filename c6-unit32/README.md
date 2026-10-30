@@ -25,7 +25,11 @@ no stub. It **dies** when a capture's md5 differs from `receipts.md5`. It needs 
 `0458d2b` had it, with `git show`, and runs Course 5's finale's `readmecap` from `../c5-unit30/receipts.sh` (which reads that commit
 and `53379bd`). **Start it in a process group of its own** (a terminal's foreground job is one): its clean-up sweeps its own group.
 
-**Runs of record (2026-10-30), each in a process group of its own, `.m2-demo` seeded from `_research/m2-seed-s6/` alone, on the
+**Re-run by BLUE S6 (2026-10-30), because `memory` reads `../c6-unit31/after`, whose README changed (R.104):** 57 s under
+`./receipts.sh` and 59 s under `bash receipts.sh`, each exit 0, both captures 3/3 = published (`5673a150…`, `4e4241dd…`), no `grep:` line;
+and **a sealed fresh clone** by the recipe below (a clone of `b50b410` with the 17 files BLUE S6 changed put in, each `cmp`-equal;
+pre-flight exit 1, 221 `Downloading from sealed: file://`, 0 http(s)): **exit 0 in 60 s, both = published; `_remote.repositories` by
+repository id: 604 `>sealed=`, 0 `central`; build logs 604 `Downloaded from sealed`, 0 http(s)**. **Runs of record (2026-10-30), each in a process group of its own, `.m2-demo` seeded from `_research/m2-seed-s6/` alone, on the
 script as committed: 53 s under `./receipts.sh`** (/bin/bash 3.2.57) **and 53 s under `bash receipts.sh`** (Homebrew bash 5.3.9):
 each exit 0, both captures 3/3 = published, every check passed, every build `offline: yes`. Development runs before them fixed the
 captures and the checks (20 planted faults against the checks, each caught — "Planted faults" below).
@@ -33,6 +37,9 @@ captures and the checks (20 planted faults against the checks, each caught — "
 Published hashes: memory `5673a1507c1e1980401d21adb4b3e504` · readme `4e4241ddf3eb8a044c7762a1938ee54f`.
 
 ### A sealed fresh clone — the recipe (R.129; unit 31's form)
+
+**Paste it into bash** (type `bash` first if your Terminal is zsh): zsh does not split the unquoted `$E`, so the pre-flight would print
+`NOT SEALED` — safe, but for the wrong reason (RED S6 #550).
 
 **Run (2026-10-30):** a `git clone` of tiffinbox-java at `0458d2b`, with `c6-unit32/`, the root `README.md` and `c5-unit30/` put
 in as git would take them (`git ls-files -co --exclude-standard`: 13 files, each `cmp`-equal to the working tree; `anchor` →
@@ -73,7 +80,7 @@ curl -s -w ' %{http_code}\n' -H 'Content-Type: application/json' --data '{"name"
 curl -s -w ' %{http_code}\n' http://127.0.0.1:18431/customers/Kavya
 ```
 
-C (labelled): the same run line with Course 2's database URL by Boot's key, and H2's own shell reading that file between the JVMs
+C (labelled): the same run line with Course 2's database URL by TiffinBox's own key, `--tiffinbox.jdbc-url` (RED S6 #545; Boot's would be `spring.datasource.url`, and TiffinBox has no DataSource), and H2's own shell reading that file between the JVMs
 (`$H2`: the H2 jar the anchor's jar carries, from `.m2-demo`):
 
 ```
@@ -344,7 +351,7 @@ titles (*The Object-Relational Mismatch, Named*; *JPA, Hibernate, Spring Data: T
 `EntityManager`*) and its section *Schema and lifecycle* (`TRACK-ROADMAP.md`, md5 `63dddfbe3102c1e555fe6c96b9b787ea` at build);
 **235 captures** in the 31 earlier units' `receipts.md5` (per section: The Servlet Layer 35 · Controllers and Binding 71 · Errors Done
 Right 28 · The Rest of MVC 49 · Calling Out 27 · Close 25), each `cap()` running each capture 3 times (read off every `receipts.sh`);
-**151 rules** (STYLE-CONTRACT §R, R.1-R.151, one line each); **18 tests** from the capstone's published `tests` capture (TiffinBoxWebTest
+**151 rules** (STYLE-CONTRACT §R, R.1-R.151, one line each, at this unit's build — **170 since BLUE S6**, R.1-R.170, re-read 2026-10-30); **18 tests** from the capstone's published `tests` capture (TiffinBoxWebTest
 14, FullStackTest 3, FeedTest 1; `../c6-unit31/.r-tests.out` `c26600790ea89fa1651ed25aeda554e7`). **C6-13:** Course 5's finale slide
 reads "32 lessons, 6 sections" and names 8 titles; each equals today's — nothing to correct. None of these files but the last is in this
 repository, so no receipt can read them on a clone; the builder refuses any of those counts typed into a slide or a spoken line (its
@@ -378,7 +385,9 @@ None: the finale is exempt (contract §7; `check_unit6.py` skips the last unit),
 ## RE-MEASURE — the brief's items this unit settles
 
 - **#15** C5 U30's `readme` capture pinned to the commit before this unit's, 3/3 both bashes, md5 `4456fd19…` (above).
-- **#16** the receipts/rules counts — read by the builder: 235 captures in 31 units, 151 rules.
+- **#16** the receipts/rules counts — read by the builder: 235 captures in 31 units, 151 rules at the unit's build; **170 since BLUE S6
+  numbered R.152-R.170 (re-read by `s632.py` on 2026-10-30: the voice says "the course's written rules grew to a hundred and seventy as it
+  went", RED S6 #556)**.
 
 ## LINES OVERTURNED OR SHARPENED BY THIS UNIT'S MEASUREMENT
 
@@ -392,12 +401,18 @@ None: the finale is exempt (contract §7; `check_unit6.py` skips the last unit),
 - **`Database.createAndSeed()` runs at every start** (`@PostConstruct`, `DROP TABLE IF EXISTS` first): a file URL alone would not keep
   TiffinBox's data. The next course's *Schema and lifecycle* section is named on camera, nothing claimed about it.
 - **This unit's own `readme` capture reads `../README.md` live** (the README as it is now). A later change to the root README — the
-  next course's entry — makes it die on its md5 exactly as Course 5's would have: R.163's pin applies to it too (CARRIED to Course 7's
-  setup brief, with Course 5's pin already in place).
+  next course's entry — makes it die on its md5 exactly as Course 5's would have: R.163's pin applies to it too — **carried, by name, in the S6 AMENDMENT's CARRIED: Course 7's setup brief pins c6-unit32's `readme`
+  (`cat ../README.md` → `git -C .. show <the commit before that change>:README.md` — the README as `b50b410` left it — its `$` line
+  saying so) in the commit that changes the root README, the
+  way this unit pinned c5-unit30's** (RED S6 #554, measured: a root README with a planted Course 7 entry makes this unit's receipts exit 1,
+  `readme md5 91024945… DIFFERS from the published 4e4241dd…`).
 - **Course 5's label "and as it is now:" stays** (the brief: every other line unchanged; Course 5's video shows it); the `$` line under
-  it names `0458d2b`, and Course 5's README says the README has moved past that unit.
-- **`../c6-unit31/README.md` holds a literal `SIGINT_GO_HERE` line** under "Interrupted" (its builder's lost terminal lines, as the
-  brief says) — a frozen unit's file, not touched here; RED B re-records them.
+  it names `0458d2b`, and Course 5's README says the README has moved past that unit; its `receipts.sh` header comment, which still
+  said "as it is now", says "as commit 0458d2b (Course 6's capstone) had it" since BLUE S6 (RED S6 #553; c5-unit30 re-run 3/3 under both
+  bashes after it: exit 0 in 39 s each, seam `d1d10087…`, pieces `902a804d…`, readme `4456fd19…`, all = published).
+- **`../c6-unit31/README.md` held a literal `SIGINT_GO_HERE` line** under "Interrupted" (its builder's lost terminal lines, as the
+  brief says) — not touched here; RED B re-recorded the five SIGINT trials and BLUE S6 wrote them in as its "Measured" paragraph
+  (RED S6 #540).
 
 ## For RED (part B)
 
