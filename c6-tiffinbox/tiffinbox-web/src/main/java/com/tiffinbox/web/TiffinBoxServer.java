@@ -32,6 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import static java.lang.System.Logger.Level.INFO;
 
@@ -94,9 +95,14 @@ import static java.lang.System.Logger.Level.INFO;
  * marks its body {@code @Valid}: once Jackson has read the JSON into the record, Spring MVC's validator - Boot's adapter around
  * the one Validator Boot builds, Hibernate Validator's - checks it, and every rule it breaks lands in the BindingResult the
  * method takes beside it. The method answers those itself: 400 Bad Request, a problem detail whose member "errors" holds each
- * field that broke a rule with the rule's message. A body that breaks none reaches the database as before: 201, or 409 for a name that is taken. The class carries no
+ * field that broke a rule with every message it earned - sorted, joined by "; ", since the capstone: one value can break two
+ * rules (sixty-one spaces are blank and too long, Customer). A body that breaks none reaches the database as before: 201, or
+ * 409 for a name that is taken. The class carries no
  * {@code @Validated}: that would hand a constrained parameter to Boot's method-validation post-processor, which subclasses the
  * bean - and this class is final.
+ *
+ * <p>Course 6, the capstone: every customer this route stores is told to CustomerFeed, which sends it to every client listening
+ * on GET /customers/feed - as the form's POST (DashboardPage) and an upload's rows (CustomerImport) do.
  */
 @RestController
 public final class TiffinBoxServer {
@@ -114,9 +120,10 @@ public final class TiffinBoxServer {
     private final List<MealType> mealTypes;
     private final byte[] shutdownToken;
     private final ConfigurableApplicationContext context;
+    private final CustomerFeed feed;
 
     TiffinBoxServer(CustomerRepository repo, Dashboard dashboard, OrderQueue kitchen, TiffinBoxProperties settings,
-                    ConfigurableApplicationContext context) {
+                    ConfigurableApplicationContext context, CustomerFeed feed) {
         this.repo = repo;
         this.dashboard = dashboard;
         this.kitchen = kitchen;
@@ -124,6 +131,7 @@ public final class TiffinBoxServer {
         this.mealTypes = settings.mealTypes();
         this.shutdownToken = settings.shutdownToken().getBytes(StandardCharsets.UTF_8);
         this.context = context;
+        this.feed = feed;
     }
 
     // ---- the routes: Spring MVC's request mappings -------------------------
@@ -148,7 +156,7 @@ public final class TiffinBoxServer {
      * against its constraints (Customer), before this method runs. The rules it broke are in the BindingResult - which must
      * come straight after the parameter it reports on - and a body that broke any is answered here: 400 Bad Request, a problem
      * detail - its title "Invalid customer", its detail the number of rules broken, and its member "errors" each field that broke
-     * a rule and that rule's message, sorted by field name; nothing is stored. Without the BindingResult, Spring MVC would answer
+     * a rule and every message it earned (fieldMessages), sorted by field name; nothing is stored. Without the BindingResult, Spring MVC would answer
      * for the method: Boot's problem-details handler, whose 400 says "Invalid request content." and names no field. A body that
      * keeps every rule is stored, and the answer says what happened. Stored: 201 Created, the record, and a Location header,
      * the new customer's URL - this request's URL without its query string, the name appended to its path, encoded (a space
@@ -157,7 +165,7 @@ public final class TiffinBoxServer {
      * detail that names it. H2 refuses that row with the SQLSTATE 23505 - the five-character code a database reports with a refusal - and
      * refuses a row with a column left empty, 23502, with the same exception class: so this method reads the code, never
      * the class, and every other refusal stays Spring MVC's 500. The return type names no body type: the 400's and the 409's
-     * body is a ProblemDetail, the 201's the record.
+     * body is a ProblemDetail, the 201's the record. A stored customer is sent to every client listening to CustomerFeed first.
      */
     @PostMapping("/customers")
     ResponseEntity<?> add(@Valid @RequestBody Customer customer, BindingResult errors) throws SQLException {
@@ -172,6 +180,7 @@ public final class TiffinBoxServer {
             }
             throw e;
         }
+        feed.added(customer);
         URI location = ServletUriComponentsBuilder.fromCurrentRequestUri().path("/{name}")
                 .buildAndExpand(customer.name()).toUri();
         return ResponseEntity.created(location).body(customer);
@@ -227,25 +236,29 @@ public final class TiffinBoxServer {
         return ResponseEntity.status(status).body(problem);
     }
 
-    /** The 400's problem detail: how many rules the body broke, and - its member "errors" - each field and its rule's message. */
+    /** The 400's problem detail: how many rules the body broke, and - its member "errors" - each field and its messages. */
     private static ProblemDetail invalid(BindingResult errors) {
         Map<String, String> fields = fieldMessages(errors);
+        int broken = errors.getFieldErrorCount();
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
-                "the customer breaks " + fields.size() + (fields.size() == 1 ? " rule" : " rules"));
+                "the customer breaks " + broken + (broken == 1 ? " rule" : " rules"));
         problem.setTitle("Invalid customer");
         problem.setProperty("errors", fields);
         return problem;
     }
 
     /**
-     * Each field that broke a rule, and the rule's message, sorted by field name. A value breaks at most one rule of its
-     * component (Customer), so no field has two.
+     * Each field that broke a rule, and every message it earned, sorted by field name. One value can break two rules of its
+     * component - sixty-one spaces break NotBlank and Size (Customer) - and Hibernate Validator reports them in no fixed
+     * order: so a field keeps all its messages, sorted, joined by "; ", and the answer is the same in every JVM.
      */
     private static Map<String, String> fieldMessages(BindingResult errors) {
-        var out = new TreeMap<String, String>();
+        var all = new TreeMap<String, TreeSet<String>>();
         for (FieldError e : errors.getFieldErrors()) {
-            out.put(e.getField(), e.getDefaultMessage());
+            all.computeIfAbsent(e.getField(), f -> new TreeSet<>()).add(e.getDefaultMessage());
         }
+        var out = new TreeMap<String, String>();
+        all.forEach((field, messages) -> out.put(field, String.join("; ", messages)));
         return out;
     }
 

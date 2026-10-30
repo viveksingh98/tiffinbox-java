@@ -1,5 +1,6 @@
 package com.tiffinbox.web;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 
 import com.tiffinbox.CustomerRepository;
@@ -19,6 +20,9 @@ import org.springframework.test.web.servlet.client.RestTestClient;
  * repository is a mock, so a test can make it throw, and the token is the tests' literal. {@code RANDOM_PORT} lets the operating system pick a free port for Tomcat (TiffinBox's address stays
  * application.yaml's 127.0.0.1), and RestTestClient - spring-test's client for tests - calls it. What the slice could not show
  * happens here: a failure nobody handled reaches Tomcat, which runs the error dispatch, and Boot answers 500.
+ *
+ * <p>Since the capstone no request TiffinBox's own tests or this course sends reaches its error page - a sixty-one letter name is
+ * a 400 now - so the page is proven here, with a repository that throws and a client that asks for HTML.
  *
  * <p>The shutdown token is a literal written here, not a secret (TiffinBoxWebTest says why).
  */
@@ -44,6 +48,16 @@ class FullStackTest {
                 .jsonPath("$.error").isEqualTo("Internal Server Error")
                 .jsonPath("$.path").isEqualTo("/revenue")
                 .jsonPath("$.timestamp").exists();
+    }
+
+    /** The error page: a client that asks for HTML gets templates/error/5xx.html, not Boot's JSON. */
+    @Test
+    void aFailingRepositoryShowsTheErrorPage() throws Exception {
+        given(repo.findAll()).willThrow(new IllegalStateException("kitchen on fire"));
+        client.get().uri("/dashboard").accept(MediaType.TEXT_HTML).exchange()
+                .expectStatus().isEqualTo(500)
+                .expectHeader().contentTypeCompatibleWith(MediaType.TEXT_HTML)
+                .expectBody(String.class).value(body -> assertThat(body).contains("<title>Something broke · TiffinBox</title>"));
     }
 
     @Test

@@ -10,7 +10,8 @@ measured doing the web's jobs. Course 6's units are planned to hand those jobs t
 changes this folder records it below as a `## Course 6 · unit NN` section, as Course 5's did. `c5-tiffinbox` stays
 frozen from here on, so every Course 5 unit keeps pointing at what it measured. Everything below the rule is
 `c5-tiffinbox`'s README exactly as it was at 7b1fe27, except the history notes a Course 6 unit made false: each is
-amended in place, in a note that starts *Course 6, unit NN*, and the unit sections keep their history. *(Course 6, unit
+amended in place, in a note that starts *Course 6, unit NN*, and the unit sections keep their history. *(Course 6, unit 31,
+the capstone and the course's last change to this folder: this tree — `c6-unit31/after` — is where Course 7 starts.)* *(Course 6, unit
 04: three of the four files' jobs have moved — `TiffinBoxServer` no longer names the JDK's server, and `ActuatorRoutes` and
 `PortTakenFailureAnalyzer` are deleted; Tomcat, Boot's Actuator adapter and Boot's port analyzer do their jobs. `Route`
 stays until Course 6's request-mapping lesson.)* *(Course 6, unit 06: and the fourth's — `Route` is deleted, with
@@ -137,7 +138,11 @@ default is `graceful`; `spring.lifecycle.timeout-per-shutdown-phase` 30s) stops 
 active requests to complete`, `Graceful shutdown complete` — and the JVM exits **0**. A request in flight finishes first: a slow
 request of three seconds, sent before POST /shutdown, answers 200; with `--server.shutdown=immediate` it gets no answer
 (`../c6-unit04/`, `stop`). Tomcat is TiffinBox's only server: with two servers in one JVM, Boot's `container-0` kept it alive
-after TiffinBox's own server stopped (Course 6's servlet-container lesson). *(Course 6, unit 06: POST /shutdown is a controller method — it starts the close
+after TiffinBox's own server stopped (Course 6's servlet-container lesson). *(Course 6, unit 31: an answer that never ends
+holds that wait — the feed's event stream, `GET /customers/feed`: with a listener connected and nothing to end its answer, the
+shutdown waited out Boot's phase, Framework's `still running after timeout of 30000ms: [webServer]`; `CustomerFeed` completes
+every stream when the context starts to close, and the same POST /shutdown with a listener connected says `Graceful shutdown
+complete`, the listener's curl exits 0; `../c6-unit31/`, `feed`.)* *(Course 6, unit 06: POST /shutdown is a controller method — it starts the close
 on a platform thread of its own and returns its answer. The answer arrived with Boot's graceful shutdown and with
 `--server.shutdown=immediate` alike, so graceful shutdown is not what lets it out; `../c6-unit06/`, `stop`.)* *(Course 6, unit 10:
 not so — `../c6-unit06/`'s `stop`, made again with the answer held in flight two seconds after the method returned: with graceful
@@ -184,6 +189,8 @@ routes list their parameter types, `customers(MealType)`; `../c6-unit07/`, `chan
 16 rows — `POST /customers`, `add(Customer)`, is the seventh; `../c6-unit08/`, `change`.)* *(Course 6, unit 12: `add(Customer,BindingResult)`
 since, still 9 mappings; `../c6-unit12/`, `constraints`.)* *(Course 6, unit 22: ten routes, 19 rows — `DashboardPage`'s `GET /dashboard` and
 `GET /customers/new`, each producing `text/html`, and its `POST /customers`, consuming a form's type; `../c6-unit22/`, `negotiate`.)*
+*(Course 6, unit 31: twelve routes, 21 rows — `CustomerImport`'s `POST /customers/import`, consuming `multipart/form-data`, and
+`CustomerFeed`'s `GET /customers/feed`, producing `text/event-stream`; `../c6-unit31/`, `tour`.)*
 
 ```bash
 java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --logging.level.kitchen=debug --logging.level.org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping=trace
@@ -281,7 +288,7 @@ parameter is gone; `../c6-unit10/`, `entity`)* — and `8 mappings in 'requestMa
 (`/actuator/mappings`, exposed for one run) has 15 rows, TiffinBox's six each naming a verb, and the `/customers` row's
 `requestMappingConditions.params` is `[]`: the meal type is no part of the match (`change`). *(Course 6, unit 08: seven routes —
 `{POST [/customers]}: add(Customer)` the seventh — 9 mappings and 16 rows; `../c6-unit08/`, `change`.)* *(Course 6, unit 12:
-`add(Customer,BindingResult)` since; `../c6-unit12/`, `constraints`.)* *(Course 6, unit 22: ten routes, 19 rows; `../c6-unit22/`, `negotiate`.)* The first time it meets a parameter,
+`add(Customer,BindingResult)` since; `../c6-unit12/`, `constraints`.)* *(Course 6, unit 22: ten routes, 19 rows; `../c6-unit22/`, `negotiate`.)* *(Course 6, unit 31: twelve routes, 21 rows; `../c6-unit31/`, `tour`.)* The first time it meets a parameter,
 Spring MVC's `RequestMappingHandlerAdapter` asks its 28 argument resolvers in order — the first that takes it fills it, and that
 choice is cached for the parameter:
 `@PathVariable` → `PathVariableMethodArgumentResolver`, `@RequestParam` → `RequestParamMethodArgumentResolver`, `@RequestHeader` →
@@ -573,7 +580,9 @@ checks each body against them before the method runs. Two Java files changed, be
   has been the core POM's since Course 5's settings record): `@NotBlank name`, `@Min(1) @Max(3) mealsPerDay`, `@Min(1) pricePerMeal`,
   `@NotNull @Pattern(regexp = "VEG|NON_VEG|VEGAN") mealType` — six constraints. A value breaks at most one rule of its component:
   `@Pattern` lets a missing meal type through and `@NotNull` an empty one, so each field that fails has one message (with `@NotBlank`
-  beside `@Pattern`, an empty meal type would break both). The annotations check nothing by themselves, and a record the database or
+  beside `@Pattern`, an empty meal type would break both). *(Course 6, unit 31: no longer — the name carries `@Size(max = 60)` beside
+  `@NotBlank`, seven constraints; sixty-one spaces break both, and `fieldMessages` keeps every message a field earned, sorted, joined
+  by `; `, so the answer is the same in every JVM; `../c6-unit31/`, `length` C.)* The annotations check nothing by themselves, and a record the database or
   the seed builds is never checked. The Javadoc says so: 8 lines → 27.
 - `TiffinBoxServer.java` — **`POST /customers`** is `ResponseEntity<?> add(@Valid @RequestBody Customer customer, BindingResult errors)`.
   **`@Valid`** asks Spring MVC to check the body against the record's constraints once Jackson has read it; every rule it broke is in
@@ -831,7 +840,9 @@ went with Chrome's whole Accept header — the one curl sends above — and came
 Each seen twice: in Chrome's own record of the request and in the server's (the course's `Dump` filter).
 
 **When it breaks** (`errors`): a name of 61 letters — the table's column holds 60, and nothing checks the length — is H2's refusal
-(22001), which nobody handles: `500`, Tomcat's ERROR line, and for a client that asks for HTML the error page is TiffinBox's own,
+(22001), which nobody handles *(Course 6, unit 31: true of this unit's tree; `Customer`'s `@Size(max = 60)` checks the length since —
+a 400, `size must be between 0 and 60`, before any SQL runs, and no request this course sends reaches the error page any more:
+`FullStackTest` proves it with a repository that throws; `../c6-unit31/`, `length` and `tests`)*: `500`, Tomcat's ERROR line, and for a client that asks for HTML the error page is TiffinBox's own,
 `templates/error/5xx.html` (`<title>Something broke · TiffinBox</title>`); curl's own Accept still gets Boot's JSON body. A template
 with a misspelt name (the exercise's) fails only when the page is asked for: `500`, the same error page, and two ERROR lines —
 Thymeleaf's `TemplateEngine` naming the template, the expression and its line, then Tomcat's — while the JSON `/dashboard` stays 200.
@@ -847,7 +858,8 @@ exists: an error page added while TiffinBox runs is not found until it is `false
 
 **Every form serves it** (`forms`): the jar, the AOT jar, the native binary and the image — each on `127.0.0.1` (the image:
 published there), each answering the seven `466c20ed…` (masked), and, on a second start of each, every page: the dashboard, the form,
-its four messages, the valid POST's `302` and Lata in the table, TiffinBox's error page for the 61-letter name — the binary's too — and
+its four messages, the valid POST's `302` and Lata in the table, TiffinBox's error page for the 61-letter name — the binary's too *(Course 6,
+unit 31: on this unit's tree; the 61-letter name is a 400 since)* — and
 the JSON POST's `201`. Spring's AOT step registers 687 reflection entries where the previous tree's registered 670 — `Dashboard$View`
 with its public methods, `Customer`'s public methods (the hint), `DashboardPage`, Thymeleaf's engine, resolver and configuration
 classes — and `templates/**` and `static/**` as resources. The binary's pages say `Content-Language: en` where the jar's say `en-US`:
@@ -958,7 +970,7 @@ Evidence for every sentence in this section: `../c6-unit24/` (`receipts.sh`, nin
 TiffinBox has answered requests since the course began, and until this unit its own tree kept no test: there was no `src/test`, and
 every build's test step said `No tests to run.` (`change`). (Course 3, *Build & Test Like a Pro*, wrote JUnit and Mockito tests on
 TiffinBox's classes in its lessons' own folders; none of them reached this tree.) From this unit the web module has a **test** — code that runs TiffinBox's code
-and checks one answer, so a change that breaks it fails the build — eleven of them, and the build runs them. One file changed, three
+and checks one answer, so a change that breaks it fails the build — eleven of them, and the build runs them *(Course 6, unit 31: eighteen since — `../c6-unit31/`, `tests`.)*. One file changed, three
 are new, besides this README:
 - `tiffinbox-web/pom.xml` — **`spring-boot-starter-webmvc-test`, in test scope** (five lines): Boot's test starter for Spring MVC. Its
   POM names five dependencies; one, Spring MVC's starter, TiffinBox already had; the other four — `spring-boot-starter-test`,
@@ -971,8 +983,9 @@ are new, besides this README:
 `Default locale: de_DE` and the test JVM `en_US`, its own default here. Nothing
   in `<build>` changed.
 - `src/test/java/slice/WebSlice.java` (new) — the configuration the web slice starts from (below), outside `com.tiffinbox`.
-- `src/test/java/com/tiffinbox/web/TiffinBoxWebTest.java` (new) — nine tests of the web layer alone, through MockMvc.
-- `src/test/java/com/tiffinbox/web/FullStackTest.java` (new) — two tests of the whole application, on a real Tomcat.
+- `src/test/java/com/tiffinbox/web/TiffinBoxWebTest.java` (new) — nine tests of the web layer alone, through MockMvc. *(Course 6, unit 31: fourteen since.)*
+- `src/test/java/com/tiffinbox/web/FullStackTest.java` (new) — two tests of the whole application, on a real Tomcat. *(Course 6, unit 31: three since, and
+  `FeedTest` beside it, one.)*
 
 ```bash
 mvn -B clean test
@@ -981,7 +994,7 @@ mvn -B -pl tiffinbox-web -Dtest=TiffinBoxWebTest clean test
 ```
 
 **`package` and `install` run the tests now.** `mvn -B package`, `mvn -B install` and their `-Pnative` forms run Surefire's `test` before they
-package: the eleven tests, and a failing test fails the build (exit 1, `BUILD FAILURE`). `-DskipTests` skips them: Course 4's
+package: the eleven tests *(Course 6, unit 31: eighteen since — `../c6-unit31/`, `tests`.)*, and a failing test fails the build (exit 1, `BUILD FAILURE`). `-DskipTests` skips them: Course 4's
 `mvn -q -DskipTests package` builds the jar and writes no report.
 `-pl tiffinbox-web` builds the web module alone and takes `tiffinbox-core` from your local Maven repository, so `mvn -B install` comes
 once first; `-Dtest=TiffinBoxWebTest` runs that one class (`-Dtest=TiffinBoxWebTest#theTestsRunInEnglish`: one method). The course's
@@ -1042,10 +1055,75 @@ exception") — and the dashboard's page, failing, is TiffinBox's `error/5xx.htm
 a problem detail. Not `TestRestTemplate`: on this class path its auto-configuration fails to start (`NoClassDefFoundError:
 org/springframework/boot/restclient/RestTemplateBuilder`) — it needs Boot's RestClient module, which this POM does not bring.
 
-**Every form** (`forms`): the native build ran the eleven tests first; the jar, the AOT jar, the native binary and the image give the
+**Every form** (`forms`): the native build ran the eleven tests first *(Course 6, unit 31: eighteen since — `../c6-unit31/`, `tests`.)*; the jar, the AOT jar, the native binary and the image give the
 seven — `466c20ed7e0d5439cb052f32ce09de1b` (masked), the previous tree's — and answer the invalid customer with the same three messages.
 
 Evidence for every sentence in this section: `../c6-unit28/` (`receipts.sh`, seven captures).
+
+## Course 6 · unit 31 — the capstone: a name's length checked, a bulk upload, a feed of new customers (2026-10-29)
+
+The course's last change to this folder, and the tree **Course 7 starts from**. Course 6 built TiffinBox into a web application —
+pages and endpoints on one path, errors in one shape, a session, files, tests — and this unit walks it once, measured (`tour`,
+`seven`, `retired`), then finishes three jobs it still owed. Three Java files changed and two are new, three test files changed or
+are new, besides this README:
+- `tiffinbox-core`'s `Customer.java` — the name is `@NotBlank @Size(max = 60)`: the table's column is `VARCHAR(60)`, and until this
+  unit a 61-letter name reached H2, which refused it — a 500 (*Serving HTML: Thymeleaf* found it and said so). Now it is a **400**
+  before any SQL runs, `size must be between 0 and 60` (`length`). The Javadoc's "a value breaks at most one rule" is gone: sixty-one
+  spaces are blank and too long, and break both.
+- `TiffinBoxServer.java` — **`fieldMessages` keeps every message a field earned**, sorted, joined by `; `, and the 400's detail counts
+  the rules broken: sixty-one spaces answer `the customer breaks 2 rules`, `"name":"must not be blank; size must be between 0 and 60"`,
+  the same in three fresh JVMs (`length` C). Hibernate Validator reports a field's violations in no fixed order, and a map that kept
+  one message a field could keep either (the course brief's probe saw both, on a sketch of this change; not re-measured here). Every customer
+  `POST /customers` stores is sent to the feed.
+- `DashboardPage.java` — the form's add is sent to the feed too.
+- `CustomerImport.java` (new) — **a bulk upload**, many customers in one request: `POST /customers/import`, a multipart form whose part
+  `file` is a CSV of `name,mealsPerDay,pricePerMeal,mealType` lines (a first line starting `name,` is a header). Each row goes through
+  what one `POST /customers` goes through — the same rules, checked by Boot's validator in the request's language, the same
+  repository, H2's 23505 for a taken name — and the answer names every refused line with why:
+  `{"file":…,"added":N,"refused":{"line N":"…"}}`. A request with no part named `file` is Spring MVC's 400 problem detail, `Required
+  part 'file' is not present.` (`upload`).
+- `CustomerFeed.java` (new) — **an event stream** (server-sent events): `GET /customers/feed` answers `text/event-stream` and stays
+  open; its first line is a comment, `:listening` — until an answer's first bytes Tomcat sends not even its headers, so without it a
+  listener could not tell it was connected — and every customer the JSON API, the form or an upload stores arrives as one event,
+  `customer-added`, its data the record as JSON. On `ContextClosedEvent` it completes every stream, so POST /shutdown with a listener
+  connected is a **graceful shutdown** that does not wait (`feed`).
+- `src/test/java/com/tiffinbox/web/TiffinBoxWebTest.java` (+5: the 61-letter 400, sixty-one spaces, the upload, the form page, the
+  feed's `request().asyncStarted()`), `FullStackTest.java` (+1: the error page as HTML from a repository that throws), `FeedTest.java`
+  (new, 1: the whole application, its real database, a listener on the feed hears a `POST`) — eighteen tests, counted from Surefire's
+  reports (`tests`).
+
+```bash
+curl -s -w ' %{http_code}\n' -F "file=@customers.csv;type=text/csv" http://127.0.0.1:18431/customers/import
+curl -s -N http://127.0.0.1:18431/customers/feed
+```
+
+**The tour** (`tour`): eighteen classes, seven in `tiffinbox-core` and eleven in `tiffinbox-web`. Four are controllers —
+`TiffinBoxServer`, `CustomerImport` and `CustomerFeed` `@RestController`s, `DashboardPage` a `@Controller` — beside the advice,
+`TiffinBoxErrors`; six are `@Component`s. Course 1's four boxes, controller · service · repository · entity: the controller wears
+Spring's own name; the repository is TiffinBox's own class name, `CustomerRepository`, a plain `@Component`; no class is a service
+(`Dashboard` and `OrderQueue` do that work, each a `@Component`); the entity is a record, `Customer` — `@Service`, `@Repository` and
+`@Entity`: 0 each. `/dashboard` is still one path with two answers: the page for a client that asks for HTML, the JSON for curl's own
+`Accept`. The routing table (`/actuator/mappings`, exposed for one run) has 21 rows, TiffinBox's 12.
+
+**The seven** (`seven`): `466c20ed7e0d5439cb052f32ce09de1b` (masked) on this tree and on the previous one, the same, byte for byte, 7;
+against TiffinBox's own server's seven (`115c36ba…`, published in `../c6-unit01/README.md`), 5 the same and 2 different: `GET
+/nowhere` (the JDK's `<h1>404 Not Found</h1>` → Spring MVC's problem detail) and `GET /shutdown` (TiffinBox's own 405 body → Spring
+MVC's problem detail).
+
+**What retired** (`retired`): of Course 5's four web files (548 lines), `ActuatorRoutes`, `Route` and `PortTakenFailureAnalyzer` are
+no file here; `TiffinBoxServer.java` kept its name and lost its server (0 imports of `com.sun.net.httpserver`). A second TiffinBox on
+a port the first holds stops with Boot's own report, `Web server failed to start. Port … was already in use.` — `PortInUseFailureAnalyzer`,
+registered by `spring-boot-web-server`'s jar, where Course 5's analyzer of its own stood.
+
+**Every form** (`forms`): the native build ran the eighteen tests first; the jar, the AOT jar, the native binary and the image give the
+seven `466c20ed…`, the three messages, the size message (the binary's in English whatever `Accept-Language` says: its messages are
+fixed when it is built), the upload's answer, its event on a connected listener, the page, and a graceful shutdown with the listener
+connected — `Graceful shutdown complete`, the listener's curl exits 0. No hint was added for the feed or the upload.
+
+**What this tree hands on** (for Course 7): the customers live in memory (`jdbc:h2:mem:`), gone at every restart; `@Size(max = 60)` sits
+beside the column's `VARCHAR(60)`; the feed's events come from the web layer's adds; TiffinBox has tests, in `src/test`.
+
+Evidence for every sentence in this section: `../c6-unit31/` (`receipts.sh`, nine captures).
 
 ---
 
@@ -1491,7 +1569,7 @@ compiled into the jar) and as data
 (`reachability-metadata.json` — not Course 3's `reflect-config.json` — the file a native build reads). With the plugin
 declared, the profile also runs the plugin's `add-reachability-metadata`, which copies metadata for the jars TiffinBox uses
 from GraalVM's shared repository (a zip Maven downloads from Central on the first build; for H2 2.5.250 it has no entry, and
-takes 2.1.210's) *(Course 6, unit 28: and these builds, like every `package` and `install`, run TiffinBox's eleven tests first —
+takes 2.1.210's) *(Course 6, unit 28: and these builds, like every `package` and `install`, run TiffinBox's eleven tests first *(Course 6, unit 31: eighteen since — `../c6-unit31/`, `tests`.)* —
 `-Pnative install` ran them before the binary was built; `../c6-unit28/`, `forms`)*:
 
 ```bash
@@ -2270,7 +2348,7 @@ scope — JUnit Jupiter, AssertJ, Mockito, spring-test and Boot's test modules a
 > top). The manifest and the `lib/` listing below are Course 3's, kept as they were written. *(Course 6, unit 08: and Jackson 2's
 > `jackson-databind` and `jackson-core` are out of the build — `../c6-unit08/`, `jackson`.)* *(Course 6, unit 28: and web's test
 > step — Surefire's `surefire:3.5.6:test`, which said `No tests to run.` until then — runs TiffinBox's eleven tests before the jar is
-> made; `../c6-unit28/`, `change`.)*
+> made *(Course 6, unit 31: eighteen since — `../c6-unit31/`, `tests`.)*; `../c6-unit28/`, `change`.)*
 
 ```bash
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
@@ -2503,7 +2581,7 @@ Built and run on **JDK 25.0.4.1** (`/opt/homebrew/opt/openjdk@25`) with **Maven 
 macOS on Apple silicon, **2026-09-14**, from a clean copy outside the repository, with an
 isolated local repository (`-Dmaven.repo.local=`) so nothing of ours reaches `~/.m2`.
 Offline receipt after one warm build: `mvn -o -B verify` → `BUILD SUCCESS`, exit 0, three runs. *(Course 6, unit 28: measured
-when TiffinBox had no tests; `package` and `install` run its eleven since — `../c6-unit28/`, `change` and `forms`.)*
+when TiffinBox had no tests; `package` and `install` run its eleven since *(Course 6, unit 31: eighteen since — `../c6-unit31/`, `tests`.)* — `../c6-unit28/`, `change` and `forms`.)*
 
 
 ---
@@ -2549,7 +2627,7 @@ java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar 18431
 
 (Course 5: since unit 06 that bare `18431` is ignored, and since unit 27 it is refused — exit 2, nothing listens; the
 port is `--tiffinbox.port=18431`.) *(Course 6, unit 28: `-DskipTests` skips something since then — TiffinBox's tests, in
-`tiffinbox-web/src/test`: this line builds the jar and writes no test report, and without it `package` runs the eleven tests first, and a
+`tiffinbox-web/src/test`: this line builds the jar and writes no test report, and without it `package` runs the eleven tests first *(Course 6, unit 31: eighteen since — `../c6-unit31/`, `tests`.)*, and a
 failing test fails the build; `../c6-unit28/`, `change`.)*
 
 The project as it was before the rewire is frozen in `../c4-unit31/before/`; the evidence that the two serve

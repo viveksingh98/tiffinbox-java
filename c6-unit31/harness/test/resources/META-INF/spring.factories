@@ -1,0 +1,3 @@
+# The course's harness, never TiffinBox's: Spring's TestContext framework reads this key from every spring.factories on the tests'
+# class path and adds Census to the listeners it runs around each test class.
+org.springframework.test.context.TestExecutionListener=probe.web.Census
