@@ -1,7 +1,7 @@
-# TiffinBox — code for *Java Fundamentals*, *Core Java II*, *Build & Test Like a Pro*, *Spring Framework Core* and *Spring Boot* (Learn Programming with Vivek)
+# TiffinBox — code for *Java Fundamentals*, *Core Java II*, *Build & Test Like a Pro*, *Spring Framework Core*, *Spring Boot* and *Spring Web MVC* (Learn Programming with Vivek)
 
-Every unit of all five courses builds **TiffinBox**, a small tiffin-delivery service app, one concept at a time.
-Course 1 lives in `unitNN/` + `capstone/`; Course 2 in `c2-unitNN/` + `c2-capstone/`; Course 3 in `c3-unitNN/` + `c3-tiffinbox/`; Course 4 in `c4-unitNN/` + `c4-tiffinbox/`; Course 5 in `c5-unitNN/` + `c5-tiffinbox/`.
+Every unit of all six courses builds **TiffinBox**, a small tiffin-delivery service app, one concept at a time.
+Course 1 lives in `unitNN/` + `capstone/`; Course 2 in `c2-unitNN/` + `c2-capstone/`; Course 3 in `c3-unitNN/` + `c3-tiffinbox/`; Course 4 in `c4-unitNN/` + `c4-tiffinbox/`; Course 5 in `c5-unitNN/` + `c5-tiffinbox/`; Course 6 in `c6-unitNN/` + `c6-tiffinbox/`.
 Channel: https://www.youtube.com/@LearnProgrammingWithVivek
 
 ## How to run
@@ -452,6 +452,13 @@ hashes, the captures its video shows.
 **TiffinBox on Spring Boot 4.1**, in `c5-unitNN/` (30 units), with the long-lived project in `c5-tiffinbox/`: starters,
 auto-configuration, configuration, Actuator, the native binary, the image and the command line, each measured. The same layout
 as Course 4: a README and a `receipts.sh` per unit.
+
+## Course 6 — Spring Web MVC
+**TiffinBox on Spring MVC**, in `c6-unitNN/` (32 units, 6 sections), with the long-lived project in `c6-tiffinbox/`: TiffinBox's own
+HTTP server handed over to Spring MVC on embedded Tomcat, one job at a time — the servlet layer, controllers and binding, errors,
+pages, forms and the rest of MVC, calling other services, and a capstone with a bulk upload and an event stream. The same layout as
+Courses 4 and 5: a README and a `receipts.sh` per unit. `c6-tiffinbox/` is the tree the next course, *Data with JPA & Hibernate*,
+starts from.
 
 Videos publish a few per day on the channel. Roadmap (19 courses): Java Fundamentals → Core Java II → Build & Test Like a Pro → Spring Framework Core → Spring Boot → Spring Web MVC → Data with JPA & Hibernate → … → Spring AI.
 

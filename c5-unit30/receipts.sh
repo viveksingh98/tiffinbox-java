@@ -78,7 +78,7 @@ CURLSET=../c5-unit11/curlset.sh
 [ -f "$CURLSET" ] || die "$CURLSET is missing"
 [ -f anchor/pom.xml ] && [ -f anchor/README.md ] || die "anchor/ (../c5-unit27/after) is missing"
 [ -f harness/shutdown.sh ] && [ -f harness/Prefix.java ] && [ -f ../README.md ] || die "missing: harness/shutdown.sh, harness/Prefix.java or ../README.md"
-git -C .. rev-parse --verify -q 53379bd^{commit} > /dev/null || die "the repository's history must hold 53379bd (the last commit before this unit): a full clone, not a shallow one"
+git -C .. rev-parse --verify -q 53379bd^{commit} > /dev/null && git -C .. rev-parse --verify -q 0458d2b^{commit} > /dev/null || die "the repository's history must hold 53379bd (the last commit before this unit) and 0458d2b (the last before Course 6's finale changed the README): a full clone, not a shallow one"
 
 listeners() { lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2> /dev/null | wc -l | tr -d ' '; }
 for p in 18425 8080 19160 19161 19162 19163 19164 19165 19166 19167 19168 19169; do
@@ -278,14 +278,14 @@ readmecap() {
   echo "\$ git -C .. show 53379bd:README.md | grep -n '^Videos publish'"
   git -C .. show 53379bd:README.md | grep -n '^Videos publish' | sed 's/^/  /'
   echo "and as it is now:"
-  echo "\$ grep -n '^Videos publish' ../README.md"
-  grep -n '^Videos publish' ../README.md | sed 's/^/  /'
-  echo "  its entries, in order (… counted as one): $(grep 'Roadmap' ../README.md | sed 's/^.*: //; s/\.$//' | awk -F ' → ' '{ print NF }') names · after Spring Boot: $(grep 'Roadmap' ../README.md | sed 's/^.*Spring Boot → //; s/ → .*$//') · Build & Test named: $(grep 'Roadmap' ../README.md | grep -c 'Build & Test')"
+  echo "\$ git -C .. show 0458d2b:README.md | grep -n '^Videos publish'"
+  git -C .. show 0458d2b:README.md | grep -n '^Videos publish' | sed 's/^/  /'
+  echo "  its entries, in order (… counted as one): $(git -C .. show 0458d2b:README.md | grep 'Roadmap' | sed 's/^.*: //; s/\.$//' | awk -F ' → ' '{ print NF }') names · after Spring Boot: $(git -C .. show 0458d2b:README.md | grep 'Roadmap' | sed 's/^.*Spring Boot → //; s/ → .*$//') · Build & Test named: $(git -C .. show 0458d2b:README.md | grep 'Roadmap' | grep -c 'Build & Test')"
   echo "the README's opening - the courses its title names, the folders it maps, and its course sections:"
-  echo "\$ sed -n 1p ../README.md"
-  sed -n 1p ../README.md | sed 's/^/  /'
-  echo "  the folders its opening maps (lines 1-5): $(sed -n 1,5p ../README.md | grep -oE '`(c[0-9]-)?unitNN/`' | tr -d '`' | paste -sd' ' -)"
-  echo "  its course sections: $(grep -E '^## Course [0-9]+ — ' ../README.md | sed 's/^## Course \([0-9]*\) — .*/\1/' | paste -sd' ' -) (Course 1's units: the Units table)"; }
+  echo "\$ git -C .. show 0458d2b:README.md | sed -n 1p"
+  git -C .. show 0458d2b:README.md | sed -n 1p | sed 's/^/  /'
+  echo "  the folders its opening maps (lines 1-5): $(git -C .. show 0458d2b:README.md | sed -n 1,5p | grep -oE '`(c[0-9]-)?unitNN/`' | tr -d '`' | paste -sd' ' -)"
+  echo "  its course sections: $(git -C .. show 0458d2b:README.md | grep -E '^## Course [0-9]+ — ' | sed 's/^## Course \([0-9]*\) — .*/\1/' | paste -sd' ' -) (Course 1's units: the Units table)"; }
 
 cap seam seam
 cap pieces pieces

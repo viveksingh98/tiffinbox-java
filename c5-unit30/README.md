@@ -23,11 +23,12 @@ export PATH="$JAVA_HOME/bin:$PATH"
 
 (`receipts.sh` carries the two `export JAVA_HOME`/`PATH` lines at its top; a bare `java` on this Mac is 23.0.1.) No GraalVM, no
 Docker. It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line first). It needs a **full clone**:
-`readme` reads the README as commit `53379bd` (the last before this unit) had it, with `git show`.
+`readme` reads the README as commit `53379bd` (the last before this unit) had it, and as commit `0458d2b` had it, with `git show`
+(below: the repository README has moved past this unit).
 **Runs of record (2026-10-08):** **37 s under `./receipts.sh`** (/bin/bash 3.2.57, this folder, exit 0, all 3 captures = published,
 every check passed); **36 s under `bash receipts.sh`** (Homebrew bash 5.3.9, the same); and the sealed clone below (bash 5.3.9, 38 s).
 Load averages about 4.
-Published hashes: seam `d1d10087124fad2a0a480783d3e2f91c` · pieces `902a804dcf07a625c70681d80656024b` · readme `bb4db1efcfed9a697474207c7dbec305`
+Published hashes: seam `d1d10087124fad2a0a480783d3e2f91c` · pieces `902a804dcf07a625c70681d80656024b` · readme `4456fd199c0cc10b1647683ea7526015` (pinned, 2026-10-30; `bb4db1efcfed9a697474207c7dbec305` before the pin — the same lines, two `$` lines aside)
 
 ## The repository, and what was downloaded
 
@@ -282,24 +283,33 @@ the tree against the anchor, without target/ and secrets/ (diff -rq): 0 differen
 
 ## 3 · readme — the repository's roadmap line (ledger P11)
 
+**The repository README has moved past this unit: Course 6 joined it in Course 6's finale** (its title, the folders its opening maps,
+a `## Course 6 — Spring Web MVC` section; the roadmap line unchanged). So that this capture keeps measuring the README Course 5 left,
+Course 6's finale pinned it in the same commit (R.163): the "as it is now" half reads `git -C .. show 0458d2b:README.md` — the
+commit before the finale's, the last commit of Course 6's capstone — and its two `$` lines say so; every other line of the capture,
+and every check on it, is unchanged, and so are its numbers (19 courses, 9 names, Spring Web MVC after Spring Boot, the five-course
+title, sections 2 3 4 5): they are true of that commit. Its md5 moved with the two `$` lines (`bb4db1ef…` → `4456fd19…`), re-run 3/3
+under `./receipts.sh` and `bash receipts.sh` before and after the README changed. The video is unchanged. `../c6-unit32/` shows the
+README now and re-runs this capture's function.
+
 Before (`git show 53379bd:README.md`): `Spring Boot → JPA`, skipping Spring Web MVC, and Build & Test Like a Pro with it. Now: the
 track's 19 courses, named as the roadmap's one-table summary names them, in its order, shortened with `…`; Spring Web MVC after
 Spring Boot. The deck's builder checks the names against `TRACK-ROADMAP.md` on the day. Then the README's opening (BLUE, RED
 C5-S5 #44): its title names the five courses, lines 1-5 map `c4-unitNN/` and `c5-unitNN/` beside the first three, and it has a
 section for Courses 2 to 5.
 
-`.r-readme.out` · md5 `bb4db1efcfed9a697474207c7dbec305` · 3 of 3
+`.r-readme.out` · md5 `4456fd199c0cc10b1647683ea7526015` · 3 of 3
 
 ```
 the roadmap line in the repository's README - as the last commit before this unit had it:
 $ git -C .. show 53379bd:README.md | grep -n '^Videos publish'
   447:Videos publish a few per day on the channel. Roadmap: Core Java → Spring Framework → Spring Boot → JPA → REST → Security → … → Spring AI.
 and as it is now:
-$ grep -n '^Videos publish' ../README.md
+$ git -C .. show 0458d2b:README.md | grep -n '^Videos publish'
   456:Videos publish a few per day on the channel. Roadmap (19 courses): Java Fundamentals → Core Java II → Build & Test Like a Pro → Spring Framework Core → Spring Boot → Spring Web MVC → Data with JPA & Hibernate → … → Spring AI.
   its entries, in order (… counted as one): 9 names · after Spring Boot: Spring Web MVC · Build & Test named: 1
 the README's opening - the courses its title names, the folders it maps, and its course sections:
-$ sed -n 1p ../README.md
+$ git -C .. show 0458d2b:README.md | sed -n 1p
   # TiffinBox — code for *Java Fundamentals*, *Core Java II*, *Build & Test Like a Pro*, *Spring Framework Core* and *Spring Boot* (Learn Programming with Vivek)
   the folders its opening maps (lines 1-5): unitNN/ c2-unitNN/ c3-unitNN/ c4-unitNN/ c5-unitNN/
   its course sections: 2 3 4 5 (Course 1's units: the Units table)
