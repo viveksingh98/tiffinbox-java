@@ -77,6 +77,16 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-thymeleaf</artifactId>
     </dependency>
+    <!-- Course 7, unit 03: Spring Data JPA's starter - Hibernate (the implementation of Jakarta Persistence that does the work),
+         Spring's JPA support (spring-orm: the EntityManagerFactory, the transaction manager), Spring Data JPA, and Boot's JDBC
+         starter with its pool, HikariCP. TiffinBox had no DataSource bean (Database opens DriverManager connections), so Boot
+         makes one from spring.datasource.url - application.yaml points it at tiffinbox.jdbc-url, TiffinBox's own database.
+         Without that key Boot's pool opens a second, empty in-memory H2 under a generated name (../c7-unit03, two).
+         Boot's parent manages its version. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
     <!-- Course 6: TiffinBox's tests, in src/test. Test scope: on the tests' class path only - the executable jar holds the
          same libraries without it. Boot's starter brings JUnit, AssertJ, Mockito, spring-test (MockMvc, @MockitoBean,
          RestTestClient) and Boot's test modules (@WebMvcTest, @SpringBootTest). Boot's parent manages its version. -->

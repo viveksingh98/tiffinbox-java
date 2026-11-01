@@ -42,5 +42,12 @@
       <groupId>jakarta.validation</groupId>
       <artifactId>jakarta.validation-api</artifactId>
     </dependency>
+    <!-- Course 7, unit 03: CustomerEntity's mapping (@Entity, @Table, @Id, @Column) is Jakarta Persistence's annotations, from
+         its API jar alone - the version is managed by Boot's parent (3.2.0). As with validation above, this module only needs
+         the annotations to compile: the implementation that reads them, Hibernate, comes with tiffinbox-web's data starter. -->
+    <dependency>
+      <groupId>jakarta.persistence</groupId>
+      <artifactId>jakarta.persistence-api</artifactId>
+    </dependency>
   </dependencies>
 </project>

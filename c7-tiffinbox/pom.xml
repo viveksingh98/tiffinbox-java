@@ -10,7 +10,10 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>4.1.1</version>
+    <!-- Course 7, unit 03: 4.1.2, Spring Boot's newest release on the day (Spring Framework 7.0.10, Hibernate ORM 7.4.13.Final
+         with the data starter). Moved at the course boundary and measured on its own before the starter joined: the same
+         eighteen tests, the same seven answers, the same messages (../c7-unit03, move). -->
+    <version>4.1.2</version>
     <relativePath/>
   </parent>
 
@@ -45,7 +48,8 @@
   <dependencyManagement>
     <dependencies>
       <!-- Course 5: the Spring versions now come from the parent (spring-boot-starter-parent imports
-           spring-boot-dependencies, which manages Spring Framework 7.0.9). The Framework BOM import is gone. -->
+           spring-boot-dependencies, which manages Spring Framework 7.0.9). The Framework BOM import is gone.
+           Course 7, unit 03: Spring Framework 7.0.10 since the parent's move to 4.1.2. -->
       <dependency>
         <groupId>jakarta.annotation</groupId>
         <artifactId>jakarta.annotation-api</artifactId>

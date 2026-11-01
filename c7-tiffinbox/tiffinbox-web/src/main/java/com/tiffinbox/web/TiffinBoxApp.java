@@ -3,6 +3,7 @@ package com.tiffinbox.web;
 import com.tiffinbox.TiffinBoxProperties;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
@@ -25,10 +26,16 @@ import org.springframework.context.annotation.Configuration;
  * Course 5, unit 08: @EnableConfigurationProperties registers TiffinBoxProperties, the record in tiffinbox-core that
  * Boot's binder fills with every key under "tiffinbox" - the list included. Database, OrderQueue and TiffinBoxServer
  * take the record, so no @Value placeholder is left.
+ *
+ * Course 7, unit 03: @EntityScan names the package Hibernate's entities are looked for in. Without it Boot looks in the
+ * auto-configuration package - this class's own, com.tiffinbox.web - and CustomerEntity lives in tiffinbox-core's
+ * com.tiffinbox: the context still starts, and the first query fails, "Could not resolve root entity 'CustomerEntity'". A
+ * context that starts is not evidence the entity is mapped (../c7-unit03, scan).
  */
 @Configuration
 @EnableAutoConfiguration
 @ComponentScan("com.tiffinbox")
 @EnableConfigurationProperties(TiffinBoxProperties.class)
+@EntityScan("com.tiffinbox")
 public class TiffinBoxApp {
 }

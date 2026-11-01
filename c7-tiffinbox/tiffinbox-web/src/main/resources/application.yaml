@@ -75,6 +75,21 @@ spring:
   # fixed time, project.build.outputTimestamp in the root pom.xml, the same for every build - called a changed file
   # unchanged. paths: /** is Boot's own default (every file), written down. Above the "---": below it, only the rush
   # profile would version its files.
+  # Course 7, unit 03: Spring Data JPA's starter brings Boot's DataSource - TiffinBox's first, since Database opens its own
+  # DriverManager connections. Without this key Boot's pool opens a second in-memory H2 under a generated name, empty:
+  # Hibernate would read and write there, where TiffinBox never looks. Pointed at tiffinbox.jdbc-url, both reach the one
+  # database, and the URL stays in one place. (Measured without the dev profile.)
+  datasource:
+    url: ${tiffinbox.jdbc-url}
+  jpa:
+    hibernate:
+      # Hibernate never writes the schema: Database creates the tables. Boot's default on an in-memory database is
+      # create-drop, and on this URL that drops TiffinBox's customer table when the application stops.
+      ddl-auto: none
+    # The persistence context of the EntityManager Spring injects lives as long as the transaction, never the whole web
+    # request: with no key Boot registers OpenEntityManagerInViewInterceptor (and logs a WARN at every start); "true" keeps
+    # the interceptor and drops only the WARN.
+    open-in-view: false
   web:
     resources:
       chain:

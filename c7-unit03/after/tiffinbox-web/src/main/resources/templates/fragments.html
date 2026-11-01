@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+  <meta charset="utf-8">
+  <title th:text="${title} + ' · TiffinBox'">TiffinBox</title>
+  <link rel="stylesheet" th:href="@{/css/tiffinbox.css}">
+</head>
+<body>
+<header th:fragment="header"><h1>TiffinBox</h1><nav><a th:href="@{/dashboard}">Dashboard</a> · <a th:href="@{/customers/new}">Add a customer</a></nav></header>
+<footer th:fragment="footer"><p>TiffinBox · rendered on the server</p></footer>
+</body>
+</html>

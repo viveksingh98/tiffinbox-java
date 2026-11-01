@@ -13,7 +13,64 @@ HTTP is gone after a restart). Course 7's units are planned to hand that job to 
 measured claim at a time, and each unit that changes this folder records it below as a `## Course 7 · unit NN` section, as
 Course 6's did. `c6-tiffinbox` stays frozen from here on, so every Course 6 unit keeps pointing at what it measured.
 Everything below the rule is `c6-tiffinbox`'s README exactly as it was at 828e395, except the history notes a Course 7 unit
-makes false: each is amended in place, in a note that starts *Course 7, unit NN*, and the unit sections keep their history.
+makes false: each is amended in place, in a note that starts *Course 7, unit NN*, and the unit sections keep their history. *(Course 7, unit 03,
+the course's first change to this folder: the parent is Spring Boot 4.1.2 since, with Spring Data JPA's starter, and
+`CustomerEntity` maps the customer table beside `CustomerRepository` — both reach the same in-memory database; its section below.)*
+
+## Course 7 · unit 03 — the first entity: Boot 4.1.2, Spring Data JPA's starter, CustomerEntity on TiffinBox's own database (2026-11-01)
+
+The course's first change to this folder. TiffinBox's customers get a second way into their table — an **entity**, a class
+Hibernate maps to a table and keeps track of — beside Course 2's `CustomerRepository`, which keeps its SQL strings. Six files changed
+and one is new, besides this README:
+- `pom.xml` — the parent moves to **`spring-boot-starter-parent:4.1.2`** (Spring Framework 7.0.10), measured alone first (`move`):
+  the eighteen tests (14/3/1, from Surefire's reports), the seven `466c20ed7e0d5439cb052f32ce09de1b`, the same, byte for byte, 7,
+  and the three messages, the size message, the page's title, health and readiness the same; in the jar's `BOOT-INF/lib`, 61 jars on
+  both sides, 36 at a new version (Hibernate Validator 9.1.3.Final → 9.1.5.Final, Tomcat 11.0.24 → 11.0.27, Jackson 3.1.5 → 3.1.7,
+  Micrometer 1.17.1 → 1.17.2, SLF4J 2.0.18 → 2.0.20, Framework 7.0.9 → 7.0.10, Boot's modules 4.1.1 → 4.1.2).
+- `tiffinbox-core/pom.xml` — `jakarta.persistence-api` (no version: 3.2.0, Boot's parent's), the mapping annotations alone, as Course 5
+  added `jakarta.validation-api`.
+- `tiffinbox-core/src/main/java/com/tiffinbox/CustomerEntity.java` (new) — `@Entity @Table(name = "customer")`: the table `Database`
+  already creates. `@Id @GeneratedValue(strategy = GenerationType.IDENTITY) Long id` (the table's `AUTO_INCREMENT`); `@NotBlank
+  @Size(max = 60) @Column(length = 60, nullable = false, unique = true) String name`; `int mealsPerDay`, `int pricePerMeal` (Boot's
+  naming maps them to `meals_per_day`, `price_per_meal` — no column names written); `@Column(length = 10, nullable = false) String
+  mealType`; a protected no-argument constructor for Hibernate; one setter, `setMealsPerDay`.
+- `tiffinbox-web/pom.xml` — **`spring-boot-starter-data-jpa`**: Hibernate ORM 7.4.13.Final, Spring's JPA support (spring-orm), Spring
+  Data JPA 4.1.2, Boot's JDBC starter with HikariCP 7.0.2.
+- `TiffinBoxApp.java` — **`@EntityScan("com.tiffinbox")`**. Without it Boot looks for entities in the auto-configuration package,
+  `com.tiffinbox.web`, and `CustomerEntity` lives in `com.tiffinbox`: the context starts (`Started TiffinBoxServer`), and the first query
+  fails, `UnknownEntityException: Could not resolve root entity 'CustomerEntity'`, exit 1 (`scan`).
+- `application.yaml` — three keys in its first document:
+  `spring.datasource.url: ${tiffinbox.jdbc-url}` — the starter brings Boot's `DataSource`, TiffinBox's first (`Database` opens its own
+  `DriverManager` connections: Boot's condition report says `did not find any beans`). With the key, Hikari's pool opens
+  `jdbc:h2:mem:tiffinbox` and a customer Hibernate persists (Kavya, `id 5`) is read by TiffinBox's own repository; with
+  `--spring.datasource.url=` (empty) Boot names a database of its own, `jdbc:h2:mem:<uuid>`, empty — `Table "CUSTOMER" not found`,
+  exit 1; with `create-drop` as well, the INSERT lands there (`id 1`) and TiffinBox's repository never sees her (`two`).
+  `spring.jpa.hibernate.ddl-auto: none` — Boot's default here is `create-drop`: at start Hibernate drops and creates its own `customer`
+  table, which `Database` then replaces, and **after `Closing JPA EntityManagerFactory`, at shutdown, it drops TiffinBox's**; `validate`
+  stops the start (`Schema validation: missing table [customer]` — the factory is built before `Database` seeds) (`ddlauto`).
+  `spring.jpa.open-in-view: false` — no `OpenEntityManagerInViewInterceptor` bean (0); `true` registers it (1) and silences the WARN; no
+  key registers it (1) and logs the WARN (`osiv`).
+
+```bash
+java -jar tiffinbox-web/target/tiffinbox-web-1.0.0.jar --tiffinbox.port=18431 --spring.jpa.properties.jakarta.persistence.schema-generation.scripts.action=create --spring.jpa.properties.jakarta.persistence.schema-generation.scripts.create-target=hibernate-ddl.sql
+```
+
+That line writes the DDL Hibernate would generate for the entities to `hibernate-ddl.sql` in the folder TiffinBox starts in, and runs
+none of it (stop TiffinBox as usual). For `CustomerEntity`: `create table customer (…, name varchar(60) not null unique, …)` — the
+length `Database.java` gives the column, `VARCHAR(60)`. **That line alone does not show the two annotations agree**: Hibernate takes
+`@Size`'s limit over `@Column(length)` — `@Column(length = 61)` with `@Size(max = 60)` still writes `varchar(60)`, without `@Size`
+`varchar(61)` — so `../c7-unit03` reads `@Size(max=60)` and `@Column(length=60)` off the compiled class and checks them against both
+DDLs (`ddl`). A 61-letter name is refused by the validator when it is persisted, before any SQL (`persist`).
+
+**What it changes, and what it does not** (`seven`, `tests`, `persist`): the seven `466c20ed…` and the extras are the same as before
+the starter; the eighteen tests pass (two of them start Hibernate's `EntityManagerFactory`, none sends it a query: they guard, they
+do not witness). Nothing in TiffinBox uses the entity yet — the course's harness does: `persist` logs `insert into customer
+(meal_type,meals_per_day,name,price_per_meal,id) values (?,?,?,?,default)` and its four binds when `persist` is called, before the
+commit. Both of Course 6's restart causes stand: the database is `jdbc:h2:mem:`, and `Database` drops and re-seeds at every start.
+Two ways into one database, side by side: Hibernate through Boot's pool, `Database` and `CustomerRepository` through `DriverManager`.
+Measured without the `dev` profile.
+
+Evidence for every sentence in this section: `../c7-unit03/` (`receipts.sh`, eleven captures).
 
 ---
 
@@ -1121,7 +1178,7 @@ curl -s -N http://127.0.0.1:18431/customers/feed
 `TiffinBoxErrors`; six are `@Component`s. Course 1's four boxes, controller · service · repository · entity: the controller wears
 Spring's own name; the repository is TiffinBox's own class name, `CustomerRepository`, a plain `@Component`; no class is a service
 (`Dashboard` and `OrderQueue` do that work, each a `@Component`); the entity is a record, `Customer` — `@Service`, `@Repository` and
-`@Entity`: 0 each. `/dashboard` is still one path with two answers: the page for a client that asks for HTML, the JSON for curl's own
+`@Entity`: 0 each *(Course 7, unit 03: one `@Entity` since — `CustomerEntity`, in `tiffinbox-core`, beside the record)*. `/dashboard` is still one path with two answers: the page for a client that asks for HTML, the JSON for curl's own
 `Accept`. The routing table (`/actuator/mappings`, exposed for one run) has 21 rows, TiffinBox's 12.
 
 **The seven** (`seven`): `466c20ed7e0d5439cb052f32ce09de1b` (masked) on this tree and on the previous one, the same, byte for byte, 7;
@@ -1157,7 +1214,7 @@ Course 5 is where Spring Boot arrives. Everything below the second rule is `c4-t
 
 Three files changed, and nothing else:
 - `pom.xml` inherits `spring-boot-starter-parent:4.1.1` (`java.version 25` replaces `maven.compiler.release`; the
-  Spring Framework BOM import goes — the parent manages Spring Framework 7.0.9 now);
+  Spring Framework BOM import goes — the parent manages Spring Framework 7.0.9 now); *(Course 7, unit 03: 4.1.2 and 7.0.10 since.)*
 - `tiffinbox-web/pom.xml` adds `spring-boot-starter`;
 - `TiffinBoxServer.main`: `new AnnotationConfigApplicationContext(TiffinBoxApp.class)` + `registerShutdownHook()`
   become `SpringApplication.run(TiffinBoxApp.class, args)`.
