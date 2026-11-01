@@ -987,3 +987,6 @@ c6-unit32/.r-*
 c6-unit32/target/
 c6-unit32/**/secrets/
 c6-unit32/**/target/
+
+# Course 7 (Data with JPA & Hibernate): the anchor's isolated local repository, as c6-tiffinbox/.m2-demo/ above (added at setup, 2026-11-01).
+c7-tiffinbox/.m2-demo/
