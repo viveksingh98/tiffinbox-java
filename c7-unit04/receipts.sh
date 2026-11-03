@@ -31,9 +31,10 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # this unit's own repository, .m2-demo.
 # The locale: the JVM ignores LC_ALL on macOS - every JVM this script starts has its locale pinned on its run line (-Duser.language=en
 # -Duser.country=US), and the checks refuse a java line without it; the test JVM's comes from the POM's argLine.
-# The network: every Maven build runs offline (-o) against .m2-demo and says so ("offline: yes"); a build that cannot resolve an
-# artifact offline goes to Maven Central once, and says that ("offline: no - ..."). At run time nothing leaves 127.0.0.1, and every
-# database is H2 in this JVM's memory.
+# The network: every Maven build runs offline (-o) against .m2-demo and says so ("offline: yes"). A build that cannot resolve an
+# artifact offline is run once more without -o and says so, naming the artifact the offline build missed and the repositories
+# that answered the retry, by the ids and URL schemes its log names ("offline: no - ..."); it never names a repository the log
+# does not. At run time nothing leaves 127.0.0.1, and every database is H2 in this JVM's memory.
 # Masks (README.md declares each; awk gsub only): the demo token "[masked: the N-character token]"; this folder "…", the folder
 # above it "…/..", home "~", your user name "<user>"; " using Java <version>"; H2's generated database name "jdbc:h2:mem:<uuid>";
 # an identity hash "@…"; H2's trace connection number "conn<n>". A JVM's log is never printed whole: the harness's PROBE lines, the
@@ -168,15 +169,24 @@ echo "  (terminal only) the JDK is $JV - Boot's first line names it; the capture
 
 # ---- build: before the captures - the anchor copied and built with the README's package line, offline (its tests run); its jar
 # ---- extracted (the anchor's line); the harness compiled against it ------------------------------------------------------------
-mbuild() { local how=yes ec=0 c=$1
+# mbuild COMMAND LOG WHAT: offline first. If the offline build fails for want of an artifact, its log is kept beside (LOG with
+# -offline), the first artifact it names is read from it, and the build runs once more without -o; the label then names that
+# artifact and every repository the retry's log says it downloaded from - id, URL scheme, count - and counts the downloads whose
+# URL is http(s). It never says "Maven Central" unless the log does.
+mbuild() { local how=yes ec=0 c=$1 miss got web
   (eval "$c") > "$2" 2>&1 < /dev/null & mpid=$!; wait "$mpid" || ec=$?; mpid=""
-  if [ $ec != 0 ] && grep -qE 'offline mode|Could not resolve|could not be resolved|Cannot access|No plugin found for prefix' "$2"; then
-    how="no - the offline build could not resolve an artifact, so Maven Central was asked"; ec=0
-    (eval "${c/mvn -o -B /mvn -B }") > "$2" 2>&1 < /dev/null & mpid=$!; wait "$mpid" || ec=$?; mpid=""; fi
+  if [ $ec != 0 ] && /usr/bin/grep -qE 'offline mode|Could not resolve|could not be resolved|Cannot access|No plugin found for prefix' "$2"; then
+    cp "$2" "${2%.log}-offline.log"
+    miss=$(/usr/bin/grep -oE 'the artifact [^ ]+ has not been downloaded' "$2" | head -1 | sed -E 's/^the artifact ([^ ]+) has not been downloaded$/\1/')
+    [ -n "$miss" ] || miss=$(/usr/bin/grep -oE 'Could not find artifact [^ ]+|No plugin found for prefix [^ ]+|Non-resolvable parent POM for [^ ]+' "$2" | head -1)
+    ec=0; (eval "${c/mvn -o -B /mvn -B }") > "$2" 2>&1 < /dev/null & mpid=$!; wait "$mpid" || ec=$?; mpid=""
+    got=$(sed -n -E 's/^\[INFO\] Downloaded from ([^ :]+): ([a-z]+):.*/\1 (\2)/p' "$2" | sort | uniq -c | awk '{ printf "%s%s %s %d", (NR > 1 ? ", " : ""), $2, $3, $1 }')
+    web=$(/usr/bin/grep -cE '^\[INFO\] Downloaded from [^ ]+: https?://' "$2" || true)
+    how="no - the offline build could not resolve ${miss:-an artifact (none named in its log)} from .m2-demo, so it ran once more without -o; that run downloaded from: ${got:-nothing}; of them over http(s): $web"; fi
   [ $ec = 0 ] || { tail -30 "$2" >&3
-    ! grep -qE 'Could not resolve|could not be resolved|Could not transfer|Cannot access' "$2" || die "build failed: $3 - Maven could resolve Boot's parent and plugins neither from .m2-demo nor from Maven Central: a fresh clone's first run needs .m2-demo seeded (README.md, The repository) or the network once"
+    ! /usr/bin/grep -qE 'Could not resolve|could not be resolved|Could not transfer|Cannot access' "$2" || die "build failed: $3 - Maven could resolve Boot's parent and plugins neither from .m2-demo nor from a repository it could reach: a fresh clone's first run needs .m2-demo seeded (README.md, The repository)"
     die "build failed: $3"; }
-  echo "  built $3 · offline: $how · exit $ec"; }
+  echo "  built $3 · offline: $how · exit $ec · 'Downloaded from' lines in its log: $(/usr/bin/grep -c '^\[INFO\] Downloaded from ' "$2" || true)"; }
 tree() { mkdir -p "$1/secrets/tiffinbox"; (umask 077 && printf '%s\n' "$TOKEN" > "$1/$TF"); chmod 700 "$1/secrets" "$1/secrets/tiffinbox"; }
 copy() { rm -rf "$2"; rsync -a --exclude target --exclude secrets --exclude .m2-demo "$1/" "$2/"; tree "$2"; }
 copy anchor .harness/anchor

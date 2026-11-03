@@ -21,17 +21,22 @@ export PATH="$JAVA_HOME/bin:$PATH"
 (`receipts.sh` carries the `JAVA_HOME` export on its first line after the shebang and dies unless `java -version` and `javac -version`
 say 25; a bare `java` on this Mac is 23.0.1.) It **dies** when a capture's md5 differs from `receipts.md5` (it prints the `DIFFERS` line
 first). **Start it in a process group of its own** (a terminal's foreground job is one): `sweep()` stops only processes of its own group.
-`.m2-demo` must be seeded first (below) — or, on a fresh clone, the first build goes to Maven Central once and says `offline: no`.
+`.m2-demo` must be seeded first (below) — on a clone whose `.m2-demo` is empty the build runs once more without `-o`, and its
+`offline: no - …` line names the artifact the offline build missed and the repositories the retry's log names ("The repository, and
+the network").
 
-**Runs (2026-11-01), each `env -i`** (`HOME` = a home of its own whose `.mavenrc` sets `-Duser.home` there and whose `settings.xml`
+**Runs, each `env -i`** (`HOME` = a home of its own whose `.mavenrc` sets `-Duser.home` there and whose `settings.xml`
 names only two dead proxies, `127.0.0.1:9` — so no Maven run could reach the network; `PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:
 /sbin`; `http(s)_proxy` dead too), a session of its own, `.m2-demo` seeded from `../../../data-jpa-hibernate/_research/m2-seed-c7-s1/`
-alone (6,608 files). Two development runs fixed the captures and the checks (the second made every capture 3/3 and stopped at "no
-published hash" with every check passed; its md5s are `receipts.md5`); then one more pair of runs and one sealed-clone run before the checks were reordered
-(witness lines first, so a plant dies on its count). **The runs of record, on the script as committed: 170 s under `./receipts.sh`**
-(/bin/bash 3.2.57) **and 184 s under `bash receipts.sh`** (Homebrew bash 5.3.9): each exit 0, all 7 captures 3/3 = published, every
-check passed, the build `offline: yes`; each terminal log through `check_unit7.py 04 --runlog` — `0 grep error line(s)`, `RESULT (run
-logs): PASS` (the unit gate itself answers "no 04-*.md … nothing to check": no script yet). **Nothing was downloaded** for this unit.
+alone (6,608 files). On 2026-11-01 two development runs fixed the captures and the checks (the second made every capture 3/3 and
+stopped at "no published hash" with every check passed; its md5s are `receipts.md5`); then one more pair of runs and one sealed-clone
+run before the checks were reordered (witness lines first, so a plant dies on its count), and the first runs of record (170 s and
+184 s). **The runs of record (2026-11-03, after the `offline:` label fix — For RED), on the script as committed (`receipts.sh` md5
+`ff545c8cac565d0d9fe724ac2ebce80c`): 312 s under `./receipts.sh`** (/bin/bash 3.2.57) **and 207 s under `bash receipts.sh`** (Homebrew bash
+5.3.9): each exit 0, all 7 captures 3/3 = published (every hash the one published on 2026-11-01), every check passed, the build
+`offline: yes · exit 0 · 'Downloaded from' lines in its log: 0`; each terminal log through `check_unit7.py 04 --runlog` — `0 grep
+error line(s)`, `RESULT (run logs): PASS` (the unit gate itself answers "no 04-*.md … nothing to check": no script yet). **Nothing was
+downloaded** for this unit.
 
 Published hashes: twofinds `0bfeb2b7de1bf6bbbc3791272855b587` · own `3efa24349b9e49dd0ef67332bcb8d850` · request `79969e215a8bc25e32c5c2b25fd94ab7` · dirty `d63a21cc7afb1999ec6f11b9ea04b6ce` · boundary `4a577ed538c89d8a17f7c8922a01b412` · tests `92ec7e1851904415fe1bcb60200fa4a0` · exercise `389ebf1c5cab7cedb13b972e8d308091`.
 
@@ -39,15 +44,15 @@ Published hashes: twofinds `0bfeb2b7de1bf6bbbc3791272855b587` · own `3efa24349b
 
 **Paste it into bash** (type `bash` first if your Terminal is zsh: zsh does not split the unquoted `$E`).
 
-**Run (2026-11-01):** a `git clone` of tiffinbox-java at `155f556` into a path **with a space** (`…/sealed clone/tiffinbox-java`),
-with `c7-unit04/` and `.gitignore` put in as git would take them (`git ls-files -co --exclude-standard`: 14 files, each `cmp`-equal to
-the working tree; `anchor` → `../c7-unit03/after` by `readlink`); a `file://` copy of the seed (4,967 files: `_remote.repositories`,
-`*.lastUpdated` and `resolver-status.properties` left out); pre-flight: exit 1, 221 `Downloading from sealed: file://`, 0 from
-http(s); `/bin/bash` 3.2, `env -i`, a session of its own, an empty `.m2-demo`: **exit 0 in 177 s, all 7 = published, every check
-passed**; the build said `offline: no - the offline build could not resolve an artifact, so Maven Central was asked` (in the clone,
-Maven Central is the `file://` mirror); `_remote.repositories` by repository id: **691 `>sealed=`, 0 `central`**; the build log: 691
-`Downloaded from sealed`, 0 from http(s); the builders' `dur7.py` is not beside a clone (its md5 is the check). Its terminal log through
-`--runlog`: PASS.
+**Run (2026-11-03):** a `git clone` of tiffinbox-java at `cd9eac2` into a path **with a space** (`…/sealed 04 seeded/tiffinbox-java`),
+with this unit's two edited files (`receipts.sh`, `README.md`) put in as git would take them (`git ls-files -co --exclude-standard`:
+13 files under `c7-unit04/`, each `cmp`-equal to the working tree; `anchor` → `../c7-unit03/after` by `readlink`); a `file://`
+copy of the seed (4,967 files: `_remote.repositories`, `*.lastUpdated` and `resolver-status.properties` left out); pre-flight: exit
+1, 221 `Downloading from sealed: file://`, 0 from http(s); the clone's `.m2-demo` **seeded from that copy** (4,967 files — as
+a viewer seeds it, "The repository" below); `/bin/bash` 3.2, `env -i`, a session of its own: **exit 0 in 437 s, all 7 =
+published, every check passed**; the build said **`offline: yes · exit 0 · 'Downloaded from' lines in its log: 0`**; after the run
+the clone's `.m2-demo` held 4,967 files (0 `_remote.repositories`). Its terminal log through `--runlog`: PASS. (The builders'
+`dur7.py` is not beside a clone: its md5 is the check.)
 
 ```bash
 S=/tmp/sealed04; W="/tmp/sealed 04"                # S: home, mirror, pre-flight (no space); W: the clone, a space in its path; T = your tiffinbox-java clone
@@ -66,11 +71,17 @@ XML
 X=http://127.0.0.1:9; E="env -i HOME=$S/home PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin http_proxy=$X https_proxy=$X HTTP_PROXY=$X HTTPS_PROXY=$X"
 $E JAVA_HOME=/opt/homebrew/opt/openjdk@25 mvn -B -Dmaven.repo.local="$S/preflight-m2" org.apache.maven.plugins:maven-dependency-plugin:3.8.1:get -Dartifact=org.example.sealed:absent:1 > "$S/preflight.log" 2>&1
 [ $? != 0 ] && grep -q 'Downloading from sealed: file://' "$S/preflight.log" && ! grep -qE 'Downloading from [^ ]+: https?://' "$S/preflight.log" && echo "sealed: file:// only" || echo "NOT SEALED - do not run receipts.sh"
-cd "$W/tiffinbox-java/c7-unit04" && readlink anchor && $E ./receipts.sh            # a process group of its own
-find .m2-demo -name _remote.repositories -exec cat {} + | grep -o '>[^=]*=' | sort | uniq -c     # every line sealed; 0 central
+cd "$W/tiffinbox-java/c7-unit04" && readlink anchor && rsync -a "$S/central/" .m2-demo/      # the clone's .m2-demo, seeded from the copy
+$E ./receipts.sh            # a process group of its own
 ```
 
 (The clone's own `c7-unit04/` is the committed one once this unit is in git; before its commit it was put in as above.)
+
+**An empty `.m2-demo` — the label, derived from the log (2026-11-03).** A second clone (`…/sealed 04 empty/tiffinbox-java`, the same
+recipe without the seeding line) printed `offline: no - the offline build could not resolve org.springframework.boot:spring-boot-starter-parent:pom:4.1.2 from .m2-demo, so it ran once more without -o; that run downloaded from: sealed (file) 691; of them over http(s): 0 · exit 0 · 'Downloaded from' lines in its log: 691`; the offline attempt's log (kept beside, `.harness/build-anchor-offline.log`)
+names it: `Cannot access sealed (file://…) in offline mode and the artifact org.springframework.boot:spring-boot-starter-parent:pom:4.1.2 has not been downloaded from it before`; the clone's `_remote.repositories`: 691 `>sealed=`, 0 `central`; then **exit 0 in 337 s, all 7 =
+published**; its terminal log through `--runlog`: PASS. The label names the one repository the retry's log names, the `file://`
+mirror `sealed`, and the count over http(s), 0.
 
 ## The commands this unit adds
 
@@ -95,9 +106,10 @@ the demo token.
 
 Every Maven build runs `mvn -o` against this unit's own `.m2-demo` (`$M2` on screen), seeded from
 `../../../data-jpa-hibernate/_research/m2-seed-c7-s1/` alone (6,608 files) before the runs of record. **Nothing was downloaded** by a
-receipt: every build said `offline: yes`, the tests' log holds 0 `Downloading from` lines, and the runs' `HOME` named only dead proxies.
-A fresh clone's `.m2-demo` is empty (git ignores it): its first build retries online once and says `offline: no` — in the sealed clone,
-from the `file://` copy. After the build the script asserts `.m2-demo` holds `spring-boot-starter-parent-4.1.2.pom`,
+receipt: every build said `offline: yes` with 0 `Downloaded from` lines, the tests' log holds 0 `Downloading from` lines, and the
+runs' `HOME` named only dead proxies. A clone whose `.m2-demo` is empty (git ignores it) runs the build once more without `-o`, and
+the `offline: no - …` line names the artifact the offline build missed, every repository the retry's log says it downloaded from (id,
+URL scheme, count) and the count over http(s) — it never names a repository the log does not (measured above). After the build the script asserts `.m2-demo` holds `spring-boot-starter-parent-4.1.2.pom`,
 `hibernate-core-7.4.13.Final.jar` and `spring-boot-starter-data-jpa-4.1.2.jar`. **At run time** every request goes to `127.0.0.1`, and
 every database is H2 in the JVM's own memory, gone with it. **One dated look at Maven Central, outside every receipt** (CARRIED from
 the first-entity lesson): 2026-11-01T09:45:11+0100, `curl -sS -m 10 -o metadata.xml
@@ -377,3 +389,11 @@ the clone restored from the working tree after each):
 
 Re-run from a clean tree (seeded `.m2-demo`, `HOME` with dead proxies) in a process group of its own; the plants above; ports
 20220-20239 for any re-run of this unit's JVMs outside its script. Evidence by an Opus 5.5 agent on 2026-11-01.
+
+- **2026-11-03:** the `offline:` label was a fixed sentence (`Maven Central was asked`) while the only repository the log names was
+  the `file://` mirror; replaced by the derived label (unit 05's `mbuild`); captures unchanged (hashes equal); runs of record re-done.
+  `receipts.sh` changed in two places only: the header's "The network" comment and `mbuild` (with its comment; `grep` there is
+  `/usr/bin/grep`); the label line is printed on the terminal, outside every capture. The sealed recipe now seeds the clone's
+  `.m2-demo` from the `file://` copy (above). **Plant** (a copy, `.m2-demo` empty, a `settings.xml` whose mirror is a dead
+  `http://127.0.0.1:9/` repository): the offline build failed, and the retry's log holds one `Downloading from dead: http://127.0.0.1:9/…/spring-boot-starter-parent-4.1.2.pom` line, `Could not transfer artifact org.springframework.boot:spring-boot-starter-parent:pom:4.1.2 from/to dead (http://127.0.0.1:9/)` and 0 `Downloaded from` lines; no `offline:` line was printed — the run died `*** build failed: .harness/anchor (…) - Maven could resolve Boot's parent and plugins neither from .m2-demo nor from a repository it could reach: … ***` (exit 1, 6 s). No line of the run names a repository its log does not. **SIGINT** during the build's Maven (bash 3.2, a session of its own, SIGINT at its
+  default): exit 130; 5 s later 0 processes in its group, nothing listening on 19830-19839, no `.r-lock`, 0 unfinished runs, the 7 captures unchanged. RED fix by a Claude Opus 5.5 agent on 2026-11-03.
