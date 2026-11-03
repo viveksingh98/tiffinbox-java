@@ -324,7 +324,7 @@ Broken ≠ solved by the value the anchor reads (2 ≠ 3) and `updates`, not by 
 
 ## Exercise
 
-**Your turn:** the README changes a customer after detaching it, and the database never hears. Make the change reach the table. (20
+**Your turn:** the README changes a customer after detaching it, and the database never hears. Make the change reach the table. (21
 words.) `exercise/README.md` ships it broken (its options array runs `--probe.st=ex-detach`: the anchor reads **2**),
 `exercise/SOLUTION.md` beside it (`--probe.st=ex-merge` → **3**; and the other solution, `--probe.st=ex-plain` — no detach at all —
 → **3**); all three measured by the `exercise` capture, each from a fresh JVM.

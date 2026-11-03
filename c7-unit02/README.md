@@ -286,7 +286,7 @@ zsh print the same. **Broken 0 ≠ solved 1.** No option list lives in a variabl
 
 ## Exercise
 
-**Your turn:** the README's tree has no database driver in it. Run it the way the receipt does, and find H2. (20 words by `wc -w`,
+**Your turn:** the README's tree has no database driver in it. Run it the way the receipt does, and find H2. (21 words by `wc -w`,
 "Your turn:" included.) `exercise/README.md` ships the `-pl` tree (H2 **0**, a WARNING, exit 0), `exercise/SOLUTION.md` the reactor-root
 tree (H2 **1**); both measured by the `exercise` capture, in bash and in zsh. Run them from this folder: they need only the seeded
 `.m2-demo` and the `anchor` link, and they copy the anchor to `.harness/ex` themselves.

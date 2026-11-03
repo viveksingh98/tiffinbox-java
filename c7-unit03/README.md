@@ -354,7 +354,7 @@ folder — `/bin/bash --noprofile --norc`, then `/bin/zsh -f`, a fresh JVM each 
 ## Exercise
 
 **Your turn:** the README starts TiffinBox with one option too many, and Hibernate cannot find the customer table. Take it out.
-(20 words.) `exercise/README.md` ships it broken (its options array ends with `--spring.datasource.url=`), `exercise/SOLUTION.md` beside
+(21 words.) `exercise/README.md` ships it broken (its options array ends with `--spring.datasource.url=`), `exercise/SOLUTION.md` beside
 it; both measured by the `exercise` capture, broken ≠ solved (exit 1 ≠ exit 0).
 
 ## The anchor's README — what this unit changed in it
