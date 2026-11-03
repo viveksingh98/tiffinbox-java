@@ -1018,3 +1018,10 @@ c7-unit01/.harness/
 c7-unit01/.r-*
 c7-unit01/**/target/
 c7-unit01/**/secrets/
+
+# Course 7 unit 02 (no anchor change): this unit's local repository, harness folder, unfinished capture runs and build output
+c7-unit02/.m2-demo/
+c7-unit02/.harness/
+c7-unit02/.r-*
+c7-unit02/**/target/
+c7-unit02/**/secrets/
