@@ -2,6 +2,8 @@ package com.tiffinbox;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -22,6 +24,9 @@ import jakarta.validation.constraints.Size;
  * limits are one fact: {@code @Size(max = 60)} is what the validator checks before any SQL, {@code @Column(length = 60)} is
  * the column Database creates (VARCHAR(60)). Hibernate's generated DDL takes {@code @Size}'s limit over
  * {@code @Column(length)}, so the DDL alone cannot show the two agree: ../c7-unit03 reads both off this class.
+ *
+ * <p>The meal type is the anchor's own {@link MealType} since Course 7 unit 07, stored by its name: the column Database creates
+ * is still VARCHAR(10), and its rows hold VEG, NON_VEG and VEGAN, which Hibernate reads back as those constants.
  */
 @Entity
 @Table(name = "customer")
@@ -40,15 +45,19 @@ public class CustomerEntity {
 
     private int pricePerMeal;
 
-    /** A String, as the table holds it: the enum mapping is a later lesson's. */
+    /**
+     * Stored by the constant's name (STRING), never by its position (ORDINAL): a position changes when someone reorders the
+     * enum, and the rows already written would then read back as another meal type, with no error anywhere (../c7-unit07).
+     */
+    @Enumerated(EnumType.STRING)
     @Column(length = 10, nullable = false)
-    private String mealType;
+    private MealType mealType;
 
     /** For Hibernate, which builds an entity before it fills its fields. */
     protected CustomerEntity() {
     }
 
-    public CustomerEntity(String name, int mealsPerDay, int pricePerMeal, String mealType) {
+    public CustomerEntity(String name, int mealsPerDay, int pricePerMeal, MealType mealType) {
         this.name = name;
         this.mealsPerDay = mealsPerDay;
         this.pricePerMeal = pricePerMeal;
@@ -76,7 +85,7 @@ public class CustomerEntity {
         return pricePerMeal;
     }
 
-    public String getMealType() {
+    public MealType getMealType() {
         return mealType;
     }
 }

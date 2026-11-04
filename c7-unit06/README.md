@@ -49,6 +49,8 @@ line(s)`, `RESULT (run logs): PASS` (the unit gate answers "no 06-*.md … nothi
 (the one network act is the dated metadata read, below). After this README's numbers were written, one more `./receipts.sh` on the tree as committed: exit 0 in 310 s, all 10 =
 published, `--runlog` PASS.
 
+**Re-run after unit 07 moved the anchor (2026-11-04).** `../c7-unit07`'s commit changed `../c7-tiffinbox` (its `CustomerEntity.java`: the meal type became `MealType`, stored by its name; its README), so this script's start and end print the anchor note, never a stop (R.211, the Course 6 form on the terminal): after/ is still the frozen tree this unit measured. `receipts.sh` unchanged (md5 `c20d7fb599ab77ceaaf7e4955cd02af9`). One run on the moved anchor, `./receipts.sh` (/bin/bash 3.2.57), `env -i` as above: exit 0 in 309 s, the note printed at the start and the end and no line saying "= ../c7-tiffinbox", all 10 captures 3/3 = published, `receipts.md5` unchanged, `check_unit7.py 06 --runlog` PASS. Its timing ratios that run (terminal only): H2 3.13/3.53/3.28, PostgreSQL 7.99/8.21/8.18.
+
 Published hashes: sweep `290be9378730404f509e586b0700f75e` · when `03c60126e71431d9efe39932d4b62abb` · seqnames `cf556d30c1abd5a6c617cc5057e1f992` · batch `60929ddf5e729d9b45be1b6ff84e7794` · time `97c5e0caf94456421282cc189ce4e527` · pgstart `5505a020831756c1b55be334a8aaa9b4` · seven `bb72369d3b5c4572496bba4f6882c5cf` · tests `56b0251ebe01abece53c6094c0c379ab` · xcheck `d790043ef358350455a7bb711f0a1431` · exercise `757fe714daeb82b1e831eff73eba5b0d`.
 
 ### A sealed fresh clone — the recipe (R.129)
