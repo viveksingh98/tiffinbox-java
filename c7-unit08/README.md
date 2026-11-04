@@ -39,6 +39,8 @@ the start and the end, nothing listening on 19870-19879 at the end; each termina
 `0 grep error line(s)`, `RESULT (run logs): PASS` (the unit gate answers "no 08-*.md … nothing to check": no script yet). **Nothing
 was downloaded**, and this unit made no network act.
 
+**Re-run after unit 09 moved the anchor (2026-11-04).** `../c7-unit09`'s commit changed `../c7-tiffinbox` (a new `PauseEntity.java`; `CustomerEntity.java`'s `pauses`; its README) — Section 2's last anchor change — so this script's anchor check prints the note at its start and end, never a stop (R.211): anchor/ is still the link to `../c7-unit07/after`, the frozen tree this unit measured. `receipts.sh` unchanged (md5 `0ad1322e32ab86be2d641d2c2c526dfb`). One run on the moved anchor, `./receipts.sh` (/bin/bash 3.2.57), `env -i`, a session of its own: exit 0 in 71 s, the note printed at the start and the end, all 7 captures 3/3 = published (`xcheck` still `820b43fc…` = unit 07's Boot script: this unit's entity is unit 07's tree's), `receipts.md5` unchanged, `check_unit7.py 08 --runlog` PASS.
+
 Published hashes: ddl `c9bc322f33216db6822b66c9ffb4a43b` · nulls `24fce57486ea4662e5b2d6337fe7af87` · record `e650b3969176245d1cddaf9dd052a2aa` · two `390961afb6556eac383ab69f22dd1832` · overrides `3d461b6fe6525cce6780d4ae9f3cad92` · xcheck `d99a052716b49543ae22cae0b0da7ecb` · exercise `bfaed47210e5445d942a7c1e80d871a2`.
 
 ### A sealed fresh clone — the recipe (R.129)

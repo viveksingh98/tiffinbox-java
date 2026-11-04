@@ -49,6 +49,8 @@ published, every check passed, each of the three builds `offline: yes · exit 0 
 `check_unit7.py 07 --runlog` — `0 grep error line(s)`, `RESULT (run logs): PASS` (the unit gate answers "no 07-*.md … nothing to
 check": no script yet). **Nothing was downloaded**, and this unit made no network act.
 
+**Re-run after unit 09 moved the anchor (2026-11-04).** `../c7-unit09`'s commit changed `../c7-tiffinbox` (a new `PauseEntity.java`; `CustomerEntity.java`'s `pauses`, the inverse side; its README) — Section 2's last anchor change — so this script's start and end print the anchor note, never a stop (R.211): after/ is still the frozen tree this unit measured. `receipts.sh` unchanged (md5 `f05048bd3944e1d6b0c298c7a09b7d27`). One run on the moved anchor, `./receipts.sh` (/bin/bash 3.2.57), `env -i`, a session of its own: exit 0 in 458 s (the machine busy with unit 09's runs beside it), the note printed at the start and the end and no line saying "= ../c7-tiffinbox", all 10 captures 3/3 = published, its container started and removed as designed, `receipts.md5` unchanged, `check_unit7.py 07 --runlog` PASS. Units 08 and 10-14 compare with this unit's `820b43fc…` / unit 09's script respectively; this unit's captures stand as published.
+
 Published hashes: enumddl `78b996d331b2d6f7a2d859ed4cd76799` · reorder `8568fd7d36d60624741a10aa4e3eb8a9` · added `1a53828d2eda5a59bedf516776f79175` · renamed `02a154baca9f1e9c613ee75644fea038` · converter `216be7bb980af79644e48048bb654097` · anchor `dc5425373a3fb84bfde6979719ddb790` · seven `d853481b3fbd1c0fff98980a656f16d1` · tests `56b0251ebe01abece53c6094c0c379ab` · xcheck `74ea6be752b9be0b775e7abe1f3b907a` · exercise `3cacf3c4b698b1df4513b91b2206f0f3`.
 
 ### A sealed fresh clone — the recipe (R.129)

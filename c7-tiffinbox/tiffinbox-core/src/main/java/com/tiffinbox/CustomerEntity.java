@@ -7,9 +7,13 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Course 7, unit 03: a customer as an entity - a class Hibernate maps to a table and keeps track of. It maps the customer
@@ -27,6 +31,9 @@ import jakarta.validation.constraints.Size;
  *
  * <p>The meal type is the anchor's own {@link MealType} since Course 7 unit 07, stored by its name: the column Database creates
  * is still VARCHAR(10), and its rows hold VEG, NON_VEG and VEGAN, which Hibernate reads back as those constants.
+ *
+ * <p>A customer's pauses since Course 7 unit 09: {@link PauseEntity} maps Database's pause table, whose customer_id column
+ * holds the foreign key. That side owns the relationship; {@link #getPauses()} is the inverse side, read through it.
  */
 @Entity
 @Table(name = "customer")
@@ -52,6 +59,14 @@ public class CustomerEntity {
     @Enumerated(EnumType.STRING)
     @Column(length = 10, nullable = false)
     private MealType mealType;
+
+    /**
+     * The inverse side: mappedBy names the field that owns the foreign key, {@link PauseEntity}'s customer, so Hibernate
+     * writes nothing for this list - it reads pause rows by their customer_id. A pause belongs to a customer when its
+     * customer is set; one only added here is written with no customer (../c7-unit09).
+     */
+    @OneToMany(mappedBy = "customer")
+    private List<PauseEntity> pauses = new ArrayList<>();
 
     /** For Hibernate, which builds an entity before it fills its fields. */
     protected CustomerEntity() {
@@ -87,5 +102,10 @@ public class CustomerEntity {
 
     public MealType getMealType() {
         return mealType;
+    }
+
+    /** The customer's pauses, loaded from the pause table the first time the list is read. */
+    public List<PauseEntity> getPauses() {
+        return pauses;
     }
 }
