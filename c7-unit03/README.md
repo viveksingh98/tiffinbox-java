@@ -56,6 +56,8 @@ under `bash receipts.sh`** (Homebrew bash 5.3.9): each exit 0, all 11 captures 3
 terminal log through `check_unit7.py 03 --runlog` — `0 grep error line(s)`, `RESULT (run logs): PASS` (the unit gate itself answers
 "no 03-*.md … nothing to check": no script yet). **Nothing was downloaded** for this unit.
 
+**Re-run after unit 06 moved the anchor (2026-11-04).** `../c7-unit06`'s commit changed `../c7-tiffinbox` (its `Database.java`, `CustomerEntity.java`, README), so this script's equality checks against it became notes, never stops (R.211, the Course 6 form on the terminal): after/ is still the frozen tree this unit measured. `receipts.sh` md5 **since: `4e7946009031b1ed84f6af3e1bcd0c41`** (the anchor checks and the lines and comments that said "= ../c7-tiffinbox"; nothing inside a capture). One run on the moved anchor, `./receipts.sh` (/bin/bash 3.2.57), `env -i` as above: exit 0 in 389 s, the note printed, all 11 captures 3/3 = published, `receipts.md5` unchanged, `check_unit7.py --runlog` PASS.
+
 Published hashes: move `19c8b384c9bfd40fe044fe8780226bf5` · seven `ae7337b4dac2921d21a80a1039ba42ca` · two `021414a66ccdf513c5118fe6ee89afce` · entity `37bfba0b1cddf6aeb703b8b76aa742d5` · scan `26f0276adf60ed9fe591a5080a7bbcfa` · persist `e73efb7af239ff39ae514e508f2e6a20` · ddl `19b12999fc382025f087d5b67289c7f5` · ddlauto `fc47d316662b09827176ebdd005669ed` · osiv `2010bb05e48f434f6653fd67d4e27b97` · tests `cc1a5554ebaa44601802fd124742ef4d` · exercise `022321cac4c62e770d6e593178c4c4cf`.
 
 ### A sealed fresh clone — the recipe (R.129; RE-MEASURE 11, the course's first)

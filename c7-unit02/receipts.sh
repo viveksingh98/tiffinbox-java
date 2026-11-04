@@ -3,7 +3,7 @@ export JAVA_HOME=/opt/homebrew/opt/openjdk@25        # JDK 25.0.4.1 on the autho
 XPATH=$PATH                                           # the PATH you started this with: the exercise's own shells get it
 export PATH="$JAVA_HOME/bin:$PATH"
 # Course 7 · JPA, Hibernate, Spring Data: Three Different Things - this unit's receipts. No change to the anchor: anchor/ is the
-# link to ../c7-unit03/after (= ../c7-tiffinbox, asserted below). Four captures, each run three times and hashed; cap() DIES when a
+# link to ../c7-unit03/after (= ../c7-tiffinbox until unit 06 moved the anchor; compared below, a note when they differ). Four captures, each run three times and hashed; cap() DIES when a
 # hash differs from receipts.md5; every number the video says is asserted by a check that can fail, right after its capture.
 #   tree      the anchor's dependency tree, read from the reactor root (R.181), beside the 4.1.2 tree without the data starter (the
 #             first-entity lesson's previous tree with its one line, the parent at 4.1.2): the artifacts added, by name, the ones
@@ -67,14 +67,14 @@ for t in python3 rsync lsof mvn md5 cmp unzip /bin/zsh $G; do command -v $t > /d
 for v in JAVA_TOOL_OPTIONS JDK_JAVA_OPTIONS _JAVA_OPTIONS MAVEN_ARGS CLASSPATH DEBUG; do export "$v=planted-canary"; done
 for v in JAVA_TOOL_OPTIONS JDK_JAVA_OPTIONS _JAVA_OPTIONS MAVEN_ARGS CLASSPATH DEBUG; do unset "$v"; done
 [ -z "$(env | $G -- '=planted-canary$')" ] || die "a variable survived the clean-up above: $(env | $G -- '=planted-canary$' | sed 's/=.*//' | paste -sd' ' -)"
-# No anchor change: anchor/ is the link to ../c7-unit03/after, which IS ../c7-tiffinbox, byte for byte (local repository and build
-# output aside)
+# No anchor change: anchor/ is the link to ../c7-unit03/after, the frozen tree this unit reads. It was ../c7-tiffinbox, byte for
+# byte (local repository and build output aside), until unit 06 changed the anchor: a later anchor is a note, never a stop (R.211)
 [ -L anchor ] && [ "$(readlink anchor)" = ../c7-unit03/after ] || die "anchor must be the link to ../c7-unit03/after - this unit changes nothing in the anchor"
 [ -f anchor/pom.xml ] && [ -f anchor/README.md ] || die "the anchor (its pom.xml or README.md) is missing"
 [ -d ../c7-tiffinbox ] || die "../c7-tiffinbox is missing"
 D_=$(diff -rq -x .m2-demo -x target -x secrets anchor/ ../c7-tiffinbox 2>&1 || true)
-[ -z "$D_" ] || die "anchor/ is not ../c7-tiffinbox: $(printf '%s\n' "$D_" | head -3 | paste -sd';' -)"
-echo "  the anchor: anchor/ -> ../c7-unit03/after; diff -rq -x .m2-demo -x target -x secrets against ../c7-tiffinbox: empty - no anchor change"
+[ -z "$D_" ] || echo "  (anchor/ and ../c7-tiffinbox differ - the anchor has moved past the tree this unit reads: $(printf '%s\n' "$D_" | head -3 | paste -sd';' -))" >&3
+echo "  the anchor: anchor/ = ../c7-unit03/after (frozen) - no anchor change in this unit"
 # The baseline's source: the first-entity lesson's previous tree (its before/, the link to Course 6's last tree), and its one line
 B4=../c7-unit03/before
 [ -L $B4 ] && [ "$(readlink $B4)" = ../c6-unit31/after ] && [ -f $B4/pom.xml ] && [ -f ../c7-unit03/README.md ] || die "$B4 must be the link to ../c6-unit31/after, with its pom.xml, beside ../c7-unit03/README.md"
@@ -561,7 +561,7 @@ c_exercise() { local EXB EXZ b ER ES
   EXQ="Your turn: the README's tree has no database driver in it. Run it the way the receipt does, and find H2."
   $G -qxF -- "**Your turn:** ${EXQ#Your turn: }" exercise/README.md || die "exercise/README.md: the spoken exercise line"
   [ "$(printf '%s\n' "$EXQ" | wc -w | tr -d ' ')" -le 25 ] || die "exercise: the spoken line is over 25 words"
-  [ -z "$(diff -rq -x .m2-demo -x target -x secrets anchor/ ../c7-tiffinbox 2>&1 || true)" ] || die "exercise: the anchor changed"
+  [ -z "$(diff -rq -x .m2-demo -x target -x secrets anchor/ ../c7-tiffinbox 2>&1 || true)" ] || echo "  (exercise: anchor/ and ../c7-tiffinbox differ - the anchor has moved past the tree this unit reads)" >&3
   echo "  exercise: bash and zsh alike - the README as written (-pl tiffinbox-web): Maven exit 0, the WARNING 1, com.h2database:h2 0; the solution (from the root, -DoutputFile=tree.txt): exit 0, WARNING 0, h2 1; broken 0 != solved 1, each a fresh Maven run on a fresh copy"; }
 
 # ---- the captures, each followed by its checks ------------------------------------------------------------------------------------
@@ -606,8 +606,8 @@ for f in receipts.sh README.md exercise/README.md exercise/SOLUTION.md; do ! $G 
 [ ! -e .m2-demo/com/tiffinbox ] || die ".m2-demo gained com/tiffinbox - something installed TiffinBox"
 echo "  hygiene: no path, no unit number, no time, no Maven duration, no stack frame in any capture; every command's grep /usr/bin/grep's; no JVM but Maven's, every Maven offline on .m2-demo; no kill by name; no bare wait; no one-string option list; nothing installed into .m2-demo"
 
-D_=$(diff -rq -x .m2-demo -x target -x secrets anchor/ ../c7-tiffinbox 2>&1 || true); [ -z "$D_" ] || die "anchor/ is no longer ../c7-tiffinbox at the end"
+D_=$(diff -rq -x .m2-demo -x target -x secrets anchor/ ../c7-tiffinbox 2>&1 || true); [ -z "$D_" ] || echo "  (anchor/ and ../c7-tiffinbox differ at the end - the anchor has moved past the tree this unit reads)" >&3
 for p in $PORTS; do [ "$(listeners $p)" = 0 ] || die "something listens on $p at the end"; done
 echo "  ports: nothing listens on 19810-19819 at the end; none was bound"
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
-echo "c7-unit02: every capture 3/3 and = published; every spoken number asserted; duration words 0; anchor/ = ../c7-tiffinbox (no anchor change)"
+echo "c7-unit02: every capture 3/3 and = published; every spoken number asserted; duration words 0; anchor/ = ../c7-unit03/after (frozen; no anchor change in this unit)"

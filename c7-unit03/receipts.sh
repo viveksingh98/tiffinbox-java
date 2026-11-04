@@ -31,7 +31,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #             shell - /bin/bash, then again in /bin/zsh -f
 # "The previous tree" is before/, the link to ../c6-unit31/after: the anchor before this change (c7-tiffinbox's setup commit
 # copied it, README aside - `move` shows it from git), COPIED under .harness/before; after/ is this unit's frozen copy of
-# ../c7-tiffinbox after the change (asserted equal below), COPIED under .harness/after; .harness/move is the previous tree with the
+# ../c7-tiffinbox after the change (compared below: equal until unit 06 changed the anchor - a note then, never a stop), COPIED under .harness/after; .harness/move is the previous tree with the
 # parent's version changed. Every tree is built where it is copied, never in place. Every run of TiffinBox starts in a folder under
 # .harness/ that holds a config tree with a fake token (secrets/), listed before every start (the token's file, and nothing else).
 # The harness (harness/src, package probe.jpa, outside com.tiffinbox) is compiled with javac -parameters against after/'s
@@ -100,10 +100,11 @@ for t in "$PREV" after; do
   [ -f "$t/pom.xml" ] && [ -f "$t/README.md" ] || die "the tree $t (its pom.xml or README.md) is missing"
   [ -e "$t/secrets" ] || [ -e "$t/target" ] || [ -e "$t/tiffinbox-web/target" ] || [ -e "$t/tiffinbox-core/target" ] || [ -e "$t/tiffinbox-local.yaml" ] && die "$t holds a secrets/, a target/ or a tiffinbox-local.yaml - it is a frozen copy, never built in place"
   true; done
-# after/ IS the anchor: ../c7-tiffinbox, byte for byte (its local repository and build output aside)
+# after/ is this unit's frozen tree. It was the anchor, ../c7-tiffinbox, byte for byte (its local repository and build output
+# aside), until unit 06 changed the anchor: a later anchor is a note, never a stop (R.211)
 [ -d ../c7-tiffinbox ] || die "../c7-tiffinbox is missing"
 D_=$(diff -rq -x .m2-demo -x target -x secrets after ../c7-tiffinbox 2>&1 || true)
-[ -z "$D_" ] || die "after/ is not ../c7-tiffinbox: $(printf '%s\n' "$D_" | head -3 | paste -sd';' -)"
+[ -z "$D_" ] || echo "  (after/ and ../c7-tiffinbox differ - the anchor has moved past the tree this unit froze: $(printf '%s\n' "$D_" | head -3 | paste -sd';' -))" >&3
 M2="$PWD/.m2-demo"
 CJ=tiffinbox-core/src/main/java/com/tiffinbox        # the core module's sources, in a tree
 MJ=tiffinbox-web/src/main/java/com/tiffinbox/web     # the web module's main sources
@@ -741,4 +742,4 @@ echo "  exercise: bash and zsh alike - the README as written: jdbc:h2:mem:<uuid>
 for p in $PORTS; do [ "$(listeners $p)" = 0 ] || die "something listens on $p at the end"; done
 echo "  ports: nothing listens on 18425, 8080, 35729 or 19820-19829 at the end; 19829 never bound"
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
-echo "c7-unit03: every capture 3/3 and = published; every spoken number asserted; 0 raw demo tokens; after/ = ../c7-tiffinbox"
+echo "c7-unit03: every capture 3/3 and = published; every spoken number asserted; 0 raw demo tokens; after/ = this unit's frozen tree (the anchor until unit 06 moved it)"

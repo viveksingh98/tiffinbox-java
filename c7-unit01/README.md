@@ -39,6 +39,8 @@ nothing to check": no script yet). **No run of record downloaded anything** (the
 from the `file://` copy of the seed, and nothing over http(s)). After this README's numbers were written, the same two runs on the tree as committed:
 13 s and 13 s, each exit 0, all 4 = published, `--runlog` PASS.
 
+**Re-run after unit 06 moved the anchor (2026-11-04).** `../c7-unit06`'s commit changed `../c7-tiffinbox` (its `Database.java`, `CustomerEntity.java`, README), so this script's equality checks against it became notes, never stops (R.211, the Course 6 form on the terminal): anchor/ is still the frozen tree this unit measured. `receipts.sh` md5 **since: `dfd00c76a6ab902d731f011b8b34c9e2`** (the anchor checks and the lines and comments that said "= ../c7-tiffinbox"; nothing inside a capture). One run on the moved anchor, `./receipts.sh` (/bin/bash 3.2.57), `env -i` as above: exit 0 in 9 s, the note printed, all 4 captures 3/3 = published, `receipts.md5` unchanged, `check_unit7.py --runlog` PASS. The `file` capture still prints "(anchor/ = ../c7-tiffinbox)" inside its hashed text (line 232 of the script): true of the tree it read, `../c7-unit03/after`, the anchor until unit 06.
+
 Published hashes: file `878b8d1d97f251f0d5801267d67a22b7` · count `86ccb6cc9f27d9df2415242948647f3b` · identity `fba7feef01c8a33b6613d96e7e43fbd1` · exercise `d1f416f7bc6ff73d49a8b88776404f30`.
 
 ### A sealed fresh clone — the recipe (R.129)

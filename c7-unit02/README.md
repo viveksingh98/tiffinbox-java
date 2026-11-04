@@ -38,6 +38,8 @@ bash 5.3.9): each exit 0, all 4 captures 3/3 = published, every check passed; ea
 line(s)`, `RESULT (run logs): PASS` (the unit gate itself answers "no 02-*.md … nothing to check": no script yet). **No run of record
 downloaded anything.** After this README's numbers were written, the same two runs on the tree as committed: 81 s and 84 s, each exit 0, all 4 = published, `--runlog` PASS.
 
+**Re-run after unit 06 moved the anchor (2026-11-04).** `../c7-unit06`'s commit changed `../c7-tiffinbox` (its `Database.java`, `CustomerEntity.java`, README), so this script's equality checks against it became notes, never stops (R.211, the Course 6 form on the terminal): anchor/ is still the frozen tree this unit measured. `receipts.sh` md5 **since: `fd5284fbd3e8901d2da5c1d0f32a577a`** (the anchor checks and the lines and comments that said "= ../c7-tiffinbox"; nothing inside a capture). One run on the moved anchor, `./receipts.sh` (/bin/bash 3.2.57), `env -i` as above: exit 0 in 55 s, the note printed, all 4 captures 3/3 = published, `receipts.md5` unchanged, `check_unit7.py --runlog` PASS.
+
 Published hashes: tree `46f4f7ab1cb7c3411c5dc2c8a05bfdea` · owners `e92f96d5143a78d67392f16edcbb08b4` · poms `4f2205553699f3f015f824825d620269` · exercise `1f22cf27bd1788161abdd56091f44f87`.
 
 ### A sealed fresh clone — the recipe (R.129)

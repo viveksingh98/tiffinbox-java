@@ -3,7 +3,7 @@ export JAVA_HOME=/opt/homebrew/opt/openjdk@25        # JDK 25.0.4.1 on the autho
 XPATH=$PATH                                           # the PATH you started this with: the exercise's own shells get it
 export PATH="$JAVA_HOME/bin:$PATH"
 # Course 7 · The Persistence Context - this unit's receipts. No change to the anchor: anchor/ is the link to ../c7-unit03/after
-# (= ../c7-tiffinbox, asserted below). Seven captures, each run three times and hashed; cap() DIES when a hash differs from
+# (= ../c7-tiffinbox until unit 06 moved the anchor; compared below, a note when they differ). Seven captures, each run three times and hashed; cap() DIES when a hash differs from
 # receipts.md5; every number the video says is asserted by a check that can fail, right after its capture; the demo token is
 # masked, and the checks count 0 raw copies of it in every capture and every log.
 #   twofinds  A/B/A' - two finds of one customer: A in one TransactionTemplate; B (one flip: the harness's step) the same two finds
@@ -83,15 +83,15 @@ for v in $(env | sed -n -E 's/^(TIFFINBOX_[A-Za-z0-9_]*|SPRING_[A-Za-z0-9_]*|MAN
 [ -z "$(env | grep -- '=planted-canary$')" ] || die "a variable survived the clean-up above: $(env | grep -- '=planted-canary$' | sed 's/=.*//' | paste -sd' ' -)"
 export no_proxy="127.0.0.1,localhost${no_proxy:+,$no_proxy}" NO_PROXY="127.0.0.1,localhost${NO_PROXY:+,$NO_PROXY}"
 [ -e secrets ] && die "this folder holds a secrets/ - remove it: every run here starts in a folder under .harness/"
-# No anchor change: anchor/ is the link to ../c7-unit03/after, which IS ../c7-tiffinbox, byte for byte (local repository and build
-# output aside)
+# No anchor change: anchor/ is the link to ../c7-unit03/after, the frozen tree this unit reads. It was ../c7-tiffinbox, byte for
+# byte (local repository and build output aside), until unit 06 changed the anchor: a later anchor is a note, never a stop (R.211)
 [ -L anchor ] && [ "$(readlink anchor)" = ../c7-unit03/after ] || die "anchor must be the link to ../c7-unit03/after - this unit changes nothing in the anchor"
 [ -f anchor/pom.xml ] && [ -f anchor/README.md ] || die "the anchor (its pom.xml or README.md) is missing"
 [ -e anchor/secrets ] || [ -e anchor/target ] || [ -e anchor/tiffinbox-web/target ] || [ -e anchor/tiffinbox-core/target ] || [ -e anchor/tiffinbox-local.yaml ] && die "anchor/ holds a secrets/, a target/ or a tiffinbox-local.yaml - it is a frozen copy, never built in place"
 [ -d ../c7-tiffinbox ] || die "../c7-tiffinbox is missing"
 D_=$(diff -rq -x .m2-demo -x target -x secrets anchor/ ../c7-tiffinbox 2>&1 || true)
-[ -z "$D_" ] || die "anchor/ is not ../c7-tiffinbox: $(printf '%s\n' "$D_" | head -3 | paste -sd';' -)"
-echo "  the anchor: anchor/ -> ../c7-unit03/after; diff -rq -x .m2-demo -x target -x secrets against ../c7-tiffinbox: empty - no anchor change"
+[ -z "$D_" ] || echo "  (anchor/ and ../c7-tiffinbox differ - the anchor has moved past the tree this unit reads: $(printf '%s\n' "$D_" | head -3 | paste -sd';' -))" >&3
+echo "  the anchor: anchor/ = ../c7-unit03/after (frozen) - no anchor change in this unit"
 M2="$PWD/.m2-demo"
 CJ=tiffinbox-core/src/main/java/com/tiffinbox        # the core module's sources, in a tree
 SR=tiffinbox-web/target/surefire-reports
@@ -540,8 +540,8 @@ for f in receipts.sh README.md exercise/README.md exercise/SOLUTION.md; do ! gre
 ! grep -rqE '^package com\.tiffinbox' harness/src || die "a harness class sits in com.tiffinbox (R.43)"
 echo "  tokens: 0 raw copies in $(ls .harness/raw-* | wc -l | tr -d ' ') raw capture runs, in $(ls .r-*.out | wc -l | tr -d ' ') captures, every file this unit ships, every build log and the log of every JVM ($LOGS); no path, no unit number, no time, no generated database name, no unmasked identity hash, no stack frame in any capture; every JVM's locale pinned; every start's secrets/ listed; no kill by name; no bare wait; options as arrays"
 
-D_=$(diff -rq -x .m2-demo -x target -x secrets anchor/ ../c7-tiffinbox 2>&1 || true); [ -z "$D_" ] || die "anchor/ is no longer ../c7-tiffinbox at the end"
+D_=$(diff -rq -x .m2-demo -x target -x secrets anchor/ ../c7-tiffinbox 2>&1 || true); [ -z "$D_" ] || echo "  (anchor/ and ../c7-tiffinbox differ at the end - the anchor has moved past the tree this unit reads)" >&3
 for p in $PORTS; do [ "$(listeners $p)" = 0 ] || die "something listens on $p at the end"; done
 echo "  ports: nothing listens on 18425, 8080, 35729 or 19830-19839 at the end; 19839 never bound"
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
-echo "c7-unit04: every capture 3/3 and = published; every spoken number asserted; 0 raw demo tokens; duration words 0; anchor/ = ../c7-tiffinbox (no anchor change)"
+echo "c7-unit04: every capture 3/3 and = published; every spoken number asserted; 0 raw demo tokens; duration words 0; anchor/ = ../c7-unit03/after (frozen; no anchor change in this unit)"

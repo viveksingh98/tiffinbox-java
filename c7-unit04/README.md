@@ -38,6 +38,8 @@ run before the checks were reordered (witness lines first, so a plant dies on it
 error line(s)`, `RESULT (run logs): PASS` (the unit gate itself answers "no 04-*.md … nothing to check": no script yet). **Nothing was
 downloaded** for this unit.
 
+**Re-run after unit 06 moved the anchor (2026-11-04).** `../c7-unit06`'s commit changed `../c7-tiffinbox` (its `Database.java`, `CustomerEntity.java`, README), so this script's equality checks against it became notes, never stops (R.211, the Course 6 form on the terminal): anchor/ is still the frozen tree this unit measured. `receipts.sh` md5 **since: `d92cc5927b6907a8ca7844b63af6df70`** (the anchor checks and the lines and comments that said "= ../c7-tiffinbox"; nothing inside a capture). One run on the moved anchor, `./receipts.sh` (/bin/bash 3.2.57), `env -i` as above: exit 0 in 167 s, the note printed, all 7 captures 3/3 = published, `receipts.md5` unchanged, `check_unit7.py --runlog` PASS.
+
 Published hashes: twofinds `0bfeb2b7de1bf6bbbc3791272855b587` · own `3efa24349b9e49dd0ef67332bcb8d850` · request `79969e215a8bc25e32c5c2b25fd94ab7` · dirty `d63a21cc7afb1999ec6f11b9ea04b6ce` · boundary `4a577ed538c89d8a17f7c8922a01b412` · tests `92ec7e1851904415fe1bcb60200fa4a0` · exercise `389ebf1c5cab7cedb13b972e8d308091`.
 
 ### A sealed fresh clone — the recipe (R.129)

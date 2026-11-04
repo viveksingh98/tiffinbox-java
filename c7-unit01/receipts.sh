@@ -3,7 +3,7 @@ export JAVA_HOME=/opt/homebrew/opt/openjdk@25        # JDK 25.0.4.1 on the autho
 XPATH=$PATH                                           # the PATH you started this with: the exercise's own shells get it
 export PATH="$JAVA_HOME/bin:$PATH"
 # Course 7 · The Object-Relational Mismatch, Named - this unit's receipts. No change to the anchor: anchor/ is the link to
-# ../c7-unit03/after (= ../c7-tiffinbox, asserted below). Four captures, each run three times and hashed; cap() DIES when a hash
+# ../c7-unit03/after (= ../c7-tiffinbox until unit 06 moved the anchor; compared below, a note when they differ). Four captures, each run three times and hashed; cap() DIES when a hash
 # differs from receipts.md5; every number the video says is asserted by a check that can fail, right after its capture.
 #   file      Course 2's class, read off disk: ../c2-unit38/src/main/java/JdbcCustomerRepository.java - its lines (wc -l), its
 #             md5, its class line, its URL (Db.java's, a file database), its lesson's title (Course 2's README) - and beside it
@@ -70,14 +70,14 @@ for t in python3 rsync lsof mvn md5 cmp /bin/zsh $G; do command -v $t > /dev/nul
 for v in JAVA_TOOL_OPTIONS JDK_JAVA_OPTIONS _JAVA_OPTIONS MAVEN_ARGS CLASSPATH DEBUG; do export "$v=planted-canary"; done
 for v in JAVA_TOOL_OPTIONS JDK_JAVA_OPTIONS _JAVA_OPTIONS MAVEN_ARGS CLASSPATH DEBUG; do unset "$v"; done
 [ -z "$(env | $G -- '=planted-canary$')" ] || die "a variable survived the clean-up above: $(env | $G -- '=planted-canary$' | sed 's/=.*//' | paste -sd' ' -)"
-# No anchor change: anchor/ is the link to ../c7-unit03/after, which IS ../c7-tiffinbox, byte for byte (local repository and build
-# output aside)
+# No anchor change: anchor/ is the link to ../c7-unit03/after, the frozen tree this unit reads. It was ../c7-tiffinbox, byte for
+# byte (local repository and build output aside), until unit 06 changed the anchor: a later anchor is a note, never a stop (R.211)
 [ -L anchor ] && [ "$(readlink anchor)" = ../c7-unit03/after ] || die "anchor must be the link to ../c7-unit03/after - this unit changes nothing in the anchor"
 [ -f anchor/pom.xml ] && [ -f anchor/README.md ] || die "the anchor (its pom.xml or README.md) is missing"
 [ -d ../c7-tiffinbox ] || die "../c7-tiffinbox is missing"
 D_=$(diff -rq -x .m2-demo -x target -x secrets anchor/ ../c7-tiffinbox 2>&1 || true)
-[ -z "$D_" ] || die "anchor/ is not ../c7-tiffinbox: $(printf '%s\n' "$D_" | head -3 | paste -sd';' -)"
-echo "  the anchor: anchor/ -> ../c7-unit03/after; diff -rq -x .m2-demo -x target -x secrets against ../c7-tiffinbox: empty - no anchor change"
+[ -z "$D_" ] || echo "  (anchor/ and ../c7-tiffinbox differ - the anchor has moved past the tree this unit reads: $(printf '%s\n' "$D_" | head -3 | paste -sd';' -))" >&3
+echo "  the anchor: anchor/ = ../c7-unit03/after (frozen) - no anchor change in this unit"
 # Course 2's lesson, as committed: never built in place (no target/, no data/), its six sources and its POM
 C2=../c2-unit38
 C2S=$C2/src/main/java
@@ -493,8 +493,8 @@ for f in receipts.sh README.md exercise/README.md exercise/SOLUTION.md; do ! $G 
 [ ! -e $C2/target ] && [ ! -e $C2/data ] || die "$C2 gained a target/ or a data/"
 echo "  hygiene: no path, no unit number but Course 2's folder, no time, no unmasked H2 object number or identity hash, no stack frame in any capture; every JVM's locale pinned; every count /usr/bin/grep's; no kill by name; no bare wait; options as arrays; the harness in the default package, naming no Db; no database file in this folder or the root; $C2 untouched"
 
-D_=$(diff -rq -x .m2-demo -x target -x secrets anchor/ ../c7-tiffinbox 2>&1 || true); [ -z "$D_" ] || die "anchor/ is no longer ../c7-tiffinbox at the end"
+D_=$(diff -rq -x .m2-demo -x target -x secrets anchor/ ../c7-tiffinbox 2>&1 || true); [ -z "$D_" ] || echo "  (anchor/ and ../c7-tiffinbox differ at the end - the anchor has moved past the tree this unit reads)" >&3
 for p in $PORTS; do [ "$(listeners $p)" = 0 ] || die "something listens on $p at the end"; done
 echo "  ports: nothing listens on 19800-19809 at the end; none was bound"
 [ -z "$unpub" ] || die "no published hash for:$unpub - check the captures, then copy the md5s above into receipts.md5 and run again"
-echo "c7-unit01: every capture 3/3 and = published; every spoken number asserted; duration words 0; no database file; anchor/ = ../c7-tiffinbox (no anchor change)"
+echo "c7-unit01: every capture 3/3 and = published; every spoken number asserted; duration words 0; no database file; anchor/ = ../c7-unit03/after (frozen; no anchor change in this unit)"

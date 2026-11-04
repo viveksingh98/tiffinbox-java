@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Add a customer')}"></head>
+<body>
+<header th:replace="~{fragments :: header}"></header>
+<main>
+<form th:action="@{/customers}" th:object="${customer}" method="post">
+  <p><label>Name <input th:field="*{name}"></label> <span class="error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">x</span></p>
+  <p><label>Meals a day <input th:field="*{mealsPerDay}"></label> <span class="error" th:if="${#fields.hasErrors('mealsPerDay')}" th:errors="*{mealsPerDay}">x</span></p>
+  <p><label>Price a meal <input th:field="*{pricePerMeal}"></label> <span class="error" th:if="${#fields.hasErrors('pricePerMeal')}" th:errors="*{pricePerMeal}">x</span></p>
+  <p><label>Meal type <input th:field="*{mealType}"></label> <span class="error" th:if="${#fields.hasErrors('mealType')}" th:errors="*{mealType}">x</span></p>
+  <p><button>Add</button></p>
+</form>
+</main>
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>
