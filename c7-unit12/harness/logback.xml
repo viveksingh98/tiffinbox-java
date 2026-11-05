@@ -1,0 +1,15 @@
+<configuration>
+  <!-- The inheritance lesson's harness: Logback (in the anchor's jar), one line per event - level, logger, message. Hibernate's
+       SQL logger (org.hibernate.SQL, DEBUG) and its bind logger (org.hibernate.orm.jdbc.bind, TRACE) - the names read off
+       Hibernate 7.4's jar - at the level a run asks with -Dsql=, -Dbind=; Hibernate's core logger (org.hibernate.orm.core) at
+       INFO, for its HHH000001 version line (R.222); the rest of org.hibernate at WARN, so a schema step that fails
+       ("GenerationTarget encountered exception") is still printed. -->
+  <appender name="O" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder><pattern>%-5level %logger : %msg%n</pattern></encoder>
+  </appender>
+  <logger name="org.hibernate.SQL" level="${sql:-DEBUG}"/>
+  <logger name="org.hibernate.orm.jdbc.bind" level="${bind:-INFO}"/>
+  <logger name="org.hibernate.orm.core" level="INFO"/>
+  <logger name="org.hibernate" level="WARN"/>
+  <root level="WARN"><appender-ref ref="O"/></root>
+</configuration>
