@@ -1,5 +1,6 @@
 package com.tiffinbox;
 
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
@@ -12,20 +13,24 @@ import java.util.Optional;
  * Unit 29/31: rows in, records out. Nothing above this class knows SQL exists.
  *
  * <p>Course 7, unit 15: findAll and add go through CustomerEntityRepository, Spring Data JPA's repository for CustomerEntity, and
- * Hibernate writes their SQL. Course 7, unit 16: findByName too, through the repository's derived findByName; monthRevenue and
- * pausedDays keep their SQL strings - two of the five this class held (../c7-unit16, anchor: 3 -> 2). Both ways reach the same
- * database, and Database stays a constructor argument. A refused add still throws the driver's SQLException - Spring's
- * DataIntegrityViolationException is unwrapped to it - so the web layer's 23505 -> 409 path is unchanged.
+ * Hibernate writes their SQL. Course 7, unit 16: findByName too, through the repository's derived findByName. Course 7, unit 17:
+ * monthRevenue and pausedDays too, through the repository's two JPQL queries - this class keeps none of the five SQL strings it
+ * held (../c7-unit17, anchor: 2 -> 0), and every route reaches the database through Boot's pool and Hibernate. A refused add
+ * still throws the driver's SQLException - Spring's DataIntegrityViolationException is unwrapped to it - so the web layer's
+ * 23505 -> 409 path is unchanged.
+ *
+ * <p>Course 7, unit 17: Database is no longer a constructor argument, and that argument was what made the container create
+ * Database - whose createAndSeed makes the tables - before this class, and so before TiffinBoxServer's start(), which reads the
+ * customers. Without it the start fails: Table "CUSTOMER" not found (../c7-unit17, anchor, B). {@code @DependsOn("database")}
+ * keeps that order, now written down (A).
  */
 @Component
+@DependsOn("database")
 public final class CustomerRepository {
-
-    private final Database db;
 
     private final CustomerEntityRepository customers;
 
-    public CustomerRepository(Database db, CustomerEntityRepository customers) {
-        this.db = db;
+    public CustomerRepository(CustomerEntityRepository customers) {
         this.customers = customers;
     }
 
@@ -64,21 +69,13 @@ public final class CustomerRepository {
         }
     }
 
+    /** A month of every customer's meals, summed by the repository's JPQL query. */
     public int monthRevenue() throws SQLException {
-        try (var c = db.open();
-             var ps = c.prepareStatement("SELECT SUM(meals_per_day * price_per_meal * 30) FROM customer");
-             var rs = ps.executeQuery()) {
-            rs.next();
-            return rs.getInt(1);
-        }
+        return Math.toIntExact(customers.monthRevenue());
     }
 
+    /** Every pause's days, summed by the repository's JPQL query. */
     public int pausedDays() throws SQLException {
-        try (var c = db.open();
-             var ps = c.prepareStatement("SELECT COALESCE(SUM(days), 0) FROM pause");
-             var rs = ps.executeQuery()) {
-            rs.next();
-            return rs.getInt(1);
-        }
+        return Math.toIntExact(customers.pausedDays());
     }
 }
