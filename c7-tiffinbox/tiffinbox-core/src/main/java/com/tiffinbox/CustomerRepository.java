@@ -1,34 +1,41 @@
 package com.tiffinbox;
 
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/** Unit 29/31: rows in, records out. Nothing above this class knows SQL exists. */
+/**
+ * Unit 29/31: rows in, records out. Nothing above this class knows SQL exists.
+ *
+ * <p>Course 7, unit 15: findAll and add go through CustomerEntityRepository, Spring Data JPA's repository for CustomerEntity, and
+ * Hibernate writes their SQL; findByName, monthRevenue and pausedDays keep their SQL strings - three of the five this class
+ * held (../c7-unit15, anchor: 5 -> 3). Both ways reach the same database, and Database stays a constructor argument. A refused
+ * add still throws the driver's SQLException - Spring's DataIntegrityViolationException is unwrapped to it - so the web layer's
+ * 23505 -> 409 path is unchanged.
+ */
 @Component
 public final class CustomerRepository {
 
     private final Database db;
 
-    public CustomerRepository(Database db) {
+    private final CustomerEntityRepository customers;
+
+    public CustomerRepository(Database db, CustomerEntityRepository customers) {
         this.db = db;
+        this.customers = customers;
     }
 
+    /** Every customer, by name: Spring Data's findAll(Sort), each entity mapped to the record the web layer reads. */
     public List<Customer> findAll() throws SQLException {
-        var out = new ArrayList<Customer>();
-        try (var c = db.open();
-             var ps = c.prepareStatement(
-                 "SELECT name, meals_per_day, price_per_meal, meal_type FROM customer ORDER BY name");
-             var rs = ps.executeQuery()) {
-            while (rs.next()) {
-                out.add(new Customer(rs.getString("name"), rs.getInt("meals_per_day"),
-                        rs.getInt("price_per_meal"), rs.getString("meal_type")));
-            }
-        }
-        return out;
+        return customers.findAll(Sort.by("name")).stream().map(CustomerRepository::toRecord).toList();
+    }
+
+    private static Customer toRecord(CustomerEntity e) {
+        return new Customer(e.getName(), e.getMealsPerDay(), e.getPricePerMeal(), e.getMealType().name());
     }
 
     /** The customer whose name is exactly this one - a parameter, never part of the SQL - or none. */
@@ -45,18 +52,20 @@ public final class CustomerRepository {
     }
 
     /**
-     * One new row: the record's four values, each a parameter of the SQL, never part of it. Nothing here checks them: the
-     * table's own constraints - a value in every column, a name nobody else has - are the only refusal, and H2 throws for each.
+     * One new row: the record's four values in a new CustomerEntity, saved by Spring Data - Hibernate binds each as a parameter
+     * of its INSERT, never part of it. Nothing here checks them: the table's own constraints - a value in every column, a name
+     * nobody else has - are the only refusal, and H2 throws for each. Spring translates that into its own
+     * DataIntegrityViolationException; the driver's SQLException inside it is what this method throws, as before.
      */
     public void add(Customer customer) throws SQLException {
-        try (var c = db.open();
-             var ps = c.prepareStatement(
-                 "INSERT INTO customer (name, meals_per_day, price_per_meal, meal_type) VALUES (?, ?, ?, ?)")) {
-            ps.setString(1, customer.name());
-            ps.setInt(2, customer.mealsPerDay());
-            ps.setInt(3, customer.pricePerMeal());
-            ps.setString(4, customer.mealType());
-            ps.executeUpdate();
+        try {
+            customers.save(new CustomerEntity(customer.name(), customer.mealsPerDay(), customer.pricePerMeal(),
+                    MealType.valueOf(customer.mealType())));
+        } catch (DataIntegrityViolationException e) {
+            if (e.getMostSpecificCause() instanceof SQLException refused) {
+                throw refused;
+            }
+            throw e;
         }
     }
 

@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 /**
  * The description the container reads instead of Wiring.java: where the objects are. Nothing here says what to
@@ -31,11 +32,18 @@ import org.springframework.context.annotation.Configuration;
  * auto-configuration package - this class's own, com.tiffinbox.web - and CustomerEntity lives in tiffinbox-core's
  * com.tiffinbox: the context still starts, and the first query fails, "Could not resolve root entity 'CustomerEntity'". A
  * context that starts is not evidence the entity is mapped (../c7-unit03, scan).
+ *
+ * Course 7, unit 15: @EnableJpaRepositories names the package Spring Data's repository interfaces are looked for in. Without
+ * it Boot looks in the auto-configuration package, com.tiffinbox.web, and CustomerEntityRepository lives in tiffinbox-core's
+ * com.tiffinbox: the start log says "Found 0 JPA repository interfaces", and the start fails only because CustomerRepository's
+ * constructor asks for the bean - "required a bean of type 'com.tiffinbox.CustomerEntityRepository' that could not be found"
+ * (../c7-unit15, scan).
  */
 @Configuration
 @EnableAutoConfiguration
 @ComponentScan("com.tiffinbox")
 @EnableConfigurationProperties(TiffinBoxProperties.class)
 @EntityScan("com.tiffinbox")
+@EnableJpaRepositories("com.tiffinbox")
 public class TiffinBoxApp {
 }

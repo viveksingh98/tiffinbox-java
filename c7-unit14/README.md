@@ -51,6 +51,8 @@ and the end, nothing listening on 18425, 8080, 35729 or 19930-19939 at the end; 
 duration words. Those runs had this README as then drafted (its run-of-record, interrupt and plant paragraphs since filled in; no
 command line, no `mine()` line and no values line changed). **On the tree as committed** — this README final — one more `./receipts.sh`: exit 0 in 134 s, all 7 = published, `--runlog` PASS. **Nothing was downloaded**, and this unit made no network act.
 
+**Re-run after unit 15 moved the anchor (2026-11-07).** `../c7-unit15`'s commit changed `../c7-tiffinbox` — Section 3's first anchor change (a new `CustomerEntityRepository.java`; `CustomerRepository.java`'s `findAll` and `add` over it; `@EnableJpaRepositories` on `TiffinBoxApp`; the core POM; `CustomerEntity.java`'s Javadoc; its README) — so this script's anchor check prints the note at its start and end, never a stop (R.211): anchor/ is still the link to `../c7-unit09/after`, the frozen tree this unit measured. `receipts.sh` unchanged (md5 `fbf41b618da42cebf241894d40c88ef2`). One run on the moved anchor, `./receipts.sh` (/bin/bash 3.2.57), `env -i`, a session of its own, from 17:41 CET: exit 0 in 171 s, the note printed at the start and the end, all 7 captures 3/3 = published, its container (`c7-u14-pg`, 127.0.0.1:19938) started and removed as designed, `receipts.md5` unchanged, `check_unit7.py 14 --runlog` PASS.
+
 Published hashes: course2 `54b9f91f4923bc7faebb185564e45cde` · ddl `c1b6688e68dd8aeb7261fe7758bc2caf` · values `9bb07fa9ae1d5c5951626c524fc7fdea` · double `776798cb3b185c97d4b6fa7f33f6baf5` · digits `a66b7e9de360205d9505d50a0785c86d` · xcheck `2222f82bc8913bf1a89068373db3ec2b` · exercise `e21136d6d8f2e4cbace1e534d7230225`.
 
 ### A sealed fresh clone — the recipe (R.129)

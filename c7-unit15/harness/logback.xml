@@ -1,0 +1,16 @@
+<configuration>
+  <!-- The repository lesson's harness: Logback (in the anchor's jar), read by Boot (logging.config), one line per event - level,
+       logger, message - and no stack trace (%nopex: the harness prints an exception's class, message and causes itself).
+       Hibernate's SQL logger (org.hibernate.SQL, DEBUG) at the level a run asks with -Dsql=; Hibernate's core logger
+       (org.hibernate.orm.core) at INFO, for its HHH000001 version line (R.222); Spring's JpaTransactionManager at the level a
+       run asks with -Dtx= (DEBUG: a transaction's lines, R.233); Spring Data's repository scan (RepositoryConfigurationDelegate)
+       at INFO, for its "Found N JPA repository interface" line; Boot's failure reporter at its own ERROR. The rest at WARN. -->
+  <appender name="O" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder><pattern>%-5level %logger : %msg%n%nopex</pattern></encoder>
+  </appender>
+  <logger name="org.hibernate.SQL" level="${sql:-DEBUG}"/>
+  <logger name="org.hibernate.orm.core" level="INFO"/>
+  <logger name="org.springframework.orm.jpa.JpaTransactionManager" level="${tx:-INFO}"/>
+  <logger name="org.springframework.data.repository.config.RepositoryConfigurationDelegate" level="INFO"/>
+  <root level="WARN"><appender-ref ref="O"/></root>
+</configuration>
