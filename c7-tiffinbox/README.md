@@ -10,7 +10,8 @@ data layer exactly as Course 2 left it under the web: `CustomerRepository`, a `@
 the JDK's `JdbcTemplate`-free JDBC on an in-memory H2 (`jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1`), and `Database`, whose
 `@PostConstruct` drops and re-seeds the two tables at every start (Course 6's finale measured both: a customer added over
 HTTP is gone after a restart). *(Course 7, unit 15: two of those five strings - `findAll`'s and `add`'s - are Spring Data JPA's since;
-`CustomerRepository` keeps three.)* Course 7's units are planned to hand that job to JPA, Hibernate and Spring Data JPA one
+`CustomerRepository` keeps three.)* *(Course 7, unit 16: `findByName`'s too - a query Spring Data derives from the method's name;
+`CustomerRepository` keeps two.)* Course 7's units are planned to hand that job to JPA, Hibernate and Spring Data JPA one
 measured claim at a time, and each unit that changes this folder records it below as a `## Course 7 · unit NN` section, as
 Course 6's did. `c6-tiffinbox` stays frozen from here on, so every Course 6 unit keeps pointing at what it measured.
 Everything below the rule is `c6-tiffinbox`'s README exactly as it was at 828e395, except the history notes a Course 7 unit
@@ -25,12 +26,13 @@ side mapped by it; `Database` is unchanged; its section below. **This is Section
 this tree through their links to `../c7-unit09/after`.)* *(Course 7, unit 15, Section 3's first change to this folder: Spring Data JPA's
 repository, `CustomerEntityRepository`, an interface in `tiffinbox-core` that declares no method; `TiffinBoxApp` names its package in
 `@EnableJpaRepositories`; `CustomerRepository`'s `findAll` and `add` go through it, and the class keeps three of its five SQL strings; its
-section below.)*
+section below.)* *(Course 7, unit 16: the interface declares one method, `findByName`, whose query Spring Data derives from its name;
+`CustomerRepository`'s `findByName` goes through it, and the class keeps two of its five SQL strings; its section below.)*
 
 ## Course 7 · unit 03 — the first entity: Boot 4.1.2, Spring Data JPA's starter, CustomerEntity on TiffinBox's own database (2026-11-01)
 
 The course's first change to this folder. TiffinBox's customers get a second way into their table — an **entity**, a class
-Hibernate maps to a table and keeps track of — beside Course 2's `CustomerRepository`, which keeps its SQL strings (*Course 7, unit 15: three of the five since*). Six files changed
+Hibernate maps to a table and keeps track of — beside Course 2's `CustomerRepository`, which keeps its SQL strings (*Course 7, unit 15: three of the five since*; *Course 7, unit 16: two of the five since*). Six files changed
 and one is new, besides this README:
 - `pom.xml` — the parent moves to **`spring-boot-starter-parent:4.1.2`** (Spring Framework 7.0.10), measured alone first (`move`):
   the eighteen tests (14/3/1, from Surefire's reports), the seven `466c20ed7e0d5439cb052f32ce09de1b`, the same, byte for byte, 7,
@@ -81,7 +83,8 @@ do not witness). Nothing in TiffinBox uses the entity yet — the course's harne
 commit. Both of Course 6's restart causes stand: the database is `jdbc:h2:mem:`, and `Database` drops and re-seeds at every start.
 Two ways into one database, side by side: Hibernate through Boot's pool, `Database` and `CustomerRepository` through `DriverManager`.
 *(Course 7, unit 15: `CustomerRepository`'s `findAll` and `add` go through Hibernate and Boot's pool since — Spring Data JPA's
-`CustomerEntityRepository`; its three other methods and `Database` still through `DriverManager`.)*
+`CustomerEntityRepository`; its three other methods and `Database` still through `DriverManager`.)* *(Course 7, unit 16: and
+`findByName` since; `monthRevenue`, `pausedDays` and `Database` still through `DriverManager`.)*
 Measured without the `dev` profile.
 
 Evidence for every sentence in this section: `../c7-unit03/` (`receipts.sh`, eleven captures).
@@ -183,6 +186,7 @@ Four files changed and one is new, besides this README:
   `findAll(Sort.by("name"))` mapped to the record `Customer`; `add` saves a new `CustomerEntity`, and Spring's
   `DataIntegrityViolationException` is unwrapped to the driver's `SQLException`, so the web layer's 23505 → 409 path and `TiffinBoxWebTest`'s
   mock are unchanged. Its SQL strings: three of five (`grep -c prepareStatement`: 5 → 3) — `findByName`, `monthRevenue`, `pausedDays` keep theirs.
+  *(Course 7, unit 16: two of five since — `findByName` goes through the repository's derived `findByName`.)*
 - `tiffinbox-core/src/main/java/com/tiffinbox/CustomerEntity.java` — its Javadoc's sentence about the SQL strings states the count, three of
   five (S3.19).
 
@@ -191,10 +195,36 @@ eighteen tests 14/3/1 — guards, both. The witness is Hibernate's SQL logger, o
 after — `findAll(Sort.by("name"))`'s `select … order by ce1_0.name` at the start, once for the readiness group's kitchen check, and twice
 during the seven itself. A customer added over HTTP — Kavya — is one Hibernate INSERT, 201; the same again is one INSERT and 409, as before,
 and the log now holds two WARN lines from Hibernate for that refusal (`HHH000247: ErrorCode: 23505, SQLState: 23505`, then H2's message).
-`GET /customers/{name}` is still `CustomerRepository`'s own string: 0 Hibernate lines for Kavya and for a stranger. `Database` is unchanged
+`GET /customers/{name}` is still `CustomerRepository`'s own string: 0 Hibernate lines for Kavya and for a stranger. *(Course 7, unit 16:
+Hibernate's since — one `select … where ce1_0.name=?` for each.)* `Database` is unchanged
 and still a constructor argument of `CustomerRepository`; Boot's own DDL for the entities is unit 09's, byte for byte (`xcheck`).
 
 Evidence for every sentence in this section: `../c7-unit15/` (`receipts.sh`, nine captures).
+
+## Course 7 · unit 16 — derived query methods: findByName, a query Spring Data derives from a name; CustomerRepository's SQL strings three → two (2026-11-07)
+
+The course's sixth change to this folder, and Section 3's second: unit 17 builds on this tree (`../c7-unit17/before → ../c7-unit16/after`).
+Three files changed, besides this README:
+- `tiffinbox-core/src/main/java/com/tiffinbox/CustomerEntityRepository.java` — one method of its own, **`Optional<CustomerEntity>
+  findByName(String name)`**, and no query written for it: Spring Data reads the name — `find`, `By`, the property `name` — and derives
+  `select … from customer ce1_0 where ce1_0.name=?` at start, checking the property against `CustomerEntity` (`../c7-unit16`, `derived`,
+  `anchor`). Misspelt — `findByNmae` — TiffinBox does not start: after Hibernate's `EntityManagerFactory`, the context stops with `No
+  property 'nmae' found for type 'CustomerEntity'; Did you mean 'name'`, a `PropertyReferenceException` from Spring Data's
+  `org.springframework.data.core` package, exit 1 (`typo`).
+- `tiffinbox-core/src/main/java/com/tiffinbox/CustomerRepository.java` — `findByName` maps the repository's `findByName` to the record
+  `Customer`; its signature, and so the web layer and `TiffinBoxWebTest`'s mock, unchanged. Its SQL strings: two of five (`grep -c
+  prepareStatement`: 3 → 2) — `monthRevenue` and `pausedDays` keep theirs.
+- `tiffinbox-core/src/main/java/com/tiffinbox/CustomerEntity.java` — its Javadoc's sentence about the SQL strings states the count, two of
+  five (S3.19).
+
+**What it changes, and what it does not** (`anchor`, `seven`, `tests`): the seven `466c20ed7e0d5439cb052f32ce09de1b` before and after, and
+the SQL logger's lines during them the same — the seven has no by-name route; the eighteen tests 14/3/1 — guards, all. The witness is
+Hibernate's SQL logger during `GET /customers/Kavya` and a stranger: none on the tree before this change (the JDBC string answered), one
+`select … where ce1_0.name=?` each after it — 200 for Kavya, 404 for the stranger, as before. Kavya's POST is 201 and the same again 409,
+with Hibernate's two WARN lines, as in unit 15. `Database` is unchanged and still a constructor argument of `CustomerRepository`; Boot's own
+DDL for the entities is unit 09's, byte for byte (`xcheck`).
+
+Evidence for every sentence in this section: `../c7-unit16/` (`receipts.sh`, nine captures).
 
 ---
 

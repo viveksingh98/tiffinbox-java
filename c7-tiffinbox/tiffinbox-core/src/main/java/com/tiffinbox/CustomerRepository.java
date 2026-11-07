@@ -12,10 +12,10 @@ import java.util.Optional;
  * Unit 29/31: rows in, records out. Nothing above this class knows SQL exists.
  *
  * <p>Course 7, unit 15: findAll and add go through CustomerEntityRepository, Spring Data JPA's repository for CustomerEntity, and
- * Hibernate writes their SQL; findByName, monthRevenue and pausedDays keep their SQL strings - three of the five this class
- * held (../c7-unit15, anchor: 5 -> 3). Both ways reach the same database, and Database stays a constructor argument. A refused
- * add still throws the driver's SQLException - Spring's DataIntegrityViolationException is unwrapped to it - so the web layer's
- * 23505 -> 409 path is unchanged.
+ * Hibernate writes their SQL. Course 7, unit 16: findByName too, through the repository's derived findByName; monthRevenue and
+ * pausedDays keep their SQL strings - two of the five this class held (../c7-unit16, anchor: 3 -> 2). Both ways reach the same
+ * database, and Database stays a constructor argument. A refused add still throws the driver's SQLException - Spring's
+ * DataIntegrityViolationException is unwrapped to it - so the web layer's 23505 -> 409 path is unchanged.
  */
 @Component
 public final class CustomerRepository {
@@ -38,17 +38,12 @@ public final class CustomerRepository {
         return new Customer(e.getName(), e.getMealsPerDay(), e.getPricePerMeal(), e.getMealType().name());
     }
 
-    /** The customer whose name is exactly this one - a parameter, never part of the SQL - or none. */
+    /**
+     * The customer whose name is exactly this one - a parameter, never part of the SQL - or none: Spring Data's derived
+     * findByName, the entity mapped to the record the web layer reads.
+     */
     public Optional<Customer> findByName(String name) throws SQLException {
-        try (var c = db.open();
-             var ps = c.prepareStatement(
-                 "SELECT name, meals_per_day, price_per_meal, meal_type FROM customer WHERE name = ?")) {
-            ps.setString(1, name);
-            try (var rs = ps.executeQuery()) {
-                return rs.next() ? Optional.of(new Customer(rs.getString("name"), rs.getInt("meals_per_day"),
-                        rs.getInt("price_per_meal"), rs.getString("meal_type"))) : Optional.empty();
-            }
-        }
+        return customers.findByName(name).map(CustomerRepository::toRecord);
     }
 
     /**
