@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The processor's own class path, and nothing else (brief S3.17/R.248, RED #901): hibernate-processor at the version Boot's
+     parent manages (Hibernate's platform BOM: 7.4.13.Final - no number typed here), resolved offline from .m2-demo. receipts.sh
+     runs dependency:build-classpath on it and hands javac the jars it lists, by name, after -processorpath: a lib/* wildcard
+     there is not expanded (the probe, Step 11), and on the class path alone JDK 25 runs no processor. Never built, never
+     packaged: packaging pom. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.1.2</version>
+    <relativePath/>
+  </parent>
+  <groupId>probe.q</groupId>
+  <artifactId>processor-path</artifactId>
+  <version>1</version>
+  <packaging>pom</packaging>
+  <dependencies>
+    <dependency>
+      <groupId>org.hibernate.orm</groupId>
+      <artifactId>hibernate-processor</artifactId>
+    </dependency>
+  </dependencies>
+</project>
