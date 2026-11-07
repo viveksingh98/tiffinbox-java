@@ -27,7 +27,12 @@ grep -oE '(Found [0-9]+ JPA repository interfaces?\.|^PROBE .*)' .harness/mine.l
 What it prints, as shipped (measured, `../receipts.sh`, capture `exercise`, in bash and in zsh):
 
 ```
-EXERCISE-README-OUTPUT
+the JVM: exit 1
+Found 1 JPA repository interface.
+PROBE threw: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'kitchen' defined in probe.q.ex.ExApp: Unsatisfied dependency expressed through method 'kitchen' parameter 0: Error creating bean with name 'customers' defined in probe.q.ex.Customers defined in @EnableJpaRepositories declared on DataJpaRepositoriesRegistrar.EnableJpaRepositoriesConfiguration: No property 'nmae' found for type 'CustomerEntity'; Did you mean 'name'
+PROBE caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'customers' defined in probe.q.ex.Customers defined in @EnableJpaRepositories declared on DataJpaRepositoriesRegistrar.EnableJpaRepositoriesConfiguration: No property 'nmae' found for type 'CustomerEntity'; Did you mean 'name'
+PROBE caused by: org.springframework.data.repository.query.QueryCreationException: No property 'nmae' found for type 'CustomerEntity'; Did you mean 'name'
+PROBE caused by: org.springframework.data.core.PropertyReferenceException: No property 'nmae' found for type 'CustomerEntity'; Did you mean 'name'
 ```
 
 Spring Data found the repository (`Found 1`) and read its method's name at start, before any runner: `find`, `By`, then a property

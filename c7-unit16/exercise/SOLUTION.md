@@ -23,7 +23,9 @@ interface Customers extends JpaRepository<CustomerEntity, Long> {
 What it prints (measured, `../receipts.sh`, capture `exercise`, in the same shell, after the README's lines, in bash and in zsh):
 
 ```
-EXERCISE-SOLUTION-OUTPUT
+the JVM: exit 0
+Found 1 JPA repository interface.
+PROBE Sunil: Optional[3|Sunil|3|100|VEG]
 ```
 
 `name` is a property of `CustomerEntity`, so Spring Data derives the query from the method's name at start — `select … from customer
