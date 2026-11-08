@@ -1,0 +1,15 @@
+<configuration>
+  <!-- The paging lesson's harness: Logback (in the anchor's jar), read by Boot (logging.config), one line per event - level,
+       logger, message - and no stack trace (%nopex: the harness prints an exception's class, message and causes itself).
+       Hibernate's SQL logger (org.hibernate.SQL, DEBUG; the timing JVMs set it to WARN while they time, ⚑5); Hibernate's core
+       logger at INFO for its HHH000001 version line (R.222); the EntityManagerFactory's line; Spring Data's scan line. The rest
+       at WARN. -->
+  <appender name="O" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder><pattern>%-5level %logger : %msg%n%nopex</pattern></encoder>
+  </appender>
+  <logger name="org.hibernate.SQL" level="DEBUG"/>
+  <logger name="org.hibernate.orm.core" level="INFO"/>
+  <logger name="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean" level="INFO"/>
+  <logger name="org.springframework.data.repository.config.RepositoryConfigurationDelegate" level="INFO"/>
+  <root level="WARN"><appender-ref ref="O"/></root>
+</configuration>
