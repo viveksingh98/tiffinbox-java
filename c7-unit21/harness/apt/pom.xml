@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Querydsl's processor path, and nothing else (brief ⚑7, S3.17/R.248, RED #901): the apt jar the Querydsl lesson runs -
+     com.querydsl:querydsl-apt with the jakarta classifier - and the Jakarta Persistence API its processor loads
+     (jakarta.persistence.Entity: without it on the processor path the probe's first try died, Step 11). The version is Boot's
+     property, ${querydsl.version}: querydsl-bom manages the unclassified artifacts only, so the jakarta classifier needs it
+     written (measured: 'dependencies.dependency.version' ... is missing). receipts.sh runs dependency:build-classpath on it,
+     offline, and hands javac the jars it lists, by name, after -proc:full -processorpath: a lib/* wildcard there is not
+     expanded (Step 11), and on the class path alone JDK 25 runs no processor. Never built, never packaged: packaging pom. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.1.2</version>
+    <relativePath/>
+  </parent>
+  <groupId>probe.q</groupId>
+  <artifactId>querydsl-processor-path</artifactId>
+  <version>1</version>
+  <packaging>pom</packaging>
+  <dependencies>
+    <dependency>
+      <groupId>com.querydsl</groupId>
+      <artifactId>querydsl-apt</artifactId>
+      <version>${querydsl.version}</version>
+      <classifier>jakarta</classifier>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.persistence</groupId>
+      <artifactId>jakarta.persistence-api</artifactId>
+    </dependency>
+  </dependencies>
+</project>

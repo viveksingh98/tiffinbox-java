@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Querydsl's run-time jars for the harness (brief ⚑7): com.querydsl:querydsl-jpa with the jakarta classifier - what Spring
+     Data JPA 4.1.2's own POM names - at Boot's ${querydsl.version} (the jakarta classifier is not managed by querydsl-bom).
+     receipts.sh runs dependency:build-classpath on it, offline; the jars it lists join the anchor's libraries on the harness's
+     class path. Its provided dependencies (Hibernate, the Jakarta Persistence API) are the anchor's own and not listed here.
+     Never built, never packaged: packaging pom. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.1.2</version>
+    <relativePath/>
+  </parent>
+  <groupId>probe.q</groupId>
+  <artifactId>querydsl-run-path</artifactId>
+  <version>1</version>
+  <packaging>pom</packaging>
+  <dependencies>
+    <dependency>
+      <groupId>com.querydsl</groupId>
+      <artifactId>querydsl-jpa</artifactId>
+      <version>${querydsl.version}</version>
+      <classifier>jakarta</classifier>
+    </dependency>
+  </dependencies>
+</project>
