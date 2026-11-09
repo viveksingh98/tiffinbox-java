@@ -1,0 +1,17 @@
+<configuration>
+  <!-- The Criteria lesson's harness (unit 22 adds one logger, JpaTransactionManager at DEBUG - S3.2): Logback (in the anchor's jar), read by Boot (logging.config), one line per event - level,
+       logger, message - and no stack trace (%nopex: the harness prints an exception's class, message and causes itself).
+       Hibernate's SQL logger (org.hibernate.SQL, DEBUG); Hibernate's core logger (org.hibernate.orm.core) at INFO, for its
+       HHH000001 version line (R.222); the EntityManagerFactory's bean at INFO, for its "Initialized JPA EntityManagerFactory"
+       line (the log's order, S3.9); Spring Data's repository scan (RepositoryConfigurationDelegate) at INFO, for its "Found N
+       JPA repository interfaces" line; Boot's failure line at its own ERROR. The rest at WARN. -->
+  <appender name="O" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder><pattern>%-5level %logger : %msg%n%nopex</pattern></encoder>
+  </appender>
+  <logger name="org.hibernate.SQL" level="DEBUG"/>
+  <logger name="org.springframework.orm.jpa.JpaTransactionManager" level="DEBUG"/>
+  <logger name="org.hibernate.orm.core" level="INFO"/>
+  <logger name="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean" level="INFO"/>
+  <logger name="org.springframework.data.repository.config.RepositoryConfigurationDelegate" level="INFO"/>
+  <root level="WARN"><appender-ref ref="O"/></root>
+</configuration>
