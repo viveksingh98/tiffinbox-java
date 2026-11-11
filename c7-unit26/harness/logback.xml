@@ -1,0 +1,19 @@
+<configuration>
+  <!-- Unit 26's harness (unit 23's form): one line per event - level, logger, message - and no stack trace (%nopex: the harness
+       prints an exception's class, message and causes itself). Hibernate's SQL logger (DEBUG); Boot's JpaTransactionManager at DEBUG
+       (S4.1's first witness); the transaction interceptor at TRACE - its "Completing transaction for [...] after exception" line is
+       where a rollback rule is applied; the transaction event package at DEBUG (a listener skipped with no transaction says so there
+       only); Hibernate's core logger at INFO for HHH000001 (S4.13); the EntityManagerFactory's bean and Spring Data's scan at INFO;
+       the rest at WARN. -->
+  <appender name="O" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder><pattern>%-5level %logger : %msg%n%nopex</pattern></encoder>
+  </appender>
+  <logger name="org.hibernate.SQL" level="DEBUG"/>
+  <logger name="org.springframework.orm.jpa.JpaTransactionManager" level="DEBUG"/>
+  <logger name="org.springframework.transaction.interceptor" level="TRACE"/>
+  <logger name="org.springframework.transaction.event" level="DEBUG"/>
+  <logger name="org.hibernate.orm.core" level="INFO"/>
+  <logger name="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean" level="INFO"/>
+  <logger name="org.springframework.data.repository.config.RepositoryConfigurationDelegate" level="INFO"/>
+  <root level="WARN"><appender-ref ref="O"/></root>
+</configuration>

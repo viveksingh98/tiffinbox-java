@@ -32,7 +32,10 @@ section below.)* *(Course 7, unit 16: the interface declares one method, `findBy
 unit 17, **Section 3's last change to this folder — this tree is Section 3's frozen anchor**: units 18-22 measure it through their links
 to `../c7-unit17/after`. The interface declares two JPQL queries, `monthRevenue` and `pausedDays`; `CustomerRepository` calls them and
 keeps none of its five SQL strings; `Database` is no longer its constructor argument, and `@DependsOn("database")` keeps the start's
-order; its section below.)*
+order; its section below.)* *(Course 7, unit 26, **Section 4's first change to this folder**: TiffinBox's first `@Transactional`, on
+`CustomerRepository.add`, with `rollbackFor = SQLException.class` — and the class is no longer `final`; `add` publishes the new
+`CustomerAdded` inside its transaction, `CustomerFeed` hears it after the commit, and `TiffinBoxServer`, `DashboardPage` and
+`CustomerImport` no longer tell the feed themselves; its section below.)*
 
 ## Course 7 · unit 03 — the first entity: Boot 4.1.2, Spring Data JPA's starter, CustomerEntity on TiffinBox's own database (2026-11-01)
 
@@ -259,6 +262,34 @@ logger during the seven on this tree and on no earlier one, and the compiled `Cu
 byte for byte (`xcheck`).
 
 Evidence for every sentence in this section: `../c7-unit17/` (`receipts.sh`, nine captures).
+
+## Course 7 · unit 26 — rollback rules: TiffinBox's first @Transactional, and a feed that hears only committed customers (2026-11-11)
+
+The course's eighth change to this folder, Section 4's first: `../c7-unit26/after`, whose `before` is the link to `../c7-unit17/after`.
+Six files changed, one of them new, besides this README:
+- `tiffinbox-core/src/main/java/com/tiffinbox/CustomerRepository.java` — **`add` is `@Transactional(rollbackFor = SQLException.class)`**:
+  one transaction, `add`'s own, that Spring Data's `save` joins. The class is no longer `final` — Spring's proxy for a transactional bean
+  is a subclass of it (`../c7-unit23`, `final`: the first `@Transactional` on the `final` class stops the start). Without the rule, a
+  name that is taken turns the 409 into a 500: the refused INSERT marks the transaction rollback-only, `add` throws the driver's checked
+  `SQLException`, a checked exception commits by default, and the commit refuses — `Application exception overridden by commit exception`,
+  `UnexpectedRollbackException: Transaction silently rolled back because it has been marked as rollback-only` (`anchor`, B and B′); the
+  eighteen tests pass on that tree. With the rule the 409 is back (A and A′). A stored row publishes `CustomerAdded` through the
+  `ApplicationEventPublisher`, the class's second constructor argument.
+- `tiffinbox-core/src/main/java/com/tiffinbox/CustomerAdded.java` (new) — the event: a record holding the stored customer.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/CustomerFeed.java` — `@TransactionalEventListener void stored(CustomerAdded e)`: heard
+  after the commit (the annotation's default phase), so a customer reaches the feed once the row is stored, and an add that rolls back
+  reaches it never.
+- `TiffinBoxServer.java`, `DashboardPage.java`, `CustomerImport.java` — each lost its own call to the feed, its `CustomerFeed` field and
+  that constructor argument, and its Javadoc says who tells the feed now.
+
+**What it changes, and what it does not** (`anchor`, `feed`, `seven`, `tests`, `xcheck`): the seven `466c20ed7e0d5439cb052f32ce09de1b`
+before and after, with the same SQL statements during it; the eighteen tests 14/3/1; Boot's own DDL for the entities unit 09's, byte for
+byte — guards, all. The witnesses: the duplicate POST (B 500, A 409), the import (B 500, A 200 with two rows added), `add`'s own
+transaction line (`PROPAGATION_REQUIRED,ISOLATION_DEFAULT,-java.sql.SQLException`), and the feed: a listener hears Course 6's three
+adds — a JSON POST, a form POST, an upload's row — as three `customer-added` events; on a copy whose `add` publishes with no
+transaction, the after-commit listener is skipped and `FeedTest` fails with `TimeoutException` (`feed`, B′′).
+
+Evidence for every sentence in this section: `../c7-unit26/` (`receipts.sh`, ten captures).
 
 ---
 
@@ -1339,7 +1370,8 @@ are new, besides this README:
   the same in three fresh JVMs (`length` C). Hibernate Validator reports a field's violations in no fixed order, and a map that kept
   one message a field could keep either (the course brief's probe saw both, on a sketch of this change; not re-measured here). Every customer
   `POST /customers` stores is sent to the feed.
-- `DashboardPage.java` — the form's add is sent to the feed too.
+- `DashboardPage.java` — the form's add is sent to the feed too. *(Course 7, unit 26: neither class tells the feed since —
+  `CustomerRepository.add` publishes `CustomerAdded`, and `CustomerFeed` hears it after the commit.)*
 - `CustomerImport.java` (new) — **a bulk upload**, many customers in one request: `POST /customers/import`, a multipart form whose part
   `file` is a CSV of `name,mealsPerDay,pricePerMeal,mealType` lines (a first line starting `name,` is a header). Each row goes through
   what one `POST /customers` goes through — the same rules, checked by Boot's validator in the request's language, the same
@@ -1385,7 +1417,8 @@ fixed when it is built), the upload's answer, its event on a connected listener,
 connected — `Graceful shutdown complete`, the listener's curl exits 0. No hint was added for the feed or the upload.
 
 **What this tree hands on** (for Course 7): the customers live in memory (`jdbc:h2:mem:`), gone at every restart; `@Size(max = 60)` sits
-beside the column's `VARCHAR(60)`; the feed's events come from the web layer's adds; TiffinBox has tests, in `src/test`.
+beside the column's `VARCHAR(60)`; the feed's events come from the web layer's adds *(Course 7, unit 26: from the repository's
+`CustomerAdded`, after `add`'s transaction commits, since)*; TiffinBox has tests, in `src/test`.
 
 Evidence for every sentence in this section: `../c6-unit31/` (`receipts.sh`, nine captures).
 

@@ -1,9 +1,11 @@
 package com.tiffinbox.web;
 
 import com.tiffinbox.Customer;
+import com.tiffinbox.CustomerAdded;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.http.MediaType;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -20,9 +22,13 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * thread goes back to Tomcat, the answer stays open, and the emitter never times out on its own (0). Its first line is a
  * comment, {@code :listening} - a line a client of event streams skips: until the answer's first bytes, Tomcat sends not even
  * its headers, so without it a listener could not tell it was connected before the first customer came. Every customer TiffinBox
- * stores - through the JSON API (TiffinBoxServer), the form (DashboardPage) or an upload (CustomerImport) - is sent to every
- * emitter still open as one event, named customer-added, its data the record as JSON. A client that went away is dropped
- * when a send to it fails.
+ * stores is sent to every emitter still open as one event, named customer-added, its data the record as JSON. A client that
+ * went away is dropped when a send to it fails.
+ *
+ * <p>Course 7, unit 26: who tells the feed, and when. CustomerRepository's add publishes CustomerAdded inside its transaction,
+ * and this class hears it with {@code @TransactionalEventListener} - after the commit, its default phase: a customer reaches the
+ * feed once the row is stored, and an add that rolls back reaches it never. The JSON API, the form and an upload all add through
+ * that repository, so none of them tells the feed itself (../c7-unit26, feed: three adds, three events).
  *
  * <p>An answer that never ends would hold the shutdown: Boot's graceful shutdown waits for the requests still open, up to its
  * own limit, before Tomcat stops. So when the application context starts to close - ContextClosedEvent, which Spring publishes
@@ -46,6 +52,12 @@ final class CustomerFeed {
             listening.remove(emitter);
         }
         return emitter;
+    }
+
+    /** CustomerRepository's add committed: its customer to every listener. */
+    @TransactionalEventListener
+    void stored(CustomerAdded e) {
+        added(e.customer());
     }
 
     /** A customer was stored: one customer-added event to every listener. */

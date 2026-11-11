@@ -101,8 +101,9 @@ import static java.lang.System.Logger.Level.INFO;
  * {@code @Validated}: that would hand a constrained parameter to Boot's method-validation post-processor, which subclasses the
  * bean - and this class is final.
  *
- * <p>Course 6, the capstone: every customer this route stores is told to CustomerFeed, which sends it to every client listening
- * on GET /customers/feed - as the form's POST (DashboardPage) and an upload's rows (CustomerImport) do.
+ * <p>Course 6, the capstone: every customer this route stores reaches CustomerFeed, which sends it to every client listening on
+ * GET /customers/feed. Course 7, unit 26: CustomerRepository's add tells it, after its transaction commits - this class no
+ * longer does, and no longer takes CustomerFeed.
  */
 @RestController
 public final class TiffinBoxServer {
@@ -120,10 +121,9 @@ public final class TiffinBoxServer {
     private final List<MealType> mealTypes;
     private final byte[] shutdownToken;
     private final ConfigurableApplicationContext context;
-    private final CustomerFeed feed;
 
     TiffinBoxServer(CustomerRepository repo, Dashboard dashboard, OrderQueue kitchen, TiffinBoxProperties settings,
-                    ConfigurableApplicationContext context, CustomerFeed feed) {
+                    ConfigurableApplicationContext context) {
         this.repo = repo;
         this.dashboard = dashboard;
         this.kitchen = kitchen;
@@ -131,7 +131,6 @@ public final class TiffinBoxServer {
         this.mealTypes = settings.mealTypes();
         this.shutdownToken = settings.shutdownToken().getBytes(StandardCharsets.UTF_8);
         this.context = context;
-        this.feed = feed;
     }
 
     // ---- the routes: Spring MVC's request mappings -------------------------
@@ -165,7 +164,8 @@ public final class TiffinBoxServer {
      * detail that names it. H2 refuses that row with the SQLSTATE 23505 - the five-character code a database reports with a refusal - and
      * refuses a row with a column left empty, 23502, with the same exception class: so this method reads the code, never
      * the class, and every other refusal stays Spring MVC's 500. The return type names no body type: the 400's and the 409's
-     * body is a ProblemDetail, the 201's the record. A stored customer is sent to every client listening to CustomerFeed first.
+     * body is a ProblemDetail, the 201's the record. A stored customer reaches CustomerFeed's listeners through the repository's
+     * event, after add's transaction commits.
      */
     @PostMapping("/customers")
     ResponseEntity<?> add(@Valid @RequestBody Customer customer, BindingResult errors) throws SQLException {
@@ -180,7 +180,6 @@ public final class TiffinBoxServer {
             }
             throw e;
         }
-        feed.added(customer);
         URI location = ServletUriComponentsBuilder.fromCurrentRequestUri().path("/{name}")
                 .buildAndExpand(customer.name()).toUri();
         return ResponseEntity.created(location).body(customer);

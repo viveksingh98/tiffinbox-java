@@ -35,7 +35,8 @@ import java.sql.SQLException;
  *     fields onto a new Customer ({@code @ModelAttribute}) and checks it ({@code @Valid}); the rules it broke are in the
  *     BindingResult, and the form is shown again with each message beside its field. A name that is taken - H2's SQLSTATE
  *     23505, read as TiffinBoxServer reads it - is one more message, on the name. Stored: CustomerFeed's listeners hear the
- *     new customer (since the capstone, as they hear the JSON API's), and a redirect to the dashboard (302),
+ *     new customer from the repository's event, after add's transaction commits (Course 7, unit 26), and a redirect to the
+ *     dashboard (302),
  *     redirect-after-POST: the browser asks for the page with a GET, so a reload never sends the form again. The redirect
  *     carries a note: a flash attribute ("added", the customer's name), which Spring MVC keeps in the client's session until
  *     the redirect's GET /dashboard has read it, then drops - the page shows "... added" once. Keeping it is what makes the
@@ -67,12 +68,10 @@ final class DashboardPage {
 
     private final Dashboard dashboard;
     private final CustomerRepository repo;
-    private final CustomerFeed feed;
 
-    DashboardPage(Dashboard dashboard, CustomerRepository repo, CustomerFeed feed) {
+    DashboardPage(Dashboard dashboard, CustomerRepository repo) {
         this.dashboard = dashboard;
         this.repo = repo;
-        this.feed = feed;
     }
 
     @GetMapping(value = "/dashboard", produces = MediaType.TEXT_HTML_VALUE)
@@ -104,7 +103,6 @@ final class DashboardPage {
             }
             throw e;
         }
-        feed.added(customer);
         flash.addFlashAttribute("added", customer.name());
         return "redirect:/dashboard";
     }

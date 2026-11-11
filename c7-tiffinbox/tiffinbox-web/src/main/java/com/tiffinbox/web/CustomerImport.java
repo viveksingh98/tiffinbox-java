@@ -28,8 +28,8 @@ import java.util.TreeSet;
  * The file's lines are {@code name,mealsPerDay,pricePerMeal,mealType}, a first line that starts {@code name,} is the header and
  * is skipped. Each row becomes a Customer and goes through what one POST /customers goes through: the same rules, checked by
  * the same validator - Boot's, the one Spring MVC checks a {@code @Valid} body with, its messages in the request's language -
- * then the same repository, where a name that is taken is H2's SQLSTATE 23505. A row that is stored is told to CustomerFeed,
- * as every new customer is. A row that is refused is named by its line, with why: the wrong number of values, a value that is
+ * then the same repository, where a name that is taken is H2's SQLSTATE 23505. A row that is stored reaches CustomerFeed as
+ * every new customer does, through the repository's event after its add commits (Course 7, unit 26). A row that is refused is named by its line, with why: the wrong number of values, a value that is
  * not a number, the rules it broke (each field with every message it earned, sorted, as the 400 lists them), or a name that
  * is taken. The answer is 200 and says what happened to the file: {@code {"file": its name, "added": how many rows were
  * stored, "refused": {"line N": why}}}. A row that fails does not stop the rows after it; any other database refusal is
@@ -43,12 +43,10 @@ final class CustomerImport {
 
     private final CustomerRepository repo;
     private final Validator validator;
-    private final CustomerFeed feed;
 
-    CustomerImport(CustomerRepository repo, Validator validator, CustomerFeed feed) {
+    CustomerImport(CustomerRepository repo, Validator validator) {
         this.repo = repo;
         this.validator = validator;
-        this.feed = feed;
     }
 
     @PostMapping(path = "/customers/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -89,7 +87,6 @@ final class CustomerImport {
                 }
                 throw e;
             }
-            feed.added(customer);
             added++;
         }
         var answer = new LinkedHashMap<String, Object>();
