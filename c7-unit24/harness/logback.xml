@@ -1,0 +1,17 @@
+<configuration>
+  <!-- Unit 24's harness (unit 23's form): one line per event - level, logger, message - and no stack trace (%nopex: the harness
+       prints an exception's class, message and causes itself). Hibernate's SQL logger (DEBUG); the transaction manager's DEBUG lines,
+       Boot's JpaTransactionManager and, for the labelled htm run only, Spring 7's HibernateTransactionManager (S4.1's first witness);
+       Hibernate's core logger at INFO for HHH000001 (S4.13); the EntityManagerFactory's bean and Spring Data's scan at INFO; the
+       rest at WARN. -->
+  <appender name="O" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder><pattern>%-5level %logger : %msg%n%nopex</pattern></encoder>
+  </appender>
+  <logger name="org.hibernate.SQL" level="DEBUG"/>
+  <logger name="org.springframework.orm.jpa.JpaTransactionManager" level="DEBUG"/>
+  <logger name="org.springframework.orm.jpa.hibernate.HibernateTransactionManager" level="DEBUG"/>
+  <logger name="org.hibernate.orm.core" level="INFO"/>
+  <logger name="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean" level="INFO"/>
+  <logger name="org.springframework.data.repository.config.RepositoryConfigurationDelegate" level="INFO"/>
+  <root level="WARN"><appender-ref ref="O"/></root>
+</configuration>
