@@ -1,0 +1,18 @@
+<configuration>
+  <!-- The transactions harness (Section 4's first form, brief flag 3): Logback (in the anchor's jar), read by Boot (logging.config), one line per
+       event - level, logger, message - and no stack trace (%nopex: the harness prints an exception's class, message and causes itself).
+       Hibernate's SQL logger (org.hibernate.SQL, DEBUG); JpaTransactionManager at DEBUG - the manager's lines (S4.1); the transaction
+       interceptor at TRACE - its "Getting transaction for [...]" and "Completing transaction for [...] after exception" lines; Hibernate's
+       core logger at INFO for its HHH000001 version line (S4.13); the EntityManagerFactory's bean at INFO; Spring Data's repository scan at
+       INFO. The rest at WARN - so a WARN line anywhere is counted (the private beat's 0). -->
+  <appender name="O" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder><pattern>%-5level %logger : %msg%n%nopex</pattern></encoder>
+  </appender>
+  <logger name="org.hibernate.SQL" level="DEBUG"/>
+  <logger name="org.springframework.orm.jpa.JpaTransactionManager" level="DEBUG"/>
+  <logger name="org.springframework.transaction.interceptor" level="TRACE"/>
+  <logger name="org.hibernate.orm.core" level="INFO"/>
+  <logger name="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean" level="INFO"/>
+  <logger name="org.springframework.data.repository.config.RepositoryConfigurationDelegate" level="INFO"/>
+  <root level="WARN"><appender-ref ref="O"/></root>
+</configuration>
