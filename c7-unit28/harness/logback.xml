@@ -1,0 +1,18 @@
+<configuration>
+  <!-- Unit 28's harness (unit 27's form): one line per event - level, thread, logger, message - and no stack trace (the harness
+       prints an exception's class, message, causes and SQLState itself). The appender is the harness's own, probe.t.Buf: it
+       writes each line as logback hands it over; while two threads run (wait, deadlock, order) it keeps the lines in the one order
+       it received them and the scenario prints them thread by thread, each thread's in its own order, and derives the order
+       between the threads from that one sequence (S4.18). A message's line breaks are printed as " ⏎ ". Hibernate's SQL logger
+       (DEBUG); Boot's JpaTransactionManager (DEBUG: S4.1's first witness, on each thread); Hibernate's JDBC error logger (WARN:
+       its SQLState line); Hibernate's core logger at INFO for HHH000001 (S4.13); the EntityManagerFactory's bean and Spring
+       Data's scan at INFO; the rest at WARN. -->
+  <appender name="O" class="probe.t.Buf"/>
+  <logger name="org.hibernate.SQL" level="DEBUG"/>
+  <logger name="org.springframework.orm.jpa.JpaTransactionManager" level="DEBUG"/>
+  <logger name="org.hibernate.orm.core" level="INFO"/>
+  <logger name="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean" level="INFO"/>
+  <logger name="org.springframework.data.repository.config.RepositoryConfigurationDelegate" level="INFO"/>
+  <logger name="io.micrometer.core.instrument.AbstractTimer" level="ERROR"/>
+  <root level="WARN"><appender-ref ref="O"/></root>
+</configuration>
