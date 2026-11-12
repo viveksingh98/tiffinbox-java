@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -34,6 +35,12 @@ import java.util.List;
  *
  * <p>A customer's pauses since Course 7 unit 09: {@link PauseEntity} maps Database's pause table, whose customer_id column
  * holds the foreign key. That side owns the relationship; {@link #getPauses()} is the inverse side, read through it.
+ *
+ * <p>A version since Course 7 unit 27: {@link #getVersion()} maps the customer table's version column (Database: BIGINT NOT NULL
+ * DEFAULT 0, so the seeded rows start at 0). Hibernate checks it in the UPDATE itself - where id=? and version=? - and raises it by
+ * one in the same statement; an edit made from a copy another transaction has changed since matches no row, and the commit throws
+ * instead of writing over the other edit. The version is not in the record {@link Customer} nor in the JSON: the web layer never
+ * sees it.
  */
 @Entity
 @Table(name = "customer")
@@ -67,6 +74,13 @@ public class CustomerEntity {
      */
     @OneToMany(mappedBy = "customer")
     private List<PauseEntity> pauses = new ArrayList<>();
+
+    /**
+     * The row's version: Hibernate writes 0 on an INSERT, adds one on every UPDATE and puts the value it read into that UPDATE's
+     * where clause, so a stale edit changes no row and fails (../c7-unit27). Never set by hand.
+     */
+    @Version
+    private Long version;
 
     /** For Hibernate, which builds an entity before it fills its fields. */
     protected CustomerEntity() {
@@ -107,5 +121,10 @@ public class CustomerEntity {
     /** The customer's pauses, loaded from the pause table the first time the list is read. */
     public List<PauseEntity> getPauses() {
         return pauses;
+    }
+
+    /** The version Hibernate read with this row: 0 for a new or seeded customer, one more after each committed edit. */
+    public Long getVersion() {
+        return version;
     }
 }

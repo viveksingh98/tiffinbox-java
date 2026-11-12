@@ -35,7 +35,10 @@ keeps none of its five SQL strings; `Database` is no longer its constructor argu
 order; its section below.)* *(Course 7, unit 26, **Section 4's first change to this folder**: TiffinBox's first `@Transactional`, on
 `CustomerRepository.add`, with `rollbackFor = SQLException.class` — and the class is no longer `final`; `add` publishes the new
 `CustomerAdded` inside its transaction, `CustomerFeed` hears it after the commit, and `TiffinBoxServer`, `DashboardPage` and
-`CustomerImport` no longer tell the feed themselves; its section below.)*
+`CustomerImport` no longer tell the feed themselves; its section below.)* *(Course 7, unit 27, **Section 4's second and last change to this folder —
+this tree is Section 4's frozen anchor**: unit 28 measures it through its link to `../c7-unit27/after`. `CustomerEntity` carries
+`@Version private Long version` and `getVersion()`; `Database`'s customer table gains `version BIGINT NOT NULL DEFAULT 0`, the seed
+unchanged; Hibernate's own DDL for the entities moves for the first time since unit 09; its section below.)*
 
 ## Course 7 · unit 03 — the first entity: Boot 4.1.2, Spring Data JPA's starter, CustomerEntity on TiffinBox's own database (2026-11-01)
 
@@ -208,7 +211,7 @@ and the log now holds two WARN lines from Hibernate for that refusal (`HHH000247
 `GET /customers/{name}` is still `CustomerRepository`'s own string: 0 Hibernate lines for Kavya and for a stranger. *(Course 7, unit 16:
 Hibernate's since — one `select … where ce1_0.name=?` for each.)* `Database` is unchanged
 and still a constructor argument of `CustomerRepository` *(Course 7, unit 17: no longer — `@DependsOn("database")` keeps the order it
-gave)*; Boot's own DDL for the entities is unit 09's, byte for byte (`xcheck`).
+gave)*; Boot's own DDL for the entities was still unit 09's, byte for byte (`xcheck`) *(Course 7, unit 27: it moved there — the `version` column; its section below)*.
 
 Evidence for every sentence in this section: `../c7-unit15/` (`receipts.sh`, nine captures).
 
@@ -233,7 +236,7 @@ the SQL logger's lines during them the same — the seven has no by-name route; 
 Hibernate's SQL logger during `GET /customers/Kavya` and a stranger: none on the tree before this change (the JDBC string answered), one
 `select … where ce1_0.name=?` each after it — 200 for Kavya, 404 for the stranger, as before. Kavya's POST is 201 and the same again 409,
 with Hibernate's two WARN lines, as in unit 15. `Database` is unchanged and still a constructor argument of `CustomerRepository` *(Course 7, unit 17: no
-longer)*; Boot's own DDL for the entities is unit 09's, byte for byte (`xcheck`).
+longer)*; Boot's own DDL for the entities was still unit 09's, byte for byte (`xcheck`) *(Course 7, unit 27: it moved there — the `version` column; its section below)*.
 
 Evidence for every sentence in this section: `../c7-unit16/` (`receipts.sh`, nine captures).
 
@@ -258,8 +261,8 @@ which units 18-22 link to as `anchor`. Three files changed, besides this README:
 eighteen tests 14/3/1, Kavya's POST 201 and the same again 409 — guards, all. The witnesses: the two sums' SELECTs appear in Hibernate's SQL
 logger during the seven on this tree and on no earlier one, and the compiled `CustomerRepository` takes the repository alone, references no
 `prepareStatement` and carries `@DependsOn` (`javap`). Every route of TiffinBox now reaches the database through Boot's pool and Hibernate;
-`Database`'s seed is the one `DriverManager` path left (its retirement is a later unit's). Boot's own DDL for the entities is unit 09's,
-byte for byte (`xcheck`).
+`Database`'s seed is the one `DriverManager` path left (its retirement is a later unit's). Boot's own DDL for the entities was still unit 09's,
+byte for byte (`xcheck`) *(Course 7, unit 27: it moved there — the `version` column; its section below)*.
 
 Evidence for every sentence in this section: `../c7-unit17/` (`receipts.sh`, nine captures).
 
@@ -283,13 +286,38 @@ Six files changed, one of them new, besides this README:
   that constructor argument, and its Javadoc says who tells the feed now.
 
 **What it changes, and what it does not** (`anchor`, `feed`, `seven`, `tests`, `xcheck`): the seven `466c20ed7e0d5439cb052f32ce09de1b`
-before and after, with the same SQL statements during it; the eighteen tests 14/3/1; Boot's own DDL for the entities unit 09's, byte for
-byte — guards, all. The witnesses: the duplicate POST (B 500, A 409), the import (B 500, A 200 with two rows added), `add`'s own
+before and after, with the same SQL statements during it; the eighteen tests 14/3/1; Boot's own DDL for the entities still unit 09's, byte for
+byte *(Course 7, unit 27: it moved there — the `version` column; its section below)* — guards, all. The witnesses: the duplicate POST (B 500, A 409), the import (B 500, A 200 with two rows added), `add`'s own
 transaction line (`PROPAGATION_REQUIRED,ISOLATION_DEFAULT,-java.sql.SQLException`), and the feed: a listener hears Course 6's three
 adds — a JSON POST, a form POST, an upload's row — as three `customer-added` events; on a copy whose `add` publishes with no
 transaction, the after-commit listener is skipped and `FeedTest` fails with `TimeoutException` (`feed`, B′′).
 
 Evidence for every sentence in this section: `../c7-unit26/` (`receipts.sh`, ten captures).
+
+## Course 7 · unit 27 — optimistic locking: a version column, and a lost edit that fails loudly (2026-11-12)
+
+The course's ninth change to this folder, Section 4's second and last: `../c7-unit27/after`, whose `before` is the link to
+`../c7-unit26/after`. **This tree is Section 4's frozen anchor** — unit 28 measures it through its link and changes nothing in it. Two
+files changed, besides this README:
+- `tiffinbox-core/src/main/java/com/tiffinbox/CustomerEntity.java` — **`@Version private Long version`** and `getVersion()`: the row's
+  version. Hibernate writes it with every INSERT, and on an edit it sends `version=?` with the new value in the SET and the value it read
+  in the where clause, `where id=? and version=?` — the check is in the UPDATE itself. An edit made from a copy another transaction has
+  changed since matches no row, and the commit throws `org.springframework.orm.ObjectOptimisticLockingFailureException` instead of
+  writing over the other edit (`../c7-unit27`, `race`). The version is not in the record `Customer` and not in the JSON: the web layer
+  never sees it.
+- `tiffinbox-core/src/main/java/com/tiffinbox/Database.java` — the customer table gains **`version BIGINT NOT NULL DEFAULT 0`**, with
+  its comment; the seed's INSERTs are unchanged (they name no version: the default gives each seeded row 0); the pause table is
+  untouched. The entity alone, without the column, stops the start (`Column "CE1_0.VERSION" not found`, exit 1); a nullable column
+  starts, and the first edit of a seeded customer fails at its commit (`anchor`, B and C).
+
+**What it changes, and what it does not** (`anchor`, `seven`, `tests`, `xcheck`): TiffinBox starts and answers as before — POST Kavya
+201, the same again 409; the seven `466c20ed7e0d5439cb052f32ce09de1b` before and after (the version is not in any answer), though every
+select of a customer now reads the column too; the eighteen tests 14/3/1 — guards. The witnesses: the start of the tree with the entity
+alone, the first edit of a seeded row (version 0 → 1, and on the nullable copy the commit's failure), and Hibernate's own DDL for the
+entities, which **moved here for the first time since unit 09** — one line more, `version bigint not null` (`xcheck`, both hashes in
+`../c7-unit27`).
+
+Evidence for every sentence in this section: `../c7-unit27/` (`receipts.sh`, its captures).
 
 ---
 

@@ -1,0 +1,24 @@
+# TiffinBox's database for development: one official Postgres image. Boot's Docker Compose support starts it while the
+# profile "dev" is active (application-dev.yaml), from the folder TiffinBox starts in - this one - and stops it when
+# TiffinBox stops. Development only: the executable jar holds none of that support.
+# A fixed project name: the network, the container and the volume are named after it, never after this folder.
+name: tiffinbox-dev
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: tiffinbox
+      POSTGRES_USER: tiffinbox
+      # No password anywhere: Postgres trusts every connection that reaches it, and the port below is published on
+      # this computer's 127.0.0.1 alone. Nothing in this file is a secret, so the file is committed.
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      # 127.0.0.1, port 18881, on this computer -> 5432, Postgres's own port, in the container.
+      - "127.0.0.1:18881:5432"
+    volumes:
+      # The data, in a volume with a name, tiffinbox-dev_data: kept when the container is stopped or removed, and
+      # deleted by docker compose -p tiffinbox-dev down -v. Without this line the image still declares a volume
+      # there, and Docker makes one with no name: docker compose down leaves it behind, a 64-character ID its only name.
+      - data:/var/lib/postgresql
+volumes:
+  data:

@@ -42,6 +42,8 @@ dead proxies for http and https, the pre-flight `dependency:get` of an absent ar
 only; the clone's `.m2-demo` seeded from that copy; `./receipts.sh` `env -i` (the dead proxies in its environment).
 <!-- runs: end -->
 
+**Re-run after unit 27 moved the anchor (2026-11-12).** `../c7-unit27`'s commit changed `../c7-tiffinbox` — Section 4's second and last anchor change (C2: `CustomerEntity.java` carries `@Version private Long version` and `getVersion()`; `Database.java`'s customer table gains `version BIGINT NOT NULL DEFAULT 0`; its README) — so this script's anchor check prints the note at its start and end, never a stop (R.211): `after/` is still this unit's tree, which 27's `before` links to. `receipts.sh` unchanged (md5 `10211df9e2ecbb42bb78ea81d169f7a0`). One run on the moved anchor, `./receipts.sh` (/bin/bash 3.2.57), `env -i`, a session of its own, from 06:56 CET: exit 0 in 380 s, the note printed at the start and the end, all 10 captures 3/3 = published, `receipts.md5` unchanged, `check_unit7.py 26 --runlog` PASS (0 grep error lines). 17's and 22's receipts were not re-run (RED #1200: their notes fire the same way; 26 re-ran them once).
+
 Published hashes: rules `8cbcaf8b1e238337d61804ee74e4863f` · allexceptions `55d6b388608908536bba26529a5e6768` · twowrites `d1a267c983bbed8deefcd37b860d65e1` · events `696753e6a5cf1ee96f1cb83ee96530bd` · anchor `b9739b0e3ec634559554152afef77533` · feed `81e35a0b483201bb7ffc937ff8f02497` · seven `e3e43133d83ef99e7f8f3bb4132159c7` · tests `f9fbfce876ab0f49bd54b902e208f243` · xcheck `987b966704fbcee8f5886634dc43835e` · exercise `22f93957c0a704819e03df25edd8df8a`.
 
 **The values the video may say** (composed by `receipts.sh` from the checks' reads and compared with this line, R.225 — a SQL string

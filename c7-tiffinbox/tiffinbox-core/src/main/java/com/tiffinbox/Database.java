@@ -27,6 +27,9 @@ public final class Database {
         // "BIGINT AUTO_INCREMENT PRIMARY KEY", which H2 reads as the same column and PostgreSQL refuses - syntax error at or
         // near "AUTO_INCREMENT" - so TiffinBox could not start on Postgres. The seed below still drops and re-creates both
         // tables at every start.
+        // Course 7, unit 27: the customer table gains version BIGINT NOT NULL DEFAULT 0, the column CustomerEntity's @Version
+        // maps. NOT NULL with a default: the seed's INSERTs below name no version, so each seeded row starts at 0; a nullable
+        // column would leave them null, and the first edit of a seeded customer would fail at its commit.
         try (var c = open(); var st = c.createStatement()) {
             st.execute("DROP TABLE IF EXISTS pause");
             st.execute("DROP TABLE IF EXISTS customer");
@@ -36,7 +39,8 @@ public final class Database {
                     name          VARCHAR(60) NOT NULL UNIQUE,
                     meals_per_day INT         NOT NULL,
                     price_per_meal INT        NOT NULL,
-                    meal_type     VARCHAR(10) NOT NULL
+                    meal_type     VARCHAR(10) NOT NULL,
+                    version       BIGINT      NOT NULL DEFAULT 0
                 )""");
             st.execute("""
                 CREATE TABLE pause (

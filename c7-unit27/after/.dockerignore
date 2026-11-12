@@ -1,0 +1,4 @@
+# Never sent to the builder, whatever a Dockerfile copies: the two files this project never commits (.gitignore),
+# which the README puts beside it - the config tree that holds the shutdown token, and a developer's own settings.
+secrets/
+tiffinbox-local.yaml
