@@ -1,0 +1,3 @@
+Hibernate's statistics count every statement it prepares; the count of queries leaves out the collection loads.
+One query for the list and one more for each row is the N plus one, whatever sends the extra queries.
+SessionFactory.getStatistics().getPrepareStatementCount()
