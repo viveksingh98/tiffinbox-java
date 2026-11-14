@@ -38,7 +38,11 @@ order; its section below.)* *(Course 7, unit 26, **Section 4's first change to t
 `CustomerImport` no longer tell the feed themselves; its section below.)* *(Course 7, unit 27, **Section 4's second and last change to this folder —
 this tree is Section 4's frozen anchor**: unit 28 measures it through its link to `../c7-unit27/after`. `CustomerEntity` carries
 `@Version private Long version` and `getVersion()`; `Database`'s customer table gains `version BIGINT NOT NULL DEFAULT 0`, the seed
-unchanged; Hibernate's own DDL for the entities moves for the first time since unit 09; its section below.)*
+unchanged; Hibernate's own DDL for the entities moves for the first time since unit 09; its section below.)* *(Course 7, unit 29,
+**Section 5's first change to this folder**: `CustomerRepository` gains `pausedDaysByCustomer()`, each customer's paused days by name,
+with its own `@Transactional(readOnly = true)`; `Dashboard.load()` runs it as a fourth read; the HTML dashboard gains a "Paused days"
+column. No mapping moves: Hibernate's own DDL is unit 27's, byte for byte. Unit 30 measures this tree through its link to
+`../c7-unit29/after`; unit 31 changes it next; its section below.)*
 
 ## Course 7 · unit 03 — the first entity: Boot 4.1.2, Spring Data JPA's starter, CustomerEntity on TiffinBox's own database (2026-11-01)
 
@@ -297,7 +301,8 @@ Evidence for every sentence in this section: `../c7-unit26/` (`receipts.sh`, ten
 ## Course 7 · unit 27 — optimistic locking: a version column, and a lost edit that fails loudly (2026-11-12)
 
 The course's ninth change to this folder, Section 4's second and last: `../c7-unit27/after`, whose `before` is the link to
-`../c7-unit26/after`. **This tree is Section 4's frozen anchor** — unit 28 measures it through its link and changes nothing in it. Two
+`../c7-unit26/after`. **This tree is Section 4's frozen anchor** — unit 28 measures it through its link and changes nothing in it *(Course 7,
+unit 29: Section 4's anchor stays `../c7-unit27/after`; this folder moved on — its section below)*. Two
 files changed, besides this README:
 - `tiffinbox-core/src/main/java/com/tiffinbox/CustomerEntity.java` — **`@Version private Long version`** and `getVersion()`: the row's
   version. Hibernate writes it with every INSERT, and on an edit it sends `version=?` with the new value in the SET and the value it read
@@ -318,6 +323,32 @@ entities, which **moved here for the first time since unit 09** — one line mor
 `../c7-unit27`).
 
 Evidence for every sentence in this section: `../c7-unit27/` (`receipts.sh`, its captures).
+
+## Course 7 · unit 29 — lazy loading: a "Paused days" column, and the read's own transaction (2026-11-14)
+
+The course's tenth change to this folder, Section 5's first: `../c7-unit29/after`, whose `before` is the link to
+`../c7-unit27/after`. Unit 30 measures this tree through its link to `../c7-unit29/after`; unit 31 changes it next. Three files changed,
+besides this README:
+- `tiffinbox-core/src/main/java/com/tiffinbox/CustomerRepository.java` — **`pausedDaysByCustomer()`**, public, a `Map<String, Integer>`
+  by name: every customer through Spring Data's `findAll(Sort.by("name"))`, her pauses — the lazy collection `pauses` — summed in Java,
+  **with `@Transactional(readOnly = true)`**, TiffinBox's second `@Transactional`. The class Javadoc's first line no longer reads as a
+  Course 7 unit number, and its "first `@Transactional`" names the second.
+- `tiffinbox-core/src/main/java/com/tiffinbox/Dashboard.java` — `load()` runs the new method as a **fourth read** on the same
+  virtual-thread executor; `View` gains `Map<String, Integer> pausedDaysByName` and keeps a three-value constructor (the web tests' own);
+  every sentence that said three reads says four.
+- `tiffinbox-web/src/main/resources/templates/dashboard.html` — a **"Paused days"** column, `${view.pausedDaysByName[c.name] ?: 0}`.
+  The `?: 0` and the three-value constructor mean a missing fourth read still renders the page, with a column of zeros: the column is
+  checked against a second connection, row by row, never by one grep (`../c7-unit29`, `anchor`).
+
+**What it changes, and what it does not** (`anchor`, `seven`, `tests`, `xcheck`): the dashboard page shows each customer's paused days;
+the JSON `/dashboard` keeps its four keys, and the seven `466c20ed7e0d5439cb052f32ce09de1b` before and after; the eighteen tests 14/3/1 —
+guards (they pass on the copy without the transaction too). Without the method's transaction the dashboard answers 500: the read runs
+on one of `Dashboard`'s virtual threads, after `findAll`'s own transaction has ended, and the first `pauses` read throws
+`LazyInitializationException`. Open-in-view does not reach those threads (`wrong`). No mapping moves: Hibernate's own DDL for the
+entities is unit 27's, byte for byte (`xcheck`). The page reads one statement for the customers and one per customer for her pauses —
+unit 30's subject.
+
+Evidence for every sentence in this section: `../c7-unit29/` (`receipts.sh`, its captures).
 
 ---
 

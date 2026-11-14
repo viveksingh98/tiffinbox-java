@@ -8,11 +8,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.SQLException;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
- * Unit 29/31: rows in, records out. Nothing above this class knows SQL exists.
+ * Rows in, records out (this class's first line, from Core Java II's TiffinBox - not Course 7's units). Nothing above this class
+ * knows SQL exists.
  *
  * <p>Course 7, unit 15: findAll and add go through CustomerEntityRepository, Spring Data JPA's repository for CustomerEntity, and
  * Hibernate writes their SQL. Course 7, unit 16: findByName too, through the repository's derived findByName. Course 7, unit 17:
@@ -26,11 +29,16 @@ import java.util.Optional;
  * customers. Without it the start fails: Table "CUSTOMER" not found (../c7-unit17, anchor, B). {@code @DependsOn("database")}
  * keeps that order, now written down (A).
  *
- * <p>Course 7, unit 26: TiffinBox's first {@code @Transactional}, on add - and so this class is no longer final: Spring's proxy
+ * <p>Course 7, unit 26: TiffinBox's first {@code @Transactional}, on add (Course 7, unit 29: the second is pausedDaysByCustomer's,
+ * below) - and so this class is no longer final: Spring's proxy
  * for a transactional bean is a subclass, and a final class cannot have one (../c7-unit23, final). add publishes CustomerAdded
  * inside its transaction, through the ApplicationEventPublisher it takes as its second constructor argument; CustomerFeed hears
  * it after the commit, so a customer is sent to the feed only once the row is stored. This class is the one place that tells
  * the feed: the JSON API, the form and an upload all add through it (../c7-unit26, anchor and feed).
+ *
+ * <p>Course 7, unit 29: pausedDaysByCustomer, the dashboard's fourth read - each customer's paused days, read through her pauses,
+ * a lazy collection. It runs on one of Dashboard's virtual threads, so its transaction is its own, {@code @Transactional(readOnly =
+ * true)} on the method: the persistence context lives as long as the read, on the thread that reads (../c7-unit29, anchor).
  */
 @Component
 @DependsOn("database")
@@ -85,6 +93,21 @@ public class CustomerRepository {
             }
             throw e;
         }
+    }
+
+    /**
+     * Each customer's paused days, by name: every customer through Spring Data's findAll(Sort), her pauses - a lazy collection,
+     * read here - summed in Java. Course 7, unit 29: its own read-only transaction keeps the persistence context open while the
+     * pauses are read; without it findAll's transaction has ended and the first collection read throws
+     * LazyInitializationException (../c7-unit29, anchor, B). One SELECT for the customers and one per customer for her pauses.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Integer> pausedDaysByCustomer() throws SQLException {
+        var out = new LinkedHashMap<String, Integer>();
+        for (CustomerEntity e : customers.findAll(Sort.by("name"))) {
+            out.put(e.getName(), e.getPauses().stream().mapToInt(PauseEntity::getDays).sum());
+        }
+        return out;
     }
 
     /** A month of every customer's meals, summed by the repository's JPQL query. */
