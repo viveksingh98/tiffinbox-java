@@ -1,8 +1,10 @@
 package com.tiffinbox;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -16,14 +18,19 @@ import java.util.Optional;
  * <p>Found only because TiffinBoxApp names this package in @EnableJpaRepositories: Boot's own scan starts in TiffinBoxApp's
  * package, com.tiffinbox.web, and this interface lives in tiffinbox-core's com.tiffinbox (../c7-unit15, scan).
  *
- * <p>Course 7, unit 16: one method of its own, findByName, and nobody writes its query: Spring Data reads the method's name -
+ * <p>Course 7, unit 16: its first method of its own, findByName, and nobody writes its query: Spring Data reads the method's name -
  * find, By, the property name - and derives the query from it at start, checking the property against CustomerEntity
  * (../c7-unit16, derived; its SQL in TiffinBox, anchor). A misspelt property stops the start (../c7-unit16, typo).
  *
- * <p>Course 7, unit 17: two queries written by hand, in JPQL - the query language of entities and their fields, which Hibernate
- * turns into SQL - for the two sums no method name can say. Hibernate checks each against the entities at start; a misspelt
- * field stops the start (../c7-unit17, typo). coalesce(sum(...), 0) answers 0 for an empty table, as CustomerRepository's
+ * <p>Course 7, unit 17: two more methods, their queries written by hand, in JPQL - the query language of entities and their fields,
+ * which Hibernate turns into SQL - for the two sums no method name can say. Hibernate checks each against the entities at start; a
+ * misspelt field stops the start (../c7-unit17, typo). coalesce(sum(...), 0) answers 0 for an empty table, as CustomerRepository's
  * own two sums did before (../c7-unit17, anchor).
+ *
+ * <p>Course 7, unit 31: a fourth method of its own, findAllByOrderByNameAsc, its query derived from its name (every customer, by
+ * name) and its fetch plan named by {@code @EntityGraph(attributePaths = "pauses")}: the pauses come with the customers, in the
+ * same statement, joined in (../c7-unit31, anchor). findAll(Sort) is still inherited and still used, by CustomerRepository.findAll()
+ * - the list of customers reads no pause, so it asks for none.
  */
 public interface CustomerEntityRepository extends JpaRepository<CustomerEntity, Long> {
 
@@ -37,4 +44,8 @@ public interface CustomerEntityRepository extends JpaRepository<CustomerEntity, 
     /** Every pause's days, summed - 0 when there is none. */
     @Query("select coalesce(sum(p.days), 0) from PauseEntity p")
     long pausedDays();
+
+    /** Every customer, by name, her pauses fetched with her - one statement, the pauses joined in by the entity graph. */
+    @EntityGraph(attributePaths = "pauses")
+    List<CustomerEntity> findAllByOrderByNameAsc();
 }

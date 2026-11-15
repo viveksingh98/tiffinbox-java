@@ -36,9 +36,10 @@ import java.util.Optional;
  * it after the commit, so a customer is sent to the feed only once the row is stored. This class is the one place that tells
  * the feed: the JSON API, the form and an upload all add through it (../c7-unit26, anchor and feed).
  *
- * <p>Course 7, unit 29: pausedDaysByCustomer, the dashboard's fourth read - each customer's paused days, read through her pauses,
- * a lazy collection. It runs on one of Dashboard's virtual threads, so its transaction is its own, {@code @Transactional(readOnly =
- * true)} on the method: the persistence context lives as long as the read, on the thread that reads (../c7-unit29, anchor).
+ * <p>Course 7, unit 29: pausedDaysByCustomer, the dashboard's fourth read - each customer's paused days. It runs on one of
+ * Dashboard's virtual threads, so its transaction is its own, {@code @Transactional(readOnly = true)} on the method: the persistence
+ * context lives as long as the read, on the thread that reads (../c7-unit29, anchor). Course 7, unit 31: the customers come with
+ * their pauses in one statement, through the repository's findAllByOrderByNameAsc and its entity graph (../c7-unit31, anchor).
  */
 @Component
 @DependsOn("database")
@@ -96,15 +97,15 @@ public class CustomerRepository {
     }
 
     /**
-     * Each customer's paused days, by name: every customer through Spring Data's findAll(Sort), her pauses - a lazy collection,
-     * read here - summed in Java. Course 7, unit 29: its own read-only transaction keeps the persistence context open while the
-     * pauses are read; without it findAll's transaction has ended and the first collection read throws
-     * LazyInitializationException (../c7-unit29, anchor, B). One SELECT for the customers and one per customer for her pauses.
+     * Each customer's paused days, by name: every customer with her pauses, fetched together by the repository's
+     * findAllByOrderByNameAsc - one SELECT, the pauses joined in by its entity graph (Course 7, unit 31: ../c7-unit31, anchor) -
+     * summed in Java. The read-only transaction stays: it is the read's boundary, on the virtual thread that reads (Course 7, unit 29:
+     * without it the read runs outside any persistence context, ../c7-unit29, anchor, B); the entity graph is the read's fetch plan.
      */
     @Transactional(readOnly = true)
     public Map<String, Integer> pausedDaysByCustomer() throws SQLException {
         var out = new LinkedHashMap<String, Integer>();
-        for (CustomerEntity e : customers.findAll(Sort.by("name"))) {
+        for (CustomerEntity e : customers.findAllByOrderByNameAsc()) {
             out.put(e.getName(), e.getPauses().stream().mapToInt(PauseEntity::getDays).sum());
         }
         return out;

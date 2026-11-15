@@ -42,7 +42,11 @@ unchanged; Hibernate's own DDL for the entities moves for the first time since u
 **Section 5's first change to this folder**: `CustomerRepository` gains `pausedDaysByCustomer()`, each customer's paused days by name,
 with its own `@Transactional(readOnly = true)`; `Dashboard.load()` runs it as a fourth read; the HTML dashboard gains a "Paused days"
 column. No mapping moves: Hibernate's own DDL is unit 27's, byte for byte. Unit 30 measures this tree through its link to
-`../c7-unit29/after`; unit 31 changes it next; its section below.)*
+`../c7-unit29/after`; unit 31 changes it next; its section below.)* *(Course 7, unit 31, **Section 5's second change to this folder**:
+`CustomerEntityRepository` gains `findAllByOrderByNameAsc()` with `@EntityGraph(attributePaths = "pauses")`, and
+`CustomerRepository.pausedDaysByCustomer()` calls it, its `@Transactional(readOnly = true)` kept: the dashboard's fourth read fetches
+the customers and their pauses in one statement. No mapping moves: Hibernate's own DDL is unit 27's, byte for byte. Units 32 and 33
+measure this tree through their links to `../c7-unit31/after`; unit 34 changes it next; its section below.)*
 
 ## Course 7 · unit 03 — the first entity: Boot 4.1.2, Spring Data JPA's starter, CustomerEntity on TiffinBox's own database (2026-11-01)
 
@@ -346,9 +350,32 @@ guards (they pass on the copy without the transaction too). Without the method's
 on one of `Dashboard`'s virtual threads, after `findAll`'s own transaction has ended, and the first `pauses` read throws
 `LazyInitializationException`. Open-in-view does not reach those threads (`wrong`). No mapping moves: Hibernate's own DDL for the
 entities is unit 27's, byte for byte (`xcheck`). The page reads one statement for the customers and one per customer for her pauses —
-unit 30's subject.
+unit 30's subject. *(Course 7, unit 31: no longer — the read fetches the customers and their pauses in one statement, through an entity
+graph; its section below.)*
 
 Evidence for every sentence in this section: `../c7-unit29/` (`receipts.sh`, its captures).
+
+## Course 7 · unit 31 — the fetch plan: an entity graph on the dashboard's fourth read (2026-11-15)
+
+The course's eleventh change to this folder, Section 5's second: `../c7-unit31/after`, whose `before` is the link to
+`../c7-unit29/after`. Units 32 and 33 measure this tree through their links to `../c7-unit31/after`; unit 34 changes it next. Two files
+changed, besides this README:
+- `tiffinbox-core/src/main/java/com/tiffinbox/CustomerEntityRepository.java` — a fourth method of its own,
+  **`@EntityGraph(attributePaths = "pauses") List<CustomerEntity> findAllByOrderByNameAsc()`**: Spring Data derives the query from the
+  name (every customer, by name), and the entity graph names the collection to fetch with it — the pauses are joined into the same
+  statement. The class Javadoc counts the methods it now declares; `findAll(Sort)` is still inherited, and still used.
+- `tiffinbox-core/src/main/java/com/tiffinbox/CustomerRepository.java` — `pausedDaysByCustomer()` calls `findAllByOrderByNameAsc()`
+  instead of `findAll(Sort.by("name"))`, **its `@Transactional(readOnly = true)` kept**: the transaction is the read's boundary, on the
+  virtual thread that reads (unit 29's lesson); the entity graph is the read's fetch plan (unit 31's). Its two Javadoc paragraphs say so.
+  `findAll()` — the list, `GET /customers` — is unchanged: it shows no pause, so it fetches none.
+
+**What it changes, and what it does not** (`anchor`, `seven`, `tests`, `xcheck`): the dashboard's fourth read is one statement, the
+customers and their pauses together, at any number of customers — the page itself is unchanged, its "Paused days" column the same
+values, row by row, as a second connection's sum; the list route reads as before. The JSON `/dashboard` keeps its four keys, and the
+seven `466c20ed7e0d5439cb052f32ce09de1b` before and after; the eighteen tests 14/3/1 — guards (they mock the repository). No mapping
+moves: Hibernate's own DDL for the entities is unit 27's, byte for byte (`xcheck`).
+
+Evidence for every sentence in this section: `../c7-unit31/` (`receipts.sh`, its captures).
 
 ---
 
