@@ -41,12 +41,17 @@ this tree is Section 4's frozen anchor**: unit 28 measures it through its link t
 unchanged; Hibernate's own DDL for the entities moves for the first time since unit 09; its section below.)* *(Course 7, unit 29,
 **Section 5's first change to this folder**: `CustomerRepository` gains `pausedDaysByCustomer()`, each customer's paused days by name,
 with its own `@Transactional(readOnly = true)`; `Dashboard.load()` runs it as a fourth read; the HTML dashboard gains a "Paused days"
-column. No mapping moves: Hibernate's own DDL is unit 27's, byte for byte. Unit 30 measures this tree through its link to
+column. No mapping moves: Hibernate's own DDL is unit 27's, byte for byte. *(Course 7, unit 34: it moved there — one line, the index on `pause.customer_id`; its section below.)* Unit 30 measures this tree through its link to
 `../c7-unit29/after`; unit 31 changes it next; its section below.)* *(Course 7, unit 31, **Section 5's second change to this folder**:
 `CustomerEntityRepository` gains `findAllByOrderByNameAsc()` with `@EntityGraph(attributePaths = "pauses")`, and
 `CustomerRepository.pausedDaysByCustomer()` calls it, its `@Transactional(readOnly = true)` kept: the dashboard's fourth read fetches
-the customers and their pauses in one statement. No mapping moves: Hibernate's own DDL is unit 27's, byte for byte. Units 32 and 33
-measure this tree through their links to `../c7-unit31/after`; unit 34 changes it next; its section below.)*
+the customers and their pauses in one statement. No mapping moves: Hibernate's own DDL is unit 27's, byte for byte. *(Course 7, unit 34: it moved there — one line, the index on `pause.customer_id`; its section below.)* Units 32 and 33
+measure this tree through their links to `../c7-unit31/after`; unit 34 changes it next; its section below.)* *(Course 7, unit 34,
+**Section 5's third and last change to this folder — this tree is Section 5's frozen anchor**: Section 6 builds over it. `PauseEntity`'s
+`@Table` names an index, `@Index(name = "pause_customer_id_idx", columnList = "customer_id")`, and `Database` creates it after the
+pause table, `CREATE INDEX pause_customer_id_idx ON pause (customer_id)`: PostgreSQL makes no index for a foreign key, and every read of
+a customer's pauses filters on that column. Hibernate's own DDL for the entities moves for the second time since unit 09 — one line
+added, the index; its section below.)*
 
 ## Course 7 · unit 03 — the first entity: Boot 4.1.2, Spring Data JPA's starter, CustomerEntity on TiffinBox's own database (2026-11-01)
 
@@ -183,7 +188,8 @@ null (`inverse`, on a table of the harness's own); the list in memory says one t
 **What the entities read.** The shipped seed, through the two entities: `Ravi [] · Meera [] · Sunil [3] · Priya [2]`, in five statements
 — one for the customers, one for each customer's pauses (*N+1, Measured* is that lesson). Hibernate's own DDL for them would say
 `pause (days integer not null, customer_id bigint not null, …)` and a foreign key to `customer` — the columns `Database` creates; nothing
-runs it (`ddl-auto: none`). The eighteen tests and the seven are unchanged (they never read the entities: guards, not witnesses).
+runs it (`ddl-auto: none`). *(Course 7, unit 34: and an index on `customer_id` since — the mapping and `Database` both name
+`pause_customer_id_idx`; its section below.)* The eighteen tests and the seven are unchanged (they never read the entities: guards, not witnesses).
 
 Evidence for every sentence in this section: `../c7-unit09/` (`receipts.sh`, eight captures).
 
@@ -349,7 +355,7 @@ the JSON `/dashboard` keeps its four keys, and the seven `466c20ed7e0d5439cb052f
 guards (they pass on the copy without the transaction too). Without the method's transaction the dashboard answers 500: the read runs
 on one of `Dashboard`'s virtual threads, after `findAll`'s own transaction has ended, and the first `pauses` read throws
 `LazyInitializationException`. Open-in-view does not reach those threads (`wrong`). No mapping moves: Hibernate's own DDL for the
-entities is unit 27's, byte for byte (`xcheck`). The page reads one statement for the customers and one per customer for her pauses —
+entities is unit 27's, byte for byte (`xcheck`). *(Course 7, unit 34: it moved there — one line, the index on `pause.customer_id`; its section below.)* The page reads one statement for the customers and one per customer for her pauses —
 unit 30's subject. *(Course 7, unit 31: no longer — the read fetches the customers and their pauses in one statement, through an entity
 graph; its section below.)*
 
@@ -373,9 +379,30 @@ changed, besides this README:
 customers and their pauses together, at any number of customers — the page itself is unchanged, its "Paused days" column the same
 values, row by row, as a second connection's sum; the list route reads as before. The JSON `/dashboard` keeps its four keys, and the
 seven `466c20ed7e0d5439cb052f32ce09de1b` before and after; the eighteen tests 14/3/1 — guards (they mock the repository). No mapping
-moves: Hibernate's own DDL for the entities is unit 27's, byte for byte (`xcheck`).
+moves: Hibernate's own DDL for the entities is unit 27's, byte for byte (`xcheck`). *(Course 7, unit 34: it moved there — one line, the index on `pause.customer_id`; its section below.)*
 
 Evidence for every sentence in this section: `../c7-unit31/` (`receipts.sh`, its captures).
+
+## Course 7 · unit 34 — the index: the pause table's foreign key gets one, in the mapping and in `Database` (2026-11-15)
+
+The course's twelfth change to this folder, Section 5's third and last: `../c7-unit34/after`, whose `before` is the link to
+`../c7-unit31/after`. **This tree is Section 5's frozen anchor** — Section 6 builds over it. Two files changed, besides this README:
+- `tiffinbox-core/src/main/java/com/tiffinbox/PauseEntity.java` — `@Table(name = "pause")` becomes **`@Table(name = "pause", indexes =
+  @Index(name = "pause_customer_id_idx", columnList = "customer_id"))`** (and the import of `jakarta.persistence.Index`); its class
+  Javadoc says why: the foreign key column carries an index, because PostgreSQL makes none for a foreign key, H2 makes one for the
+  constraint by itself, and every read of a customer's pauses filters on that column.
+- `tiffinbox-core/src/main/java/com/tiffinbox/Database.java` — after the pause table, **`CREATE INDEX pause_customer_id_idx ON pause
+  (customer_id)`**, with its comment. `DROP TABLE IF EXISTS pause` drops the index with its table, so a start creates it afresh
+  (`../c7-unit34`, `slow`: the shipped seed run a second time on the same database, both databases).
+
+**What it changes, and what it does not** (`anchor`, `slow`, `seven`, `tests`, `xcheck`): on PostgreSQL, with the pause table grown by a
+generator, a customer's pauses are read by the new index — `before` scans the whole pause table (`Seq Scan on pause`), `after` reads
+`pause_customer_id_idx` (a bitmap index scan); the plan pair and the index lists are in `../c7-unit34`. On H2 the index adds a second
+index on the column and changes no plan. The dashboard answers as before; the seven and the eighteen tests 14/3/1 are unchanged —
+guards. Hibernate's own DDL for the entities **moves here for the second time since unit 09** — one line added, the index (`xcheck`,
+both hashes in `../c7-unit34`); Course 7's first migration (Flyway's lesson) must carry the index too.
+
+Evidence for every sentence in this section: `../c7-unit34/` (`receipts.sh`, its captures).
 
 ---
 

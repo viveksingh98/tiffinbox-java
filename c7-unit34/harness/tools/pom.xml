@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Unit 34's harness pom: the two logging tools the lesson runs beside Hibernate's own - p6spy (a JDBC driver that wraps the real one)
+     and datasource-proxy (a DataSource that wraps Boot's pool). Spring Boot 4.1.2's BOM manages neither (receipts.sh greps the BOM's
+     pom and prints the count), so each version is written here: the versions in the section's seed (m2-seed-c7-s5). Nothing is built
+     from it: receipts.sh runs dependency:list and dependency:copy-dependencies on it, offline, against this unit's .m2-demo, and prints
+     the jars it copies by name and size (ls -l). -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.1.2</version>
+    <relativePath/>
+  </parent>
+  <groupId>probe.q</groupId>
+  <artifactId>sql-tools</artifactId>
+  <version>1.0.0</version>
+  <packaging>pom</packaging>
+  <dependencies>
+    <dependency>
+      <groupId>p6spy</groupId>
+      <artifactId>p6spy</artifactId>
+      <version>3.9.1</version>
+    </dependency>
+    <dependency>
+      <groupId>net.ttddyy</groupId>
+      <artifactId>datasource-proxy</artifactId>
+      <version>1.11.1</version>
+    </dependency>
+  </dependencies>
+</project>

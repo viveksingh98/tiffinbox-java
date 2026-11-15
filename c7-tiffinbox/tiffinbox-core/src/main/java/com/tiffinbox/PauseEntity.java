@@ -5,6 +5,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -18,9 +19,14 @@ import jakarta.persistence.Table;
  * {@link CustomerEntity#getPauses()} is the inverse side, mapped by this field: a pause added only to that list is written
  * with no customer (../c7-unit09). {@code optional = false} says what Database's {@code NOT NULL} says; {@code LAZY} loads
  * the customer only when it is read.
+ *
+ * <p>Course 7, unit 34: the foreign key column carries an index, {@code pause_customer_id_idx} - the column every read of a
+ * customer's pauses filters on. PostgreSQL makes no index for a foreign key, so without it that read scans the whole pause table
+ * there; H2 makes one for the constraint by itself. {@code Database}'s DDL creates the index by hand ({@code ddl-auto: none});
+ * {@code @Index} in {@code @Table} says the same in the mapping, so Hibernate's own schema script creates it too.
  */
 @Entity
-@Table(name = "pause")
+@Table(name = "pause", indexes = @Index(name = "pause_customer_id_idx", columnList = "customer_id"))
 public class PauseEntity {
 
     @Id

@@ -30,6 +30,9 @@ public final class Database {
         // Course 7, unit 27: the customer table gains version BIGINT NOT NULL DEFAULT 0, the column CustomerEntity's @Version
         // maps. NOT NULL with a default: the seed's INSERTs below name no version, so each seeded row starts at 0; a nullable
         // column would leave them null, and the first edit of a seeded customer would fail at its commit.
+        // Course 7, unit 34: the pause table's foreign key column gets an index of its own, pause_customer_id_idx - PostgreSQL
+        // makes none for a REFERENCES column (H2 makes one itself), and a customer's pauses are read by that column. The DROP
+        // TABLE above drops the index with its table, so the start creates it afresh each time.
         try (var c = open(); var st = c.createStatement()) {
             st.execute("DROP TABLE IF EXISTS pause");
             st.execute("DROP TABLE IF EXISTS customer");
@@ -48,6 +51,7 @@ public final class Database {
                     customer_id BIGINT NOT NULL REFERENCES customer(id),
                     days        INT    NOT NULL
                 )""");
+            st.execute("CREATE INDEX pause_customer_id_idx ON pause (customer_id)");
         }
         // Unit 30: one transaction, one batch
         try (var c = open()) {

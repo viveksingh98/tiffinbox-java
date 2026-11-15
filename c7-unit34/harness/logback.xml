@@ -1,0 +1,16 @@
+<configuration>
+  <!-- Unit 34's harness: one line per event - level, thread, logger, message - and no stack trace (%nopex: the harness prints an
+       exception's class, message and causes itself). One logger pinned here: Hibernate's SQL logger at DEBUG (probe.q.Main attaches
+       the counting appender to it in code; a run option sets it to WARN where show-sql alone speaks, OFF in the OFF run, WARN in the
+       timing JVMs). Hibernate's core logger is NOT pinned (RED #1509): HHH000001 comes from a run option,
+       logging.level.org.hibernate.orm.core=info, which every JVM carries except the OFF run, so logging.level.org.hibernate=off reaches
+       every Hibernate logger there. datasource-proxy's listener at INFO (only its JVM has the jar), Spring Data's scan at INFO, the rest
+       at WARN. -->
+  <appender name="O" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder><pattern>%-5level [%thread] %logger : %msg%n%nopex</pattern></encoder>
+  </appender>
+  <logger name="org.hibernate.SQL" level="DEBUG"/>
+  <logger name="net.ttddyy.dsproxy.listener.logging.SLF4JQueryLoggingListener" level="INFO"/>
+  <logger name="org.springframework.data.repository.config.RepositoryConfigurationDelegate" level="INFO"/>
+  <root level="WARN"><appender-ref ref="O"/></root>
+</configuration>
