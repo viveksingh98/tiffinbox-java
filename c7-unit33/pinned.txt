@@ -1,0 +1,1 @@
+A batch writer flushes and clears at every chunk, so the persistence context holds one chunk, never the whole run.

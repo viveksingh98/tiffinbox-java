@@ -1,0 +1,15 @@
+<configuration>
+  <!-- Unit 33's harness: one line per event - level, thread, logger, message - and no stack trace (%nopex: the harness prints an
+       exception's class, message and causes itself). Hibernate's SQL logger (DEBUG; probe.b.Main attaches the counting appender to it
+       in code; the timing JVMs set it to WARN by a run option), Hibernate's core logger at INFO for HHH000001 (S4.13), Hibernate's
+       batch logger at INFO for HHH100501 (TRACE by a run option where a step counts its "Adding to JDBC batch" lines), Spring Data's
+       scan at INFO, the rest at WARN. -->
+  <appender name="O" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder><pattern>%-5level [%thread] %logger : %msg%n%nopex</pattern></encoder>
+  </appender>
+  <logger name="org.hibernate.SQL" level="DEBUG"/>
+  <logger name="org.hibernate.orm.core" level="INFO"/>
+  <logger name="org.hibernate.orm.jdbc.batch" level="INFO"/>
+  <logger name="org.springframework.data.repository.config.RepositoryConfigurationDelegate" level="INFO"/>
+  <root level="WARN"><appender-ref ref="O"/></root>
+</configuration>
