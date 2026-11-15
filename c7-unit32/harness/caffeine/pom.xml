@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Unit 32's harness pom, the winner's set (brief flag 4): the second-level cache's JCache module and Caffeine's JCache provider,
+     both managed by Spring Boot 4.1.2's BOM (hibernate-jcache through hibernate-platform 7.4.13.Final, Caffeine 3.2.4) - no version
+     typed here. Nothing is built from it: receipts.sh runs dependency:list and dependency:copy-dependencies on it, offline, against
+     this unit's .m2-demo (seeded from m2-seed-c7-s5), and the jars it copies that the anchor's lib/ does not hold are the added set. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.1.2</version>
+    <relativePath/>
+  </parent>
+  <groupId>probe.k</groupId>
+  <artifactId>cache-caffeine</artifactId>
+  <version>1.0.0</version>
+  <packaging>pom</packaging>
+  <dependencies>
+    <dependency>
+      <groupId>org.hibernate.orm</groupId>
+      <artifactId>hibernate-jcache</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>jcache</artifactId>
+    </dependency>
+  </dependencies>
+</project>

@@ -1,0 +1,1 @@
+A second-level cache holds what Hibernate last read or wrote; a write that never passes through Hibernate leaves it serving the old value.
