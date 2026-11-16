@@ -11,13 +11,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.tiffinbox.Customer;
 import com.tiffinbox.CustomerRepository;
 import com.tiffinbox.Dashboard;
-import com.tiffinbox.Database;
 import com.tiffinbox.OrderQueue;
 import jakarta.servlet.ServletException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Locale;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -73,9 +73,10 @@ class TiffinBoxWebTest {
         assertThat(Locale.getDefault()).isEqualTo(Locale.US);
     }
 
+    /** Course 7, unit 36: the class this test named, Database, is retired; the slice still holds no database - no DataSource. */
     @Test
     void theSliceLeavesTheDatabaseOut() {
-        assertThat(context.getBeanNamesForType(Database.class)).isEmpty();
+        assertThat(context.getBeanNamesForType(DataSource.class)).isEmpty();
     }
 
     @Test

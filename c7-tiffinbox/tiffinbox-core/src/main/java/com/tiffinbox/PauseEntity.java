@@ -11,18 +11,19 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 /**
- * Course 7, unit 09: a pause as an entity. It maps the pause table Database already creates and seeds (Sunil's three days,
- * Priya's two); Hibernate writes no schema (application.yaml: ddl-auto none).
+ * Course 7, unit 09: a pause as an entity. It maps the pause table V1__customer_and_pause.sql creates and V2__seed.sql seeds
+ * (Sunil's three days, Priya's two - Course 7, unit 36: Flyway's two migrations, which retired the Database class); Hibernate
+ * writes no schema - it checks the migrated one (application.yaml: ddl-auto validate).
  *
  * <p>The foreign key lives in this table - {@code pause.customer_id BIGINT NOT NULL REFERENCES customer(id)} - so this side
  * owns the relationship: {@link #customer} is the field Hibernate reads when it writes a pause's {@code customer_id}.
  * {@link CustomerEntity#getPauses()} is the inverse side, mapped by this field: a pause added only to that list is written
- * with no customer (../c7-unit09). {@code optional = false} says what Database's {@code NOT NULL} says; {@code LAZY} loads
+ * with no customer (../c7-unit09). {@code optional = false} says what V1's {@code NOT NULL} says; {@code LAZY} loads
  * the customer only when it is read.
  *
  * <p>Course 7, unit 34: the foreign key column carries an index, {@code pause_customer_id_idx} - the column every read of a
  * customer's pauses filters on. PostgreSQL makes no index for a foreign key, so without it that read scans the whole pause table
- * there; H2 makes one for the constraint by itself. {@code Database}'s DDL creates the index by hand ({@code ddl-auto: none});
+ * there; H2 makes one for the constraint by itself. V1 creates the index by hand (Course 7, unit 36: the retired Database class's DDL, moved there);
  * {@code @Index} in {@code @Table} says the same in the mapping, so Hibernate's own schema script creates it too.
  */
 @Entity

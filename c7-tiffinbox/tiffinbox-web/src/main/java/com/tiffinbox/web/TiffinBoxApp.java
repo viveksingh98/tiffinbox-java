@@ -25,8 +25,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
  * deleted: left in the same folder, it would rank above the YAML file.
  *
  * Course 5, unit 08: @EnableConfigurationProperties registers TiffinBoxProperties, the record in tiffinbox-core that
- * Boot's binder fills with every key under "tiffinbox" - the list included. Database, OrderQueue and TiffinBoxServer
- * take the record, so no @Value placeholder is left.
+ * Boot's binder fills with every key under "tiffinbox" - the list included. OrderQueue and TiffinBoxServer take the
+ * record (Course 7, unit 36: the retired Database class took it too), so no @Value placeholder is left.
  *
  * Course 7, unit 03: @EntityScan names the package Hibernate's entities are looked for in. Without it Boot looks in the
  * auto-configuration package - this class's own, com.tiffinbox.web - and CustomerEntity lives in tiffinbox-core's

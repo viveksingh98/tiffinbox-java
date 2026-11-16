@@ -33,6 +33,10 @@ import org.springframework.test.web.servlet.client.RestTestClient;
  * ends, Spring closes the context, CustomerFeed completes the listener's answer, and the server stops without waiting for it.
  *
  * <p>The shutdown token is a literal written here, not a secret (TiffinBoxWebTest says why).
+ *
+ * <p>Course 7, unit 36: this context and FullStackTest's share one in-memory database in Surefire's JVM (jdbc:h2:mem:tiffinbox,
+ * DB_CLOSE_DELAY=-1). The first context to start migrates it; the other finds it up to date - and nothing re-seeds it, so the
+ * Kavya this test adds stays in it for the rest of the JVM. A later test that counts customers uses a database of its own.
  */
 @SpringBootTest(classes = TiffinBoxApp.class, webEnvironment = WebEnvironment.RANDOM_PORT,
         properties = "tiffinbox.shutdown-token=not-the-real-token")

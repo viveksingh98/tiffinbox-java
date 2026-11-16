@@ -46,7 +46,8 @@ import static java.lang.System.Logger.Level.INFO;
  * RequestMappingHandlerMapping finds them when the context starts and matches a request by its verb and its whole path. Until
  * Course 6's request-mapping lesson, TiffinBox found its routes itself - an annotation of its own (Route), a scan by reflection
  * into a TreeMap keyed "VERB path", the verb checked inside its handler - and wrote its answers with a Jackson 2 mapper of its
- * own. The five classes it talks to — Customer, CustomerRepository, Database, Dashboard, OrderQueue — are the other jar, and
+ * own. The four classes it talks to — Customer, CustomerRepository, Dashboard, OrderQueue — are the other jar (Course 7, unit 36:
+ * the fifth, the Database class, is retired), and
  * the only reason this file compiles is the one dependency in tiffinbox-web/pom.xml.
  *
  * <p>Course 6: TiffinBox no longer runs a server of its own. Until Course 6 the JDK's HttpServer listened here, on a

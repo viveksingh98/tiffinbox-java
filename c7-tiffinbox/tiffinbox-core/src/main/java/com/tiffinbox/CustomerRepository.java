@@ -1,7 +1,6 @@
 package com.tiffinbox;
 
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
@@ -24,10 +23,10 @@ import java.util.Optional;
  * still throws the driver's SQLException - Spring's DataIntegrityViolationException is unwrapped to it - so the web layer's
  * 23505 -> 409 path is unchanged.
  *
- * <p>Course 7, unit 17: Database is no longer a constructor argument, and that argument was what made the container create
- * Database - whose createAndSeed makes the tables - before this class, and so before TiffinBoxServer's start(), which reads the
- * customers. Without it the start fails: Table "CUSTOMER" not found (../c7-unit17, anchor, B). {@code @DependsOn("database")}
- * keeps that order, now written down (A).
+ * <p>Course 7, unit 17: the retired Database class was no longer a constructor argument, and that argument was what made the
+ * container create it - its createAndSeed made the tables - before this class, and so before TiffinBoxServer's start(), which
+ * reads the customers; {@code @DependsOn("database")} kept that order (../c7-unit17, anchor). Course 7, unit 36: Flyway creates
+ * and seeds the tables before Hibernate starts, so the order needs no annotation and the class is retired (../c7-unit36, anchor).
  *
  * <p>Course 7, unit 26: TiffinBox's first {@code @Transactional}, on add (Course 7, unit 29: the second is pausedDaysByCustomer's,
  * below) - and so this class is no longer final: Spring's proxy
@@ -42,7 +41,6 @@ import java.util.Optional;
  * their pauses in one statement, through the repository's findAllByOrderByNameAsc and its entity graph (../c7-unit31, anchor).
  */
 @Component
-@DependsOn("database")
 public class CustomerRepository {
 
     private final CustomerEntityRepository customers;

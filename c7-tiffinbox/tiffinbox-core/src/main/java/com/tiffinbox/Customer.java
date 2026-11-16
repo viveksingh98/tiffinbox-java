@@ -18,7 +18,7 @@ import jakarta.validation.constraints.Size;
  * the database or the seed builds is never checked.
  *
  * <p>Course 6, the capstone: a name of at most sixty characters ({@code @Size(max = 60)}) - the customer table's column is
- * VARCHAR(60) (Database), and until this rule a longer name reached the database, which refused the row: a 500. Now it is a
+ * VARCHAR(60) (V1__customer_and_pause.sql since Course 7, unit 36, which retired the Database class), and until this rule a longer name reached the database, which refused the row: a 500. Now it is a
  * 400 before any SQL runs. A value can break two rules of its component: a name of sixty-one spaces is blank and too long, so
  * it breaks NotBlank and Size at once, and the 400 lists both messages for the one field (TiffinBoxServer). A missing meal type
  * breaks NotNull, which Pattern lets through; a wrong one, Pattern alone.

@@ -9,7 +9,8 @@ customer upload and a customer feed, 18 tests (`TiffinBoxWebTest` 14, `FullStack
 data layer exactly as Course 2 left it under the web: `CustomerRepository`, a `@Component` holding its SQL as strings over
 the JDK's `JdbcTemplate`-free JDBC on an in-memory H2 (`jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1`), and `Database`, whose
 `@PostConstruct` drops and re-seeds the two tables at every start (Course 6's finale measured both: a customer added over
-HTTP is gone after a restart). *(Course 7, unit 15: two of those five strings - `findAll`'s and `add`'s - are Spring Data JPA's since;
+HTTP is gone after a restart). *(Course 7, unit 36: retired — `Database.java` is deleted; Flyway's two migrations create and seed the
+tables, once per database, before Hibernate starts; its section below.)* *(Course 7, unit 15: two of those five strings - `findAll`'s and `add`'s - are Spring Data JPA's since;
 `CustomerRepository` keeps three.)* *(Course 7, unit 16: `findByName`'s too - a query Spring Data derives from the method's name;
 `CustomerRepository` keeps two.)* *(Course 7, unit 17: and the last two, `monthRevenue`'s and `pausedDays'`, are JPQL queries
 Spring Data runs since; `CustomerRepository` keeps none.)* Course 7's units are planned to hand that job to JPA, Hibernate and Spring Data JPA one
@@ -51,7 +52,12 @@ measure this tree through their links to `../c7-unit31/after`; unit 34 changes i
 `@Table` names an index, `@Index(name = "pause_customer_id_idx", columnList = "customer_id")`, and `Database` creates it after the
 pause table, `CREATE INDEX pause_customer_id_idx ON pause (customer_id)`: PostgreSQL makes no index for a foreign key, and every read of
 a customer's pauses filters on that column. Hibernate's own DDL for the entities moves for the second time since unit 09 — one line
-added, the index; its section below.)*
+added, the index; its section below.)* *(Course 7, unit 36, **Section 6's first change to this folder**: Flyway. `tiffinbox-web/pom.xml` gains Boot's Flyway
+starter and Flyway's PostgreSQL module; `tiffinbox-core` gains `db/migration/V1__customer_and_pause.sql` (the retired `Database` class's
+three DDL statements, verbatim) and `V2__seed.sql` (its seed); `Database.java` is deleted and `CustomerRepository` loses
+`@DependsOn("database")`; `application.yaml`'s `ddl-auto` is `validate`. A customer added on a kept database survives a restart.
+No mapping moves: Hibernate's own DDL is unit 34's, byte for byte. Units 35 and 37 measure around this tree; unit 38 changes it next;
+its section below.)*
 
 ## Course 7 · unit 03 — the first entity: Boot 4.1.2, Spring Data JPA's starter, CustomerEntity on TiffinBox's own database (2026-11-01)
 
@@ -425,6 +431,37 @@ the capstone and the course's last change to this folder: this tree — `c6-unit
 stays until Course 6's request-mapping lesson.)* *(Course 6, unit 06: and the fourth's — `Route` is deleted, with
 `RouteMapping`: `TiffinBoxServer` is a `@RestController`, its routes Spring MVC's own request mappings. All four files' jobs have
 moved.)*
+
+## Course 7 · unit 36 — Flyway: the schema and the seed become two migrations; Database retired (2026-11-16)
+
+Section 6's first change to this folder. A **schema migration** is a numbered SQL file that runs once per database; Flyway records each
+one it applies in that database's **history table**, `flyway_schema_history`, and at every start it applies only the files the table
+does not list yet. TiffinBox's tables and its seed become two of them, and the class that dropped and re-seeded both tables at every
+start is retired. Changed, besides this README:
+
+- `tiffinbox-web/pom.xml` — Boot's Flyway starter, `spring-boot-starter-flyway` (it brings `spring-boot-flyway`, the auto-configuration
+  that runs the migrations before Hibernate starts, and `flyway-core`), and `flyway-database-postgresql`, Flyway's PostgreSQL support.
+  Boot's parent manages both versions (Flyway 12.4.0). `flyway-core` alone runs nothing in Boot 4.1 (../c7-unit36, `jars`).
+- `tiffinbox-core/src/main/resources/db/migration/V1__customer_and_pause.sql` — **new**: the retired `Database` class's three DDL
+  statements, verbatim (the identity columns of unit 06, `version BIGINT NOT NULL DEFAULT 0` of unit 27, the index of unit 34).
+- `tiffinbox-core/src/main/resources/db/migration/V2__seed.sql` — **new**: its seed, the four customers in the seed's order (ids 1-4) and
+  the two pauses by name.
+- `tiffinbox-core/src/main/java/com/tiffinbox/Database.java` — **deleted**.
+- `tiffinbox-core/src/main/java/com/tiffinbox/CustomerRepository.java` — `@DependsOn("database")` and its import removed; its Javadoc
+  says why: Flyway creates and seeds the tables before Hibernate starts.
+- `tiffinbox-web/src/main/resources/application.yaml` — `ddl-auto: validate` (was `none`): Hibernate checks the migrated schema at the
+  start and writes nothing; a start with Flyway switched off stops (`Schema validation: missing table [customer]`).
+- `tiffinbox-web/src/test/java/com/tiffinbox/web/TiffinBoxWebTest.java` — `theSliceLeavesTheDatabaseOut` asserts no `DataSource` bean (the
+  class it named is gone; the test keeps its meaning, and the count stays 18). `FeedTest.java` — a comment: it and `FullStackTest` share
+  one in-memory database in Surefire's JVM, and nothing re-seeds it now, so the Kavya `FeedTest` adds stays there for the rest of the JVM.
+- Javadocs and comments that named `Database` as the schema's or the seed's owner (`CustomerEntity`, `PauseEntity`, `Customer`,
+  `TiffinBoxServer`, `TiffinBoxApp`, the web module's POM and YAML) now say it was retired.
+
+**The restart.** On a kept database a customer added over HTTP is still there after a restart: the second start finds the history
+table at version 2 (`Schema "public" is up to date. No migration necessary.`) and runs nothing. Measured on PostgreSQL with the
+course harness's driver on the class path (this tree holds no PostgreSQL driver) in ../c7-unit36, `anchor`. The default URL is still
+`jdbc:h2:mem:tiffinbox`: a plain `java -jar` keeps its customers in memory, and a restart there still starts empty — the capstone
+moves TiffinBox's own database. **Unchanged:** the mapping (Hibernate's own DDL is unit 34's, byte for byte), the 18 tests, the seven.
 
 ## Course 6 · unit 04 — embedded Tomcat: TiffinBox's own server handed over (2026-10-12)
 

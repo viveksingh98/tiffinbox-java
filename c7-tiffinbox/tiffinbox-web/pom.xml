@@ -79,13 +79,25 @@
     </dependency>
     <!-- Course 7, unit 03: Spring Data JPA's starter - Hibernate (the implementation of Jakarta Persistence that does the work),
          Spring's JPA support (spring-orm: the EntityManagerFactory, the transaction manager), Spring Data JPA, and Boot's JDBC
-         starter with its pool, HikariCP. TiffinBox had no DataSource bean (Database opens DriverManager connections), so Boot
+         starter with its pool, HikariCP. TiffinBox had no DataSource bean (the Database class, retired by Course 7 unit 36, opened DriverManager connections), so Boot
          makes one from spring.datasource.url - application.yaml points it at tiffinbox.jdbc-url, TiffinBox's own database.
          Without that key Boot's pool opens a second, empty in-memory H2 under a generated name (../c7-unit03, two).
          Boot's parent manages its version. -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    <!-- Course 7, unit 36: Flyway. Boot's Flyway starter brings spring-boot-flyway, the auto-configuration that runs the
+         migrations in tiffinbox-core's db/migration at every start, before Hibernate starts - flyway-core alone runs nothing
+         (../c7-unit36, jars). flyway-database-postgresql is Flyway's PostgreSQL support: without it a start on PostgreSQL stops,
+         Unsupported Database. Boot's parent manages both versions. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-flyway</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
     </dependency>
     <!-- Course 6: TiffinBox's tests, in src/test. Test scope: on the tests' class path only - the executable jar holds the
          same libraries without it. Boot's starter brings JUnit, AssertJ, Mockito, spring-test (MockMvc, @MockitoBean,
