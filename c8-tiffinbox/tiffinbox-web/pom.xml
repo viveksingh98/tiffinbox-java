@@ -87,6 +87,15 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
+    <!-- Course 8, unit 02: Spring Data JDBC's starter, beside Spring Data JPA's - Spring Data JDBC and Boot's module for it
+         (spring-boot-data-jdbc: the mapping context, JdbcAggregateTemplate, the dialect read off the database). With two Spring
+         Data modules on the class path each claims a repository by its domain type's annotation (strict repository
+         configuration mode); TiffinBoxApp names the JDBC module's package. The pool and the transaction manager stay the JPA
+         starter's: one JpaTransactionManager serves both modules. Boot's parent manages its version. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jdbc</artifactId>
+    </dependency>
     <!-- Course 7, unit 36: Flyway. Boot's Flyway starter brings spring-boot-flyway, the auto-configuration that runs the
          migrations in tiffinbox-core's db/migration at every start, before Hibernate starts - flyway-core alone runs nothing
          (../c7-unit36, jars). flyway-database-postgresql is Flyway's PostgreSQL support: without it a start on PostgreSQL stops,

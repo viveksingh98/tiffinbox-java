@@ -1,11 +1,14 @@
 package com.tiffinbox.web;
 
 import com.tiffinbox.TiffinBoxProperties;
+import com.tiffinbox.jdbc.JdbcNames;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.jdbc.repository.config.EnableJdbcRepositories;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
@@ -43,6 +46,14 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
  * Course 7, unit 38: @EnableJpaAuditing switches on Spring Data's auditing: the AuditingEntityListener CustomerEntity names fills
  * its createdAt and updatedAt before each INSERT and UPDATE. Without it the listener sets nothing and both columns stay NULL. No
  * AuditorAware bean: who made a change waits for a signed-in user, Course 10, Spring Security (../c7-unit38, audit).
+ *
+ * Course 8, unit 02: a second Spring Data module, Spring Data JDBC, beside Spring Data JPA. With both on the class path Spring
+ * Data enters strict repository configuration mode: each module claims a repository by its domain type's annotation -
+ * Jakarta Persistence's @Entity for JPA, Spring Data Relational's @Table for JDBC - and logs "Could not safely identify store
+ * assignment" for the other's. @EnableJdbcRepositories names the JDBC module's package, com.tiffinbox.jdbc: without it Boot's
+ * own scan starts at com.tiffinbox.web and finds none ("Found 0 JDBC repository interfaces"). @Import(JdbcNames.class) makes
+ * the module's SQL unquoted, as V1's names are (on H2 the quoted names are not found). @EnableJpaRepositories still scans
+ * com.tiffinbox, and com.tiffinbox.jdbc with it: CustomerAggregates is skipped there, its CustomerRow is no entity.
  */
 @Configuration
 @EnableAutoConfiguration
@@ -50,6 +61,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableConfigurationProperties(TiffinBoxProperties.class)
 @EntityScan("com.tiffinbox")
 @EnableJpaRepositories("com.tiffinbox")
+@EnableJdbcRepositories("com.tiffinbox.jdbc")
+@Import(JdbcNames.class)
 @EnableJpaAuditing
 public class TiffinBoxApp {
 }

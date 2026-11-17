@@ -1,7 +1,8 @@
 # c8-tiffinbox — Course 8 (Spring Data beyond JPA)'s long-lived project
 
 **Course 8 starts here.** This folder starts as an exact copy of `c7-tiffinbox` at the end of Course 7 (tiffinbox-java
-70ad921): every file is byte-identical except this README, which gains only this header. That tree is
+70ad921): every file is byte-identical except this README, which gains only this header *(Course 8, unit 02: no longer — seven files besides this
+README differ since, C1; its section below)*. That tree is
 `c7-unit39/after`, the last Course 7 unit to change the anchor (`diff -rq c7-unit39/after c7-tiffinbox` is empty at
 70ad921); unit 40 changed the repository's root README only, and Course 7's finale said this tree is where the next course
 starts. So Course 8 starts on Spring Boot 4.1.2 (Spring Framework 7.0.10; with the data starter Hibernate ORM 7.4.13.Final and
@@ -12,13 +13,57 @@ among them); `CustomerRepository`, which holds none of its own SQL strings now; 
 migrations (V1-V3) with `ddl-auto: validate`; two auditing stamps on the customer table; H2 in memory by default
 (`jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1`) and PostgreSQL through the config tree's URL or the dev profile; and 21 tests —
 18 on H2 in memory (`TiffinBoxWebTest` 14, `FullStackTest` 3, `FeedTest` 1) and 3 on PostgreSQL in a container
-(`CustomerEntityRepositoryIT`, started from `slice/DataSlice`, run by `mvn verify` only). Course 8's units are planned to put a
+(`CustomerEntityRepositoryIT`, started from `slice/DataSlice`, run by `mvn verify` only). *(Course 8, unit 02, **Course 8's first change to
+this folder (C1)**: the data layer has two Spring Data modules since — Spring Data JPA's `CustomerEntityRepository`, as Course 7 left it,
+and Spring Data JDBC's `CustomerAggregates` beside it, over the same two tables; its section below.)* Course 8's units are planned to put a
 number on what the persistence context costs and to add Spring's other data modules beside it — Spring Data JDBC, the cache
 abstraction, Redis, MongoDB, Elasticsearch — one measured claim at a time, and each unit that changes this folder records it
-below as a `## Course 8 · unit NN` section, as Course 7's did. `c7-tiffinbox` stays frozen from here on, so every Course 7
+below as a `## Course 8 · unit NN` section, as Course 7's did. *(Course 8, unit 02: Spring Data JDBC is beside Spring Data JPA since —
+the first of them; unit 07 changes this folder next, in test scope only.)* `c7-tiffinbox` stays frozen from here on, so every Course 7
 unit keeps pointing at what it measured. Everything below the rule is `c7-tiffinbox`'s README exactly as it was at 70ad921,
 except the history notes a Course 8 unit makes false: each is amended in place, in a note that starts *Course 8, unit NN*,
-and the unit sections keep their history.
+and the unit sections keep their history. *(Course 8, unit 02: below the rule the Course 8
+unit sections come first, each closed by a rule of its own; `c7-tiffinbox`'s README starts at its own heading.)*
+
+---
+
+## Course 8 · unit 02 — aggregates, not entities: Spring Data JDBC beside Spring Data JPA, one aggregate over V1's tables (2026-11-17)
+
+Course 8's first change to this folder (C1). TiffinBox's customers get a second module into their tables: **Spring Data JDBC**, which
+reads and writes whole **aggregates** — a group of objects saved and loaded as one, through its root: a customer with her pauses — and
+keeps nothing after a call returns: no persistence context, so no lazy loading and no dirty checking. Spring Data JPA's entities,
+repository, auditing and `ddl-auto: validate` stay exactly as Course 7 left them; both modules read and write the same rows of V1's two
+tables, and raise the same `version` column. Seven files changed or new, besides this README; nothing deleted, no entity moved, no YAML
+key, Flyway's V1-V3 untouched (no V4: the aggregate maps the existing tables), Hibernate's schema script unchanged:
+- `tiffinbox-core/pom.xml` — **`spring-data-jdbc`** (no version: Boot's parent manages it — Spring Data 2026.0.2's 4.1.2), the module's API
+  for the classes below; `spring-data-relational`, the mapping annotations, comes with it.
+- `tiffinbox-web/pom.xml` — **`spring-boot-starter-data-jdbc`**: Spring Data JDBC and Boot's module for it (`spring-boot-data-jdbc`: the
+  mapping context, `JdbcAggregateTemplate`, the dialect read off the database). The pool and the transaction manager stay the JPA starter's.
+- `tiffinbox-core/src/main/java/com/tiffinbox/jdbc/CustomerRow.java` (new) — the aggregate's root: `@Table("customer")`, `@Id Long id`,
+  `name`, `mealsPerDay`, `pricePerMeal`, `MealType mealType`, `@Version Long version` (V1's columns, by name) and
+  `@MappedCollection(idColumn = "customer_id") Set<PauseRow> pauses`. V3's audit columns are not mapped: Spring Data JPA's auditing writes
+  them; a save through `CustomerRow` leaves them as they are. Not called `Customer`: that is the anchor's record.
+- `tiffinbox-core/src/main/java/com/tiffinbox/jdbc/PauseRow.java` (new) — a pause inside the aggregate, `@Table("pause")`: `@Id Long id`,
+  `days`. No repository of its own, no field for its customer.
+- `tiffinbox-core/src/main/java/com/tiffinbox/jdbc/CustomerAggregates.java` (new) — `extends ListCrudRepository<CustomerRow, Long>,
+  ListPagingAndSortingRepository<CustomerRow, Long>`, with `findByName` (derived) and the two sums as SQL `@Query`s. Its simple name repeats
+  no Spring Data JPA repository's: both modules name a repository's bean after it, and a second `customerEntityRepository` stops the start.
+- `tiffinbox-core/src/main/java/com/tiffinbox/jdbc/JdbcNames.java` (new) — a `@Configuration` holding one `BeanPostProcessor` that calls
+  `RelationalMappingContext.setForceQuote(false)` before the mapping context initialises. Spring Data JDBC quotes every name it writes,
+  and a quoted name keeps its case: on H2, TiffinBox's default, `Table "customer" not found (candidates are: "CUSTOMER")`; with quoting
+  off the SQL reads like V1's own, on H2 and on PostgreSQL. A JDBC test slice imports it too.
+- `TiffinBoxApp.java` — **`@EnableJdbcRepositories("com.tiffinbox.jdbc")`** and **`@Import(JdbcNames.class)`** beside
+  `@EnableJpaRepositories("com.tiffinbox")`. With two Spring Data modules on the class path Spring Data enters strict repository
+  configuration mode (`Multiple Spring Data modules found, entering strict repository configuration mode`): each module claims a
+  repository by its domain type's annotation — `@Entity` for JPA, Spring Data Relational's `@Table` for JDBC — and logs "Could not
+  safely identify store assignment" for the other's. Without `@EnableJdbcRepositories` Boot's own JDBC scan starts at `com.tiffinbox.web`
+  and finds no repository. One transaction manager, Spring's `JpaTransactionManager`, serves both modules.
+
+Which module owns which repository: `CustomerEntityRepository` is Spring Data JPA's (built by `JpaRepositoryFactoryBean`), `CustomerAggregates`
+is Spring Data JDBC's (built by `JdbcRepositoryFactoryBean`). The 18 tests on H2 in memory and the 3 on PostgreSQL in a container are the
+same tests, unchanged; the seven comparison requests answer as before. The default URL is still H2 in memory. The numbers — the libraries
+the jar gained, the start log's lines on both databases, the statements each module sends, the rows read back — are in `../c8-unit02`'s
+README, read off its captures.
 
 ---
 
