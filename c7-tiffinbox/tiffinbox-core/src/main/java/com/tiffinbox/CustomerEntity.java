@@ -2,6 +2,7 @@ package com.tiffinbox;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
@@ -13,13 +14,19 @@ import jakarta.persistence.Version;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Course 7, unit 03: a customer as an entity - a class Hibernate maps to a table and keeps track of. It maps the customer
  * table V1__customer_and_pause.sql creates (Course 7, unit 36: Flyway's first migration, where the retired Database class's DDL
- * went) and V2__seed.sql seeds; Hibernate writes no schema - it checks the migrated one (application.yaml: ddl-auto validate).
+ * went) and V2__seed.sql seeds, and two columns V3__customer_audit_columns.sql adds (Course 7, unit 38); Hibernate writes no
+ * schema - it checks the migrated one (application.yaml: ddl-auto validate).
  *
  * <p>Beside the record {@link Customer}, not instead of it: a record's components are final, so a field could never be
  * changed on a loaded customer, and the record stays the web layer's validated value. CustomerRepository keeps none of its
@@ -42,9 +49,20 @@ import java.util.List;
  * one in the same statement; an edit made from a copy another transaction has changed since matches no row, and the commit throws
  * instead of writing over the other edit. The version is not in the record {@link Customer} nor in the JSON: the web layer never
  * sees it.
+ *
+ * <p>Course 7, unit 38: auditing - two stamps on every save, when the row was created and when it last changed. Spring Data's
+ * listener fills them, not Hibernate: {@link AuditingEntityListener}, switched on by TiffinBoxApp's {@code @EnableJpaAuditing},
+ * sets {@code createdAt} and {@code updatedAt} to the same instant before the INSERT and {@code updatedAt} again before each
+ * UPDATE. {@code createdAt} is {@code @Column(updatable = false)}: Hibernate's UPDATE writes every column, and a customer saved
+ * from a copy made outside the persistence context (a merge) carries no creation stamp - without the flag that UPDATE writes
+ * NULL over it (../c7-unit38, audit). The columns are V3's, zone-aware like every Instant column (Course 7, unit 13); the four
+ * customers V2 seeds were written before V3 ran and keep no stamps (NULL) - V3 back-fills nothing. Who made the change, Spring
+ * Data's {@code @CreatedBy}, needs a signed-in user: that waits for Course 10, Spring Security. The stamps are not in the record
+ * {@link Customer} nor in the JSON.
  */
 @Entity
 @Table(name = "customer")
+@EntityListeners(AuditingEntityListener.class)
 public class CustomerEntity {
 
     @Id
@@ -82,6 +100,15 @@ public class CustomerEntity {
      */
     @Version
     private Long version;
+
+    /** When the row was written first - set once, before the INSERT; never written by an UPDATE (updatable = false). */
+    @CreatedDate
+    @Column(updatable = false)
+    private Instant createdAt;
+
+    /** When the row last changed - set before the INSERT and again before every UPDATE. */
+    @LastModifiedDate
+    private Instant updatedAt;
 
     /** For Hibernate, which builds an entity before it fills its fields. */
     protected CustomerEntity() {
@@ -127,5 +154,15 @@ public class CustomerEntity {
     /** The version Hibernate read with this row: 0 for a new or seeded customer, one more after each committed edit. */
     public Long getVersion() {
         return version;
+    }
+
+    /** When the customer was added: null for the four seeded before V3 gave the column. */
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    /** When the customer last changed: null for the four seeded before V3, until their first change. */
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 }

@@ -10,7 +10,8 @@ data layer exactly as Course 2 left it under the web: `CustomerRepository`, a `@
 the JDK's `JdbcTemplate`-free JDBC on an in-memory H2 (`jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1`), and `Database`, whose
 `@PostConstruct` drops and re-seeds the two tables at every start (Course 6's finale measured both: a customer added over
 HTTP is gone after a restart). *(Course 7, unit 36: retired — `Database.java` is deleted; Flyway's two migrations create and seed the
-tables, once per database, before Hibernate starts; its section below.)* *(Course 7, unit 15: two of those five strings - `findAll`'s and `add`'s - are Spring Data JPA's since;
+tables, once per database, before Hibernate starts; its section below. *Course 7, unit 38: and a third, V3, adds two columns to
+the customer table.*)* *(Course 7, unit 15: two of those five strings - `findAll`'s and `add`'s - are Spring Data JPA's since;
 `CustomerRepository` keeps three.)* *(Course 7, unit 16: `findByName`'s too - a query Spring Data derives from the method's name;
 `CustomerRepository` keeps two.)* *(Course 7, unit 17: and the last two, `monthRevenue`'s and `pausedDays'`, are JPQL queries
 Spring Data runs since; `CustomerRepository` keeps none.)* Course 7's units are planned to hand that job to JPA, Hibernate and Spring Data JPA one
@@ -56,8 +57,13 @@ added, the index; its section below.)* *(Course 7, unit 36, **Section 6's first 
 starter and Flyway's PostgreSQL module; `tiffinbox-core` gains `db/migration/V1__customer_and_pause.sql` (the retired `Database` class's
 three DDL statements, verbatim) and `V2__seed.sql` (its seed); `Database.java` is deleted and `CustomerRepository` loses
 `@DependsOn("database")`; `application.yaml`'s `ddl-auto` is `validate`. A customer added on a kept database survives a restart.
-No mapping moves: Hibernate's own DDL is unit 34's, byte for byte. Units 35 and 37 measure around this tree; unit 38 changes it next;
-its section below.)*
+No mapping moves: Hibernate's own DDL is unit 34's, byte for byte. *(Course 7, unit 38: it moved there — one line, the customer table's
+two audit columns; its section below.)* Units 35 and 37 measure around this tree; unit 38 changes it next;
+its section below.)* *(Course 7, unit 38, **Section 6's second change to this folder (C2)**: auditing dates. `CustomerEntity` gains
+`@EntityListeners(AuditingEntityListener.class)`, `createdAt` (`@CreatedDate`, `@Column(updatable = false)`) and `updatedAt`
+(`@LastModifiedDate`); `TiffinBoxApp` gains `@EnableJpaAuditing`; `tiffinbox-core` gains `db/migration/V3__customer_audit_columns.sql`,
+the two columns. A customer added over HTTP carries both stamps; the four seeded customers keep none. Nothing a route returns moves.
+Unit 39 changes it next (C3); its section below.)*
 
 ## Course 7 · unit 03 — the first entity: Boot 4.1.2, Spring Data JPA's starter, CustomerEntity on TiffinBox's own database (2026-11-01)
 
@@ -458,10 +464,32 @@ start is retired. Changed, besides this README:
   `TiffinBoxServer`, `TiffinBoxApp`, the web module's POM and YAML) now say it was retired.
 
 **The restart.** On a kept database a customer added over HTTP is still there after a restart: the second start finds the history
-table at version 2 (`Schema "public" is up to date. No migration necessary.`) and runs nothing. Measured on PostgreSQL with the
+table at version 2 (`Schema "public" is up to date. No migration necessary.`) and runs nothing. *(Course 7, unit 38: at version 3
+since — V3 adds two columns; ../c7-unit38, `anchor`.)* Measured on PostgreSQL with the
 course harness's driver on the class path (this tree holds no PostgreSQL driver) in ../c7-unit36, `anchor`. The default URL is still
 `jdbc:h2:mem:tiffinbox`: a plain `java -jar` keeps its customers in memory, and a restart there still starts empty — the capstone
-moves TiffinBox's own database. **Unchanged:** the mapping (Hibernate's own DDL is unit 34's, byte for byte), the 18 tests, the seven.
+moves TiffinBox's own database. **Unchanged:** the mapping (Hibernate's own DDL is unit 34's, byte for byte), the 18 tests, the seven. *(Course 7, unit 38: the
+mapping moved — one line, the customer table's two audit columns; its section below.)*
+
+## Course 7 · unit 38 — auditing dates: two stamps on the customer table, a third migration (2026-11-17)
+
+Section 6's second change to this folder (C2). **Auditing** is two stamps on every save — when a row was created and when it last
+changed — filled by Spring Data's listener, not by Hibernate and not by the database. Changed, besides this README:
+
+- `tiffinbox-core/src/main/java/com/tiffinbox/CustomerEntity.java` — `@EntityListeners(AuditingEntityListener.class)`; after `version`,
+  `@CreatedDate @Column(updatable = false) Instant createdAt` and `@LastModifiedDate Instant updatedAt`, with their getters; its Javadoc
+  says who fills them, why `updatable = false` (a customer saved from a copy is merged, and the UPDATE would write NULL over her
+  creation stamp), and that the four seeded customers have none.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxApp.java` — `@EnableJpaAuditing`, which switches the listener on.
+- `tiffinbox-core/src/main/resources/db/migration/V3__customer_audit_columns.sql` — **new**: `created_at` and `updated_at`, both
+  `TIMESTAMP(6) WITH TIME ZONE` and nullable. Flyway applies it after V1 and V2: three migrations now, three rows in the history table.
+
+**The seeded four keep no stamps.** V2 wrote them before V3 gave the columns, and V3 back-fills nothing: their `created_at` and
+`updated_at` are NULL (read by `psql` in ../c7-unit38, `anchor`). An `UPDATE customer SET created_at = …` in V3 is the alternative
+this unit names and does not take: a made-up time is worse than none. Who made the change (`@CreatedBy`) needs a signed-in user —
+Course 10, *Spring Security — complete*. `application.yaml` keeps `ddl-auto: validate`, and `validate` accepts the two new columns.
+**Unchanged:** the 18 tests, the seven (the record and the JSON carry no stamp), the dashboard's four SQL statements. **Moved:**
+Hibernate's own DDL — one line, the customer table's two columns. Unit 39 changes this folder next (C3).
 
 ## Course 6 · unit 04 — embedded Tomcat: TiffinBox's own server handed over (2026-10-12)
 

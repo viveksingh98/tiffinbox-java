@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 /**
@@ -38,6 +39,10 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
  * com.tiffinbox: the start log says "Found 0 JPA repository interfaces", and the start fails only because CustomerRepository's
  * constructor asks for the bean - "required a bean of type 'com.tiffinbox.CustomerEntityRepository' that could not be found"
  * (../c7-unit15, scan).
+ *
+ * Course 7, unit 38: @EnableJpaAuditing switches on Spring Data's auditing: the AuditingEntityListener CustomerEntity names fills
+ * its createdAt and updatedAt before each INSERT and UPDATE. Without it the listener sets nothing and both columns stay NULL. No
+ * AuditorAware bean: who made a change waits for a signed-in user, Course 10, Spring Security (../c7-unit38, audit).
  */
 @Configuration
 @EnableAutoConfiguration
@@ -45,5 +50,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableConfigurationProperties(TiffinBoxProperties.class)
 @EntityScan("com.tiffinbox")
 @EnableJpaRepositories("com.tiffinbox")
+@EnableJpaAuditing
 public class TiffinBoxApp {
 }
