@@ -34,7 +34,8 @@ script as committed: 53 s under `./receipts.sh`** (/bin/bash 3.2.57) **and 53 s 
 each exit 0, both captures 3/3 = published, every check passed, every build `offline: yes`. Development runs before them fixed the
 captures and the checks (20 planted faults against the checks, each caught — "Planted faults" below).
 
-Published hashes: memory `5673a1507c1e1980401d21adb4b3e504` · readme `4e4241ddf3eb8a044c7762a1938ee54f`.
+Published hashes: memory `5673a1507c1e1980401d21adb4b3e504` · readme `68a6fc68d166b539919751ffe4774324` (since Course 7's finale,
+2026-11-17: the readme capture pinned to `828e395` — below, "The root README and Course 6's own pin"; it was `4e4241ddf3eb8a044c7762a1938ee54f`).
 
 ### A sealed fresh clone — the recipe (R.129; unit 31's form)
 
@@ -310,7 +311,16 @@ Web MVC*, the folders its opening maps gain `c6-unitNN/`, the course sections 2-
 on 7 lines and `../README.md` on 0 inside its `readmecap`; that function, re-run from its own folder, hashes to its published
 `4456fd19…` — the README Course 5 left, still measured.
 
-`.r-readme.out` · md5 `4e4241ddf3eb8a044c7762a1938ee54f` · 3 of 3
+**Pinned by Course 7's finale (2026-11-17, ⚑11, R.176, S6.15).** The root README gained Course 7 in `c7-unit40`'s commit, so this
+capture's "as it is now" no longer reads the README: `readmecap`'s five reads of `../README.md` read `git -C .. show 828e395:README.md`
+(the README as this unit's own measurement left it; 0 reads of `../README.md` left in the function). The label "and as it is now:"
+stays — Course 6's video shows it — and the `$` line under it names `828e395`, the one line of the capture that changed (line 8,
+`$ cat ../README.md` → `$ git -C .. show 828e395:README.md`); every other line and every check is the same. Its md5
+`4e4241ddf3eb8a044c7762a1938ee54f` → `68a6fc68d166b539919751ffe4774324`, measured by this receipt's own run on the pinned script and
+the edited README (`./receipts.sh`, 53 s, the readme line DIFFERS from the old hash, memory = published), then republished and re-run
+inside `c7-unit40/receipts.sh` (exit 0, both = published). The README has moved past this unit: Course 7's section is not in this capture.
+
+`.r-readme.out` · md5 `68a6fc68d166b539919751ffe4774324` · 3 of 3
 
 ```
 the repository's README, as the commit before this unit's had it (the last commit of Course 6's capstone):
@@ -320,7 +330,7 @@ $ git -C .. show 0458d2b:README.md
   its course sections: 2 3 4 5
   its roadmap line: 456:Videos publish a few per day on the channel. Roadmap (19 courses): Java Fundamentals → Core Java II → Build & Test Like a Pro → Spring Framework Core → Spring Boot → Spring Web MVC → Data with JPA & Hibernate → … → Spring AI.
 and as it is now:
-$ cat ../README.md
+$ git -C .. show 828e395:README.md
   line 1: # TiffinBox — code for *Java Fundamentals*, *Core Java II*, *Build & Test Like a Pro*, *Spring Framework Core*, *Spring Boot* and *Spring Web MVC* (Learn Programming with Vivek)
   the folders its opening maps (lines 1-5): unitNN/ c2-unitNN/ c3-unitNN/ c4-unitNN/ c5-unitNN/ c6-unitNN/
   its course sections: 2 3 4 5 6
@@ -369,6 +379,21 @@ own source is read; planted: it fails). The numbers in this paragraph are the bu
   changed** — both bashes exit 0, all 3 = published; **unpinned, README changed (planted, a sibling copy with the original
   `receipts.sh` and `receipts.md5`)** — exit 1, `readme md5 fd1db9a5fdd8b4c08320904b1b2e3c9d DIFFERS from the published bb4db1ef…`
   (the roadmap line's number 456 → 463, the title, the folders, the sections): the change without the pin would have broken it.
+
+## The root README and Course 6's own pin (Course 7's finale, 2026-11-17 — ⚑11, R.176, S6.15)
+
+- `../README.md` (in `c7-unit40`'s commit): line 1 + *Data with JPA & Hibernate*; "all seven courses"; the folder line + `c7-unitNN/`
+  + `c7-tiffinbox/`; a `## Course 7 — Data with JPA & Hibernate` section after Course 6's; the roadmap line unchanged, byte for byte.
+- `receipts.sh`: `readmecap`'s five reads of `../README.md` (its lines 312, 313, 315 twice, 317) read `git -C .. show 828e395:README.md`;
+  its `$` line under "and as it is now:" says so; 0 reads of `../README.md` left inside the function; the two existence checks (lines
+  94, 338) and the check on Course 5's function (line 412) untouched; nothing else in the file changed. `receipts.md5`: readme
+  `4e4241dd…` → `68a6fc68d166b539919751ffe4774324` (line 8); memory `5673a150…` unchanged. This README: told (R.73), its block and hashes republished.
+- Runs (2026-11-17, `c7-unit40`'s readme capture holds the four): **unpinned, README unchanged** — the published `4e4241dd…` (the runs of
+  record above); **pinned, README unchanged** — `68a6fc68…` (the pinned function never reads the working tree); **pinned, README changed**
+  — `./receipts.sh` exit 0, both = published (`68a6fc68…`), re-run inside `c7-unit40/receipts.sh`; **unpinned, README changed** — the
+  function as commit `06ae5dd` had it, from git, on the edited README: its own checks print three FAIL lines (the folders now, the
+  sections now, the title names Spring Web MVC) and its md5 is not `4e4241dd…` — the change without the pin would have broken it.
+  The next finale pins `c7-unit40`'s own readme capture the same way (CARRIED there).
 
 ## Exercise
 

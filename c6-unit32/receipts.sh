@@ -309,12 +309,12 @@ readmecap() { local c
   echo "the repository's README, as the commit before this unit's had it (the last commit of Course 6's capstone):"
   echo "\$ git -C .. show $PIN:README.md"; git -C .. show "$PIN:README.md" | view
   echo "and as it is now:"
-  echo "\$ cat ../README.md"; view < ../README.md
-  git -C .. show "$PIN:README.md" | grep '^Videos publish' > .harness/road-was.txt; grep '^Videos publish' ../README.md > .harness/road-now.txt
+  echo "\$ git -C .. show 828e395:README.md"; git -C .. show 828e395:README.md | view
+  git -C .. show "$PIN:README.md" | grep '^Videos publish' > .harness/road-was.txt; git -C .. show 828e395:README.md | grep '^Videos publish' > .harness/road-now.txt
   echo "  the roadmap line, the same before and now: $(cmp -s .harness/road-was.txt .harness/road-now.txt && echo yes || echo no)"
-  echo "  lines the README gained: $(git -C .. show "$PIN:README.md" | diff - ../README.md | grep -c '^>' || true) · lines it lost: $(git -C .. show "$PIN:README.md" | diff - ../README.md | grep -c '^<' || true)"
+  echo "  lines the README gained: $(git -C .. show "$PIN:README.md" | diff - <(git -C .. show 828e395:README.md) | grep -c '^>' || true) · lines it lost: $(git -C .. show "$PIN:README.md" | diff - <(git -C .. show 828e395:README.md) | grep -c '^<' || true)"
   echo "its Course 6 section, whole:"
-  awk '/^## Course 6 — /{ f = 1 } f && /^$/ { exit } f { print "  " $0 }' ../README.md
+  awk '/^## Course 6 — /{ f = 1 } f && /^$/ { exit } f { print "  " $0 }' <(git -C .. show 828e395:README.md)
   echo "Course 5's finale's readme capture (\$C5) - the README reads in its receipts.sh, and its readme function re-run from there:"
   c="grep -c 'git -C \.\. show $PIN:README.md' \$C5/receipts.sh"; echo "\$ $c"; (eval "$c") | sed 's/^/  /'
   c="sed -n '/^readmecap() {/,/; }\$/p' \$C5/receipts.sh | grep -c '\.\./README\.md'"; echo "\$ $c"; (eval "$c" || true) | sed 's/^/  /'

@@ -1,7 +1,7 @@
-# TiffinBox — code for *Java Fundamentals*, *Core Java II*, *Build & Test Like a Pro*, *Spring Framework Core*, *Spring Boot* and *Spring Web MVC* (Learn Programming with Vivek)
+# TiffinBox — code for *Java Fundamentals*, *Core Java II*, *Build & Test Like a Pro*, *Spring Framework Core*, *Spring Boot*, *Spring Web MVC* and *Data with JPA & Hibernate* (Learn Programming with Vivek)
 
-Every unit of all six courses builds **TiffinBox**, a small tiffin-delivery service app, one concept at a time.
-Course 1 lives in `unitNN/` + `capstone/`; Course 2 in `c2-unitNN/` + `c2-capstone/`; Course 3 in `c3-unitNN/` + `c3-tiffinbox/`; Course 4 in `c4-unitNN/` + `c4-tiffinbox/`; Course 5 in `c5-unitNN/` + `c5-tiffinbox/`; Course 6 in `c6-unitNN/` + `c6-tiffinbox/`.
+Every unit of all seven courses builds **TiffinBox**, a small tiffin-delivery service app, one concept at a time.
+Course 1 lives in `unitNN/` + `capstone/`; Course 2 in `c2-unitNN/` + `c2-capstone/`; Course 3 in `c3-unitNN/` + `c3-tiffinbox/`; Course 4 in `c4-unitNN/` + `c4-tiffinbox/`; Course 5 in `c5-unitNN/` + `c5-tiffinbox/`; Course 6 in `c6-unitNN/` + `c6-tiffinbox/`; Course 7 in `c7-unitNN/` + `c7-tiffinbox/`.
 Channel: https://www.youtube.com/@LearnProgrammingWithVivek
 
 ## How to run
@@ -459,6 +459,13 @@ HTTP server handed over to Spring MVC on embedded Tomcat, one job at a time — 
 pages, forms and the rest of MVC, calling other services, and a capstone with a bulk upload and an event stream. The same layout as
 Courses 4 and 5: a README and a `receipts.sh` per unit. `c6-tiffinbox/` is the tree the next course, *Data with JPA & Hibernate*,
 starts from.
+
+## Course 7 — Data with JPA & Hibernate
+**TiffinBox on JPA and Hibernate**, in `c7-unitNN/` (40 units, 7 sections), with the long-lived project in `c7-tiffinbox/`: the SQL
+TiffinBox wrote by hand handed over to JPA, Hibernate and Spring Data JPA, one job at a time — ORM from first principles, mapping,
+querying, transactions, performance, schema and lifecycle (migrations, auditing, soft deletes), and a capstone on PostgreSQL with
+a container test. The same layout as Course 6: a README and a `receipts.sh` per unit. `c7-tiffinbox/` is the tree the next course,
+*Spring Data beyond JPA*, starts from.
 
 Videos publish a few per day on the channel. Roadmap (19 courses): Java Fundamentals → Core Java II → Build & Test Like a Pro → Spring Framework Core → Spring Boot → Spring Web MVC → Data with JPA & Hibernate → … → Spring AI.
 
