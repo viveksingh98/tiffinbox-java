@@ -128,10 +128,19 @@
          container started by the test itself (testcontainers-postgresql), its lifecycle tied to JUnit (testcontainers-junit-jupiter),
          and Boot's service connection, which hands the slice the container's URL (spring-boot-testcontainers). Test scope: the
          executable jar holds none of them. Boot's parent manages every version. Only CustomerEntityRepositoryIT uses them, and only
-         mvn verify runs it - the container-tests execution below. -->
+         mvn verify runs it - the container-tests execution below. (Course 8, unit 07: CustomerAggregatesIT uses them too, in the same
+         execution.) -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Course 8, unit 07: Spring Data JDBC's test slice (@DataJdbcTest, from Boot's starter) - Spring Data JDBC's repositories, Flyway,
+         a DataSource, JdbcClient and a JDBC transaction manager, and nothing of Spring Data JPA's. Test scope: the executable jar holds
+         none of it. Boot's parent manages its version. Only CustomerAggregatesIT uses it, started from slice/JdbcSlice. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jdbc-test</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -203,6 +212,7 @@
            tests on H2 in memory, so mvn package, mvn install, -Pnative and the Dockerfile's mvn -B package need no Docker. This
            second execution runs at integration-test - after package, so only mvn verify and later phases reach it - and runs the
            *IT classes alone, into a report folder of its own: CustomerEntityRepositoryIT's three tests on PostgreSQL in a container.
+           (Course 8, unit 07: and CustomerAggregatesIT's two, Spring Data JDBC's slice on PostgreSQL in a container.)
            It needs Docker; without one it fails, and so does mvn verify (Could not find a valid Docker environment). Surefire's,
            not Failsafe: the course's Maven repository holds no Failsafe plugin, and Surefire's second execution needs nothing new. -->
       <plugin>

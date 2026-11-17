@@ -32,7 +32,8 @@ import java.util.List;
  *
  * <p>Named *IT: Surefire's default execution leaves it out, so mvn package runs the 18 tests on H2 in memory and needs no Docker;
  * the second execution, container-tests, runs it at mvn verify (tiffinbox-web/pom.xml). Which tests run where: 18 on H2 in memory,
- * 3 on PostgreSQL in a container.
+ * 3 on PostgreSQL in a container. (Course 8, unit 07: 5 on PostgreSQL in a container since - CustomerAggregatesIT's 2, Spring Data
+ * JDBC's slice, beside these 3.)
  */
 @DataJpaTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
 @ContextConfiguration(classes = DataSlice.class)

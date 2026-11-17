@@ -13,13 +13,15 @@ among them); `CustomerRepository`, which holds none of its own SQL strings now; 
 migrations (V1-V3) with `ddl-auto: validate`; two auditing stamps on the customer table; H2 in memory by default
 (`jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1`) and PostgreSQL through the config tree's URL or the dev profile; and 21 tests —
 18 on H2 in memory (`TiffinBoxWebTest` 14, `FullStackTest` 3, `FeedTest` 1) and 3 on PostgreSQL in a container
-(`CustomerEntityRepositoryIT`, started from `slice/DataSlice`, run by `mvn verify` only). *(Course 8, unit 02, **Course 8's first change to
+(`CustomerEntityRepositoryIT`, started from `slice/DataSlice`, run by `mvn verify` only) *(Course 8, unit 07: 23 tests since — 18 on H2 in
+memory and 5 on PostgreSQL in a container, `CustomerAggregatesIT`'s 2 beside those 3, started from `slice/JdbcSlice`; its section below)*. *(Course 8, unit 02, **Course 8's first change to
 this folder (C1)**: the data layer has two Spring Data modules since — Spring Data JPA's `CustomerEntityRepository`, as Course 7 left it,
 and Spring Data JDBC's `CustomerAggregates` beside it, over the same two tables; its section below.)* Course 8's units are planned to put a
 number on what the persistence context costs and to add Spring's other data modules beside it — Spring Data JDBC, the cache
 abstraction, Redis, MongoDB, Elasticsearch — one measured claim at a time, and each unit that changes this folder records it
 below as a `## Course 8 · unit NN` section, as Course 7's did. *(Course 8, unit 02: Spring Data JDBC is beside Spring Data JPA since —
-the first of them; unit 07 changes this folder next, in test scope only.)* `c7-tiffinbox` stays frozen from here on, so every Course 7
+the first of them; unit 07 changes this folder next, in test scope only.)* *(Course 8, unit 07: it has — Spring Data JDBC's test slice, its
+section below.)* `c7-tiffinbox` stays frozen from here on, so every Course 7
 unit keeps pointing at what it measured. Everything below the rule is `c7-tiffinbox`'s README exactly as it was at 70ad921,
 except the history notes a Course 8 unit makes false: each is amended in place, in a note that starts *Course 8, unit NN*,
 and the unit sections keep their history. *(Course 8, unit 02: below the rule the Course 8
@@ -61,9 +63,35 @@ key, Flyway's V1-V3 untouched (no V4: the aggregate maps the existing tables), H
 
 Which module owns which repository: `CustomerEntityRepository` is Spring Data JPA's (built by `JpaRepositoryFactoryBean`), `CustomerAggregates`
 is Spring Data JDBC's (built by `JdbcRepositoryFactoryBean`). The 18 tests on H2 in memory and the 3 on PostgreSQL in a container are the
-same tests, unchanged; the seven comparison requests answer as before. The default URL is still H2 in memory. The numbers — the libraries
+same tests, unchanged *(Course 8, unit 07: 18 and 5 since — its section below)*; the seven comparison requests answer as before. The default URL is still H2 in memory. The numbers — the libraries
 the jar gained, the start log's lines on both databases, the statements each module sends, the rows read back — are in `../c8-unit02`'s
 README, read off its captures.
+
+---
+
+## Course 8 · unit 07 — testing the JDBC layer: Spring Data JDBC's test slice, on PostgreSQL in a container, with a fixture that rolls back (2026-11-17)
+
+Course 8's second change to this folder, **in test scope only**: nothing in `src/main` changed, no YAML key, Flyway's V1-V3 untouched,
+and the executable jar holds the same libraries. Changed or new, besides this README:
+
+- `tiffinbox-web/pom.xml` — **`spring-boot-starter-data-jdbc-test`**, test scope (no version: Boot's parent manages it): Spring Data JDBC's
+  test slice, `@DataJdbcTest`.
+- `tiffinbox-web/src/test/java/slice/JdbcSlice.java` — **new**, beside `DataSlice`: `@SpringBootConfiguration`,
+  `@EnableJdbcRepositories("com.tiffinbox.jdbc")` and `@Import(JdbcNames.class)`. The slice scans nothing, so it imports the quoting fix
+  itself: without it Spring Data JDBC quotes every name, and H2 refuses them (`Table "customer" not found`). `DataSlice` cannot serve
+  under `@DataJdbcTest`: the start stops (`Unable to retrieve @EnableAutoConfiguration base packages`).
+- `tiffinbox-web/src/test/java/com/tiffinbox/jdbc/CustomerAggregatesIT.java` — **new**: `@DataJdbcTest`, started from `JdbcSlice`, with
+  `@Testcontainers` and a `@Container @ServiceConnection` PostgreSQL 18 from the same digest as `CustomerEntityRepositoryIT`. A class-level
+  `@Sql` inserts Kavya before each test, inside the test's transaction, and the rollback removes her: both tests see V2's four customers
+  and one Kavya. Each test prints the database that answered, read off the connection: without `@ServiceConnection` the slice replaces
+  the DataSource with an embedded H2 of its own (`jdbc:h2:mem:…`) and stays green, so the printed line is the check, not the exit.
+- `tiffinbox-web/src/test/java/com/tiffinbox/CustomerEntityRepositoryIT.java` — its Javadoc's test count, noted in place.
+
+**Which tests run where: 18 on H2 in memory, 5 on PostgreSQL in a container** — `CustomerEntityRepositoryIT`'s 3 (Spring Data JPA's slice)
+and `CustomerAggregatesIT`'s 2 (Spring Data JDBC's), both in Surefire's `container-tests` execution, `mvn verify` only; `mvn package` still
+runs the 18 and needs no Docker. The machine recipe is unit 39's, above: `DOCKER_HOST` on OrbStack, Ryuk off. The slice starts no web
+server and binds no port. The numbers — what the slice starts and leaves out, the two tests' lines, Flyway's history, the counts per
+report folder — are in `../c8-unit07`'s README, read off its captures.
 
 ---
 
@@ -594,8 +622,9 @@ repository's root README only. Changed, besides this README:
   returns a `Window`. **Keyset paging** reads the next ten after the last customer read, by a WHERE on her name and her id, never by
   skipping rows; the id is the tie-breaker Spring Data adds. A web route that pages is Course 9's (*REST APIs Done Right*).
 
-**Which tests run where: 18 on H2 in memory, 3 on PostgreSQL in a container.** `mvn package`, `mvn install`, `-Pnative` and the
-Dockerfile's `mvn -B package` run the 18 and need no Docker. `mvn verify` runs the 18, then the three container tests, and needs
+**Which tests run where: 18 on H2 in memory, 3 on PostgreSQL in a container.** *(Course 8, unit 07: 18 and 5 since — `CustomerAggregatesIT`'s
+2 run beside these 3, in the same execution; the Course 8 · unit 07 section above.)* `mvn package`, `mvn install`, `-Pnative` and the
+Dockerfile's `mvn -B package` run the 18 and need no Docker. `mvn verify` runs the 18, then the three container tests *(Course 8, unit 07: five since)*, and needs
 Docker; with no Docker it fails (`Could not find a valid Docker environment`). On OrbStack, Testcontainers does not find the engine by
 itself — export its socket, and switch Testcontainers' cleanup container (Ryuk) off, which would need a second image:
 
@@ -3190,7 +3219,7 @@ Built and run on **JDK 25.0.4.1** (`/opt/homebrew/opt/openjdk@25`) with **Maven 
 macOS on Apple silicon, **2026-09-14**, from a clean copy outside the repository, with an
 isolated local repository (`-Dmaven.repo.local=`) so nothing of ours reaches `~/.m2`.
 Offline receipt after one warm build: `mvn -o -B verify` → `BUILD SUCCESS`, exit 0, three runs. *(Course 7, unit 39: `verify` runs
-the three container tests since, and needs Docker — without one it fails; `package` and `install` do not. ../c7-unit39, `tests`.)* *(Course 6, unit 28: measured
+the three container tests since *(Course 8, unit 07: five since)*, and needs Docker — without one it fails; `package` and `install` do not. ../c7-unit39, `tests`.)* *(Course 6, unit 28: measured
 when TiffinBox had no tests; `package` and `install` run its eleven since *(Course 6, unit 31: eighteen since — `../c6-unit31/`, `tests`.)* — `../c6-unit28/`, `change` and `forms`.)*
 
 
