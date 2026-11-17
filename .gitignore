@@ -1205,3 +1205,13 @@ c7-unit40/.r-*
 c7-unit40/**/target/
 c7-unit40/**/secrets/
 spy.log
+
+# Course 8 (Spring Data beyond JPA): the anchor's isolated local repository, as c7-tiffinbox/.m2-demo/ above (added at setup, 2026-11-17).
+c8-tiffinbox/.m2-demo/
+# Course 8's units (added at setup, 2026-11-17, for all 28 at once): each unit's local repository, harness folder, unfinished capture
+# runs, build output and secrets - the five lines every Course 7 unit added for itself, as one pattern per line.
+c8-unit*/.m2-demo/
+c8-unit*/.harness/
+c8-unit*/.r-*
+c8-unit*/**/target/
+c8-unit*/**/secrets/
