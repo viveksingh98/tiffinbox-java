@@ -1,0 +1,13 @@
+<configuration>
+  <!-- Unit 37's harness: one line per event - level, thread, logger, message - and no stack trace (%nopex: the harness prints an
+       exception's class, message and causes itself). Liquibase's and Flyway's own loggers at INFO (their lines are the migration's
+       story: the changesets run, the summary, the lock), Hibernate's SQL logger at DEBUG, Hibernate's core logger from a run option
+       (logging.level.org.hibernate.orm.core=info, for HHH000001); the rest at WARN. -->
+  <appender name="O" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder><pattern>%-5level [%thread] %logger : %msg%n%nopex</pattern></encoder>
+  </appender>
+  <logger name="liquibase" level="INFO"/>
+  <logger name="org.flywaydb" level="INFO"/>
+  <logger name="org.hibernate.SQL" level="DEBUG"/>
+  <root level="WARN"><appender-ref ref="O"/></root>
+</configuration>
