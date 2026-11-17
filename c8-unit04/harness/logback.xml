@@ -1,0 +1,15 @@
+<configuration>
+  <!-- Unit 04's harness: one line per event - level, thread, logger, message - and no stack trace (%nopex: the harness prints an
+       exception's class and message itself). Spring Data's repository configuration at INFO (strict mode, each module's Found line,
+       "Could not safely identify"); Hibernate's SQL logger and JdbcTemplate's at DEBUG (the SQL each module issues is a logged line);
+       Hibernate's core logger at INFO (HHH000001); Flyway's at INFO; the rest at WARN. -->
+  <appender name="O" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder><pattern>%-5level [%thread] %logger : %msg%n%nopex</pattern></encoder>
+  </appender>
+  <logger name="org.flywaydb" level="INFO"/>
+  <logger name="org.hibernate.SQL" level="DEBUG"/>
+  <logger name="org.hibernate.orm.core" level="INFO"/>
+  <logger name="org.springframework.jdbc.core.JdbcTemplate" level="DEBUG"/>
+  <logger name="org.springframework.data.repository.config" level="INFO"/>
+  <root level="WARN"><appender-ref ref="O"/></root>
+</configuration>
