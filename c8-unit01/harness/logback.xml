@@ -1,0 +1,13 @@
+<configuration>
+  <!-- Unit 01's harness: one line per event - level, thread, logger, message - and no stack trace (%nopex: the harness prints an
+       exception's class itself). Spring Data's repository configuration at INFO (strict mode, each module's Found line); Hibernate's
+       core logger at INFO (HHH000001, the version line); Flyway's at INFO; the rest at WARN. No SQL logger: the statements are the
+       witness's (datasource-proxy), counted in labelled windows. -->
+  <appender name="O" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder><pattern>%-5level [%thread] %logger : %msg%n%nopex</pattern></encoder>
+  </appender>
+  <logger name="org.flywaydb" level="INFO"/>
+  <logger name="org.hibernate.orm.core" level="INFO"/>
+  <logger name="org.springframework.data.repository.config" level="INFO"/>
+  <root level="WARN"><appender-ref ref="O"/></root>
+</configuration>

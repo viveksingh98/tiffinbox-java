@@ -1,0 +1,1 @@
+That's the set of entities one Entity Manager has loaded and keeps track of, at most one object per row.
