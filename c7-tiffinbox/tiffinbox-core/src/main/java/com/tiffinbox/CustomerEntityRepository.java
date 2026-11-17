@@ -1,5 +1,7 @@
 package com.tiffinbox;
 
+import org.springframework.data.domain.ScrollPosition;
+import org.springframework.data.domain.Window;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -31,6 +33,12 @@ import java.util.Optional;
  * name) and its fetch plan named by {@code @EntityGraph(attributePaths = "pauses")}: the pauses come with the customers, in the
  * same statement, joined in (../c7-unit31, anchor). findAll(Sort) is still inherited and still used, by CustomerRepository.findAll()
  * - the list of customers reads no pause, so it asks for none.
+ *
+ * <p>Course 7, unit 39: a fifth, findFirst10ByOrderByNameAsc, the customers ten at a time by keyset: given the position of the last
+ * customer read - her name and her id - the next ten are the ones after it, read by a WHERE on those two columns, never by skipping
+ * rows (../c7-unit39, tests). The id is Spring Data's: it adds the primary key to the order and to the WHERE as a tie-breaker, so two
+ * customers with one name would still come in one order. Start with ScrollPosition.keyset(); the Window it returns says hasNext()
+ * and gives the next position. A web route that pages (GET /customers?page=) is Course 9's.
  */
 public interface CustomerEntityRepository extends JpaRepository<CustomerEntity, Long> {
 
@@ -48,4 +56,7 @@ public interface CustomerEntityRepository extends JpaRepository<CustomerEntity, 
     /** Every customer, by name, her pauses fetched with her - one statement, the pauses joined in by the entity graph. */
     @EntityGraph(attributePaths = "pauses")
     List<CustomerEntity> findAllByOrderByNameAsc();
+
+    /** Ten customers by name after the position given - by keyset (name, then id), so a page never skips or repeats a row. */
+    Window<CustomerEntity> findFirst10ByOrderByNameAsc(ScrollPosition position);
 }

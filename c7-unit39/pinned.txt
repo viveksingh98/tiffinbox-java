@@ -1,0 +1,2 @@
+H2 accepted TiffinBox's old AUTO_INCREMENT line and kept a half-applied migration; PostgreSQL refused the first and rolled back the second.
+SessionFactory.getStatistics().getPrepareStatementCount()

@@ -63,7 +63,14 @@ its section below.)* *(Course 7, unit 38, **Section 6's second change to this fo
 `@EntityListeners(AuditingEntityListener.class)`, `createdAt` (`@CreatedDate`, `@Column(updatable = false)`) and `updatedAt`
 (`@LastModifiedDate`); `TiffinBoxApp` gains `@EnableJpaAuditing`; `tiffinbox-core` gains `db/migration/V3__customer_audit_columns.sql`,
 the two columns. A customer added over HTTP carries both stamps; the four seeded customers keep none. Nothing a route returns moves.
-Unit 39 changes it next (C3); its section below.)*
+Unit 39 changes it next (C3); its section below.)* *(Course 7, unit 39, **Section 7's capstone: Course 7's final anchor (C3)** — Course 8
+starts from this tree, and unit 40 changes the repository's root README only: `tiffinbox-web/pom.xml` gains PostgreSQL's driver at run
+time (the executable jar holds it) and, in test scope, Boot's data-slice starter and Testcontainers, with a second Surefire execution,
+`container-tests`, that runs `*IT` classes at `mvn verify`; `tiffinbox-web/src/test` gains `slice/DataSlice.java` and
+`com/tiffinbox/CustomerEntityRepositoryIT.java`, three tests on PostgreSQL in a container; `CustomerEntityRepository` gains
+`findFirst10ByOrderByNameAsc(ScrollPosition)`, the customers ten at a time by keyset. The default URL is still H2 in memory; TiffinBox
+runs on PostgreSQL through the config tree's URL or the dev profile, and keeps a customer across a restart there. No mapping moves;
+its section below.)*
 
 ## Course 7 · unit 03 — the first entity: Boot 4.1.2, Spring Data JPA's starter, CustomerEntity on TiffinBox's own database (2026-11-01)
 
@@ -138,7 +145,8 @@ The course's second change to this folder, and the line Course 5 showed PostgreS
   (the mapping, `@GeneratedValue(strategy = GenerationType.IDENTITY)`, is unchanged).
 
 **On PostgreSQL 18** (`../c7-unit06`, `pgstart`; the driver `org.postgresql:postgresql` 42.7.14 — the version Boot 4.1.2 manages —
-on the class path beside the extracted jar; TiffinBox declares no Postgres driver): `--tiffinbox.jdbc-url` carries the user and the
+on the class path beside the extracted jar; TiffinBox declares no Postgres driver *(Course 7, unit 39: it does since —
+`org.postgresql:postgresql`, run-time scope, in the executable jar's `lib/`; ../c7-unit39, `anchor`)*): `--tiffinbox.jdbc-url` carries the user and the
 password (`jdbc:postgresql://127.0.0.1:<port>/<database>?user=sa&password=…`), because both ways into the database read that one
 URL — `Database` and `CustomerRepository` through `DriverManager` with `sa` and an empty password, Hibernate through Boot's Hikari
 pool *(Course 7, unit 17: `CustomerRepository` opens no `DriverManager` connection since — `Database`'s seed alone does)*. Hibernate prints that URL once at every start (`HHH10001005 … Database JDBC URL [...]`), password and all: mask it wherever
@@ -466,9 +474,11 @@ start is retired. Changed, besides this README:
 **The restart.** On a kept database a customer added over HTTP is still there after a restart: the second start finds the history
 table at version 2 (`Schema "public" is up to date. No migration necessary.`) and runs nothing. *(Course 7, unit 38: at version 3
 since — V3 adds two columns; ../c7-unit38, `anchor`.)* Measured on PostgreSQL with the
-course harness's driver on the class path (this tree holds no PostgreSQL driver) in ../c7-unit36, `anchor`. The default URL is still
+course harness's driver on the class path (this tree holds no PostgreSQL driver) in ../c7-unit36, `anchor`. *(Course 7, unit 39:
+the tree holds its own driver since, and the restart is measured with it alone; ../c7-unit39, `anchor`.)* The default URL is still
 `jdbc:h2:mem:tiffinbox`: a plain `java -jar` keeps its customers in memory, and a restart there still starts empty — the capstone
-moves TiffinBox's own database. **Unchanged:** the mapping (Hibernate's own DDL is unit 34's, byte for byte), the 18 tests, the seven. *(Course 7, unit 38: the
+moves TiffinBox's own database. *(Course 7, unit 39: the capstone keeps that default and adds the driver: on PostgreSQL — the config
+tree's URL or the dev profile — a customer stays across a restart; the default in-memory run still forgets her, by design.)* **Unchanged:** the mapping (Hibernate's own DDL is unit 34's, byte for byte), the 18 tests, the seven. *(Course 7, unit 38: the
 mapping moved — one line, the customer table's two audit columns; its section below.)*
 
 ## Course 7 · unit 38 — auditing dates: two stamps on the customer table, a third migration (2026-11-17)
@@ -490,6 +500,54 @@ this unit names and does not take: a made-up time is worse than none. Who made t
 Course 10, *Spring Security — complete*. `application.yaml` keeps `ddl-auto: validate`, and `validate` accepts the two new columns.
 **Unchanged:** the 18 tests, the seven (the record and the JSON carry no stamp), the dashboard's four SQL statements. **Moved:**
 Hibernate's own DDL — one line, the customer table's two columns. Unit 39 changes this folder next (C3).
+
+## Course 7 · unit 39 — the capstone: TiffinBox on PostgreSQL, its tests in a container, the customers by keyset (2026-11-17)
+
+Section 7's capstone and **Course 7's final change to this folder (C3)**: this tree is Course 8's starting point, and unit 40 changes the
+repository's root README only. Changed, besides this README:
+
+- `tiffinbox-web/pom.xml` — `org.postgresql:postgresql`, **run-time scope**: PostgreSQL's JDBC driver is in the executable jar's `lib/`
+  now, so TiffinBox starts on PostgreSQL with its own driver. In **test scope**, four more (Boot's parent manages every version,
+  Testcontainers 2.0.5): `spring-boot-starter-data-jpa-test` (the data layer's **test slice**, `@DataJpaTest` — a part of the
+  application started alone, as Course 6's *Testing the Web Layer* started the web layer), `spring-boot-testcontainers` (the **service
+  connection**: the container's URL, user and password handed to the slice's DataSource, as Course 5's *Docker Compose for Development*
+  did for the dev profile), `testcontainers-postgresql` and `testcontainers-junit-jupiter`. And a second Surefire execution,
+  `container-tests`, at `integration-test`: it runs the `*IT` classes, into `target/surefire-reports-it`; Surefire's own execution keeps
+  its default includes, which leave `*IT` out.
+- `tiffinbox-web/src/test/java/slice/DataSlice.java` — **new**: the configuration the data slice starts from (the entities, the
+  repositories and Spring Data's auditing listener — without it a customer the test saves keeps both stamps null; measured).
+- `tiffinbox-web/src/test/java/com/tiffinbox/CustomerEntityRepositoryIT.java` — **new**: three tests on PostgreSQL 18 in a container
+  started from the image named by its **digest** (`postgres@sha256:77f58511…`, one exact image, never a tag that can move): the
+  migrations are the schema (Flyway's history table, V2's four customers, `validate`); the dashboard's read of every customer with her
+  pauses is one prepared statement, counted by Hibernate's statistics, however many customers there are; forty customers come ten at a
+  time by keyset.
+- `tiffinbox-core/src/main/java/com/tiffinbox/CustomerEntityRepository.java` — `findFirst10ByOrderByNameAsc(ScrollPosition)`, which
+  returns a `Window`. **Keyset paging** reads the next ten after the last customer read, by a WHERE on her name and her id, never by
+  skipping rows; the id is the tie-breaker Spring Data adds. A web route that pages is Course 9's (*REST APIs Done Right*).
+
+**Which tests run where: 18 on H2 in memory, 3 on PostgreSQL in a container.** `mvn package`, `mvn install`, `-Pnative` and the
+Dockerfile's `mvn -B package` run the 18 and need no Docker. `mvn verify` runs the 18, then the three container tests, and needs
+Docker; with no Docker it fails (`Could not find a valid Docker environment`). On OrbStack, Testcontainers does not find the engine by
+itself — export its socket, and switch Testcontainers' cleanup container (Ryuk) off, which would need a second image:
+
+```bash
+export DOCKER_HOST=unix://$HOME/.orbstack/run/docker.sock
+export TESTCONTAINERS_RYUK_DISABLED=true
+mvn -B verify
+```
+
+On Docker Desktop the default discovery is expected to work (not measured here: no Docker Desktop ran on the author's Mac). With Ryuk
+off, a test JVM killed by force leaves its container: `docker ps -a --filter label=org.testcontainers=true` lists it, `docker rm -fv`
+removes it with its volume.
+
+**On PostgreSQL** (../c7-unit39, `anchor`): TiffinBox runs on PostgreSQL — the config tree's URL or the dev profile — with its
+own driver. With its URL in the config tree, `secrets/tiffinbox/jdbc-url`, TiffinBox migrates a fresh
+database (V1-V3) and keeps Kavya across a restart; on the dev profile, from Maven's class path, the Compose service's URL is the one
+Hibernate uses (`HHH10001005`), whatever `tiffinbox.jdbc-url` says (../c7-unit39, `dev`). The default URL stays
+`jdbc:h2:mem:tiffinbox`: `java -jar` with nothing installed still starts, and still forgets a customer at a restart, by design.
+**Unchanged:** `application.yaml`, `compose.yaml`, the mapping (Hibernate's own DDL is unit 38's, byte for byte), the seven, the
+dashboard's four SQL statements. Nothing is deleted or renamed. The migration folder is where Course 10's users table will go
+(*Spring Security — complete*).
 
 ## Course 6 · unit 04 — embedded Tomcat: TiffinBox's own server handed over (2026-10-12)
 
@@ -1467,7 +1525,8 @@ mvn -B -pl tiffinbox-web -Dtest=TiffinBoxWebTest clean test
 ```
 
 **`package` and `install` run the tests now.** `mvn -B package`, `mvn -B install` and their `-Pnative` forms run Surefire's `test` before they
-package: the eleven tests *(Course 6, unit 31: eighteen since — `../c6-unit31/`, `tests`.)*, and a failing test fails the build (exit 1, `BUILD FAILURE`). `-DskipTests` skips them: Course 4's
+package: the eleven tests *(Course 6, unit 31: eighteen since — `../c6-unit31/`, `tests`.)* *(Course 7, unit 39: still the eighteen, on H2
+in memory, with no Docker; `mvn verify` runs three more after them, on PostgreSQL in a container — ../c7-unit39, `tests`.)*, and a failing test fails the build (exit 1, `BUILD FAILURE`). `-DskipTests` skips them: Course 4's
 `mvn -q -DskipTests package` builds the jar and writes no report.
 `-pl tiffinbox-web` builds the web module alone and takes `tiffinbox-core` from your local Maven repository, so `mvn -B install` comes
 once first; `-Dtest=TiffinBoxWebTest` runs that one class (`-Dtest=TiffinBoxWebTest#theTestsRunInEnglish`: one method). The course's
@@ -2019,12 +2078,15 @@ no `compose.yaml` stops: `No Docker Compose file found in directory '…'`. With
 `--spring.docker.compose.enabled=false`. Without `dev` nothing changes — the jar, the jar extracted, the image and Maven's
 class path each serve the seven: the executable jar holds no Docker Compose support, and run with `dev` it starts nothing.
 
-**Postgres runs beside TiffinBox, not under it.** TiffinBox's `Database` still connects to `tiffinbox.jdbc-url`, H2 in
+**Postgres runs beside TiffinBox, not under it.** *(Course 7, unit 39: under it since — TiffinBox's schema is Flyway's three
+migrations, its jar holds the driver, and three of its tests run on PostgreSQL in a container; ../c7-unit39.)* TiffinBox's `Database` still connects to `tiffinbox.jdbc-url`, H2 in
 memory, and its SQL is H2's: pointed at this Postgres (`--tiffinbox.jdbc-url=jdbc:postgresql://127.0.0.1:18881/tiffinbox?user=tiffinbox`,
 with the Postgres driver on the class path), the start stops with `syntax error at or near "AUTO_INCREMENT"`. Postgres is
 Course 7's subject. *(Course 7, unit 06: that line is gone — `Database` writes `GENERATED BY DEFAULT AS IDENTITY` since, and
 TiffinBox starts on PostgreSQL 18 with the driver on its class path and the user and password in the URL; it still drops and
-re-seeds both tables at every start. ../c7-unit06, `pgstart`.)* With Spring Boot's JDBC module and the Postgres driver on the class path (not in this project), Boot
+re-seeds both tables at every start. ../c7-unit06, `pgstart`.)* With Spring Boot's JDBC module and the Postgres driver on the class path (not in this project *(Course 7, unit 39: both are,
+since — Spring Data JPA's starter brings the first, unit 39 the second; on Maven's class path the dev profile's service connection is
+the URL Hibernate uses, ../c7-unit39, `dev`)*), Boot
 registers the database's address as a bean — `jdbcConnectionDetailsForTiffinboxDevPostgres1`,
 `jdbc:postgresql://127.0.0.1:18881/tiffinbox`, user `tiffinbox` — but with no connection pool on the class path its
 `DataSource` is an embedded H2. Evidence in `../c5-unit17/`.
@@ -2825,7 +2887,8 @@ scope — JUnit Jupiter, AssertJ, Mockito, spring-test and Boot's test modules a
 > top). The manifest and the `lib/` listing below are Course 3's, kept as they were written. *(Course 6, unit 08: and Jackson 2's
 > `jackson-databind` and `jackson-core` are out of the build — `../c6-unit08/`, `jackson`.)* *(Course 6, unit 28: and web's test
 > step — Surefire's `surefire:3.5.6:test`, which said `No tests to run.` until then — runs TiffinBox's eleven tests before the jar is
-> made *(Course 6, unit 31: eighteen since — `../c6-unit31/`, `tests`.)*; `../c6-unit28/`, `change`.)*
+> made *(Course 6, unit 31: eighteen since — `../c6-unit31/`, `tests`.)*; `../c6-unit28/`, `change`.)* *(Course 7, unit 39: which
+> commands need Docker is in the unit 39 section at the top.)*
 
 ```bash
 export JAVA_HOME=/opt/homebrew/opt/openjdk@25
@@ -3057,7 +3120,8 @@ modules.
 Built and run on **JDK 25.0.4.1** (`/opt/homebrew/opt/openjdk@25`) with **Maven 3.9.16**,
 macOS on Apple silicon, **2026-09-14**, from a clean copy outside the repository, with an
 isolated local repository (`-Dmaven.repo.local=`) so nothing of ours reaches `~/.m2`.
-Offline receipt after one warm build: `mvn -o -B verify` → `BUILD SUCCESS`, exit 0, three runs. *(Course 6, unit 28: measured
+Offline receipt after one warm build: `mvn -o -B verify` → `BUILD SUCCESS`, exit 0, three runs. *(Course 7, unit 39: `verify` runs
+the three container tests since, and needs Docker — without one it fails; `package` and `install` do not. ../c7-unit39, `tests`.)* *(Course 6, unit 28: measured
 when TiffinBox had no tests; `package` and `install` run its eleven since *(Course 6, unit 31: eighteen since — `../c6-unit31/`, `tests`.)* — `../c6-unit28/`, `change` and `forms`.)*
 
 

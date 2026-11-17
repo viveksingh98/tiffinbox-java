@@ -99,12 +99,45 @@
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-database-postgresql</artifactId>
     </dependency>
+    <!-- Course 7, unit 39: PostgreSQL's JDBC driver, at run time - in the executable jar's lib/ beside H2, so TiffinBox starts on
+         PostgreSQL with its own driver when its URL (the config tree's secrets/tiffinbox/jdbc-url, or the dev profile's Compose
+         service) names one. The default URL stays H2 in memory. Boot's parent manages its version (42.7.14). -->
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
     <!-- Course 6: TiffinBox's tests, in src/test. Test scope: on the tests' class path only - the executable jar holds the
          same libraries without it. Boot's starter brings JUnit, AssertJ, Mockito, spring-test (MockMvc, @MockitoBean,
          RestTestClient) and Boot's test modules (@WebMvcTest, @SpringBootTest). Boot's parent manages its version. -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webmvc-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Course 7, unit 39: the data layer's test slice (@DataJpaTest, from Boot's starter) and Testcontainers 2.0.5 - a PostgreSQL
+         container started by the test itself (testcontainers-postgresql), its lifecycle tied to JUnit (testcontainers-junit-jupiter),
+         and Boot's service connection, which hands the slice the container's URL (spring-boot-testcontainers). Test scope: the
+         executable jar holds none of them. Boot's parent manages every version. Only CustomerEntityRepositoryIT uses them, and only
+         mvn verify runs it - the container-tests execution below. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jpa-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-testcontainers</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-postgresql</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -154,6 +187,33 @@
             </exclusion>
           </exclusions>
         </configuration>
+      </plugin>
+
+      <!-- Course 7, unit 39: the container tests. Surefire's own execution, default-test, runs at the test phase with Surefire's
+           default includes (**/Test*.java, **/*Test.java, **/*Tests.java, **/*TestCase.java), which leave **/*IT.java out: the 18
+           tests on H2 in memory, so mvn package, mvn install, -Pnative and the Dockerfile's mvn -B package need no Docker. This
+           second execution runs at integration-test - after package, so only mvn verify and later phases reach it - and runs the
+           *IT classes alone, into a report folder of its own: CustomerEntityRepositoryIT's three tests on PostgreSQL in a container.
+           It needs Docker; without one it fails, and so does mvn verify (Could not find a valid Docker environment). Surefire's,
+           not Failsafe: the course's Maven repository holds no Failsafe plugin, and Surefire's second execution needs nothing new. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>container-tests</id>
+            <phase>integration-test</phase>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include>**/*IT.java</include>
+              </includes>
+              <reportsDirectory>${project.build.directory}/surefire-reports-it</reportsDirectory>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
       <!-- exec:exec forks a real JVM. It no longer has to pass the preview flag. -->
