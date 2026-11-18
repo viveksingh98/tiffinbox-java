@@ -92,6 +92,17 @@ spring:
     # request: with no key Boot registers OpenEntityManagerInViewInterceptor (and logs a WARN at every start); "true" keeps
     # the interceptor and drops only the WARN.
     open-in-view: false
+  # Course 8, unit 10: the cache - Caffeine's, since its library is on the class path (tiffinbox-web/pom.xml). cache-names makes
+  # the caches at the start, here the one TiffinBox has, customers (CustomerRepository.findAll()'s); with names given the
+  # manager is static - a name not listed has no cache, and a @Cacheable on it throws at the call (Cannot find cache named).
+  # Micrometer reports only the caches named at the start: without the line Caffeine still counts, and /actuator/prometheus
+  # holds no cache_ line. The spec: a ceiling of 100 entries - the customer list is one entry, its key SimpleKey [], so it
+  # never reaches it - and recordStats, which turns on Caffeine's counts (hits, misses, evictions). Above the "---": below
+  # it, only the rush profile would cache this way.
+  cache:
+    cache-names: customers
+    caffeine:
+      spec: maximumSize=100,recordStats
   web:
     resources:
       chain:

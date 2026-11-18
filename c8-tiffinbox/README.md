@@ -16,7 +16,7 @@ migrations (V1-V3) with `ddl-auto: validate`; two auditing stamps on the custome
 (`CustomerEntityRepositoryIT`, started from `slice/DataSlice`, run by `mvn verify` only) *(Course 8, unit 07: 23 tests since — 18 on H2 in
 memory and 5 on PostgreSQL in a container, `CustomerAggregatesIT`'s 2 beside those 3, started from `slice/JdbcSlice`; its section below)*. *(Course 8, unit 02, **Course 8's first change to
 this folder (C1)**: the data layer has two Spring Data modules since — Spring Data JPA's `CustomerEntityRepository`, as Course 7 left it,
-and Spring Data JDBC's `CustomerAggregates` beside it, over the same two tables; its section below.)* *(Course 8, unit 08, **Section 2's first change to this folder**: Spring's cache abstraction — `CustomerRepository.findAll()` is cached since, in the JVM, and `add` empties that cache; its section below.)* Course 8's units are planned to put a
+and Spring Data JDBC's `CustomerAggregates` beside it, over the same two tables; its section below.)* *(Course 8, unit 08, **Section 2's first change to this folder**: Spring's cache abstraction — `CustomerRepository.findAll()` is cached since, in the JVM, and `add` empties that cache; its section below.)* *(Course 8, unit 10, **Section 2's second change to this folder**: that cache is Caffeine's since — bounded and counted, its hits and misses on `/actuator/prometheus`; its section below.)* Course 8's units are planned to put a
 number on what the persistence context costs and to add Spring's other data modules beside it — Spring Data JDBC, the cache
 abstraction, Redis, MongoDB, Elasticsearch — one measured claim at a time, and each unit that changes this folder records it
 below as a `## Course 8 · unit NN` section, as Course 7's did. *(Course 8, unit 02: Spring Data JDBC is beside Spring Data JPA since —
@@ -105,7 +105,7 @@ answer. Three files changed, besides this README; nothing deleted, no YAML key, 
 unchanged:
 - `tiffinbox-web/pom.xml` — **`spring-boot-starter-cache`** (no version: Boot's parent manages it): `spring-context-support` and Boot's
   `spring-boot-cache` module. With no cache library on the class path Boot builds a **`ConcurrentMapCacheManager`**: each cache a
-  `ConcurrentHashMap`, in the JVM.
+  `ConcurrentHashMap`, in the JVM. *(Course 8, unit 10: Caffeine is on the class path since — Boot builds a `CaffeineCacheManager`, each cache a Caffeine cache, in the JVM; its section below.)*
 - `tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxApp.java` — **`@EnableCaching`**, beside `@EnableJpaAuditing`. Without it the
   annotations below do nothing, and nothing says so: no cache manager, every call runs its method, no error, no log line
   (`../c8-unit08`, `off`).
@@ -121,6 +121,31 @@ cached list. TiffinBoxServer's own start-time read runs before caching is live: 
 does not:** the 18 tests on H2 in memory and the 5 on PostgreSQL in a container, unchanged; the seven comparison requests, the same
 answers; both Spring Data modules' repositories. The numbers — the cache manager's class, the two counters per call, the rows read back,
 the libraries the jar gained — are in `../c8-unit08`'s README, read off its captures.
+
+---
+
+## Course 8 · unit 10 — Caffeine: a bounded, counted cache, and its meters on /actuator/prometheus (2026-11-18)
+
+Course 8's fourth change to this folder, **Section 2's second**: `../c8-unit10/after`, whose `before` is the link to `../c8-unit08/after`.
+The cache unit 08 put in front of `CustomerRepository.findAll()` is **Caffeine**'s since — a cache library for the JVM whose caches are
+bounded (a ceiling on the entries each keeps; past it, Caffeine evicts — drops an entry) and counted (hits, misses, evictions). Two files
+changed, besides this README; nothing deleted, no Java file, Flyway's V1-V3 untouched, Hibernate's schema script unchanged:
+- `tiffinbox-web/pom.xml` — **`com.github.ben-manes.caffeine:caffeine`** (no version: Boot's parent manages it). With it on the class
+  path Boot's cache module builds a **`CaffeineCacheManager`** in place of the `ConcurrentMapCacheManager`.
+- `tiffinbox-web/src/main/resources/application.yaml` — under `spring:`, above the `---`: **`spring.cache.cache-names: customers`** (the
+  one cache TiffinBox has, made at the start) and **`spring.cache.caffeine.spec: maximumSize=100,recordStats`** (the ceiling, and Caffeine's
+  counts switched on). With names given the manager is static: a name not listed has no cache, and a `@Cacheable` on it throws at the
+  call. Micrometer reports only the caches named at the start — without the line Caffeine still counts, and `/actuator/prometheus` holds
+  no `cache_` line for `customers` (`../c8-unit10`, `nonames`).
+
+**What it changes:** the customer list is kept by Caffeine, in the JVM; its hits and misses, its size and its evictions are lines of
+`/actuator/prometheus`, which TiffinBox already exposed (Course 5): the exposure, `health,prometheus`, is unchanged, and
+`/actuator/caches` and `/actuator/metrics` stay unexposed. The cache holds one entry, the list, so it never reaches its ceiling.
+**What it does not:** `CustomerRepository` and `TiffinBoxApp` are as unit 08 left them — five calls of `findAll()` still reach Spring
+Data JPA's repository once, and `add` still empties the cache; `findByName` stays uncached; the 18 tests on H2 in memory and the 5 on
+PostgreSQL in a container, unchanged; the seven comparison requests, the same answers. The numbers — the cache manager's class, the two
+counters per call, Caffeine's counts beside the prometheus lines, the libraries the jar gained — are in `../c8-unit10`'s README, read off
+its captures.
 
 ---
 

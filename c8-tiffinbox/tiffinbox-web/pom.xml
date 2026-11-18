@@ -105,6 +105,14 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-cache</artifactId>
     </dependency>
+    <!-- Course 8, unit 10: Caffeine, a cache library for the JVM - each cache bounded (a ceiling on its entries, the spec in
+         application.yaml) and counted (its hits and misses). With it on the class path Boot's cache module builds a
+         CaffeineCacheManager in place of the ConcurrentMapCacheManager above, and Micrometer reports each cache named at the start
+         on /actuator/prometheus. Boot's parent manages its version. -->
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+    </dependency>
     <!-- Course 7, unit 36: Flyway. Boot's Flyway starter brings spring-boot-flyway, the auto-configuration that runs the
          migrations in tiffinbox-core's db/migration at every start, before Hibernate starts - flyway-core alone runs nothing
          (../c7-unit36, jars). flyway-database-postgresql is Flyway's PostgreSQL support: without it a start on PostgreSQL stops,
