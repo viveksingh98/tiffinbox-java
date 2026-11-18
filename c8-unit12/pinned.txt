@@ -1,0 +1,1 @@
+A cache holds what the method last returned; a write that never passes through the cache leaves it serving the old value.
