@@ -16,7 +16,7 @@ migrations (V1-V3) with `ddl-auto: validate`; two auditing stamps on the custome
 (`CustomerEntityRepositoryIT`, started from `slice/DataSlice`, run by `mvn verify` only) *(Course 8, unit 07: 23 tests since — 18 on H2 in
 memory and 5 on PostgreSQL in a container, `CustomerAggregatesIT`'s 2 beside those 3, started from `slice/JdbcSlice`; its section below)*. *(Course 8, unit 02, **Course 8's first change to
 this folder (C1)**: the data layer has two Spring Data modules since — Spring Data JPA's `CustomerEntityRepository`, as Course 7 left it,
-and Spring Data JDBC's `CustomerAggregates` beside it, over the same two tables; its section below.)* *(Course 8, unit 08, **Section 2's first change to this folder**: Spring's cache abstraction — `CustomerRepository.findAll()` is cached since, in the JVM, and `add` empties that cache; its section below.)* *(Course 8, unit 10, **Section 2's second change to this folder**: that cache is Caffeine's since — bounded and counted, its hits and misses on `/actuator/prometheus`; its section below.)* *(Course 8, unit 11, **Section 2's third change to this folder**: on the default run only, since — under the profile "dev" the cache is Redis's, the service `compose.yaml` starts, through the cache writer TiffinBox gives it and a JSON serializer; the default run keeps Caffeine, in the JVM, and needs no Redis; its section below.)* *(Course 8, unit 12, **Section 2's fourth change to this folder**: the cached list carries a time to live since, in Caffeine and in Redis alike — the backstop for the writes the cache never sees; its section below.)* Course 8's units are planned to put a
+and Spring Data JDBC's `CustomerAggregates` beside it, over the same two tables; its section below.)* *(Course 8, unit 08, **Section 2's first change to this folder**: Spring's cache abstraction — `CustomerRepository.findAll()` is cached since, in the JVM, and `add` empties that cache; its section below.)* *(Course 8, unit 10, **Section 2's second change to this folder**: that cache is Caffeine's since — bounded and counted, its hits and misses on `/actuator/prometheus`; its section below.)* *(Course 8, unit 11, **Section 2's third change to this folder**: on the default run only, since — under the profile "dev" the cache is Redis's, the service `compose.yaml` starts, through the cache writer TiffinBox gives it and a JSON serializer; the default run keeps Caffeine, in the JVM, and needs no Redis; its section below.)* *(Course 8, unit 12, **Section 2's fourth change to this folder**: the cached list carries a time to live since, in Caffeine and in Redis alike — the backstop for the writes the cache never sees; its section below.)* *(Course 8, unit 13, **Section 2's fifth and last change to this folder**: the cold list is read once for every thread that waits on it, in one JVM (`sync = true`), and `findByName` is cached, unless it finds no one; Section 3 starts here; its section below.)* Course 8's units are planned to put a
 number on what the persistence context costs and to add Spring's other data modules beside it — Spring Data JDBC, the cache
 abstraction, Redis, MongoDB, Elasticsearch — one measured claim at a time, and each unit that changes this folder records it
 below as a `## Course 8 · unit NN` section, as Course 7's did. *(Course 8, unit 02: Spring Data JDBC is beside Spring Data JPA since —
@@ -112,7 +112,7 @@ unchanged:
 - `tiffinbox-core/src/main/java/com/tiffinbox/CustomerRepository.java` — **`@Cacheable("customers")`** on `findAll()`, and
   **`@CacheEvict(cacheNames = "customers", allEntries = true)`** on `add`, beside its `@Transactional(rollbackFor = SQLException.class)`.
   `tiffinbox-core` already depends on `spring-context`, which holds both annotations: no new dependency there. `findByName` and
-  `pausedDaysByCustomer` stay uncached. The proxy that ran `add`'s transaction (the class has not been final since Course 7) runs the
+  `pausedDaysByCustomer` stay uncached *(Course 8, unit 13: `findByName` is cached since, in `customer`, unless it finds no one; `pausedDaysByCustomer` still is not; its section below)*. The proxy that ran `add`'s transaction (the class has not been final since Course 7) runs the
   cache's advice too.
 
 **What it changes:** five calls of `findAll()` reach Spring Data JPA's repository once and send one statement, on H2 in memory and on
@@ -142,7 +142,7 @@ changed, besides this README; nothing deleted, no Java file, Flyway's V1-V3 unto
 `/actuator/prometheus`, which TiffinBox already exposed (Course 5): the exposure, `health,prometheus`, is unchanged, and
 `/actuator/caches` and `/actuator/metrics` stay unexposed. The cache holds one entry, the list, so it never reaches its ceiling.
 **What it does not:** `CustomerRepository` and `TiffinBoxApp` are as unit 08 left them — five calls of `findAll()` still reach Spring
-Data JPA's repository once, and `add` still empties the cache; `findByName` stays uncached; the 18 tests on H2 in memory and the 5 on
+Data JPA's repository once, and `add` still empties the cache; `findByName` stays uncached *(Course 8, unit 13: cached since, in `customer`, unless it finds no one; its section below.)*; the 18 tests on H2 in memory and the 5 on
 PostgreSQL in a container, unchanged; the seven comparison requests, the same answers. The numbers — the cache manager's class, the two
 counters per call, Caffeine's counts beside the prometheus lines, the libraries the jar gained — are in `../c8-unit10`'s README, read off
 its captures.
@@ -196,7 +196,7 @@ Boot's Compose support then starts both containers and waits, TiffinBox caches i
 **What it does not:** the default run — `java -jar` with nothing else, H2 in memory — builds a `CaffeineCacheManager`, needs no Redis and
 answers `/actuator/health` with 200; `RedisCaching`'s beans are not built there. The 18 tests on H2 in memory and the 5 on PostgreSQL in a
 container run as before, on Caffeine; `mvn package` still runs the 18 and needs no Docker (`../c8-unit11`, `nodocker`); the seven
-comparison requests, the same answers; `findByName` stays uncached. Spring Data's strict repository mode now names a third module,
+comparison requests, the same answers; `findByName` stays uncached *(Course 8, unit 13: cached since, in `customer`, unless it finds no one; its section below.)*. Spring Data's strict repository mode now names a third module,
 Spring Data Redis, with no repository of its own. The numbers — the managers, the two counters per call, the bytes by `redis-cli`, the
 writer's rounds, the libraries the jar gained — are in `../c8-unit11`'s README, read off its captures.
 
@@ -221,9 +221,38 @@ schema script unchanged:
 `expireAfterWrite` present where unit 11's read it absent — and the next read reaches the table again (`../c8-unit12`, `ttl`, on a labelled
 short override, said as counts: keys 1 → 0, invocations 1 → 2). **What it does not:** `add` still evicts on TiffinBox's own writes; a
 write around the cache still serves the old list until the entry's time to live runs out; a cold list read by several threads together
-still reaches the table more than once (`../c8-unit12`, `stampede` — unit 13's `sync` takes that on); the default run still needs no
+still reaches the table more than once (`../c8-unit12`, `stampede` — unit 13's `sync` takes that on *(Course 8, unit 13: it has — one read in every round, in one JVM; its section below)*); the default run still needs no
 Redis; the 18 tests on H2 in memory and the 5 on PostgreSQL in a container, unchanged; the seven comparison requests, the same answers;
-`findByName` stays uncached. The numbers are in `../c8-unit12`'s README, read off its captures.
+`findByName` stays uncached *(Course 8, unit 13: cached since, in `customer`, unless it finds no one; its section below.)*. The numbers are in `../c8-unit12`'s README, read off its captures.
+
+---
+
+## Course 8 · unit 13 — Conditional Caching, sync and Nulls: one read for every waiting thread, and the empty answer the cache keeps (2026-11-18)
+
+Course 8's seventh change to this folder, **Section 2's fifth and last**: `../c8-unit13/after`, whose `before` is the link to
+`../c8-unit12/after`. **Section 3 starts here**, on this tree. Two files changed, besides this README; nothing new, nothing deleted, no
+`pom.xml`, no `compose.yaml`, `RedisCaching` unchanged, Flyway's V1-V3 untouched, Hibernate's schema script unchanged:
+- `tiffinbox-core/src/main/java/com/tiffinbox/CustomerRepository.java` — **`@Cacheable(cacheNames = "customers", sync = true)`** on
+  `findAll()`: the same cache, the same key; on a miss one caller runs the method, and the callers that ask meanwhile wait for its
+  list. **`@Cacheable(cacheNames = "customer", unless = "#result == null")`** on `findByName`, uncached since Course 7: the key is the
+  name (Spring's default key for a method of one argument); the cache unwraps the `Optional`, so `#result` is the customer or null,
+  and a lookup that finds no one is not kept. `add` evicts nothing in `customer`: an absent name is never stored there, and `add` of a
+  stored name is refused by the table's unique name. Unit 12's time to live bounds these entries too. The class's Javadoc notes it,
+  and says why the two attributes never sit on one method: a synchronized cache refuses `unless` at the first call.
+- `tiffinbox-web/src/main/resources/application.yaml` — `spring.cache.cache-names: customers,customer`: with names given the
+  manager is static, and a cache not named at the start would make `findByName` throw at its first call (`Cannot find cache named`).
+  The comment that said "the one TiffinBox has" carries its unit 13 note.
+
+**What it changes:** a cold customer list read by several threads together reaches the table once, every thread receiving the list,
+in one JVM — Caffeine's cache or the cache writer TiffinBox gives Redis (`../c8-unit13`, `sync`; unit 12's tree read once per thread).
+A lookup by name is answered from `customer` once it has found her; a lookup that finds no one asks the table every time, so a
+customer added after a failed lookup is found by the next one (`../c8-unit13`, `unless`). Without `unless` the empty answer is kept —
+a holder of null in Caffeine, `NullValue`'s bytes in Redis — and the added customer stays invisible to `findByName` and to
+`GET /customers/{name}` until the entry goes (`../c8-unit13`, `nulls`, on a labelled copy). `/actuator/prometheus` holds cache lines
+for both names. **What it does not:** `add` still empties the list's cache; a write around the cache still serves the old list until
+the entry's time to live runs out; the default run still needs no Redis; the 18 tests on H2 in memory and the 5 on PostgreSQL in a
+container, unchanged; the seven comparison requests, the same answers; `pausedDaysByCustomer` stays uncached. The numbers are in
+`../c8-unit13`'s README, read off its captures.
 
 ---
 

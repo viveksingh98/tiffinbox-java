@@ -48,9 +48,14 @@ import java.util.stream.Collectors;
  * annotations, TiffinBoxApp's {@code @EnableCaching}) - and add empties that cache, {@code @CacheEvict(cacheNames = "customers",
  * allEntries = true)}: a hit returns the list the cache already holds, and neither the repository nor the database is asked. The
  * proxy that ran add's transaction runs the cache's advice too. findByName and pausedDaysByCustomer stay uncached
- * (../c8-unit08, hits and evict).
+ * (../c8-unit08, hits and evict). (Course 8, unit 13: findByName is cached since, in "customer", unless it finds no one;
+ * pausedDaysByCustomer still is not - ../c8-unit13, unless.)
  *
  * <p>Course 8, unit 11: findAll collects into an ArrayList, the list Redis's JSON serializer reads back (../c8-unit11, json).
+ *
+ * <p>Course 8, unit 13: findAll's cache is synchronized - {@code sync = true}: on a miss one thread runs the method and the threads
+ * that asked for the same key meanwhile wait for its answer, in one JVM (../c8-unit13, sync). findByName is cached in "customer",
+ * under the name, and an empty answer is not kept - {@code unless = "#result == null"} (../c8-unit13, nulls and unless).
  */
 @Component
 public class CustomerRepository {
@@ -73,8 +78,14 @@ public class CustomerRepository {
      * (../c8-unit11, json). On the default run the cache is Caffeine's, in the JVM, and every hit returns this one ArrayList, the
      * same instance to every caller: none of them changes it - TiffinBoxServer returns it or filters it into a new list, and
      * iterates it; KitchenHealthIndicator reads its size; Dashboard maps it.
+     *
+     * <p>Course 8, unit 13: {@code sync = true}, the same cache and the same key. On a miss the cache lets one caller run this
+     * method; the callers that ask for the list while it runs wait, and each gets the list it returned - one read of the table
+     * for all of them, in one JVM (../c8-unit13, sync: 1 in every round, where unit 12's tree read once per thread). Under the
+     * profile "dev" the waiting is done by the cache writer TiffinBox gives Redis (RedisCaching), in this JVM; a second server
+     * runs its own read.
      */
-    @Cacheable("customers")
+    @Cacheable(cacheNames = "customers", sync = true)
     public List<Customer> findAll() throws SQLException {
         return customers.findAll(Sort.by("name")).stream().map(CustomerRepository::toRecord)
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -87,7 +98,17 @@ public class CustomerRepository {
     /**
      * The customer whose name is exactly this one - a parameter, never part of the SQL - or none: Spring Data's derived
      * findByName, the entity mapped to the record the web layer reads.
+     *
+     * <p>Course 8, unit 13: cached in "customer", under the name (Spring's default key for a method of one argument), unless the
+     * result is null. The cache unwraps the Optional this method returns: #result is the customer, or null when there is none,
+     * so a lookup that finds no one is not kept, and the next lookup of that name asks the table again - a customer added
+     * after a failed lookup is found (../c8-unit13, unless). Without the condition the empty answer is kept, a holder of null,
+     * and a customer added after it stays invisible to this method until the entry goes (../c8-unit13, nulls). add evicts
+     * nothing here: an absent name is never stored, and add of a stored name is refused by the table's unique name. The time
+     * to live application.yaml sets bounds these entries too (unit 12's backstop). It cannot carry sync = true as well: a
+     * synchronized cache refuses unless at the first call (../c8-unit13, syncunless).
      */
+    @Cacheable(cacheNames = "customer", unless = "#result == null")
     public Optional<Customer> findByName(String name) throws SQLException {
         return customers.findByName(name).map(CustomerRepository::toRecord);
     }

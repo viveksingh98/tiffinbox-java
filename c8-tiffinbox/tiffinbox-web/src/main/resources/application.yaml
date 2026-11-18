@@ -93,7 +93,8 @@ spring:
     # the interceptor and drops only the WARN.
     open-in-view: false
   # Course 8, unit 10: the cache - Caffeine's, since its library is on the class path (tiffinbox-web/pom.xml). cache-names makes
-  # the caches at the start, here the one TiffinBox has, customers (CustomerRepository.findAll()'s); with names given the
+  # the caches at the start, here the one TiffinBox has, customers (CustomerRepository.findAll()'s) (Course 8, unit 13: two
+  # since - customer too, findByName's, under each name it finds); with names given the
   # manager is static - a name not listed has no cache, and a @Cacheable on it throws at the call (Cannot find cache named).
   # Micrometer reports only the caches named at the start: without the line Caffeine still counts, and /actuator/prometheus
   # holds no cache_ line. The spec: a ceiling of 100 entries - the customer list is one entry, its key SimpleKey [], so it
@@ -114,7 +115,7 @@ spring:
   # and so in the native binary, the spec is fixed when the jar is built.
   cache:
     type: caffeine
-    cache-names: customers
+    cache-names: customers,customer
     caffeine:
       spec: maximumSize=100,recordStats,expireAfterWrite=10m
     redis:
