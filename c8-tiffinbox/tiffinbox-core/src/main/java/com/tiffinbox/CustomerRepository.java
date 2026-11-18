@@ -9,10 +9,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Rows in, records out (this class's first line, from Core Java II's TiffinBox - not Course 7's units). Nothing above this class
@@ -47,6 +49,8 @@ import java.util.Optional;
  * allEntries = true)}: a hit returns the list the cache already holds, and neither the repository nor the database is asked. The
  * proxy that ran add's transaction runs the cache's advice too. findByName and pausedDaysByCustomer stay uncached
  * (../c8-unit08, hits and evict).
+ *
+ * <p>Course 8, unit 11: findAll collects into an ArrayList, the list Redis's JSON serializer reads back (../c8-unit11, json).
  */
 @Component
 public class CustomerRepository {
@@ -62,10 +66,18 @@ public class CustomerRepository {
     /**
      * Every customer, by name: Spring Data's findAll(Sort), each entity mapped to the record the web layer reads. Course 8, unit 08:
      * cached in "customers" under the key of a call with no argument; add empties the cache.
+     *
+     * <p>Course 8, unit 11: the list is collected into an ArrayList. Under the profile "dev" the cache is Redis's, and every cached
+     * value crosses RedisCaching's JSON serializer: an ArrayList is written with its class beside it and comes back an ArrayList,
+     * while the list Stream.toList() returns is written with no class of its own, and the next read - the hit - throws
+     * (../c8-unit11, json). On the default run the cache is Caffeine's, in the JVM, and every hit returns this one ArrayList, the
+     * same instance to every caller: none of them changes it - TiffinBoxServer returns it or filters it into a new list, and
+     * iterates it; KitchenHealthIndicator reads its size; Dashboard maps it.
      */
     @Cacheable("customers")
     public List<Customer> findAll() throws SQLException {
-        return customers.findAll(Sort.by("name")).stream().map(CustomerRepository::toRecord).toList();
+        return customers.findAll(Sort.by("name")).stream().map(CustomerRepository::toRecord)
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     private static Customer toRecord(CustomerEntity e) {

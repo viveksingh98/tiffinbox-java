@@ -6,3 +6,14 @@ spring:
   docker:
     compose:
       enabled: true
+  # Course 8, unit 11: the profile "dev" caches in Redis - the service compose.yaml starts beside Postgres - through
+  # RedisCaching's cache writer and JSON serializer. Boot's Docker Compose support hands TiffinBox Redis's address (no
+  # spring.data.redis key here), as it hands it Postgres's.
+  cache:
+    type: redis
+# Course 8, unit 11: Redis's health indicator, on again (application.yaml switches it off): with Redis down, /actuator/health
+# answers 503.
+management:
+  health:
+    redis:
+      enabled: true

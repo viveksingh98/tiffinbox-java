@@ -99,7 +99,12 @@ spring:
   # holds no cache_ line. The spec: a ceiling of 100 entries - the customer list is one entry, its key SimpleKey [], so it
   # never reaches it - and recordStats, which turns on Caffeine's counts (hits, misses, evictions). Above the "---": below
   # it, only the rush profile would cache this way.
+  # Course 8, unit 11: type: caffeine. Spring Data Redis is on the class path too since (tiffinbox-web/pom.xml), and with both
+  # Boot's cache module would build a RedisCacheManager; this line keeps the default run's cache Caffeine's, in the JVM - it
+  # needs no Redis. The profile "dev" sets redis (application-dev.yaml), as a JVM run's: under Spring's AOT step, and so in the
+  # native binary, the cache's type is fixed when the jar is built.
   cache:
+    type: caffeine
     cache-names: customers
     caffeine:
       spec: maximumSize=100,recordStats
@@ -136,6 +141,13 @@ management:
     web:
       exposure:
         include: health,prometheus
+  # Course 8, unit 11: Redis's health indicator, off. Spring Data Redis's starter brings one, and with no Redis to answer it
+  # would turn /actuator/health DOWN (503) on the default run, which keeps no Redis; readiness and the dashboard do not read
+  # it. The profile "dev", whose Redis Compose starts, switches it on (application-dev.yaml). Under Spring's AOT step, and so in
+  # the native binary, this is fixed when the jar is built.
+  health:
+    redis:
+      enabled: false
   # Health's groups. Readiness - "send TiffinBox traffic?" - holds Boot's own readiness state and the kitchen
   # (KitchenHealthIndicator: DOWN when the database does not answer). Liveness - "restart TiffinBox?" - stays Boot's own
   # state alone: a restart cannot bring back a database outside the process. (TiffinBox's own H2 lives in memory, and a

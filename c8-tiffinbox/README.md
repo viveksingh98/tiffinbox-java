@@ -16,7 +16,7 @@ migrations (V1-V3) with `ddl-auto: validate`; two auditing stamps on the custome
 (`CustomerEntityRepositoryIT`, started from `slice/DataSlice`, run by `mvn verify` only) *(Course 8, unit 07: 23 tests since — 18 on H2 in
 memory and 5 on PostgreSQL in a container, `CustomerAggregatesIT`'s 2 beside those 3, started from `slice/JdbcSlice`; its section below)*. *(Course 8, unit 02, **Course 8's first change to
 this folder (C1)**: the data layer has two Spring Data modules since — Spring Data JPA's `CustomerEntityRepository`, as Course 7 left it,
-and Spring Data JDBC's `CustomerAggregates` beside it, over the same two tables; its section below.)* *(Course 8, unit 08, **Section 2's first change to this folder**: Spring's cache abstraction — `CustomerRepository.findAll()` is cached since, in the JVM, and `add` empties that cache; its section below.)* *(Course 8, unit 10, **Section 2's second change to this folder**: that cache is Caffeine's since — bounded and counted, its hits and misses on `/actuator/prometheus`; its section below.)* Course 8's units are planned to put a
+and Spring Data JDBC's `CustomerAggregates` beside it, over the same two tables; its section below.)* *(Course 8, unit 08, **Section 2's first change to this folder**: Spring's cache abstraction — `CustomerRepository.findAll()` is cached since, in the JVM, and `add` empties that cache; its section below.)* *(Course 8, unit 10, **Section 2's second change to this folder**: that cache is Caffeine's since — bounded and counted, its hits and misses on `/actuator/prometheus`; its section below.)* *(Course 8, unit 11, **Section 2's third change to this folder**: on the default run only, since — under the profile "dev" the cache is Redis's, the service `compose.yaml` starts, through the cache writer TiffinBox gives it and a JSON serializer; the default run keeps Caffeine, in the JVM, and needs no Redis; its section below.)* Course 8's units are planned to put a
 number on what the persistence context costs and to add Spring's other data modules beside it — Spring Data JDBC, the cache
 abstraction, Redis, MongoDB, Elasticsearch — one measured claim at a time, and each unit that changes this folder records it
 below as a `## Course 8 · unit NN` section, as Course 7's did. *(Course 8, unit 02: Spring Data JDBC is beside Spring Data JPA since —
@@ -131,14 +131,14 @@ The cache unit 08 put in front of `CustomerRepository.findAll()` is **Caffeine**
 bounded (a ceiling on the entries each keeps; past it, Caffeine evicts — drops an entry) and counted (hits, misses, evictions). Two files
 changed, besides this README; nothing deleted, no Java file, Flyway's V1-V3 untouched, Hibernate's schema script unchanged:
 - `tiffinbox-web/pom.xml` — **`com.github.ben-manes.caffeine:caffeine`** (no version: Boot's parent manages it). With it on the class
-  path Boot's cache module builds a **`CaffeineCacheManager`** in place of the `ConcurrentMapCacheManager`.
+  path Boot's cache module builds a **`CaffeineCacheManager`** in place of the `ConcurrentMapCacheManager`. *(Course 8, unit 11: with Spring Data Redis on the class path too since, Boot would build a `RedisCacheManager`; `spring.cache.type: caffeine` keeps Caffeine's for the default run; its section above.)*
 - `tiffinbox-web/src/main/resources/application.yaml` — under `spring:`, above the `---`: **`spring.cache.cache-names: customers`** (the
   one cache TiffinBox has, made at the start) and **`spring.cache.caffeine.spec: maximumSize=100,recordStats`** (the ceiling, and Caffeine's
   counts switched on). With names given the manager is static: a name not listed has no cache, and a `@Cacheable` on it throws at the
   call. Micrometer reports only the caches named at the start — without the line Caffeine still counts, and `/actuator/prometheus` holds
   no `cache_` line for `customers` (`../c8-unit10`, `nonames`).
 
-**What it changes:** the customer list is kept by Caffeine, in the JVM; its hits and misses, its size and its evictions are lines of
+**What it changes:** the customer list is kept by Caffeine, in the JVM *(Course 8, unit 11: on the default run; under the profile "dev", by Redis — its section above)*; its hits and misses, its size and its evictions are lines of
 `/actuator/prometheus`, which TiffinBox already exposed (Course 5): the exposure, `health,prometheus`, is unchanged, and
 `/actuator/caches` and `/actuator/metrics` stay unexposed. The cache holds one entry, the list, so it never reaches its ceiling.
 **What it does not:** `CustomerRepository` and `TiffinBoxApp` are as unit 08 left them — five calls of `findAll()` still reach Spring
@@ -146,6 +146,59 @@ Data JPA's repository once, and `add` still empties the cache; `findByName` stay
 PostgreSQL in a container, unchanged; the seven comparison requests, the same answers. The numbers — the cache manager's class, the two
 counters per call, Caffeine's counts beside the prometheus lines, the libraries the jar gained — are in `../c8-unit10`'s README, read off
 its captures.
+
+---
+
+## Course 8 · unit 11 — Redis as a Cache: the same annotations, a cache outside the JVM, under the profile "dev" (2026-11-18)
+
+Course 8's fifth change to this folder, **Section 2's third**: `../c8-unit11/after`, whose `before` is the link to `../c8-unit10/after`.
+The cache unit 08 put in front of `CustomerRepository.findAll()` can live in **Redis** since — outside the JVM, in a store a second
+process reads (`redis-cli`), every value crossing a serializer: turning the object into the bytes the store keeps. The default run is
+unchanged — Caffeine, in the JVM, no Redis needed — and the profile `dev`, whose Postgres Compose already starts, gets Redis beside it.
+Six files changed, besides this README, and one is new; nothing deleted, Flyway's V1-V3 untouched, Hibernate's schema script unchanged:
+- `tiffinbox-web/pom.xml` — **`spring-boot-starter-data-redis`** (no version: Boot's parent manages it): Spring Data Redis, Lettuce (the
+  client Boot builds its connection factory with) and Boot's module. With Redis and Caffeine both on the class path Boot's cache module
+  would build a `RedisCacheManager`; the YAML below picks.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/RedisCaching.java` — **new**: one `@Configuration`, read only while
+  `spring.cache.type` is `redis`, with two beans. A `RedisCacheManagerBuilderCustomizer` gives Boot's builder **the cache writer TiffinBox
+  gives Redis** — `RedisCacheWriter.create(…, writer -> writer.immediateWrites().enableLocking())`: `immediateWrites()` is the switch that
+  makes each write finish before the call returns, `enableLocking()` holds a lock in Redis while it writes. Without it Redis's cache runs
+  on the writer Boot builds over Lettuce, and `@CacheEvict(allEntries = true)` followed by a read returns the old list
+  (`../c8-unit11`, `writer`). A `RedisCacheConfiguration` bean, built from Boot's own `CacheProperties` (so `spring.cache.redis.time-to-live`,
+  `cache-null-values`, `key-prefix` and `use-key-prefix` still apply), with `RedisSerializer.json()` — Spring Data Redis's
+  `GenericJacksonJsonRedisSerializer` on Jackson 3 — as the value serializer. Boot's default for Redis is Java's own serialization, which
+  refuses TiffinBox's `Customer` record at every put (`../c8-unit11`, `jdk`); the record stays as it is, not `Serializable`.
+- `tiffinbox-core/src/main/java/com/tiffinbox/CustomerRepository.java` — `findAll()` collects into an **`ArrayList`**
+  (`Collectors.toCollection(ArrayList::new)`) in place of `Stream.toList()`: the JSON serializer writes an `ArrayList` with its class and
+  reads it back, while `Stream.toList()`'s list makes the hit throw (`../c8-unit11`, `json`). On the default run every Caffeine hit
+  returns that one `ArrayList`, the same instance to every caller; none of them changes it — `TiffinBoxServer` returns it or filters it
+  into a new list, and iterates it; `KitchenHealthIndicator` reads its size; `Dashboard` maps it.
+- `tiffinbox-web/src/main/resources/application.yaml` — above the `---`: **`spring.cache.type: caffeine`** (the default run's cache stays
+  Caffeine's, in the JVM) and **`management.health.redis.enabled: false`** (the starter brings Redis's health indicator, which with no
+  Redis to answer turns `/actuator/health` DOWN — 503 — while readiness and the dashboard still answer; `../c8-unit11`, `health`).
+- `tiffinbox-web/src/main/resources/application-dev.yaml` — the profile `dev`: **`spring.cache.type: redis`** and the indicator on again.
+  No `spring.data.redis` key anywhere: Boot's Docker Compose support hands TiffinBox Redis's address, as it hands it Postgres's.
+- `compose.yaml` — a second service, **`redis`**: `image: redis:8-alpine`, by its tag as Postgres's is (the course measured the tag at
+  `sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3`, Redis 8.10.3 — the comment says so), published on
+  `127.0.0.1:18882` alone, no password, no volume (the image declares none).
+
+**The profile `dev`, now with Redis** — the run Course 5's *Docker Compose for Development* gave this folder, from this folder on the class
+path Maven lists, unchanged. Its first run pulls `redis:8-alpine` as it pulls `postgres:18-alpine`; to fetch it beforehand:
+
+```bash
+docker pull redis:8-alpine
+```
+
+Boot's Compose support then starts both containers and waits, TiffinBox caches in Redis, and Boot's own stop leaves both containers
+`Exited` and the network in place, as Course 5 said of Postgres; `docker compose -p tiffinbox-dev down -v` removes everything
+(`../c8-unit11`, `compose`, on a copy of this file).
+
+**What it does not:** the default run — `java -jar` with nothing else, H2 in memory — builds a `CaffeineCacheManager`, needs no Redis and
+answers `/actuator/health` with 200; `RedisCaching`'s beans are not built there. The 18 tests on H2 in memory and the 5 on PostgreSQL in a
+container run as before, on Caffeine; `mvn package` still runs the 18 and needs no Docker (`../c8-unit11`, `nodocker`); the seven
+comparison requests, the same answers; `findByName` stays uncached. Spring Data's strict repository mode now names a third module,
+Spring Data Redis, with no repository of its own. The numbers — the managers, the two counters per call, the bytes by `redis-cli`, the
+writer's rounds, the libraries the jar gained — are in `../c8-unit11`'s README, read off its captures.
 
 ---
 
@@ -2191,7 +2244,7 @@ container exits 143. Then `docker rm tiffinbox`. Arguments after the image name 
 ## Course 5 · unit 17 — Postgres for development (2026-10-05)
 
 Two new files and two changed ones; the Java sources are untouched:
-- `compose.yaml` — new, beside this README: one official Postgres image (`postgres:18-alpine`), the project name
+- `compose.yaml` — new, beside this README: one official Postgres image (`postgres:18-alpine`) *(Course 8, unit 11: and Redis beside it since, `redis:8-alpine`, the profile "dev"'s cache; its section above)*, the project name
   `tiffinbox-dev` (so the network, the container and the volume are `tiffinbox-dev_default`, `tiffinbox-dev-postgres-1` and
   `tiffinbox-dev_data`, whatever this folder is called), its port published on `127.0.0.1:18881` alone, and no password —
   `POSTGRES_HOST_AUTH_METHOD: trust` tells Postgres to trust whoever connects, so nothing secret is committed. The data lives
