@@ -5,6 +5,7 @@ import com.tiffinbox.jdbc.JdbcNames;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -54,6 +55,12 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
  * own scan starts at com.tiffinbox.web and finds none ("Found 0 JDBC repository interfaces"). @Import(JdbcNames.class) makes
  * the module's SQL unquoted, as V1's names are (on H2 the quoted names are not found). @EnableJpaRepositories still scans
  * com.tiffinbox, and com.tiffinbox.jdbc with it: CustomerAggregates is skipped there, its CustomerRow is no entity.
+ *
+ * Course 8, unit 08: @EnableCaching switches on Spring's cache abstraction - Spring Framework's annotations, not a Spring Data
+ * module's: it registers the advisor that puts CustomerRepository's @Cacheable and @CacheEvict in front of their methods, and
+ * Boot's cache module then builds the CacheManager (with no cache library on the class path, a ConcurrentMapCacheManager). Without
+ * it the annotations do nothing, and nothing says so: no CacheManager bean, every call runs its method, no error and no log line
+ * (../c8-unit08, off).
  */
 @Configuration
 @EnableAutoConfiguration
@@ -64,5 +71,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableJdbcRepositories("com.tiffinbox.jdbc")
 @Import(JdbcNames.class)
 @EnableJpaAuditing
+@EnableCaching
 public class TiffinBoxApp {
 }

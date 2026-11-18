@@ -96,6 +96,15 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jdbc</artifactId>
     </dependency>
+    <!-- Course 8, unit 08: Spring's cache abstraction, through Boot's starter - spring-context-support and Boot's module for it
+         (spring-boot-cache: the CacheManager Boot builds when the context asks for one). The annotations themselves - @Cacheable,
+         @CacheEvict, @CachePut, @EnableCaching - are spring-context's, which tiffinbox-core already has: Spring Framework's, not a
+         Spring Data module's, and not Hibernate's second-level cache. With no cache library on the class path Boot builds a
+         ConcurrentMapCacheManager: each cache a ConcurrentHashMap in the JVM. Boot's parent manages its version. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-cache</artifactId>
+    </dependency>
     <!-- Course 7, unit 36: Flyway. Boot's Flyway starter brings spring-boot-flyway, the auto-configuration that runs the
          migrations in tiffinbox-core's db/migration at every start, before Hibernate starts - flyway-core alone runs nothing
          (../c7-unit36, jars). flyway-database-postgresql is Flyway's PostgreSQL support: without it a start on PostgreSQL stops,

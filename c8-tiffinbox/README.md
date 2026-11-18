@@ -16,7 +16,7 @@ migrations (V1-V3) with `ddl-auto: validate`; two auditing stamps on the custome
 (`CustomerEntityRepositoryIT`, started from `slice/DataSlice`, run by `mvn verify` only) *(Course 8, unit 07: 23 tests since — 18 on H2 in
 memory and 5 on PostgreSQL in a container, `CustomerAggregatesIT`'s 2 beside those 3, started from `slice/JdbcSlice`; its section below)*. *(Course 8, unit 02, **Course 8's first change to
 this folder (C1)**: the data layer has two Spring Data modules since — Spring Data JPA's `CustomerEntityRepository`, as Course 7 left it,
-and Spring Data JDBC's `CustomerAggregates` beside it, over the same two tables; its section below.)* Course 8's units are planned to put a
+and Spring Data JDBC's `CustomerAggregates` beside it, over the same two tables; its section below.)* *(Course 8, unit 08, **Section 2's first change to this folder**: Spring's cache abstraction — `CustomerRepository.findAll()` is cached since, in the JVM, and `add` empties that cache; its section below.)* Course 8's units are planned to put a
 number on what the persistence context costs and to add Spring's other data modules beside it — Spring Data JDBC, the cache
 abstraction, Redis, MongoDB, Elasticsearch — one measured claim at a time, and each unit that changes this folder records it
 below as a `## Course 8 · unit NN` section, as Course 7's did. *(Course 8, unit 02: Spring Data JDBC is beside Spring Data JPA since —
@@ -92,6 +92,35 @@ and `CustomerAggregatesIT`'s 2 (Spring Data JDBC's), both in Surefire's `contain
 runs the 18 and needs no Docker. The machine recipe is unit 39's, above: `DOCKER_HOST` on OrbStack, Ryuk off. The slice starts no web
 server and binds no port. The numbers — what the slice starts and leaves out, the two tests' lines, Flyway's history, the counts per
 report folder — are in `../c8-unit07`'s README, read off its captures.
+
+---
+
+## Course 8 · unit 08 — @Cacheable, @CacheEvict, @CachePut: Spring's cache abstraction in front of the customer read (2026-11-18)
+
+Course 8's third change to this folder, **Section 2's first**: `../c8-unit08/after`, whose `before` is the link to `../c8-unit07/after`.
+Spring's **cache abstraction** — Spring Framework's annotations (`spring-context`), with Boot's `spring-boot-cache` module building the
+cache manager; not a Spring Data module, and not Hibernate's second-level cache — puts a cache in front of a method: a call whose answer
+the cache already holds (a hit) returns it without running the method; a call it does not hold (a miss) runs the method and keeps the
+answer. Three files changed, besides this README; nothing deleted, no YAML key, Flyway's V1-V3 untouched, Hibernate's schema script
+unchanged:
+- `tiffinbox-web/pom.xml` — **`spring-boot-starter-cache`** (no version: Boot's parent manages it): `spring-context-support` and Boot's
+  `spring-boot-cache` module. With no cache library on the class path Boot builds a **`ConcurrentMapCacheManager`**: each cache a
+  `ConcurrentHashMap`, in the JVM.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxApp.java` — **`@EnableCaching`**, beside `@EnableJpaAuditing`. Without it the
+  annotations below do nothing, and nothing says so: no cache manager, every call runs its method, no error, no log line
+  (`../c8-unit08`, `off`).
+- `tiffinbox-core/src/main/java/com/tiffinbox/CustomerRepository.java` — **`@Cacheable("customers")`** on `findAll()`, and
+  **`@CacheEvict(cacheNames = "customers", allEntries = true)`** on `add`, beside its `@Transactional(rollbackFor = SQLException.class)`.
+  `tiffinbox-core` already depends on `spring-context`, which holds both annotations: no new dependency there. `findByName` and
+  `pausedDaysByCustomer` stay uncached. The proxy that ran `add`'s transaction (the class has not been final since Course 7) runs the
+  cache's advice too.
+
+**What it changes:** five calls of `findAll()` reach Spring Data JPA's repository once and send one statement, on H2 in memory and on
+PostgreSQL; `add` empties the cache and the next read returns the new row; the kitchen's customer count and the list route read the same
+cached list. TiffinBoxServer's own start-time read runs before caching is live: the cache is empty when the application is up. **What it
+does not:** the 18 tests on H2 in memory and the 5 on PostgreSQL in a container, unchanged; the seven comparison requests, the same
+answers; both Spring Data modules' repositories. The numbers — the cache manager's class, the two counters per call, the rows read back,
+the libraries the jar gained — are in `../c8-unit08`'s README, read off its captures.
 
 ---
 
@@ -595,7 +624,7 @@ changed — filled by Spring Data's listener, not by Hibernate and not by the da
 `updated_at` are NULL (read by `psql` in ../c7-unit38, `anchor`). An `UPDATE customer SET created_at = …` in V3 is the alternative
 this unit names and does not take: a made-up time is worse than none. Who made the change (`@CreatedBy`) needs a signed-in user —
 Course 10, *Spring Security — complete*. `application.yaml` keeps `ddl-auto: validate`, and `validate` accepts the two new columns.
-**Unchanged:** the 18 tests, the seven (the record and the JSON carry no stamp), the dashboard's four SQL statements. **Moved:**
+**Unchanged:** the 18 tests, the seven (the record and the JSON carry no stamp), the dashboard's four SQL statements. *(Course 8, unit 08: the customer read among them is cached since — on a hit it sends no statement and does not reach the repository; the other reads are uncached; `../c8-unit08`, `hits`.)* **Moved:**
 Hibernate's own DDL — one line, the customer table's two columns. Unit 39 changes this folder next (C3).
 
 ## Course 7 · unit 39 — the capstone: TiffinBox on PostgreSQL, its tests in a container, the customers by keyset (2026-11-17)
@@ -644,7 +673,7 @@ database (V1-V3) and keeps Kavya across a restart; on the dev profile, from Mave
 Hibernate uses (`HHH10001005`), whatever `tiffinbox.jdbc-url` says (../c7-unit39, `dev`). The default URL stays
 `jdbc:h2:mem:tiffinbox`: `java -jar` with nothing installed still starts, and still forgets a customer at a restart, by design.
 **Unchanged:** `application.yaml`, `compose.yaml`, the mapping (Hibernate's own DDL is unit 38's, byte for byte), the seven, the
-dashboard's four SQL statements. Nothing is deleted or renamed. The migration folder is where Course 10's users table will go
+dashboard's four SQL statements. *(Course 8, unit 08: the customer read among them is cached since — on a hit it sends none; `../c8-unit08`, `hits`.)* Nothing is deleted or renamed. The migration folder is where Course 10's users table will go
 (*Spring Security — complete*).
 
 ## Course 6 · unit 04 — embedded Tomcat: TiffinBox's own server handed over (2026-10-12)
@@ -2442,8 +2471,7 @@ One file is new and one changed. The seven responses are the same before and aft
 (`115c36bac276128e245ca57df11c2891`), and so are `ActuatorRoutes.java`, `TiffinBoxServer.java` and `TiffinBoxApp.java`:
 - `tiffinbox-web/src/main/java/com/tiffinbox/web/KitchenHealthIndicator.java` — **new**: a `HealthIndicator` bean, one more
   component of `/actuator/health`. Boot names the component after the bean, `HealthIndicator` left off: **`kitchen`**. UP while
-  the database answers — with the customers it holds and the orders the kitchen cooked — and DOWN, with the error's class name,
-  when it does not.
+  the database answers — with the customers it holds and the orders the kitchen cooked — and DOWN, with the error's class name, when it does not *(Course 8, unit 08: not while the customers cache holds the list — the count is the cached list's, and the kitchen reaches no database for it: with the customer table renamed away it stayed UP, and answered DOWN once the cache was cleared; `../c8-unit08`, `hits`)*.
 - `application.yaml` — **`management.endpoint.health.group.readiness.include: readinessState,kitchen`**: the kitchen joins the
   readiness group, beside Boot's own readiness state; liveness stays Boot's liveness state alone.
 
@@ -2478,7 +2506,7 @@ starts, `/kitchen` answered 200 at least once while liveness and readiness both 
 
 **When the database dies** (unit 22's harness closes it once TiffinBox is ready): `/actuator/health` 503, `kitchen` DOWN with
 `{"error":"JdbcSQLSyntaxErrorException"}` — H2 opens a new, empty in-memory database under the same URL, so the table is gone —
-liveness 200, **readiness 503**; `/customers` 500; `/kitchen` 200, from memory. A platform stops sending this process traffic and
+liveness 200, **readiness 503**; `/customers` 500; `/kitchen` 200, from memory. *(Course 8, unit 08: measured before the cache; with the customer list cached the kitchen's read and the list's read are the cached list's, so once the cache holds it the kitchen stays UP with the table gone — the harness's `hits` capture, `../c8-unit08`, on H2 and PostgreSQL; the routes over HTTP are not re-run there.)* A platform stops sending this process traffic and
 does not restart it. TiffinBox's own H2 lives in memory, so here a restart would rebuild it; the harness plays a database outside
 the process that stays down — the usual case, and the one this choice is for. Without the kitchen in readiness — the line below —
 readiness says 200 and traffic keeps arriving at a TiffinBox that answers 500:

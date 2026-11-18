@@ -1,5 +1,7 @@
 package com.tiffinbox;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
@@ -39,6 +41,12 @@ import java.util.Optional;
  * Dashboard's virtual threads, so its transaction is its own, {@code @Transactional(readOnly = true)} on the method: the persistence
  * context lives as long as the read, on the thread that reads (../c7-unit29, anchor). Course 7, unit 31: the customers come with
  * their pauses in one statement, through the repository's findAllByOrderByNameAsc and its entity graph (../c7-unit31, anchor).
+ *
+ * <p>Course 8, unit 08: findAll is cached - {@code @Cacheable("customers")}, Spring's cache abstraction (spring-context's
+ * annotations, TiffinBoxApp's {@code @EnableCaching}) - and add empties that cache, {@code @CacheEvict(cacheNames = "customers",
+ * allEntries = true)}: a hit returns the list the cache already holds, and neither the repository nor the database is asked. The
+ * proxy that ran add's transaction runs the cache's advice too. findByName and pausedDaysByCustomer stay uncached
+ * (../c8-unit08, hits and evict).
  */
 @Component
 public class CustomerRepository {
@@ -51,7 +59,11 @@ public class CustomerRepository {
         this.events = events;
     }
 
-    /** Every customer, by name: Spring Data's findAll(Sort), each entity mapped to the record the web layer reads. */
+    /**
+     * Every customer, by name: Spring Data's findAll(Sort), each entity mapped to the record the web layer reads. Course 8, unit 08:
+     * cached in "customers" under the key of a call with no argument; add empties the cache.
+     */
+    @Cacheable("customers")
     public List<Customer> findAll() throws SQLException {
         return customers.findAll(Sort.by("name")).stream().map(CustomerRepository::toRecord).toList();
     }
@@ -79,7 +91,11 @@ public class CustomerRepository {
      * finding the transaction marked, would throw UnexpectedRollbackException: a 500 where the 409 was (../c7-unit26, anchor,
      * B). {@code rollbackFor = SQLException.class} names it: it rolls back, and the web layer reads its 23505 as before (A). A
      * stored row publishes CustomerAdded, which CustomerFeed hears after the commit.
+     *
+     * <p>Course 8, unit 08: every entry of the "customers" cache is removed once add returns (allEntries: the list's key is not
+     * add's argument), so the next findAll reads the table again, the new row in it.
      */
+    @CacheEvict(cacheNames = "customers", allEntries = true)
     @Transactional(rollbackFor = SQLException.class)
     public void add(Customer customer) throws SQLException {
         try {
