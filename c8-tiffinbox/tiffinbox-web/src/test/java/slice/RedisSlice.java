@@ -15,6 +15,10 @@ import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
  * test checks - Leaderboard, a {@code @RestController} the slice would not load - is imported by the test itself.
  *
  * <p>It lives outside com.tiffinbox for DataSlice's reason: there, TiffinBoxApp's own scan would find it.
+ *
+ * <p>Course 8, unit 15: the slice starts none of Spring Data Redis's repositories since - application.yaml, which the slice reads,
+ * switches Boot's own off (spring.data.redis.repositories.enabled: false). The repository TiffinBox ships, KitchenOrders, is
+ * registered by RedisDatastore, which RedisDatastoreIT imports under the profile "dev".
  */
 @SpringBootConfiguration
 @AutoConfigurationPackage

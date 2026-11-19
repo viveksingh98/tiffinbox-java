@@ -9,6 +9,7 @@ import org.springframework.aot.hint.annotation.Reflective;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -39,12 +40,14 @@ import java.util.List;
  *                  container sets 0.0.0.0, every interface of the container, so a port Docker publishes can reach it
  * @param mealTypes the meal types TiffinBox serves
  * @param shutdownToken the secret POST /shutdown asks for, in its X-Shutdown-Token header: 16 characters or more
+ * @param kitchenOrderTtl Course 8, unit 15: the time to live of each kitchen order the start saves to Redis under the profile
+ *                  "dev" (a value such as 10m); absent or zero, the orders are saved with none
  */
 @Validated
 @ConfigurationProperties("tiffinbox")
 public record TiffinBoxProperties(@NotBlank String jdbcUrl, @NotNull @Min(1) Integer cooks, @NotNull @Min(1) Integer days,
                                   @NotNull @Min(1) Integer port, @NotBlank String address,
-                                  @NotEmpty List<MealType> mealTypes, @NotBlank String shutdownToken) {
+                                  @NotEmpty List<MealType> mealTypes, @NotBlank String shutdownToken, Duration kitchenOrderTtl) {
 
     /**
      * The token's length rule. A failure report prints what this returns - false - and never the token.
@@ -64,6 +67,6 @@ public record TiffinBoxProperties(@NotBlank String jdbcUrl, @NotNull @Min(1) Int
     public String toString() {
         return "TiffinBoxProperties[jdbcUrl=" + jdbcUrl + ", cooks=" + cooks + ", days=" + days + ", port=" + port
                 + ", address=" + address + ", mealTypes=" + mealTypes
-                + ", shutdownToken=" + (shutdownToken == null ? "null" : "[not shown]") + "]";
+                + ", shutdownToken=" + (shutdownToken == null ? "null" : "[not shown]") + ", kitchenOrderTtl=" + kitchenOrderTtl + "]";
     }
 }

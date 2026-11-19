@@ -19,6 +19,7 @@ import slice.RedisSlice;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 
 /**
  * Course 8, unit 14: the leaderboard TiffinBox ships, on Redis in a container. {@code @DataRedisTest} starts Spring Data Redis's
@@ -29,10 +30,17 @@ import java.util.List;
  *
  * <p>Two witnesses in one test: the shipped bean writes the four customers' values and reads the board back (ZREVRANGE ...
  * WITHSCORES), and the slice's own StringRedisTemplate reads the same key - its type, a score and a rank.
+ *
+ * <p>Course 8, unit 15: and the kitchen's orders, KitchenOrders - the repository TiffinBox ships. application.yaml switches Boot's
+ * own Redis repositories off (spring.data.redis.repositories.enabled: false), and the slice reads that file: the test imports
+ * RedisDatastore, the configuration that registers KitchenOrders under "dev", the profile this class already carries. Its
+ * listener (keyspace events ON_STARTUP) writes notify-keyspace-events on the container's Redis with CONFIG SET; the container is
+ * removed after the run. Two witnesses again: the repository saves three orders and answers findByMealType and count(), and the
+ * slice's StringRedisTemplate reads the index set and the hash's type.
  */
 @DataRedisTest
 @ContextConfiguration(classes = RedisSlice.class)
-@Import(Leaderboard.class)
+@Import({Leaderboard.class, RedisDatastore.class})
 @ActiveProfiles("dev")
 @Testcontainers
 class RedisDatastoreIT {
@@ -45,6 +53,7 @@ class RedisDatastoreIT {
 
     @Autowired Leaderboard board;
     @Autowired StringRedisTemplate strings;
+    @Autowired KitchenOrders orders;
 
     @Test
     void theLeaderboardIsASortedSetRedisReadsByName() {
@@ -67,5 +76,27 @@ class RedisDatastoreIT {
         assertThat(strings.type(Leaderboard.KEY).code()).isEqualTo("zset");
         assertThat(strings.opsForZSet().score(Leaderboard.KEY, "Ravi")).isEqualTo(7200.0);
         assertThat(strings.opsForZSet().reverseRank(Leaderboard.KEY, "Sunil")).isZero();
+    }
+
+    @Test
+    void theKitchenOrdersAreHashesAndTheirIndexSetsRedisReadsByName() {
+        orders.deleteAll();
+        // two orders with a time to live (a whole number, as EXPIRE takes it - long enough to outlast the test), one with none
+        orders.save(new KitchenOrder("Ravi-1", "Ravi", "VEG", 240, 600L));
+        orders.save(new KitchenOrder("Sunil-1", "Sunil", "VEG", 300, 600L));
+        orders.save(new KitchenOrder("Meera-1", "Meera", "NON_VEG", 150, null));
+        var veg = new TreeSet<String>();
+        orders.findByMealType("VEG").forEach(o -> veg.add(o.getId()));
+        var vegSet = new TreeSet<String>(strings.opsForSet().members("kitchen-order:mealType:VEG"));
+        System.out.println("REDIS IT the orders, through KitchenOrders: count() " + orders.count() + " · findByMealType(VEG) " + veg);
+        System.out.println("REDIS IT the same keys, through the slice's StringRedisTemplate: SMEMBERS kitchen-order:mealType:VEG " + vegSet
+                + " · SCARD kitchen-order " + strings.opsForSet().size("kitchen-order") + " · type kitchen-order:Ravi-1 "
+                + strings.type("kitchen-order:Ravi-1").code());
+        assertThat(veg).containsExactly("Ravi-1", "Sunil-1");
+        assertThat(vegSet).isEqualTo(veg);
+        assertThat(orders.count()).isEqualTo(3);
+        assertThat(strings.opsForSet().size("kitchen-order")).isEqualTo(3);
+        assertThat(strings.type("kitchen-order:Ravi-1").code()).isEqualTo("hash");
+        orders.deleteAll();
     }
 }

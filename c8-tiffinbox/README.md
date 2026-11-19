@@ -16,7 +16,7 @@ migrations (V1-V3) with `ddl-auto: validate`; two auditing stamps on the custome
 (`CustomerEntityRepositoryIT`, started from `slice/DataSlice`, run by `mvn verify` only) *(Course 8, unit 07: 23 tests since — 18 on H2 in
 memory and 5 on PostgreSQL in a container, `CustomerAggregatesIT`'s 2 beside those 3, started from `slice/JdbcSlice`; its section below)*. *(Course 8, unit 02, **Course 8's first change to
 this folder (C1)**: the data layer has two Spring Data modules since — Spring Data JPA's `CustomerEntityRepository`, as Course 7 left it,
-and Spring Data JDBC's `CustomerAggregates` beside it, over the same two tables; its section below.)* *(Course 8, unit 08, **Section 2's first change to this folder**: Spring's cache abstraction — `CustomerRepository.findAll()` is cached since, in the JVM, and `add` empties that cache; its section below.)* *(Course 8, unit 10, **Section 2's second change to this folder**: that cache is Caffeine's since — bounded and counted, its hits and misses on `/actuator/prometheus`; its section below.)* *(Course 8, unit 11, **Section 2's third change to this folder**: on the default run only, since — under the profile "dev" the cache is Redis's, the service `compose.yaml` starts, through the cache writer TiffinBox gives it and a JSON serializer; the default run keeps Caffeine, in the JVM, and needs no Redis; its section below.)* *(Course 8, unit 12, **Section 2's fourth change to this folder**: the cached list carries a time to live since, in Caffeine and in Redis alike — the backstop for the writes the cache never sees; its section below.)* *(Course 8, unit 13, **Section 2's fifth and last change to this folder**: the cold list is read once for every thread that waits on it, in one JVM (`sync = true`), and `findByName` is cached, unless it finds no one; Section 3 starts here; its section below.)* Course 8's units are planned to put a *(Course 8, unit 14, **Section 3's first change to this folder**: Redis is also a store since, not only the cache's — under the profile "dev" it holds the kitchen's leaderboard, a sorted set no table holds, which the start fills; under "dev" Redis is required, and the default run still needs none; its section below.)*
+and Spring Data JDBC's `CustomerAggregates` beside it, over the same two tables; its section below.)* *(Course 8, unit 08, **Section 2's first change to this folder**: Spring's cache abstraction — `CustomerRepository.findAll()` is cached since, in the JVM, and `add` empties that cache; its section below.)* *(Course 8, unit 10, **Section 2's second change to this folder**: that cache is Caffeine's since — bounded and counted, its hits and misses on `/actuator/prometheus`; its section below.)* *(Course 8, unit 11, **Section 2's third change to this folder**: on the default run only, since — under the profile "dev" the cache is Redis's, the service `compose.yaml` starts, through the cache writer TiffinBox gives it and a JSON serializer; the default run keeps Caffeine, in the JVM, and needs no Redis; its section below.)* *(Course 8, unit 12, **Section 2's fourth change to this folder**: the cached list carries a time to live since, in Caffeine and in Redis alike — the backstop for the writes the cache never sees; its section below.)* *(Course 8, unit 13, **Section 2's fifth and last change to this folder**: the cold list is read once for every thread that waits on it, in one JVM (`sync = true`), and `findByName` is cached, unless it finds no one; Section 3 starts here; its section below.)* Course 8's units are planned to put a *(Course 8, unit 14, **Section 3's first change to this folder**: Redis is also a store since, not only the cache's — under the profile "dev" it holds the kitchen's leaderboard, a sorted set no table holds, which the start fills; under "dev" Redis is required, and the default run still needs none; its section below.)* *(Course 8, unit 15, **Section 3's second change to this folder**: Redis keeps the kitchen's orders too since — a hash per order the start places, Spring Data Redis's `KitchenOrders`, with a set per indexed value and the time to live the entity carries, under the profile "dev" only; the default run still needs no Redis; its section below.)*
 number on what the persistence context costs and to add Spring's other data modules beside it — Spring Data JDBC, the cache
 abstraction, Redis, MongoDB, Elasticsearch — one measured claim at a time, and each unit that changes this folder records it
 below as a `## Course 8 · unit NN` section, as Course 7's did. *(Course 8, unit 02: Spring Data JDBC is beside Spring Data JPA since —
@@ -178,6 +178,8 @@ Six files changed, besides this README, and one is new; nothing deleted, Flyway'
   Redis to answer turns `/actuator/health` DOWN — 503 — while readiness and the dashboard still answer; `../c8-unit11`, `health`).
 - `tiffinbox-web/src/main/resources/application-dev.yaml` — the profile `dev`: **`spring.cache.type: redis`** and the indicator on again.
   No `spring.data.redis` key anywhere: Boot's Docker Compose support hands TiffinBox Redis's address, as it hands it Postgres's.
+  *(Course 8, unit 15: one `spring.data.redis` key since, and not the address — `application.yaml`'s
+  `spring.data.redis.repositories.enabled: false`; its section below.)*
 - `compose.yaml` — a second service, **`redis`**: `image: redis:8-alpine`, by its tag as Postgres's is (the course measured the tag at
   `sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3`, Redis 8.10.3 — the comment says so), published on
   `127.0.0.1:18882` alone, no password, no volume (the image declares none).
@@ -197,7 +199,8 @@ Boot's Compose support then starts both containers and waits, TiffinBox caches i
 answers `/actuator/health` with 200; `RedisCaching`'s beans are not built there. The 18 tests on H2 in memory and the 5 on PostgreSQL in a
 container run as before, on Caffeine; `mvn package` still runs the 18 and needs no Docker (`../c8-unit11`, `nodocker`); the seven
 comparison requests, the same answers; `findByName` stays uncached *(Course 8, unit 13: cached since, in `customer`, unless it finds no one; its section below.)*. Spring Data's strict repository mode now names a third module,
-Spring Data Redis, with no repository of its own. The numbers — the managers, the two counters per call, the bytes by `redis-cli`, the
+Spring Data Redis, with no repository of its own *(Course 8, unit 15: under the profile "dev" it has one since — `KitchenOrders`,
+`Found 1 Redis repository interface`; the default run prints no Redis repository line at all; its section below)*. The numbers — the managers, the two counters per call, the bytes by `redis-cli`, the
 writer's rounds, the libraries the jar gained — are in `../c8-unit11`'s README, read off its captures.
 
 ---
@@ -296,8 +299,55 @@ answers `GET /leaderboard` with the four customers' scores, highest first — th
 tiffinbox:leaderboard 0 -1 WITHSCORES`, and their sum is `/kitchen`'s `ordersValue` (`../c8-unit14`, `zset`). Three starts in a row against
 one Redis print the same board. **What it does not:** the default run — `java -jar`, H2 in memory — has no `Leaderboard` bean, answers
 `/leaderboard` with 404 and `/actuator/health` with 200, and still needs no Redis (`../c8-unit14`, `default`); the cache is unchanged; no
-`spring.data.redis` key anywhere (`spring.data.redis.repositories.enabled` is unit 15's); the seven comparison requests, the same answers.
+`spring.data.redis` key anywhere (`spring.data.redis.repositories.enabled` is unit 15's) *(Course 8, unit 15: it is in `application.yaml`
+since, `false`; its section below)*; the seven comparison requests, the same answers.
 The numbers are in `../c8-unit14`'s README, read off its captures.
+
+---
+
+## Course 8 · unit 15 — Spring Data Redis Repositories: a hash and the sets beside it, and the index that outlives the hash (2026-11-19)
+
+Course 8's ninth change to this folder, **Section 3's second**: `../c8-unit15/after`, whose `before` is the link to `../c8-unit14/after`.
+Redis keeps one more thing of its own, under the profile "dev": the orders the start places, each a hash Spring Data Redis writes, with a
+set per indexed value beside it — a secondary index, a set per indexed value, holding the ids that have it. Files new and changed, besides
+this README; nothing deleted, Flyway's V1-V3 untouched, both `pom.xml` files untouched (Spring Data Redis already holds every class this
+unit uses), `application-dev.yaml` untouched, Hibernate's schema script unchanged:
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/KitchenOrder.java` — **new**: `@RedisHash("kitchen-order")`, `@Id id`, **`@Indexed
+  customer`**, **`@Indexed mealType`**, `value` (meals times price, the order's own value) and **`@TimeToLive Long ttl`** — `null` is no time
+  to live, Spring Data's own meaning (redis-cli's `PTTL` answers -1). Its `toString` leaves the time to live out: it is a configured setting.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/KitchenOrders.java` — **new**: a `CrudRepository<KitchenOrder, String>` with three derived
+  finders, `findByMealType`, `findByCustomer` and `findByCustomerAndMealType` — each a set intersection of index sets (`SINTER`), then one
+  `HGETALL` per id.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/RedisDatastore.java` — **new**: `@Configuration @Profile("dev")
+  @EnableRedisRepositories(basePackageClasses = KitchenOrders.class, enableKeyspaceEvents = ON_STARTUP)`. Its Javadoc says why ON_STARTUP
+  (with keyspace events off, a hash whose time to live ends leaves its ids counted), its condition (the listener removes an index entry
+  when Redis tells it a hash is gone, while a TiffinBox under "dev" is running; what ended while TiffinBox was down stays until the next
+  start saves those ids again) and why dev-only (without Redis, or on a server that refuses `CONFIG`, the start stops).
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java` — the constructor also takes an **`ObjectProvider<KitchenOrders>`**;
+  `start()`, in the loop that records each order on the leaderboard, saves it as a `KitchenOrder` — its id the customer and the day
+  (`Ravi-1` … `Ravi-30`, **the same ids every start**, so a start's save overwrites the last start's), the customer's meal type, the
+  order's value, and the time to live of the setting below. Not guarded: under "dev" Redis is required.
+- `tiffinbox-core/src/main/java/com/tiffinbox/TiffinBoxProperties.java` — one more key, **`kitchenOrderTtl`** (a `Duration`, no
+  constraint: absent or zero, the orders are saved with no time to live).
+- `tiffinbox-web/src/main/resources/application.yaml` — **`spring.data.redis.repositories.enabled: false`** (Boot's own Redis repositories
+  off: the default run prints no Redis repository line at all) and **`tiffinbox.kitchen-order-ttl: 10m`**, each with its comment.
+- `compose.yaml` — the Redis service's notes gain three *Course 8, unit 15* notes: the `spring.data.redis` key that exists since (not the
+  address); the kitchen orders hold nothing secret either; and ⚑15's sentence — the kitchen orders too are Redis's own, saved again by
+  every start, so a new container loses nothing the next start does not save again, and a time to live that ends while TiffinBox is
+  down leaves their index entries until that start. Still no volume.
+- `tiffinbox-web/src/test/java/slice/RedisSlice.java` — a *Course 8, unit 15* note: the slice starts no Redis repository since (the key
+  above). `tiffinbox-web/src/test/java/com/tiffinbox/web/RedisDatastoreIT.java` — `@Import({Leaderboard.class, RedisDatastore.class})` and
+  a second test on the shipped `KitchenOrders`: three orders saved, `findByMealType` and `count()` by the repository, the index set and the
+  hash's type by the slice's own `StringRedisTemplate`. `mvn verify` runs it with the other container tests; `mvn package` still runs the
+  18 and needs no Docker.
+
+**What it changes:** under the profile "dev" the log names a Redis repository (`Found 1 Redis repository interface`, beside JPA's INFO line
+that declines `KitchenOrders`), and every start saves one hash per order it places, with the time to live the entity carries — redis-cli
+reads them by name (`kitchen-order:Ravi-1`), and the same ids each start (`../c8-unit15`, `anchor`). While TiffinBox runs, a hash whose
+time to live ends takes its ids with it: the listener removes them once Redis tells it (`../c8-unit15`, `events`). **What it does not:** the
+default run — `java -jar`, H2 in memory — has no `KitchenOrders` bean, no Redis repository line, answers `/actuator/health` with 200, and
+still needs no Redis (`../c8-unit15`, `default`); the cache and the leaderboard are unchanged; the seven comparison requests, the same
+answers. The numbers are in `../c8-unit15`'s README, read off its captures.
 
 ---
 

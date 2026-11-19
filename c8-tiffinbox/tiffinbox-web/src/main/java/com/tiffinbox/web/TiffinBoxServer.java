@@ -113,6 +113,13 @@ import static java.lang.System.Logger.Level.INFO;
  * board once (DEL), then adds each order's value - its meals times its price, the number the kitchen sums - to its customer's
  * score (one ZINCRBY per order). The fill is not guarded: under "dev" Redis is required, and a start that cannot reach it stops
  * with RedisConnectionFailureException rather than serve an empty board (../c8-unit14, absent).
+ *
+ * <p>Course 8, unit 15: under "dev" the start also saves each order it places to Redis, through KitchenOrders - a Spring Data Redis
+ * repository, a hash per order and a set per indexed value. The constructor takes an ObjectProvider of it too: RedisDatastore
+ * registers it under "dev" only, so on the default run the provider gives none and nothing here touches Redis. Each order's id is
+ * its customer and its day, Ravi-1 to Ravi-30 - the same ids at every start, so a start's save overwrites the orders the last start
+ * saved, index entries included. Its time to live is the setting tiffinbox.kitchen-order-ttl (none when the setting is absent or
+ * zero: the order is saved untimed).
  */
 @RestController
 public final class TiffinBoxServer {
@@ -131,9 +138,11 @@ public final class TiffinBoxServer {
     private final byte[] shutdownToken;
     private final ConfigurableApplicationContext context;
     private final ObjectProvider<Leaderboard> board;
+    private final ObjectProvider<KitchenOrders> rail;
+    private final Long orderTtl;
 
     TiffinBoxServer(CustomerRepository repo, Dashboard dashboard, OrderQueue kitchen, TiffinBoxProperties settings,
-                    ConfigurableApplicationContext context, ObjectProvider<Leaderboard> board) {
+                    ConfigurableApplicationContext context, ObjectProvider<Leaderboard> board, ObjectProvider<KitchenOrders> rail) {
         this.repo = repo;
         this.dashboard = dashboard;
         this.kitchen = kitchen;
@@ -142,6 +151,8 @@ public final class TiffinBoxServer {
         this.shutdownToken = settings.shutdownToken().getBytes(StandardCharsets.UTF_8);
         this.context = context;
         this.board = board;
+        this.rail = rail;
+        this.orderTtl = settings.kitchenOrderTtl() == null || settings.kitchenOrderTtl().isZero() ? null : settings.kitchenOrderTtl().toSeconds();
     }
 
     // ---- the routes: Spring MVC's request mappings -------------------------
@@ -298,10 +309,15 @@ public final class TiffinBoxServer {
      *
      * <p>Course 8, unit 14: under the profile "dev" each order's value goes to the leaderboard too - the board reset first, then
      * one ZINCRBY per order, the same value the kitchen sums. Without the bean (the default run) nothing here touches Redis.
+     *
+     * <p>Course 8, unit 15: and each order is saved as a KitchenOrder, in the same loop, from the same order - its id the customer
+     * and the day (Ravi-1 ... Ravi-30), its meal type the customer's, its time to live the setting's. Without the repository (the
+     * default run) nothing is saved.
      */
     @PostConstruct
     void start() throws Exception {
         Leaderboard lb = board.getIfAvailable();
+        KitchenOrders orders = rail.getIfAvailable();
         if (lb != null) {
             lb.reset();
         }
@@ -311,6 +327,9 @@ public final class TiffinBoxServer {
                 kitchen.place(order);
                 if (lb != null) {
                     lb.record(order.customer(), order.value());
+                }
+                if (orders != null) {
+                    orders.save(new KitchenOrder(c.name() + "-" + (day + 1), order.customer(), c.mealType(), order.value(), orderTtl));
                 }
             }
         }

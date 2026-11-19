@@ -12,6 +12,12 @@ tiffinbox:
     - VEG
     - NON_VEG
     - VEGAN
+  # Course 8, unit 15: the time to live of each kitchen order the start saves to Redis under the profile "dev" (KitchenOrder,
+  # TiffinBoxServer) - read only there; the default run saves no order. Why this value: an order belongs on the rail while a
+  # developer looks at it, and every start saves the same ids again, so the value only decides when a dev run's orders leave
+  # Redis; written the way the cache's backstop below is (spring.cache.redis.time-to-live). Absent or 0: the orders are saved
+  # with no time to live.
+  kitchen-order-ttl: 10m
 # Course 6: the server is embedded Tomcat, and Tomcat reads Boot's keys - server.address and server.port - not TiffinBox's.
 # These two lines give it TiffinBox's, so --tiffinbox.port=, TIFFINBOX_ADDRESS and TIFFINBOX_PORT work as before. Without
 # server.address Tomcat listens on every interface. They sit here, above the "---": below it, they would belong to the
@@ -113,6 +119,14 @@ spring:
   # value: it is a backstop, not the eviction - the list is one entry, read by every page, and a change made around TiffinBox
   # shows once that entry's time to live runs out; a smaller value only reads the table more often. Under Spring's AOT step,
   # and so in the native binary, the spec is fixed when the jar is built.
+  # Course 8, unit 15: Boot's own Spring Data Redis repositories, off. Spring Data Redis is on the class path, and with this key
+  # unset Boot's auto-configuration would register a Redis repository for every candidate interface it finds on the default
+  # run too, which keeps no Redis. Off, the default run's log has no Redis repository line at all (../c8-unit15, default); the
+  # profile "dev" registers KitchenOrders itself (RedisDatastore, @EnableRedisRepositories), where Redis is required.
+  data:
+    redis:
+      repositories:
+        enabled: false
   cache:
     type: caffeine
     cache-names: customers,customer

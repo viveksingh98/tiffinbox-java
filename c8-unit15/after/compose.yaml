@@ -1,0 +1,49 @@
+# TiffinBox's database for development: one official Postgres image. Boot's Docker Compose support starts it while the
+# profile "dev" is active (application-dev.yaml), from the folder TiffinBox starts in - this one - and stops it when
+# TiffinBox stops. Development only: the executable jar holds none of that support. (Course 8, unit 11: and Redis beside it
+# since, TiffinBox's cache under the profile "dev" - the second service below.)
+# A fixed project name: the network, the container and the volume are named after it, never after this folder.
+name: tiffinbox-dev
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: tiffinbox
+      POSTGRES_USER: tiffinbox
+      # No password anywhere: Postgres trusts every connection that reaches it, and the port below is published on
+      # this computer's 127.0.0.1 alone. Nothing in this file is a secret, so the file is committed.
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      # 127.0.0.1, port 18881, on this computer -> 5432, Postgres's own port, in the container.
+      - "127.0.0.1:18881:5432"
+    volumes:
+      # The data, in a volume with a name, tiffinbox-dev_data: kept when the container is stopped or removed, and
+      # deleted by docker compose -p tiffinbox-dev down -v. Without this line the image still declares a volume
+      # there, and Docker makes one with no name: docker compose down leaves it behind, a 64-character ID its only name.
+      - data:/var/lib/postgresql
+  # Course 8, unit 11: Redis, the cache's store under the profile "dev" (application-dev.yaml). The image by its tag, as
+  # Postgres's: a first "dev" run pulls it, as it pulls Postgres (docker pull redis:8-alpine beforehand, if you prefer). The
+  # course measured redis:8-alpine at sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3 - Redis 8.10.3.
+  # Boot's Docker Compose support reads the service and hands TiffinBox its address: no spring.data.redis key anywhere.
+  # (Course 8, unit 15: one spring.data.redis key since, and it is not the address - application.yaml's
+  # spring.data.redis.repositories.enabled: false, which switches Boot's own Redis repositories off on the default run.)
+  # (Course 8, unit 14: Redis is also a store since, not only the cache's - it holds the kitchen's leaderboard, a sorted set
+  # under the profile "dev" (Leaderboard), and under "dev" Redis is required: without it TiffinBox does not start.)
+  redis:
+    image: redis:8-alpine
+    # No password: the port below is published on this computer's 127.0.0.1 alone, and the cache holds nothing secret.
+    # (Course 8, unit 14: nor does the leaderboard - customers' names and the value of their orders, the numbers /kitchen shows.)
+    # (Course 8, unit 15: nor do the kitchen orders - a customer's name, the meal type and an order's value.)
+    ports:
+      # 127.0.0.1, port 18882, on this computer -> 6379, Redis's own port, in the container. 18882 sits beside Postgres's 18881;
+      # elsewhere in this repository it is only a TiffinBox port in Course 5 unit 17's receipts, never an anchor file's.
+      - "127.0.0.1:18882:6379"
+    # No volume: the image declares none (docker image inspect: no Volumes), and a cache is rebuilt from the database.
+    # (Course 8, unit 14: so is the leaderboard - the start deletes it and fills it again from the orders it places, so a new
+    # container loses nothing the start does not refill. Still no volume: a volume would keep only what the start rebuilds,
+    # and docker compose down keeps Postgres's data, in its volume, and loses Redis's.)
+    # (Course 8, unit 15: the kitchen orders too are Redis's own - the start saves each one again, the same ids, with the time to
+    # live the entity carries, so a new container loses nothing the next start does not save again; and a time to live that ends
+    # while TiffinBox is down leaves those orders' index entries in Redis until that start saves the same ids.)
+volumes:
+  data:
