@@ -25,13 +25,19 @@ services:
   # Postgres's: a first "dev" run pulls it, as it pulls Postgres (docker pull redis:8-alpine beforehand, if you prefer). The
   # course measured redis:8-alpine at sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3 - Redis 8.10.3.
   # Boot's Docker Compose support reads the service and hands TiffinBox its address: no spring.data.redis key anywhere.
+  # (Course 8, unit 14: Redis is also a store since, not only the cache's - it holds the kitchen's leaderboard, a sorted set
+  # under the profile "dev" (Leaderboard), and under "dev" Redis is required: without it TiffinBox does not start.)
   redis:
     image: redis:8-alpine
     # No password: the port below is published on this computer's 127.0.0.1 alone, and the cache holds nothing secret.
+    # (Course 8, unit 14: nor does the leaderboard - customers' names and the value of their orders, the numbers /kitchen shows.)
     ports:
       # 127.0.0.1, port 18882, on this computer -> 6379, Redis's own port, in the container. 18882 sits beside Postgres's 18881;
       # elsewhere in this repository it is only a TiffinBox port in Course 5 unit 17's receipts, never an anchor file's.
       - "127.0.0.1:18882:6379"
     # No volume: the image declares none (docker image inspect: no Volumes), and a cache is rebuilt from the database.
+    # (Course 8, unit 14: so is the leaderboard - the start deletes it and fills it again from the orders it places, so a new
+    # container loses nothing the start does not refill. Still no volume: a volume would keep only what the start rebuilds,
+    # and docker compose down keeps Postgres's data, in its volume, and loses Redis's.)
 volumes:
   data:

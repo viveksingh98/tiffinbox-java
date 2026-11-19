@@ -2,6 +2,7 @@ package com.tiffinbox.web;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpStatus;
@@ -105,6 +106,13 @@ import static java.lang.System.Logger.Level.INFO;
  * <p>Course 6, the capstone: every customer this route stores reaches CustomerFeed, which sends it to every client listening on
  * GET /customers/feed. Course 7, unit 26: CustomerRepository's add tells it, after its transaction commits - this class no
  * longer does, and no longer takes CustomerFeed.
+ *
+ * <p>Course 8, unit 14: the start also fills the kitchen's leaderboard, under the profile "dev" - Leaderboard, a sorted set in Redis
+ * that no table holds. The constructor takes an ObjectProvider of it: the bean exists under "dev" only, and on the default run the
+ * provider gives none and the start places its orders as before, needing no Redis. When the bean is there, start() empties the
+ * board once (DEL), then adds each order's value - its meals times its price, the number the kitchen sums - to its customer's
+ * score (one ZINCRBY per order). The fill is not guarded: under "dev" Redis is required, and a start that cannot reach it stops
+ * with RedisConnectionFailureException rather than serve an empty board (../c8-unit14, absent).
  */
 @RestController
 public final class TiffinBoxServer {
@@ -122,9 +130,10 @@ public final class TiffinBoxServer {
     private final List<MealType> mealTypes;
     private final byte[] shutdownToken;
     private final ConfigurableApplicationContext context;
+    private final ObjectProvider<Leaderboard> board;
 
     TiffinBoxServer(CustomerRepository repo, Dashboard dashboard, OrderQueue kitchen, TiffinBoxProperties settings,
-                    ConfigurableApplicationContext context) {
+                    ConfigurableApplicationContext context, ObjectProvider<Leaderboard> board) {
         this.repo = repo;
         this.dashboard = dashboard;
         this.kitchen = kitchen;
@@ -132,6 +141,7 @@ public final class TiffinBoxServer {
         this.mealTypes = settings.mealTypes();
         this.shutdownToken = settings.shutdownToken().getBytes(StandardCharsets.UTF_8);
         this.context = context;
+        this.board = board;
     }
 
     // ---- the routes: Spring MVC's request mappings -------------------------
@@ -285,12 +295,23 @@ public final class TiffinBoxServer {
      * take them off, and close() returns only when every cook has seen its poison pill. The counters
      * /kitchen reports are final from here on. The container calls this once every constructor
      * argument exists, so the order is its problem now, not a comment's.
+     *
+     * <p>Course 8, unit 14: under the profile "dev" each order's value goes to the leaderboard too - the board reset first, then
+     * one ZINCRBY per order, the same value the kitchen sums. Without the bean (the default run) nothing here touches Redis.
      */
     @PostConstruct
     void start() throws Exception {
+        Leaderboard lb = board.getIfAvailable();
+        if (lb != null) {
+            lb.reset();
+        }
         for (Customer c : repo.findAll()) {
             for (int day = 0; day < days; day++) {
-                kitchen.place(new OrderQueue.Order(c.name(), c.mealsPerDay() * c.pricePerMeal()));
+                OrderQueue.Order order = new OrderQueue.Order(c.name(), c.mealsPerDay() * c.pricePerMeal());
+                kitchen.place(order);
+                if (lb != null) {
+                    lb.record(order.customer(), order.value());
+                }
             }
         }
         kitchen.close();

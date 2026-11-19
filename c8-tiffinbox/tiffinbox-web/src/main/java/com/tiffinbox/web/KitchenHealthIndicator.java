@@ -8,7 +8,12 @@ import org.springframework.stereotype.Component;
 
 /**
  * The kitchen's say in Boot's health: UP while the database answers - with the customers it holds and the orders the
- * kitchen cooked - and DOWN, with the error's class name, when it does not.
+ * kitchen cooked - and DOWN, with the error's class name, when it does not. (Course 8, unit 14: not while the customer list is
+ * cached - since unit 08 its read is CustomerRepository.findAll(), which the cache answers once it holds the list. Measured under
+ * the profile "dev", on PostgreSQL with Redis: with the customer table renamed by psql under a running TiffinBox and the list in
+ * the cache, /actuator/health stays UP and /customers answers, while /dashboard, which reads the table, fails; with the cache
+ * emptied too, the indicator turns DOWN. A TiffinBox started with the table renamed does not start - Hibernate's schema
+ * validation names the missing table. ../c8-unit14, notes.)
  *
  * <p>Course 5: a HealthIndicator bean is one more component of /actuator/health. Boot names the component after the
  * bean, "HealthIndicator" left off: kitchen. application.yaml puts it in the readiness group, never in liveness: a
