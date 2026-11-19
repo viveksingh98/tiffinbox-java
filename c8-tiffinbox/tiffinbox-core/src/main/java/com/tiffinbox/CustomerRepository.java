@@ -84,6 +84,14 @@ public class CustomerRepository {
      * for all of them, in one JVM (../c8-unit13, sync: 1 in every round, where unit 12's tree read once per thread). Under the
      * profile "dev" the waiting is done by the cache writer TiffinBox gives Redis (RedisCaching), in this JVM; a second server
      * runs its own read.
+     *
+     * <p>Course 8, unit 17: across two JVMs, one Redis, under "dev": one read of the table with the writer TiffinBox gives Redis -
+     * its enableLocking() lock, {@code customers~lock}, seen by redis-cli while the method ran - and two in a copy without
+     * {@code enableLocking()} (../c8-unit17, sync). The two JVMs call this method on one signal; the rows that make them overlap
+     * for sure are the ones where the harness holds the method in a labelled copy (planted): one read with the shipped writer, two
+     * without its lock. Beside them, with no hold, the shipped writer gave one read as well. The unit 13 sentence above was
+     * measured in one JVM; its last clause - a second server runs its own read - is what the copy without enableLocking() printed,
+     * not the shipped writer (../c8-unit17, sync).
      */
     @Cacheable(cacheNames = "customers", sync = true)
     public List<Customer> findAll() throws SQLException {
