@@ -34,6 +34,7 @@ services:
     # No password: the port below is published on this computer's 127.0.0.1 alone, and the cache holds nothing secret.
     # (Course 8, unit 14: nor does the leaderboard - customers' names and the value of their orders, the numbers /kitchen shows.)
     # (Course 8, unit 15: nor do the kitchen orders - a customer's name, the meal type and an order's value.)
+    # (Course 8, unit 16: nor does the kitchen stream - an event's type, a customer's name and meal type.)
     ports:
       # 127.0.0.1, port 18882, on this computer -> 6379, Redis's own port, in the container. 18882 sits beside Postgres's 18881;
       # elsewhere in this repository it is only a TiffinBox port in Course 5 unit 17's receipts, never an anchor file's.
@@ -45,5 +46,9 @@ services:
     # (Course 8, unit 15: the kitchen orders too are Redis's own - the start saves each one again, the same ids, with the time to
     # live the entity carries, so a new container loses nothing the next start does not save again; and a time to live that ends
     # while TiffinBox is down leaves those orders' index entries in Redis until that start saves the same ids.)
+    # (Course 8, unit 16: the kitchen stream too is Redis's own - KitchenEvents' tiffinbox:kitchen-events, one entry per customer
+    # that add stores - and it is the one thing here no start rebuilds: a docker restart keeps it, since the image's save points
+    # write dump.rdb when Redis stops cleanly and Redis loads it when it starts again, but a new container loses it, XLEN 0; still
+    # no volume, which would hide that loss, and docker compose down loses the stream with the rest of Redis's data.)
 volumes:
   data:
