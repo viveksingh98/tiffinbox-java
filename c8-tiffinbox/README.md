@@ -460,7 +460,8 @@ changed, besides this README; nothing deleted, `pom.xml` and the YAML files unto
 holds the repository and the aggregation), Hibernate's schema script unchanged:
 - `tiffinbox-web/src/main/java/com/tiffinbox/web/OrderDocument.java` — **new**: `@Document("orders")`, a record — `@Id String id` (the
   kitchen order's id, the customer and the day, `Ravi-1` to `Ravi-30`, as unit 15's `KitchenOrder`), `customer`, `mealType` (the
-  customer's own String, stored as that String), `day`, `value` (meals times price). No index but `_id`'s. Not called `KitchenOrder`: that
+  customer's own String, stored as that String), `day`, `value` (meals times price). No index but `_id`'s *(Course 8, unit 20: and one on
+  `customer` since, under "dev" — `@Indexed` and the key `spring.data.mongodb.auto-index-creation`; its section below)*. Not called `KitchenOrder`: that
   is the Redis entity of the same order.
 - `tiffinbox-web/src/main/java/com/tiffinbox/web/OrderDocuments.java` — **new**: `interface OrderDocuments extends
   MongoRepository<OrderDocument, String>` with one derived finder, `findByMealType(String)`. Boot's MongoDB repository
@@ -480,7 +481,8 @@ holds the repository and the aggregation), Hibernate's schema script unchanged:
   `../c8-unit19`), so the slice names `OrderDocuments`' package.
 - `tiffinbox-web/src/test/java/com/tiffinbox/web/MongoDatastoreIT.java` — a second test: `OrderDocuments` saves three orders and
   `findByMealType("VEG")` reads the two VEG ones back; the driver's own collection reads one raw (`_id` a String, `_class`
-  `com.tiffinbox.web.OrderDocument`, `mealType` the String `VEG`). `mvn verify` runs 18 + 10; `mvn package` still runs the 18 and needs no
+  `com.tiffinbox.web.OrderDocument`, `mealType` the String `VEG`). `mvn verify` runs 18 + 10 *(Course 8, unit 20: 18 + 11 — the index's
+  test)*; `mvn package` still runs the 18 and needs no
   Docker.
 - `compose.yaml` — no service line changed: the `mongo` service's notes gain a *Course 8, unit 19* one — the start fills a second
   collection, `orders`, the copy; the menu's fill comes first, so without MongoDB the start still stops there.
@@ -491,6 +493,36 @@ holds the repository and the aggregation), Hibernate's schema script unchanged:
 `/revenue/by-customer` and `/menu/day-19` with 404, `/revenue` and `/actuator/health` with 200, builds no MongoClient and still needs no
 Docker (`../c8-unit19`, `default`); the kitchen places the same orders; the seven comparison requests, the same answers. The numbers are
 in `../c8-unit19`'s README, read off its captures.
+
+## Course 8 · unit 20 — Mongo Transactions, Indexes and Schema Design: the index the key makes, and the transaction this folder does not ship (2026-11-20)
+
+Course 8's fourteenth change to this folder, **Section 4's third and Part A's last**: `../c8-unit20/after`, whose `before` is the link to
+`../c8-unit19/after`. Under the profile "dev" the orders' copy in MongoDB carries an index on `customer` since — asked for by `@Indexed`
+and created by the mapper at the start, because `application-dev.yaml` sets the key that lets it. Nothing else moves: no transaction
+manager, no replica set, no reference between documents. Files changed, besides this README; nothing new, nothing deleted, `pom.xml`
+untouched (Spring Data MongoDB 5.1.2, there since unit 18, holds `@Indexed`):
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/OrderDocument.java` — `@Indexed` on the record's `customer` (not unique: four
+  customers share the orders); its Javadoc's "no index but the one on _id" sentence rewritten, and a unit 20 paragraph: `@Indexed` creates
+  nothing by itself, the key does; what `explain` reads with and without the index; the start's reset keeps it.
+- `tiffinbox-web/src/main/resources/application-dev.yaml` — **`spring.data.mongodb.auto-index-creation: true`** (the name as Boot's own
+  metadata spells it, `spring-boot-data-mongodb`'s), with its comment: Boot's default is false, and then nothing is created.
+- `tiffinbox-web/src/test/java/com/tiffinbox/web/MongoDatastoreIT.java` — a third test: three orders saved through `OrderDocuments`,
+  the mapper's `IndexOperations` names the index on `customer`, and the driver's `explain` of a find on one customer walks it
+  (`IXSCAN`). The container stays the standalone it was. `mvn verify` runs 18 + 11; `mvn package` still runs the 18 and needs no Docker.
+- `compose.yaml` — no service line changed: the `mongo` service's standalone note gains a *Course 8, unit 20* one.
+
+**What it changes:** under "dev", `getIndexes` on `orders` lists `_id`'s index and one named `customer`, and a find on one customer
+reads that customer's documents through the index instead of every document of the collection. **What it does not:** the default run —
+`java -jar`, H2 in memory — still has no `orders` collection, sends no `createIndexes`, builds no MongoClient and needs no Docker; the
+routes answer as before; the seven comparison requests, the same answers. TiffinBox still ships no MongoDB transaction: Boot makes no
+`MongoTransactionManager`, dev's MongoDB is a standalone, and a second manager beside JPA's would change which one `@Transactional`
+gets — unit 20 measured the three managers in its own harness, on its own containers (`../c8-unit20`, `tx`, `notone`), and
+the two shapes a reference can take there too (`shapes`), never in this folder. The numbers are in `../c8-unit20`'s README, read off its
+captures.
+
+**Section 4 Part A ends here.** Its MongoDB, under "dev" only: the menu (unit 18, one document per day with its items inside), the
+orders' copy (unit 19, grouped by the server) and its index on `customer` (unit 20); the default run needs no MongoDB at all. Part B —
+units 21 to 24, Elasticsearch — changes this folder next.
 
 ---
 

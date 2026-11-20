@@ -58,7 +58,8 @@ services:
   # too: the start fills the menu and without Mongo it stops. A standalone server, not a replica set: TiffinBox ships no MongoDB
   # transaction, and a replica set would need its initiate run from somewhere. (Course 8, unit 19: the start fills a second
   # collection too, orders - a copy of the orders it places, which Revenue groups; the menu's fill comes first, so without Mongo
-  # the start still stops there.)
+  # the start still stops there.) (Course 8, unit 20: still a standalone - the index on orders' customer needs none; unit 20's
+  # transactions ran in its harness, on a replica set of its own, and TiffinBox ships none.)
   mongo:
     image: mongo:8
     environment:

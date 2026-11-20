@@ -40,7 +40,12 @@ import java.util.TreeSet;
  *
  * <p>Course 8, unit 19: a second test, the same two witnesses for the copied orders - OrderDocuments, the repository the slice now
  * scans for (slice/MongoSlice), saves three orders and its derived finder findByMealType reads the VEG ones back; the driver's
- * collection reads one of them raw. 18 + 10 under mvn verify.
+ * collection reads one of them raw. 18 + 10 under mvn verify. (Course 8, unit 20: 18 + 11 - the third test below.)
+ *
+ * <p>Course 8, unit 20: a third test, the index - under "dev", whose application-dev.yaml sets
+ * spring.data.mongodb.auto-index-creation, OrderDocuments saves three orders and the mapper's own IndexOperations names the index on
+ * customer (the mapper's witness); the driver runs explain on a find of one customer and the server's plan walks that index,
+ * IXSCAN (the store's witness). The container stays the standalone above: this test is the index, not a transaction.
  */
 @DataMongoTest
 @ContextConfiguration(classes = MongoSlice.class)
@@ -104,6 +109,30 @@ class MongoDatastoreIT {
         assertThat(raw.get("_id")).isInstanceOf(String.class);
         assertThat(raw.get("_class")).isEqualTo("com.tiffinbox.web.OrderDocument");
         assertThat(raw.get("mealType")).isEqualTo("VEG");
+        orderDocuments.deleteAll();
+    }
+
+    @Test
+    void theKeyMakesTheIndexOnCustomerAndTheFindWalksIt() {
+        orderDocuments.deleteAll();
+        orderDocuments.saveAll(List.of(new OrderDocument("Ravi-1", "Ravi", "VEG", 1, 240), new OrderDocument("Ravi-2", "Ravi", "VEG", 2, 240),
+                new OrderDocument("Sunil-1", "Sunil", "VEG", 1, 300)));
+        var names = new TreeSet<String>();
+        template.indexOps(OrderDocument.class).getIndexInfo().forEach(i -> names.add(i.getName()));
+        System.out.println("MONGO IT orders, the mapper's IndexOperations.getIndexInfo(): " + names);
+        Document plan = template.getDb().runCommand(new Document("explain", new Document("find", "orders").append("filter", new Document("customer", "Ravi")))
+                .append("verbosity", "executionStats"));
+        var stages = new java.util.ArrayList<String>();
+        for (Document st = plan.get("queryPlanner", Document.class).get("winningPlan", Document.class); st != null; st = st.get("inputStage", Document.class)) {
+            stages.add(st.getString("stage"));
+        }
+        Document stats = plan.get("executionStats", Document.class);
+        System.out.println("MONGO IT explain of find {customer: Ravi}, through the driver's runCommand: winningPlan " + String.join(" > ", stages)
+                + " · nReturned " + stats.get("nReturned") + " · totalKeysExamined " + stats.get("totalKeysExamined") + " · totalDocsExamined " + stats.get("totalDocsExamined"));
+        assertThat(names).containsExactly("_id_", "customer");
+        assertThat(stages).contains("IXSCAN");
+        assertThat(stats.get("nReturned")).isEqualTo(2);
+        assertThat(stats.get("totalDocsExamined")).isEqualTo(2);
         orderDocuments.deleteAll();
     }
 }
