@@ -123,6 +123,14 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-redis</artifactId>
     </dependency>
+    <!-- Course 8, unit 18: Spring Data MongoDB, through Boot's starter - spring-data-mongodb, MongoDB's Java driver (the sync one)
+         and Boot's modules for them, which build a MongoClient and a MongoTemplate. Only the profile "dev" uses them (Menus, the menu
+         in MongoDB, the service compose.yaml starts): application.yaml excludes Boot's three MongoDB auto-configurations, so the
+         default run builds no MongoClient, and application-dev.yaml clears that list. Boot's parent manages its version. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-mongodb</artifactId>
+    </dependency>
     <!-- Course 7, unit 36: Flyway. Boot's Flyway starter brings spring-boot-flyway, the auto-configuration that runs the
          migrations in tiffinbox-core's db/migration at every start, before Hibernate starts - flyway-core alone runs nothing
          (../c7-unit36, jars). flyway-database-postgresql is Flyway's PostgreSQL support: without it a start on PostgreSQL stops,
@@ -156,7 +164,8 @@
          and Boot's service connection, which hands the slice the container's URL (spring-boot-testcontainers). Test scope: the
          executable jar holds none of them. Boot's parent manages every version. Only CustomerEntityRepositoryIT uses them, and only
          mvn verify runs it - the container-tests execution below. (Course 8, unit 07: CustomerAggregatesIT uses them too, in the same
-         execution. Course 8, unit 14: and RedisDatastoreIT, on Redis in a container.) -->
+         execution. Course 8, unit 14: and RedisDatastoreIT, on Redis in a container. Course 8, unit 18: and MongoDatastoreIT, on
+         MongoDB in a container.) -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa-test</artifactId>
@@ -176,6 +185,20 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-redis-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Course 8, unit 18: Spring Data MongoDB's test slice (@DataMongoTest, from Boot's starter) - a MongoClient and a MongoTemplate,
+         and nothing of Spring Data JPA's, JDBC's or Redis's - and Testcontainers' MongoDB module (MongoDBContainer, whose address
+         Boot's service connection hands the slice). Test scope: the executable jar holds none of it. Boot's parent manages both
+         versions. Only MongoDatastoreIT uses them, started from slice/MongoSlice, on MongoDB in a container. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-mongodb-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-mongodb</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

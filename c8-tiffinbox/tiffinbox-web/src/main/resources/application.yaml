@@ -59,6 +59,17 @@ spring:
   docker:
     compose:
       enabled: false
+  # Course 8, unit 18: Boot's three MongoDB auto-configurations, excluded - the MongoClient, the MongoTemplate and Spring Data
+  # MongoDB's repositories. Spring Data MongoDB's starter is on the class path (tiffinbox-web/pom.xml), and without this list the
+  # default run, which keeps no MongoDB, would build a MongoClient whose monitor tries localhost 27017, and its health indicator
+  # would turn /actuator/health DOWN (503). The health key alone (management.health.mongodb.enabled: false) answers 200, but
+  # the client still tries 27017 (../c8-unit18, default). Excluded, the default run's log names neither. The profile "dev", whose
+  # MongoDB Compose starts, clears the list (application-dev.yaml). The names are the ones Boot 4.1.2's two MongoDB jars list.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.mongodb.autoconfigure.MongoAutoConfiguration
+      - org.springframework.boot.data.mongodb.autoconfigure.DataMongoAutoConfiguration
+      - org.springframework.boot.data.mongodb.autoconfigure.DataMongoRepositoriesAutoConfiguration
   # Course 6: Jackson, the library Spring MVC reads a request's JSON body with, as Boot builds it (its bean jacksonJsonMapper).
   # Jackson's own default reads a number with a decimal point into a whole-number field by dropping the fraction, without a
   # word: "mealsPerDay": 2.7 is stored as 2. Off, such a number - 2.0 too - is refused: Spring MVC answers 400. Boot reads it

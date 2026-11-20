@@ -120,6 +120,13 @@ import static java.lang.System.Logger.Level.INFO;
  * its customer and its day, Ravi-1 to Ravi-30 - the same ids at every start, so a start's save overwrites the orders the last start
  * saved, index entries included. Its time to live is the setting tiffinbox.kitchen-order-ttl (none when the setting is absent or
  * zero: the order is saved untimed).
+ *
+ * <p>Course 8, unit 18: under "dev" the start also fills TiffinBox's menu in MongoDB - Menus, one MenuDay document per day, its
+ * items inside it. The constructor takes a third ObjectProvider, of Menus: the bean exists under "dev" only, and on the default run
+ * the provider gives none and nothing here touches MongoDB. When the bean is there, start() removes every menu document once, then
+ * inserts the days 1 to tiffinbox.days - thirty - from MenuDay.forDays (the menu's own dishes and prices, not a customer's). The fill
+ * is not guarded: under "dev" Mongo is required too, and a start that cannot reach it stops with the driver's exception rather than
+ * serve an empty menu (../c8-unit18, absent).
  */
 @RestController
 public final class TiffinBoxServer {
@@ -139,10 +146,12 @@ public final class TiffinBoxServer {
     private final ConfigurableApplicationContext context;
     private final ObjectProvider<Leaderboard> board;
     private final ObjectProvider<KitchenOrders> rail;
+    private final ObjectProvider<Menus> menu;
     private final Long orderTtl;
 
     TiffinBoxServer(CustomerRepository repo, Dashboard dashboard, OrderQueue kitchen, TiffinBoxProperties settings,
-                    ConfigurableApplicationContext context, ObjectProvider<Leaderboard> board, ObjectProvider<KitchenOrders> rail) {
+                    ConfigurableApplicationContext context, ObjectProvider<Leaderboard> board, ObjectProvider<KitchenOrders> rail,
+                    ObjectProvider<Menus> menu) {
         this.repo = repo;
         this.dashboard = dashboard;
         this.kitchen = kitchen;
@@ -152,6 +161,7 @@ public final class TiffinBoxServer {
         this.context = context;
         this.board = board;
         this.rail = rail;
+        this.menu = menu;
         this.orderTtl = settings.kitchenOrderTtl() == null || settings.kitchenOrderTtl().isZero() ? null : settings.kitchenOrderTtl().toSeconds();
     }
 
@@ -313,11 +323,19 @@ public final class TiffinBoxServer {
      * <p>Course 8, unit 15: and each order is saved as a KitchenOrder, in the same loop, from the same order - its id the customer
      * and the day (Ravi-1 ... Ravi-30), its meal type the customer's, its time to live the setting's. Without the repository (the
      * default run) nothing is saved.
+     *
+     * <p>Course 8, unit 18: and before the orders, the menu - under "dev" its documents removed, then the days inserted, one
+     * document each. Without the bean (the default run) nothing here touches MongoDB.
      */
     @PostConstruct
     void start() throws Exception {
         Leaderboard lb = board.getIfAvailable();
         KitchenOrders orders = rail.getIfAvailable();
+        Menus menus = menu.getIfAvailable();
+        if (menus != null) {
+            menus.reset();
+            menus.fill(MenuDay.forDays(days));
+        }
         if (lb != null) {
             lb.reset();
         }

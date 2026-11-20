@@ -1,0 +1,205 @@
+# TiffinBox's settings: the four keys application.properties held, one level of nesting per dot.
+tiffinbox:
+  jdbc-url: jdbc:h2:mem:tiffinbox;DB_CLOSE_DELAY=-1
+  cooks: 3
+  days: 30
+  port: 18425
+  # The address TiffinBox listens on: this computer only. In a container, set TIFFINBOX_ADDRESS=0.0.0.0 - every
+  # interface of the container - and publish the port on the Mac's 127.0.0.1 alone (docker run -p 127.0.0.1:...).
+  address: 127.0.0.1
+  # The meal types TiffinBox serves. Boot keeps a list as one key per item: meal-types[0], [1], [2].
+  meal-types:
+    - VEG
+    - NON_VEG
+    - VEGAN
+  # Course 8, unit 15: the time to live of each kitchen order the start saves to Redis under the profile "dev" (KitchenOrder,
+  # TiffinBoxServer) - read only there; the default run saves no order. Why this value: an order belongs on the rail while a
+  # developer looks at it, and every start saves the same ids again, so the value only decides when a dev run's orders leave
+  # Redis; written the way the cache's backstop below is (spring.cache.redis.time-to-live). Absent or 0: the orders are saved
+  # with no time to live.
+  kitchen-order-ttl: 10m
+# Course 6: the server is embedded Tomcat, and Tomcat reads Boot's keys - server.address and server.port - not TiffinBox's.
+# These two lines give it TiffinBox's, so --tiffinbox.port=, TIFFINBOX_ADDRESS and TIFFINBOX_PORT work as before. Without
+# server.address Tomcat listens on every interface. They sit here, above the "---": below it, they would belong to the
+# profile "rush" alone. Boot's own name still wins where both are given: --server.port beats --tiffinbox.port.
+server:
+  address: ${tiffinbox.address}
+  port: ${tiffinbox.port}
+  # Course 6: a session's id travels in its cookie, JSESSIONID, and nowhere else. Tomcat's default, cookie and url, also
+  # writes it into the address of a redirect to a client that sent no cookie yet (/dashboard;jsessionid=...) - an address
+  # a copied link keeps, and so does every link on that page. Above the "---": below it, only the rush profile would keep it out.
+  servlet:
+    session:
+      tracking-modes: cookie
+# How Boot composes the rest: virtual threads, a profile group, one more file, and the secrets.
+spring:
+  # Course 6: Tomcat answers each request on a virtual thread of its own, as TiffinBox's own server did since Core Java II,
+  # and Boot's task executor uses virtual threads too. Under Spring's AOT step, and so in the native binary, this is fixed
+  # when the jar is built: a run-time --spring.threads.virtual.enabled changes nothing there, either way.
+  threads:
+    virtual:
+      enabled: true
+  profiles:
+    group:
+      # --spring.profiles.active=lunch switches on the rush and the audit together.
+      lunch: rush,audit
+  config:
+    import:
+      # A developer's own settings, from the folder TiffinBox starts in. "optional:" - a missing file is no error.
+      # tiffinbox-local.yaml is never committed: .gitignore, beside this project's README.
+      - optional:file:./tiffinbox-local.yaml
+      # The secrets: a config tree, one file per key, in ./secrets/ - tiffinbox.shutdown-token is the file
+      # secrets/tiffinbox/shutdown-token. Never committed either (.gitignore). "optional:" - a missing folder is no
+      # error here, but the record requires the token, so the start still stops, and names the key.
+      - optional:configtree:./secrets/
+  # Boot's Docker Compose support (spring-boot-docker-compose, an optional dependency of tiffinbox-web): off. On a class
+  # path that holds the module - the one Maven lists for tiffinbox-web does; the executable jar does not - it would
+  # otherwise run docker compose up from the folder TiffinBox starts in, and stop the start where that folder holds no
+  # compose.yaml, or where Docker does not answer. The profile "dev" switches it on: application-dev.yaml.
+  docker:
+    compose:
+      enabled: false
+  # Course 8, unit 18: Boot's three MongoDB auto-configurations, excluded - the MongoClient, the MongoTemplate and Spring Data
+  # MongoDB's repositories. Spring Data MongoDB's starter is on the class path (tiffinbox-web/pom.xml), and without this list the
+  # default run, which keeps no MongoDB, would build a MongoClient whose monitor tries localhost 27017, and its health indicator
+  # would turn /actuator/health DOWN (503). The health key alone (management.health.mongodb.enabled: false) answers 200, but
+  # the client still tries 27017 (../c8-unit18, default). Excluded, the default run's log names neither. The profile "dev", whose
+  # MongoDB Compose starts, clears the list (application-dev.yaml). The names are the ones Boot 4.1.2's two MongoDB jars list.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.mongodb.autoconfigure.MongoAutoConfiguration
+      - org.springframework.boot.data.mongodb.autoconfigure.DataMongoAutoConfiguration
+      - org.springframework.boot.data.mongodb.autoconfigure.DataMongoRepositoriesAutoConfiguration
+  # Course 6: Jackson, the library Spring MVC reads a request's JSON body with, as Boot builds it (its bean jacksonJsonMapper).
+  # Jackson's own default reads a number with a decimal point into a whole-number field by dropping the fraction, without a
+  # word: "mealsPerDay": 2.7 is stored as 2. Off, such a number - 2.0 too - is refused: Spring MVC answers 400. Boot reads it
+  # when TiffinBox starts, in the AOT jar and the binary too. Above the "---": below it, a run without the rush profile skips it.
+  jackson:
+    deserialization:
+      accept-float-as-int: false
+  # Course 6: Spring MVC's own errors - no route (404), a verb no route takes (405), a request it cannot read or convert (400),
+  # a type the client does not accept (406), a body type it cannot read (415) - answered as problem details: RFC 9457's shape,
+  # application/problem+json, by Boot's ProblemDetailsExceptionHandler, an advice Boot asks before TiffinBox's own, where Boot's
+  # error controller wrote its four keys. A route's unexpected exception is still Boot's /error body. Above the "---": below
+  # it, only the rush profile would answer this way.
+  mvc:
+    problemdetails:
+      enabled: true
+  # Course 6: the static files under static/ - the pages' stylesheet. Each one's address carries the md5 of its content
+  # (/css/tiffinbox-<md5>.css: Boot's resource chain, which also rewrites every page's link to it), and its answer lets a
+  # browser keep it a year (Cache-Control: max-age=31536000). A changed file is a new address, so a kept copy is never the
+  # wrong one. Without these keys a browser kept the stylesheet with no lifetime given, and Last-Modified - the build's
+  # fixed time, project.build.outputTimestamp in the root pom.xml, the same for every build - called a changed file
+  # unchanged. paths: /** is Boot's own default (every file), written down. Above the "---": below it, only the rush
+  # profile would version its files.
+  # Course 7, unit 03: Spring Data JPA's starter brings Boot's DataSource - TiffinBox's first, since the Database class (retired
+  # by Course 7, unit 36) opened its own DriverManager connections. Without this key Boot's pool opens a second in-memory H2 under a generated name, empty:
+  # Hibernate would read and write there, where TiffinBox never looks. Pointed at tiffinbox.jdbc-url, both reach the one
+  # database, and the URL stays in one place. (Measured without the dev profile.)
+  datasource:
+    url: ${tiffinbox.jdbc-url}
+  jpa:
+    hibernate:
+      # Hibernate never writes the schema: Flyway's migrations create and seed the tables (Course 7, unit 36, which retired
+      # the Database class). Boot's default on an in-memory database is create-drop, and on this URL that drops TiffinBox's
+      # customer table when the application stops.
+      # validate: Hibernate checks the migrated schema and writes nothing
+      ddl-auto: validate
+    # The persistence context of the EntityManager Spring injects lives as long as the transaction, never the whole web
+    # request: with no key Boot registers OpenEntityManagerInViewInterceptor (and logs a WARN at every start); "true" keeps
+    # the interceptor and drops only the WARN.
+    open-in-view: false
+  # Course 8, unit 10: the cache - Caffeine's, since its library is on the class path (tiffinbox-web/pom.xml). cache-names makes
+  # the caches at the start, here the one TiffinBox has, customers (CustomerRepository.findAll()'s) (Course 8, unit 13: two
+  # since - customer too, findByName's, under each name it finds); with names given the
+  # manager is static - a name not listed has no cache, and a @Cacheable on it throws at the call (Cannot find cache named).
+  # Micrometer reports only the caches named at the start: without the line Caffeine still counts, and /actuator/prometheus
+  # holds no cache_ line. The spec: a ceiling of 100 entries - the customer list is one entry, its key SimpleKey [], so it
+  # never reaches it - and recordStats, which turns on Caffeine's counts (hits, misses, evictions). (Course 8, unit 12: and
+  # expireAfterWrite since, the time-to-live backstop - the comment below.) Above the "---": below
+  # it, only the rush profile would cache this way.
+  # Course 8, unit 11: type: caffeine. Spring Data Redis is on the class path too since (tiffinbox-web/pom.xml), and with both
+  # Boot's cache module would build a RedisCacheManager; this line keeps the default run's cache Caffeine's, in the JVM - it
+  # needs no Redis. The profile "dev" sets redis (application-dev.yaml), as a JVM run's: under Spring's AOT step, and so in the
+  # native binary, the cache's type is fixed when the jar is built.
+  # Course 8, unit 12: the time-to-live backstop, one value for both stores - expireAfterWrite=10m in Caffeine's spec, and
+  # spring.cache.redis.time-to-live: 10m for the profile "dev"'s Redis (RedisCaching builds its configuration from Boot's
+  # CacheProperties, so the key reaches Redis: redis-cli TTL reads it back, ../c8-unit12, anchor). It is for the writes the
+  # cache never sees - a JdbcTemplate update, psql, another process - which leave the cached list old until the entry's time
+  # to live runs out (../c8-unit12, stale, ttl); add still evicts the list on TiffinBox's own writes (unit 08). Why this
+  # value: it is a backstop, not the eviction - the list is one entry, read by every page, and a change made around TiffinBox
+  # shows once that entry's time to live runs out; a smaller value only reads the table more often. Under Spring's AOT step,
+  # and so in the native binary, the spec is fixed when the jar is built.
+  # Course 8, unit 15: Boot's own Spring Data Redis repositories, off. Spring Data Redis is on the class path, and with this key
+  # unset Boot's auto-configuration would register a Redis repository for every candidate interface it finds on the default
+  # run too, which keeps no Redis. Off, the default run's log has no Redis repository line at all (../c8-unit15, default); the
+  # profile "dev" registers KitchenOrders itself (RedisDatastore, @EnableRedisRepositories), where Redis is required.
+  data:
+    redis:
+      repositories:
+        enabled: false
+  cache:
+    type: caffeine
+    cache-names: customers,customer
+    caffeine:
+      spec: maximumSize=100,recordStats,expireAfterWrite=10m
+    redis:
+      time-to-live: 10m
+  web:
+    resources:
+      chain:
+        strategy:
+          content:
+            enabled: true
+            paths: /**
+      cache:
+        period: 365d
+# Logging. Boot's logging system is Logback, and TiffinBox's System.Logger reaches it through java.util.logging. A log
+# group is one name for several loggers: "kitchen" is TiffinBox's own logger (System.getLogger("tiffinbox")) and the loggers
+# under com.tiffinbox - Boot logs TiffinBox's startup under its main class's name. --logging.level.kitchen=debug sets them
+# all at start; the loggers endpoint - exposed by a flag, for one run - sets them while TiffinBox runs. Under Spring's AOT
+# step and in the native binary a level given at start still works; loggers is not in the exposure list below.
+logging:
+  group:
+    kitchen: tiffinbox, com.tiffinbox
+  # Course 6: two loggers print the shutdown token when they are at TRACE - Tomcat's Http11InputBuffer, each request it read,
+  # headers and all (its records labelled DEBUG), and Spring MVC's HandlerMethod, the arguments a route was given, the
+  # X-Shutdown-Token header's value among them. Held at INFO, Boot's default level, in the first document: a default run logs as
+  # it did without these lines, and every logger at TRACE, or Boot's web group at TRACE, leaves the token out of the log.
+  level:
+    org.apache.coyote.http11.Http11InputBuffer: info
+    org.springframework.web.method.HandlerMethod: info
+# Boot's Actuator: the endpoints Boot's own adapter answers under /actuator (Course 6). Health, and prometheus - the meters in the
+# text a Prometheus server scrapes - and nothing else: widening it is a line someone reviews. Under Spring's AOT step,
+# and so in the native binary, this list is fixed when the jar is built: a run-time exposure flag adds nothing there,
+# though it can still remove one - health too.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  # Course 8, unit 11: Redis's health indicator, off. Spring Data Redis's starter brings one, and with no Redis to answer it
+  # would turn /actuator/health DOWN (503) on the default run, which keeps no Redis; readiness and the dashboard do not read
+  # it. The profile "dev", whose Redis Compose starts, switches it on (application-dev.yaml). Under Spring's AOT step, and so in
+  # the native binary, this is fixed when the jar is built.
+  health:
+    redis:
+      enabled: false
+  # Health's groups. Readiness - "send TiffinBox traffic?" - holds Boot's own readiness state and the kitchen
+  # (KitchenHealthIndicator: DOWN when the database does not answer). Liveness - "restart TiffinBox?" - stays Boot's own
+  # state alone: a restart cannot bring back a database outside the process. (TiffinBox's own H2 lives in memory, and a
+  # restart would rebuild it: the health lesson's harness plays the outside database that stays down.) With probes switched
+  # off (management.endpoint.health.probes.enabled=false) readinessState does not exist, and this line stops the start.
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,kitchen
+---
+# A second document in the same file, read only while the profile "rush" is active.
+spring:
+  config:
+    activate:
+      on-profile: rush
+tiffinbox:
+  cooks: 6
