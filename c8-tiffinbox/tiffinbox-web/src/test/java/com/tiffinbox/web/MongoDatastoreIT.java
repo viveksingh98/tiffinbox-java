@@ -37,6 +37,10 @@ import java.util.TreeSet;
  *
  * <p>Two witnesses in one test: the shipped bean inserts one day and reads it back by its id, and the driver's own collection reads
  * the same stored document raw - its _id's type and _class, the type hint the mapper wrote.
+ *
+ * <p>Course 8, unit 19: a second test, the same two witnesses for the copied orders - OrderDocuments, the repository the slice now
+ * scans for (slice/MongoSlice), saves three orders and its derived finder findByMealType reads the VEG ones back; the driver's
+ * collection reads one of them raw. 18 + 10 under mvn verify.
  */
 @DataMongoTest
 @ContextConfiguration(classes = MongoSlice.class)
@@ -56,6 +60,7 @@ class MongoDatastoreIT {
 
     @Autowired Menus menus;
     @Autowired MongoTemplate template;
+    @Autowired OrderDocuments orderDocuments;
 
     @Test
     void aDayOfTheMenuIsOneDocumentWithItsItemsInside() {
@@ -82,5 +87,23 @@ class MongoDatastoreIT {
         assertThat(raw.getList("items", Document.class)).hasSize(3);
         assertThat(template.getDb().getCollection("menu").countDocuments()).isEqualTo(1);
         menus.reset();
+    }
+
+    @Test
+    void theDerivedFinderReadsTheCopiedOrdersOfOneMealType() {
+        orderDocuments.deleteAll();
+        orderDocuments.saveAll(List.of(new OrderDocument("Ravi-1", "Ravi", "VEG", 1, 240), new OrderDocument("Sunil-1", "Sunil", "VEG", 1, 300),
+                new OrderDocument("Meera-1", "Meera", "NON_VEG", 1, 150)));
+        var veg = new TreeSet<String>();
+        orderDocuments.findByMealType("VEG").forEach(o -> veg.add(o.id()));
+        System.out.println("MONGO IT orders, through OrderDocuments: count " + orderDocuments.count() + " · findByMealType(\"VEG\") " + veg);
+        Document raw = template.getDb().getCollection("orders").find(new Document("_id", "Ravi-1")).first();
+        System.out.println("MONGO IT Ravi-1, through the driver's collection: _id " + raw.get("_id").getClass().getSimpleName() + " · _class " + raw.get("_class")
+                + " · mealType " + raw.get("mealType") + " · value " + raw.get("value"));
+        assertThat(veg).containsExactly("Ravi-1", "Sunil-1");
+        assertThat(raw.get("_id")).isInstanceOf(String.class);
+        assertThat(raw.get("_class")).isEqualTo("com.tiffinbox.web.OrderDocument");
+        assertThat(raw.get("mealType")).isEqualTo("VEG");
+        orderDocuments.deleteAll();
     }
 }

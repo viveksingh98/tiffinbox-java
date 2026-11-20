@@ -2,6 +2,7 @@ package slice;
 
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
+import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 
 /**
  * Course 8, unit 18: the configuration TiffinBox's MongoDB slice starts from - test sources only, never the application's.
@@ -13,9 +14,14 @@ import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
  * ({@code @AutoConfigurationPackage}, this one - it holds no repository and no document). The class the test checks - Menus, a
  * {@code @RestController} the slice would not load - is imported by the test itself, and the test carries the container.
  *
+ * <p>Course 8, unit 19: and one more - {@code @EnableMongoRepositories} names com.tiffinbox.web, OrderDocuments' package, for the
+ * slice's repository scan: from this package alone the scan finds no repository (the slice's own log said "Found 0 MongoDB
+ * repository interfaces" until this line), and the test reads OrderDocuments (../c8-unit19, anchor).
+ *
  * <p>It lives outside com.tiffinbox for DataSlice's reason: there, TiffinBoxApp's own scan would find it.
  */
 @SpringBootConfiguration
 @AutoConfigurationPackage
+@EnableMongoRepositories(basePackageClasses = com.tiffinbox.web.OrderDocuments.class)
 public class MongoSlice {
 }

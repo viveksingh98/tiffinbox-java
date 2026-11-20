@@ -56,7 +56,9 @@ services:
   # mongo:8 at sha256:05b334b0a7a78fe913caac0cd2e1ecccf4da515d9a3a44be911b6ea3734c17cd - MongoDB 8.3.17. Boot's Docker Compose
   # support reads the service and hands TiffinBox its address: no spring.mongodb key anywhere. Under "dev" Mongo is required
   # too: the start fills the menu and without Mongo it stops. A standalone server, not a replica set: TiffinBox ships no MongoDB
-  # transaction, and a replica set would need its initiate run from somewhere.
+  # transaction, and a replica set would need its initiate run from somewhere. (Course 8, unit 19: the start fills a second
+  # collection too, orders - a copy of the orders it places, which Revenue groups; the menu's fill comes first, so without Mongo
+  # the start still stops there.)
   mongo:
     image: mongo:8
     environment:

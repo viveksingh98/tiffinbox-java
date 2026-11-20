@@ -1,0 +1,26 @@
+# The profile "dev": Boot's Docker Compose support, switched on (application.yaml switches it off). Start TiffinBox
+# from this project's root folder, where compose.yaml is, on a class path that holds spring-boot-docker-compose, with
+# --spring.profiles.active=dev: Boot runs docker compose up and waits, then starts TiffinBox; when TiffinBox stops,
+# Boot runs docker compose stop. The executable jar does not hold the module, so there this profile starts nothing.
+spring:
+  docker:
+    compose:
+      enabled: true
+  # Course 8, unit 11: the profile "dev" caches in Redis - the service compose.yaml starts beside Postgres - through
+  # RedisCaching's cache writer and JSON serializer. Boot's Docker Compose support hands TiffinBox Redis's address (no
+  # spring.data.redis key here), as it hands it Postgres's.
+  cache:
+    type: redis
+  # Course 8, unit 18: Boot's MongoDB auto-configurations, back: application.yaml excludes three, and an empty list here clears
+  # that list for the profile "dev" - the MongoClient, the MongoTemplate Menus is built on, and MongoDB's health indicator, on as
+  # Boot ships it (with MongoDB up, /actuator/health answers 200). Boot's Docker Compose support hands TiffinBox MongoDB's address
+  # (no spring.mongodb key here), as it hands it Postgres's and Redis's.
+  autoconfigure:
+    exclude: ""
+# Course 8, unit 11: Redis's health indicator, on again (application.yaml switches it off): with Redis down, /actuator/health
+# answers 503. (Course 8, unit 14: with Redis down when TiffinBox starts, there is no health to read since - under "dev" the
+# start fills the leaderboard in Redis, and without Redis it stops, RedisConnectionFailureException; ../c8-unit14, absent.)
+management:
+  health:
+    redis:
+      enabled: true

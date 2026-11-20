@@ -403,7 +403,8 @@ Course 8's twelfth change to this folder, **Section 4's first**: `../c8-unit18/a
 **Section 4 starts here: Document and search — MongoDB under the profile dev.** Until this unit TiffinBox's data lived in PostgreSQL (the
 customers and their pauses, the system of record) and Redis (the cache, and under "dev" the leaderboard, the kitchen orders and the
 stream). From here it also has a menu — one MongoDB document per day, `day-1` to `day-30`, each holding the day's three items, one per meal
-type, and each item its allergens — new data that no table held, MongoDB's alone, so nothing is written twice. Files new and changed,
+type, and each item its allergens — new data that no table held, MongoDB's alone, so nothing is written twice *(Course 8, unit 19: the
+orders are — the start copies them into MongoDB too, a copy it rebuilds; its section below)*. Files new and changed,
 besides this README; nothing deleted, Flyway's V1-V3 untouched, Hibernate's schema script unchanged:
 - `tiffinbox-web/pom.xml` — **`spring-boot-starter-data-mongodb`** (compile: Spring Data MongoDB 5.1.2, MongoDB's sync driver 5.8.1 and
   Boot's two MongoDB modules), and in test scope **`spring-boot-starter-data-mongodb-test`** (`@DataMongoTest`) and
@@ -438,7 +439,8 @@ besides this README; nothing deleted, Flyway's V1-V3 untouched, Hibernate's sche
   (`MongoDBContainer`, a standalone, with the kernel's variable, `@ServiceConnection`), its port published on `127.0.0.1:20578` alone —
   Testcontainers 2.0.5 publishes on every interface unless the test names the address. The shipped bean inserts one day and reads it
   back; the driver's own collection reads the stored document raw (`_id` a String, `_class` `com.tiffinbox.web.MenuDay`). `mvn verify`
-  runs it with the other container tests — 18 + 9 since, the one more this test; `mvn package` still runs the 18 and needs no Docker.
+  runs it with the other container tests — 18 + 9 since, the one more this test *(Course 8, unit 19: 18 + 10 — the orders' test, its
+  section below)*; `mvn package` still runs the 18 and needs no Docker.
 
 **What it changes:** under the profile "dev", TiffinBox starts only with PostgreSQL, Redis and MongoDB — three containers, the three
 services `compose.yaml` starts — fills the menu, and answers `GET /menu/day-19` with that day's document. Two starts in a row against one
@@ -446,6 +448,49 @@ MongoDB leave the same thirty documents. **What it does not:** the default run �
 answers `/menu/day-19` with 404 and `/actuator/health` with 200, builds no MongoClient and still needs no Docker (`../c8-unit18`,
 `default`); PostgreSQL stays the system of record — the customers, their pauses and the orders are where they were; the seven comparison
 requests, the same answers. The numbers are in `../c8-unit18`'s README, read off its captures.
+
+## Course 8 · unit 19 — Repositories, MongoTemplate and Aggregation: the same orders copied, grouped by the server, and the zeros nobody warns about (2026-11-20)
+
+Course 8's thirteenth change to this folder, **Section 4's second**: `../c8-unit19/after`, whose `before` is the link to `../c8-unit18/after`.
+Under the profile "dev" the start now copies the orders it places into MongoDB — a collection `orders`, one document per order, 120
+(four customers times `tiffinbox.days`) — and a new route groups them on MongoDB's server. The orders are not new data: PostgreSQL stays
+the system of record for the customers, the kitchen places the same orders as before, and `/kitchen`, the start's `kitchen value` line and
+the Redis leaderboard already add their values up; the collection is a copy the start empties and refills at every start. Files new and
+changed, besides this README; nothing deleted, `pom.xml` and the YAML files untouched (Spring Data MongoDB 5.1.2, there since unit 18,
+holds the repository and the aggregation), Hibernate's schema script unchanged:
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/OrderDocument.java` — **new**: `@Document("orders")`, a record — `@Id String id` (the
+  kitchen order's id, the customer and the day, `Ravi-1` to `Ravi-30`, as unit 15's `KitchenOrder`), `customer`, `mealType` (the
+  customer's own String, stored as that String), `day`, `value` (meals times price). No index but `_id`'s. Not called `KitchenOrder`: that
+  is the Redis entity of the same order.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/OrderDocuments.java` — **new**: `interface OrderDocuments extends
+  MongoRepository<OrderDocument, String>` with one derived finder, `findByMealType(String)`. Boot's MongoDB repository
+  auto-configuration finds it under "dev"; with four Spring Data modules on the class path, strict mode assigns it to MongoDB alone.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/Revenue.java` — **new**: `@RestController @Profile("dev")`, built on **`MongoTemplate`**:
+  `reset()` removes every document of `orders` (a delete with an empty query, never a drop), `fill(orders)` is one `insertAll`, and
+  **`GET /revenue/by-customer`** runs an aggregation pipeline — stages the server runs in order over a collection, each feeding the next:
+  `$group` by customer with `$sum` of `value`, then `$sort` by the total — typed on `OrderDocument`, into `Revenue.Total(customer, total)`,
+  answered as JSON. Not `GET /revenue`: that route is `TiffinBoxServer`'s, the month's revenue the database computes, on every run —
+  unchanged, and one of the seven comparison requests.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java` — the constructor takes a fourth provider, an
+  **`ObjectProvider<Revenue>`**; `start()`, when it gives a bean, calls `reset()` once before the orders are placed, keeps an
+  `OrderDocument` for each order the loop places (the same order the kitchen sums), and inserts the copies after the loop in one
+  `fill`. Not guarded: without MongoDB the menu's fill has stopped the start already (`../c8-unit18`, `absent`).
+- `tiffinbox-web/src/test/java/slice/MongoSlice.java` — `@EnableMongoRepositories(basePackageClasses = OrderDocuments.class)`: the
+  slice's own scan starts from `slice` and found no repository there (`Found 0 MongoDB repository interfaces`, measured in
+  `../c8-unit19`), so the slice names `OrderDocuments`' package.
+- `tiffinbox-web/src/test/java/com/tiffinbox/web/MongoDatastoreIT.java` — a second test: `OrderDocuments` saves three orders and
+  `findByMealType("VEG")` reads the two VEG ones back; the driver's own collection reads one raw (`_id` a String, `_class`
+  `com.tiffinbox.web.OrderDocument`, `mealType` the String `VEG`). `mvn verify` runs 18 + 10; `mvn package` still runs the 18 and needs no
+  Docker.
+- `compose.yaml` — no service line changed: the `mongo` service's notes gain a *Course 8, unit 19* one — the start fills a second
+  collection, `orders`, the copy; the menu's fill comes first, so without MongoDB the start still stops there.
+
+**What it changes:** under the profile "dev", MongoDB holds the menu and a copy of the 120 orders the start placed, and
+`GET /revenue/by-customer` answers the four customers' totals, grouped by MongoDB's server — the same 120 orders, the sum `/kitchen`'s
+`ordersValue` prints. **What it does not:** the default run — `java -jar`, H2 in memory — has no `Revenue` bean, answers
+`/revenue/by-customer` and `/menu/day-19` with 404, `/revenue` and `/actuator/health` with 200, builds no MongoClient and still needs no
+Docker (`../c8-unit19`, `default`); the kitchen places the same orders; the seven comparison requests, the same answers. The numbers are
+in `../c8-unit19`'s README, read off its captures.
 
 ---
 

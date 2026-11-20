@@ -29,6 +29,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -127,6 +128,15 @@ import static java.lang.System.Logger.Level.INFO;
  * inserts the days 1 to tiffinbox.days - thirty - from MenuDay.forDays (the menu's own dishes and prices, not a customer's). The fill
  * is not guarded: under "dev" Mongo is required too, and a start that cannot reach it stops with the driver's exception rather than
  * serve an empty menu (../c8-unit18, absent).
+ *
+ * <p>Course 8, unit 19: under "dev" the start also copies each order it places into MongoDB - Revenue's collection orders, one
+ * OrderDocument per order, the same order the kitchen sums: its id the kitchen order's (Ravi-1 ... Ravi-30), its customer, the
+ * customer's meal type, its day and its value. The constructor takes a fourth ObjectProvider, of Revenue: the bean exists under "dev"
+ * only, and on the default run the provider gives none and nothing here touches MongoDB. When the bean is there, start() removes
+ * every order document once, before the orders are placed, then inserts the copies once the loop has placed them all - 120, four
+ * customers times tiffinbox.days. PostgreSQL stays the system of record: the collection is a copy the start rebuilds, which
+ * GET /revenue/by-customer groups on MongoDB's server into the totals /kitchen already adds up (../c8-unit19, anchor). Not guarded either:
+ * without Mongo the menu's fill has stopped the start already.
  */
 @RestController
 public final class TiffinBoxServer {
@@ -147,11 +157,12 @@ public final class TiffinBoxServer {
     private final ObjectProvider<Leaderboard> board;
     private final ObjectProvider<KitchenOrders> rail;
     private final ObjectProvider<Menus> menu;
+    private final ObjectProvider<Revenue> revenue;
     private final Long orderTtl;
 
     TiffinBoxServer(CustomerRepository repo, Dashboard dashboard, OrderQueue kitchen, TiffinBoxProperties settings,
                     ConfigurableApplicationContext context, ObjectProvider<Leaderboard> board, ObjectProvider<KitchenOrders> rail,
-                    ObjectProvider<Menus> menu) {
+                    ObjectProvider<Menus> menu, ObjectProvider<Revenue> revenue) {
         this.repo = repo;
         this.dashboard = dashboard;
         this.kitchen = kitchen;
@@ -162,6 +173,7 @@ public final class TiffinBoxServer {
         this.board = board;
         this.rail = rail;
         this.menu = menu;
+        this.revenue = revenue;
         this.orderTtl = settings.kitchenOrderTtl() == null || settings.kitchenOrderTtl().isZero() ? null : settings.kitchenOrderTtl().toSeconds();
     }
 
@@ -326,18 +338,27 @@ public final class TiffinBoxServer {
      *
      * <p>Course 8, unit 18: and before the orders, the menu - under "dev" its documents removed, then the days inserted, one
      * document each. Without the bean (the default run) nothing here touches MongoDB.
+     *
+     * <p>Course 8, unit 19: and the orders copied into MongoDB - under "dev" the collection orders emptied before the loop, each
+     * placed order kept as an OrderDocument in the loop, and the copies inserted after it in one insertAll. Without the bean (the
+     * default run) nothing is copied.
      */
     @PostConstruct
     void start() throws Exception {
         Leaderboard lb = board.getIfAvailable();
         KitchenOrders orders = rail.getIfAvailable();
         Menus menus = menu.getIfAvailable();
+        Revenue copies = revenue.getIfAvailable();
         if (menus != null) {
             menus.reset();
             menus.fill(MenuDay.forDays(days));
         }
         if (lb != null) {
             lb.reset();
+        }
+        List<OrderDocument> copied = new ArrayList<>();
+        if (copies != null) {
+            copies.reset();
         }
         for (Customer c : repo.findAll()) {
             for (int day = 0; day < days; day++) {
@@ -349,7 +370,13 @@ public final class TiffinBoxServer {
                 if (orders != null) {
                     orders.save(new KitchenOrder(c.name() + "-" + (day + 1), order.customer(), c.mealType(), order.value(), orderTtl));
                 }
+                if (copies != null) {
+                    copied.add(new OrderDocument(c.name() + "-" + (day + 1), order.customer(), c.mealType(), day + 1, order.value()));
+                }
             }
+        }
+        if (copies != null) {
+            copies.fill(copied);
         }
         kitchen.close();
 
