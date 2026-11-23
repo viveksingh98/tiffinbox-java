@@ -597,6 +597,26 @@ name finds it, by TiffinBox's route and by Elasticsearch's own `_search`. **What
 requests each way of asking sends, the fragments, the counts that follow each save, and the harness's planted drift — are in
 `../c8-unit22`'s README, read off its captures.
 
+## Course 8 · unit 24 — Polyglot Persistence in One App: which manager each write runs under, and the dual write named (2026-11-23)
+
+Course 8's seventeenth change to this folder, **Section 4 Part B's last**: `../c8-unit24/after`, whose `before` is the link to
+`../c8-unit23/after` (the unit before this one changed nothing here). **This README is the only file that changes** — no line of
+`src/main`, no test, no `compose.yaml`: the test count stays as unit 22 left it, and the jar this tree builds is, byte for byte, the
+jar the tree before it builds.
+TiffinBox declares no transaction manager of its own and ships no second one. Which manager each shipped write runs under:
+- **PostgreSQL's rows** — every JPA repository save, `DishService`'s dish row among them (unit 22's `POST /dishes`), runs under
+  JPA's manager, the one Boot makes and names `transactionManager`.
+- **MongoDB's documents** — the "dev" start's fills of the menu days and the orders run under no transaction manager: dev's MongoDB is
+  a standalone, and this folder holds no `MongoTransactionManager` (Part A's reading, `../c8-unit20`'s `notone`).
+- **Elasticsearch's index** — the copy `DishIndexSync` writes after the row's commit (unit 22), under no transaction manager either.
+
+So a new dish under "dev" is two commits, one after the other: the row in PostgreSQL, then its copy in the index. That is a dual write,
+named here: one change written to two stores, each write committed on its own. `../c8-unit24` measures it on a harness of its own — its
+own replica set and its own PostgreSQL, never this folder's stores — with Mongo's manager added beside JPA's: the bean Boot then leaves
+out, the manager each method names, and a failure planted after both writes that keeps one store's write and loses the other's. Its
+numbers are in that unit's README, read off its captures. The pattern that closes the gap is not built in this course:
+Course 13, Messaging and Integration, comes back to this dual write with an outbox, in its section on patterns that matter.
+
 ---
 
 # c7-tiffinbox — Course 7 (Data with JPA & Hibernate)'s long-lived project
