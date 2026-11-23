@@ -14,7 +14,10 @@ spring:
   # Course 8, unit 18: Boot's MongoDB auto-configurations, back: application.yaml excludes three, and an empty list here clears
   # that list for the profile "dev" - the MongoClient, the MongoTemplate Menus is built on, and MongoDB's health indicator, on as
   # Boot ships it (with MongoDB up, /actuator/health answers 200). Boot's Docker Compose support hands TiffinBox MongoDB's address
-  # (no spring.mongodb key here), as it hands it Postgres's and Redis's.
+  # (no spring.mongodb key here), as it hands it Postgres's and Redis's. Course 8, unit 21: the same empty list clears the seven
+  # Elasticsearch auto-configurations application.yaml excludes too - the client, the template Dishes is built on, the repositories
+  # and Elasticsearch's health indicator. Boot's Docker Compose support hands TiffinBox Elasticsearch's address as well
+  # (spring.elasticsearch.uris, the key Boot's metadata names; not set here).
   autoconfigure:
     exclude: ""
   # Course 8, unit 20: the mapper creates the indexes a document class asks for (@Indexed on OrderDocument's customer) only

@@ -21,6 +21,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import com.tiffinbox.Customer;
 import com.tiffinbox.CustomerRepository;
 import com.tiffinbox.Dashboard;
+import com.tiffinbox.DishEntityRepository;
 import com.tiffinbox.MealType;
 import com.tiffinbox.OrderQueue;
 import com.tiffinbox.TiffinBoxProperties;
@@ -137,6 +138,15 @@ import static java.lang.System.Logger.Level.INFO;
  * customers times tiffinbox.days. PostgreSQL stays the system of record: the collection is a copy the start rebuilds, which
  * GET /revenue/by-customer groups on MongoDB's server into the totals /kitchen already adds up (../c8-unit19, anchor). Not guarded either:
  * without Mongo the menu's fill has stopped the start already.
+ *
+ * <p>Course 8, unit 21: under "dev" the start also copies the dish rows into Elasticsearch - Dishes, the index dishes, one Dish
+ * document per row of the table dish (V4__dish.sql, ten). The constructor takes a fifth and a sixth ObjectProvider, of Dishes and of
+ * DishEntityRepository: Dishes exists under "dev" only, and on the default run the provider gives none and nothing here touches
+ * Elasticsearch. When it is there, start() - after the MongoDB fills - deletes every document of the index, then saves every row's
+ * copy through the repository, whose save refreshes the index, and logs the count the index answers beside the rows' count. PostgreSQL
+ * stays the system of record: the index is a copy the start rebuilds, which GET /dishes/search reads (DishSearch). Not guarded: under
+ * "dev" Elasticsearch is required too, and without it the start stops before this method, when the repository is created
+ * (../c8-unit21, absent).
  */
 @RestController
 public final class TiffinBoxServer {
@@ -158,11 +168,14 @@ public final class TiffinBoxServer {
     private final ObjectProvider<KitchenOrders> rail;
     private final ObjectProvider<Menus> menu;
     private final ObjectProvider<Revenue> revenue;
+    private final ObjectProvider<Dishes> index;
+    private final ObjectProvider<DishEntityRepository> dishRows;
     private final Long orderTtl;
 
     TiffinBoxServer(CustomerRepository repo, Dashboard dashboard, OrderQueue kitchen, TiffinBoxProperties settings,
                     ConfigurableApplicationContext context, ObjectProvider<Leaderboard> board, ObjectProvider<KitchenOrders> rail,
-                    ObjectProvider<Menus> menu, ObjectProvider<Revenue> revenue) {
+                    ObjectProvider<Menus> menu, ObjectProvider<Revenue> revenue, ObjectProvider<Dishes> index,
+                    ObjectProvider<DishEntityRepository> dishRows) {
         this.repo = repo;
         this.dashboard = dashboard;
         this.kitchen = kitchen;
@@ -174,6 +187,8 @@ public final class TiffinBoxServer {
         this.rail = rail;
         this.menu = menu;
         this.revenue = revenue;
+        this.index = index;
+        this.dishRows = dishRows;
         this.orderTtl = settings.kitchenOrderTtl() == null || settings.kitchenOrderTtl().isZero() ? null : settings.kitchenOrderTtl().toSeconds();
     }
 
@@ -342,6 +357,9 @@ public final class TiffinBoxServer {
      * <p>Course 8, unit 19: and the orders copied into MongoDB - under "dev" the collection orders emptied before the loop, each
      * placed order kept as an OrderDocument in the loop, and the copies inserted after it in one insertAll. Without the bean (the
      * default run) nothing is copied.
+     *
+     * <p>Course 8, unit 21: and after those, the dishes - under "dev" the index's documents deleted, then every dish row saved as a Dish
+     * through Dishes, and the two counts logged. Without the repository (the default run) nothing touches Elasticsearch.
      */
     @PostConstruct
     void start() throws Exception {
@@ -377,6 +395,15 @@ public final class TiffinBoxServer {
         }
         if (copies != null) {
             copies.fill(copied);
+        }
+        Dishes dishes = index.getIfAvailable();
+        if (dishes != null) {
+            long before = dishes.count();
+            dishes.deleteAll();
+            List<Dish> copiesOfRows = dishRows.getObject().findAll().stream().map(Dish::of).toList();
+            dishes.saveAll(copiesOfRows);
+            LOG.log(INFO, "dishes re-indexed: rows {0,number,#} · documents before {1,number,#} · documents after {2,number,#}",
+                    copiesOfRows.size(), before, dishes.count());
         }
         kitchen.close();
 

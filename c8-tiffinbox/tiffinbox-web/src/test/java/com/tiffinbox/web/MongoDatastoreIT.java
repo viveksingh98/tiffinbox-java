@@ -40,7 +40,8 @@ import java.util.TreeSet;
  *
  * <p>Course 8, unit 19: a second test, the same two witnesses for the copied orders - OrderDocuments, the repository the slice now
  * scans for (slice/MongoSlice), saves three orders and its derived finder findByMealType reads the VEG ones back; the driver's
- * collection reads one of them raw. 18 + 10 under mvn verify. (Course 8, unit 20: 18 + 11 - the third test below.)
+ * collection reads one of them raw. 18 + 10 under mvn verify. (Course 8, unit 20: 18 + 11 - the third test below. Course 8, unit 21:
+ * 18 + 12 - ElasticsearchIT beside it.)
  *
  * <p>Course 8, unit 20: a third test, the index - under "dev", whose application-dev.yaml sets
  * spring.data.mongodb.auto-index-creation, OrderDocuments saves three orders and the mapper's own IndexOperations names the index on

@@ -65,11 +65,25 @@ spring:
   # would turn /actuator/health DOWN (503). The health key alone (management.health.mongodb.enabled: false) answers 200, but
   # the client still tries 27017 (../c8-unit18, default). Excluded, the default run's log names neither. The profile "dev", whose
   # MongoDB Compose starts, clears the list (application-dev.yaml). The names are the ones Boot 4.1.2's two MongoDB jars list.
+  # Course 8, unit 21: and seven more, Elasticsearch's - every auto-configuration the two Boot 4.1.2 jars of Spring Data
+  # Elasticsearch's starter list (spring-boot-elasticsearch's three, spring-boot-data-elasticsearch's four, each jar's
+  # META-INF/spring/...AutoConfiguration.imports): the client, its REST client, the two health contributors, the template, and the
+  # repositories, plain and reactive. Without them the default run, which keeps no Elasticsearch, builds a client that tries
+  # localhost 9200; the health key alone (management.health.elasticsearch.enabled: false) is not enough either: Boot's
+  # Elasticsearch repositories still build Dishes, whose constructor reaches localhost 9200 for its index, and the default run
+  # stops (../c8-unit21, default). Ten names now, three MongoDB's and seven Elasticsearch's; the profile "dev" clears them all.
   autoconfigure:
     exclude:
       - org.springframework.boot.mongodb.autoconfigure.MongoAutoConfiguration
       - org.springframework.boot.data.mongodb.autoconfigure.DataMongoAutoConfiguration
       - org.springframework.boot.data.mongodb.autoconfigure.DataMongoRepositoriesAutoConfiguration
+      - org.springframework.boot.elasticsearch.autoconfigure.ElasticsearchClientAutoConfiguration
+      - org.springframework.boot.elasticsearch.autoconfigure.ElasticsearchRestClientAutoConfiguration
+      - org.springframework.boot.elasticsearch.autoconfigure.health.ElasticsearchRestHealthContributorAutoConfiguration
+      - org.springframework.boot.data.elasticsearch.autoconfigure.DataElasticsearchAutoConfiguration
+      - org.springframework.boot.data.elasticsearch.autoconfigure.DataElasticsearchReactiveRepositoriesAutoConfiguration
+      - org.springframework.boot.data.elasticsearch.autoconfigure.DataElasticsearchRepositoriesAutoConfiguration
+      - org.springframework.boot.data.elasticsearch.autoconfigure.health.DataElasticsearchReactiveHealthContributorAutoConfiguration
   # Course 6: Jackson, the library Spring MVC reads a request's JSON body with, as Boot builds it (its bean jacksonJsonMapper).
   # Jackson's own default reads a number with a decimal point into a whole-number field by dropping the fraction, without a
   # word: "mealsPerDay": 2.7 is stored as 2. Off, such a number - 2.0 too - is refused: Spring MVC answers 400. Boot reads it

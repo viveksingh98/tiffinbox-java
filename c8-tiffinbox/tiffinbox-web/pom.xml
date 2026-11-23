@@ -23,7 +23,9 @@
 
   <dependencies>
     <!-- No version: the parent manages it. Course 6: Jackson 2's jackson-databind, beside it since Core Java II, is gone -
-         Spring MVC's Jackson 3 reads and writes every JSON body TiffinBox sends or receives. -->
+         Spring MVC's Jackson 3 reads and writes every JSON body TiffinBox sends or receives. (Course 8, unit 21: Jackson 2's
+         jackson-databind is back at run time, through the Elasticsearch client, beside Jackson 3 - Spring MVC still reads and
+         writes with Jackson 3: ../c8-unit21, anchor.) -->
     <dependency>
       <groupId>com.tiffinbox</groupId>
       <artifactId>tiffinbox-core</artifactId>
@@ -131,6 +133,15 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-mongodb</artifactId>
     </dependency>
+    <!-- Course 8, unit 21: Spring Data Elasticsearch, through Boot's starter - spring-data-elasticsearch, Elastic's Java client (which
+         brings Jackson 2's jackson-databind with it) and Boot's modules for them, which build the client and the template Dishes, the
+         index of the dishes, is built on. Only the profile "dev" uses them (Elasticsearch, the service compose.yaml starts):
+         application.yaml excludes every auto-configuration the two Boot modules list, so the default run builds no client, and
+         application-dev.yaml clears that list. Boot's parent manages its version. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+    </dependency>
     <!-- Course 7, unit 36: Flyway. Boot's Flyway starter brings spring-boot-flyway, the auto-configuration that runs the
          migrations in tiffinbox-core's db/migration at every start, before Hibernate starts - flyway-core alone runs nothing
          (../c7-unit36, jars). flyway-database-postgresql is Flyway's PostgreSQL support: without it a start on PostgreSQL stops,
@@ -199,6 +210,20 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers-mongodb</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Course 8, unit 21: Spring Data Elasticsearch's test slice (@DataElasticsearchTest, from Boot's starter) - the client and the
+         template, and nothing of Spring Data JPA's, JDBC's, Redis's or MongoDB's - and Testcontainers' Elasticsearch module
+         (ElasticsearchContainer, whose address Boot's service connection hands the slice). Test scope: the executable jar holds none
+         of it. Boot's parent manages both versions. Only ElasticsearchIT uses them, started from slice/ElasticsearchSlice. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-elasticsearch-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-elasticsearch</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

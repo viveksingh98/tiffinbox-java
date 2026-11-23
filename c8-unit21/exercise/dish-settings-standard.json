@@ -1,0 +1,7 @@
+{
+  "index": { "number_of_replicas": "0" },
+  "analysis": {
+    "filter": { "veg_syn": { "type": "synonym", "synonyms": ["veg, vegetarian"] } },
+    "analyzer": { "dish": { "type": "custom", "tokenizer": "standard", "filter": ["lowercase"] } }
+  }
+}

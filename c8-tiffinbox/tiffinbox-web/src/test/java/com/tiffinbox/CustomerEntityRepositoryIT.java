@@ -29,6 +29,7 @@ import java.util.List;
  * first test and removes it after the last; {@code @ServiceConnection} hands its URL, user and password to the slice's DataSource -
  * Course 5's Docker Compose support did the same for the dev profile. No {@code @AutoConfigureTestDatabase}: the slice keeps the
  * container's DataSource, and Flyway migrates it (V1-V3) before Hibernate validates it.
+ * (Course 8, unit 21: V1-V4 - V4__dish.sql.)
  *
  * <p>Named *IT: Surefire's default execution leaves it out, so mvn package runs the 18 tests on H2 in memory and needs no Docker;
  * the second execution, container-tests, runs it at mvn verify (tiffinbox-web/pom.xml). Which tests run where: 18 on H2 in memory,
@@ -50,7 +51,7 @@ class CustomerEntityRepositoryIT {
     @Autowired EntityManagerFactory emf;
     @Autowired JdbcTemplate jdbc;
 
-    /** The schema is the migrations': Flyway's history table lists V1-V3, V2's four customers are there, and validate passed. */
+    /** The schema is the migrations': Flyway's history table lists V1-V4, V2's four customers are there, and validate passed. */
     @Test
     void theMigrationsAreTheSchema() throws Exception {
         try (var c = jdbc.getDataSource().getConnection()) {
@@ -59,7 +60,8 @@ class CustomerEntityRepositoryIT {
         List<String> history = jdbc.queryForList("select version || ' ' || description || ' ' || success from flyway_schema_history order by installed_rank", String.class);
         System.out.println("IT flyway_schema_history: " + history.size() + " rows " + history);
         System.out.println("IT hibernate.hbm2ddl.auto = " + emf.getProperties().get("hibernate.hbm2ddl.auto"));
-        assertThat(history).containsExactly("1 customer and pause true", "2 seed true", "3 customer audit columns true");
+        // Course 8, unit 21: and V4 - V4__dish.sql, the dish table the index of the dishes copies (../c8-unit21, anchor).
+        assertThat(history).containsExactly("1 customer and pause true", "2 seed true", "3 customer audit columns true", "4 dish true");
         assertThat(emf.getProperties().get("hibernate.hbm2ddl.auto")).isEqualTo("validate");
         assertThat(customers.findAll()).extracting(CustomerEntity::getName).containsExactlyInAnyOrder("Ravi", "Meera", "Sunil", "Priya");
     }
