@@ -1,0 +1,100 @@
+diff -ru a/tiffinbox-web/src/test/java/com/tiffinbox/CustomerEntityRepositoryIT.java b/tiffinbox-web/src/test/java/com/tiffinbox/CustomerEntityRepositoryIT.java
+--- a/tiffinbox-web/src/test/java/com/tiffinbox/CustomerEntityRepositoryIT.java	2026-11-23 03:33:49
++++ b/tiffinbox-web/src/test/java/com/tiffinbox/CustomerEntityRepositoryIT.java	2026-11-23 20:55:57
+@@ -44,7 +44,16 @@
+     @Container
+     @ServiceConnection
+     static PostgreSQLContainer postgres = new PostgreSQLContainer(
+-            DockerImageName.parse("postgres@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873").asCompatibleSubstituteFor("postgres"));
++            DockerImageName.parse("postgres@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873").asCompatibleSubstituteFor("postgres"))
++            .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withPortBindings(new com.github.dockerjava.api.model.PortBinding(com.github.dockerjava.api.model.Ports.Binding.bindIp("127.0.0.1"), new com.github.dockerjava.api.model.ExposedPort(5432))));
++
++    /** BLUE C8-S5 sketch (U27's `bound` witness): this IT's own container, each exposed port's host IP and port, from Docker's inspect. */
++    @org.junit.jupiter.api.BeforeAll
++    static void printBindings() {
++        var out = new java.util.TreeSet<String>();
++        postgres.getContainerInfo().getNetworkSettings().getPorts().getBindings().forEach((p, bs) -> { if (bs != null) for (var b : bs) out.add(p + " -> " + b.getHostIp() + ":" + b.getHostPortSpec()); });
++        System.out.println("IT BINDINGS CustomerEntityRepositoryIT " + out);
++    }
+ 
+     @Autowired CustomerEntityRepository customers;
+     @Autowired EntityManager em;
+diff -ru a/tiffinbox-web/src/test/java/com/tiffinbox/jdbc/CustomerAggregatesIT.java b/tiffinbox-web/src/test/java/com/tiffinbox/jdbc/CustomerAggregatesIT.java
+--- a/tiffinbox-web/src/test/java/com/tiffinbox/jdbc/CustomerAggregatesIT.java	2026-11-23 03:29:46
++++ b/tiffinbox-web/src/test/java/com/tiffinbox/jdbc/CustomerAggregatesIT.java	2026-11-23 20:55:57
+@@ -48,7 +48,16 @@
+     @Container
+     @ServiceConnection
+     static PostgreSQLContainer postgres = new PostgreSQLContainer(
+-            DockerImageName.parse("postgres@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873").asCompatibleSubstituteFor("postgres"));
++            DockerImageName.parse("postgres@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873").asCompatibleSubstituteFor("postgres"))
++            .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withPortBindings(new com.github.dockerjava.api.model.PortBinding(com.github.dockerjava.api.model.Ports.Binding.bindIp("127.0.0.1"), new com.github.dockerjava.api.model.ExposedPort(5432))));
++
++    /** BLUE C8-S5 sketch (U27's `bound` witness): this IT's own container, each exposed port's host IP and port, from Docker's inspect. */
++    @org.junit.jupiter.api.BeforeAll
++    static void printBindings() {
++        var out = new java.util.TreeSet<String>();
++        postgres.getContainerInfo().getNetworkSettings().getPorts().getBindings().forEach((p, bs) -> { if (bs != null) for (var b : bs) out.add(p + " -> " + b.getHostIp() + ":" + b.getHostPortSpec()); });
++        System.out.println("IT BINDINGS CustomerAggregatesIT " + out);
++    }
+ 
+     @Autowired CustomerAggregates customers;
+     @Autowired JdbcTemplate jdbc;
+diff -ru a/tiffinbox-web/src/test/java/com/tiffinbox/web/ElasticsearchIT.java b/tiffinbox-web/src/test/java/com/tiffinbox/web/ElasticsearchIT.java
+--- a/tiffinbox-web/src/test/java/com/tiffinbox/web/ElasticsearchIT.java	2026-11-23 05:49:02
++++ b/tiffinbox-web/src/test/java/com/tiffinbox/web/ElasticsearchIT.java	2026-11-23 20:55:57
+@@ -63,6 +63,14 @@
+             .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withPortBindings(
+                     new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 20615), new ExposedPort(9200))));
+ 
++    /** BLUE C8-S5 sketch (U27's `bound` witness): this IT's own container, each exposed port's host IP and port, from Docker's inspect. */
++    @org.junit.jupiter.api.BeforeAll
++    static void printBindings() {
++        var out = new java.util.TreeSet<String>();
++        elasticsearch.getContainerInfo().getNetworkSettings().getPorts().getBindings().forEach((p, bs) -> { if (bs != null) for (var b : bs) out.add(p + " -> " + b.getHostIp() + ":" + b.getHostPortSpec()); });
++        System.out.println("IT BINDINGS ElasticsearchIT " + out);
++    }
++
+     @Autowired Dishes dishes;
+     @Autowired ElasticsearchClient client;
+ 
+diff -ru a/tiffinbox-web/src/test/java/com/tiffinbox/web/MongoDatastoreIT.java b/tiffinbox-web/src/test/java/com/tiffinbox/web/MongoDatastoreIT.java
+--- a/tiffinbox-web/src/test/java/com/tiffinbox/web/MongoDatastoreIT.java	2026-11-23 20:42:27
++++ b/tiffinbox-web/src/test/java/com/tiffinbox/web/MongoDatastoreIT.java	2026-11-23 20:55:57
+@@ -69,6 +69,14 @@
+             .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withPortBindings(
+                     new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 20578), new ExposedPort(27017))));
+ 
++    /** BLUE C8-S5 sketch (U27's `bound` witness): this IT's own container, each exposed port's host IP and port, from Docker's inspect. */
++    @org.junit.jupiter.api.BeforeAll
++    static void printBindings() {
++        var out = new java.util.TreeSet<String>();
++        mongo.getContainerInfo().getNetworkSettings().getPorts().getBindings().forEach((p, bs) -> { if (bs != null) for (var b : bs) out.add(p + " -> " + b.getHostIp() + ":" + b.getHostPortSpec()); });
++        System.out.println("IT BINDINGS MongoDatastoreIT " + out);
++    }
++
+     @Autowired Menus menus;
+     @Autowired MongoTemplate template;
+     @Autowired OrderDocuments orderDocuments;
+Only in b/tiffinbox-web/src/test/java/com/tiffinbox/web: MongoDatastoreIT.java.orig
+diff -ru a/tiffinbox-web/src/test/java/com/tiffinbox/web/RedisDatastoreIT.java b/tiffinbox-web/src/test/java/com/tiffinbox/web/RedisDatastoreIT.java
+--- a/tiffinbox-web/src/test/java/com/tiffinbox/web/RedisDatastoreIT.java	2026-11-23 03:29:46
++++ b/tiffinbox-web/src/test/java/com/tiffinbox/web/RedisDatastoreIT.java	2026-11-23 20:55:57
+@@ -59,7 +59,16 @@
+     @ServiceConnection(name = "redis")
+     static GenericContainer<?> redis = new GenericContainer<>(
+             DockerImageName.parse("redis@sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3").asCompatibleSubstituteFor("redis"))
+-            .withExposedPorts(6379);
++            .withExposedPorts(6379)
++            .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withPortBindings(new com.github.dockerjava.api.model.PortBinding(com.github.dockerjava.api.model.Ports.Binding.bindIp("127.0.0.1"), new com.github.dockerjava.api.model.ExposedPort(6379))));
++
++    /** BLUE C8-S5 sketch (U27's `bound` witness): this IT's own container, each exposed port's host IP and port, from Docker's inspect. */
++    @org.junit.jupiter.api.BeforeAll
++    static void printBindings() {
++        var out = new java.util.TreeSet<String>();
++        redis.getContainerInfo().getNetworkSettings().getPorts().getBindings().forEach((p, bs) -> { if (bs != null) for (var b : bs) out.add(p + " -> " + b.getHostIp() + ":" + b.getHostPortSpec()); });
++        System.out.println("IT BINDINGS RedisDatastoreIT " + out);
++    }
+ 
+     @Autowired Leaderboard board;
+     @Autowired StringRedisTemplate strings;

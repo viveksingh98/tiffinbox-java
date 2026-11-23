@@ -467,11 +467,14 @@ holds the repository and the aggregation), Hibernate's schema script unchanged:
 - `tiffinbox-web/src/main/java/com/tiffinbox/web/OrderDocuments.java` — **new**: `interface OrderDocuments extends
   MongoRepository<OrderDocument, String>` with one derived finder, `findByMealType(String)`. Boot's MongoDB repository
   auto-configuration finds it under "dev"; with four Spring Data modules on the class path, strict mode assigns it to MongoDB alone.
+  *(Course 8, unit 26: and a repository fragment since - it extends `OrderTotals` too, whose `totalsByCustomer()` its class
+  `OrderTotalsImpl` answers; its section below.)*
 - `tiffinbox-web/src/main/java/com/tiffinbox/web/Revenue.java` — **new**: `@RestController @Profile("dev")`, built on **`MongoTemplate`**:
   `reset()` removes every document of `orders` (a delete with an empty query, never a drop), `fill(orders)` is one `insertAll`, and
   **`GET /revenue/by-customer`** runs an aggregation pipeline — stages the server runs in order over a collection, each feeding the next:
   `$group` by customer with `$sum` of `value`, then `$sort` by the total — typed on `OrderDocument`, into `Revenue.Total(customer, total)`,
-  answered as JSON. Not `GET /revenue`: that route is `TiffinBoxServer`'s, the month's revenue the database computes, on every run —
+  answered as JSON *(Course 8, unit 26: unit 26 moves the pipeline behind `OrderDocuments.totalsByCustomer()`; `Revenue.Total` is
+  `CustomerTotal` from unit 26 on; the route's JSON is the same, byte for byte; its section below)*. Not `GET /revenue`: that route is `TiffinBoxServer`'s, the month's revenue the database computes, on every run —
   unchanged, and one of the seven comparison requests.
 - `tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java` — the constructor takes a fourth provider, an
   **`ObjectProvider<Revenue>`**; `start()`, when it gives a bean, calls `reset()` once before the orders are placed, keeps an
@@ -483,7 +486,7 @@ holds the repository and the aggregation), Hibernate's schema script unchanged:
 - `tiffinbox-web/src/test/java/com/tiffinbox/web/MongoDatastoreIT.java` — a second test: `OrderDocuments` saves three orders and
   `findByMealType("VEG")` reads the two VEG ones back; the driver's own collection reads one raw (`_id` a String, `_class`
   `com.tiffinbox.web.OrderDocument`, `mealType` the String `VEG`). `mvn verify` runs 18 + 10 *(Course 8, unit 20: 18 + 11 — the index's
-  test)* *(Course 8, unit 21: 18 + 12)* *(Course 8, unit 22: 18 + 13)*; `mvn package` still runs the 18 and needs no
+  test)* *(Course 8, unit 21: 18 + 12)* *(Course 8, unit 22: 18 + 13)* *(Course 8, unit 26: 18 + 14)*; `mvn package` still runs the 18 and needs no
   Docker.
 - `compose.yaml` — no service line changed: the `mongo` service's notes gain a *Course 8, unit 19* one — the start fills a second
   collection, `orders`, the copy; the menu's fill comes first, so without MongoDB the start still stops there.
@@ -509,7 +512,7 @@ untouched (Spring Data MongoDB 5.1.2, there since unit 18, holds `@Indexed`):
   metadata spells it, `spring-boot-data-mongodb`'s), with its comment: Boot's default is false, and then nothing is created.
 - `tiffinbox-web/src/test/java/com/tiffinbox/web/MongoDatastoreIT.java` — a third test: three orders saved through `OrderDocuments`,
   the mapper's `IndexOperations` names the index on `customer`, and the driver's `explain` of a find on one customer walks it
-  (`IXSCAN`). The container stays the standalone it was. `mvn verify` runs 18 + 11 *(Course 8, unit 21: 18 + 12 — `ElasticsearchIT`)* *(Course 8, unit 22: 18 + 13)*;
+  (`IXSCAN`). The container stays the standalone it was. `mvn verify` runs 18 + 11 *(Course 8, unit 21: 18 + 12 — `ElasticsearchIT`)* *(Course 8, unit 22: 18 + 13)* *(Course 8, unit 26: 18 + 14)*;
   `mvn package` still runs the 18 and needs no Docker.
 - `compose.yaml` — no service line changed: the `mongo` service's standalone note gains a *Course 8, unit 20* one.
 
@@ -558,7 +561,7 @@ tokens it looks up; the index here uses one of its own, `dish`. Files changed or
 - Tests: `CustomerAggregatesIT` and `CustomerEntityRepositoryIT` list V1-V4 (V4 is a fourth migration); `slice/ElasticsearchSlice` and
   **`ElasticsearchIT`** — the shipped `Dish` and `Dishes` on Elasticsearch in a container by the digest, published on `127.0.0.1:20606`
   alone. `mvn verify` runs 18 + 12 *(Course 8, unit 22: 18 + 13 — `ElasticsearchIT`'s second test; its binding `127.0.0.1:20615`
-  since)*; `mvn package` still runs the 18 and needs no Docker.
+  since)* *(Course 8, unit 26: 18 + 14)*; `mvn package` still runs the 18 and needs no Docker.
 
 **What it changes:** under "dev", PostgreSQL holds ten dish rows and Elasticsearch an index of them, and `GET /dishes/search?q=veg` answers
 the vegetarian box alone — Elasticsearch answers it, through the analyzer `dish`. **What it does not:** the default run — `java -jar`, H2 in
@@ -588,7 +591,8 @@ besides this README; nothing deleted:
   database's identity); its Javadoc and `DishEntityRepository`'s gain a *Course 8, unit 22* note each.
 - `TiffinBoxServer.java` — one Javadoc paragraph, *Course 8, unit 22*; no line of code moves.
 - `ElasticsearchIT.java` — another test, `searchByName("veg")` on the slice: one document, the vegetarian box, and its fragment; the
-  container's binding is **`127.0.0.1:20615`** since (unit 21's 20606 was that unit's slot). `mvn verify` runs **18 + 13**; `mvn package`
+  container's binding is **`127.0.0.1:20615`** since (unit 21's 20606 was that unit's slot). `mvn verify` runs **18 + 13** *(Course 8,
+  unit 26: 18 + 14 — `MongoDatastoreIT`'s fourth test)*; `mvn package`
   still runs the 18 and needs no Docker. `MongoDatastoreIT`'s Javadoc gains the note.
 
 **What it changes:** under "dev", `POST /dishes` adds a row, and after its commit the index holds its copy: the search for the new dish's
@@ -616,6 +620,44 @@ own replica set and its own PostgreSQL, never this folder's stores — with Mong
 out, the manager each method names, and a failure planted after both writes that keeps one store's write and loses the other's. Its
 numbers are in that unit's README, read off its captures. The pattern that closes the gap is not built in this course:
 Course 13, Messaging and Integration, comes back to this dual write with an outbox, in its section on patterns that matter.
+
+## Course 8 · unit 26 — Custom Repository Fragments: the method no derived name can say, and the class the repository hands it to (2026-11-23)
+
+Course 8's eighteenth change to this folder, **Section 5's first**: `../c8-unit26/after`, whose `before` is the link to
+`../c8-unit25/after` (unit 25 changed nothing here; its tree is unit 24's). A repository fragment: an interface of your own, and a class
+named after it, whose method the repository hands to that class. `OrderDocuments` gets one, and `Revenue`'s route reads the totals
+through it — the same four totals, the same JSON, byte for byte. Three files new, three changed, besides this README; one type gone
+(`Revenue.Total`, whose two components `CustomerTotal` carries); `pom.xml`, the YAML files, `compose.yaml` and Flyway's migrations
+untouched — no dependency added (Spring Data MongoDB 5.1.2, there since unit 18, holds the fragment's machinery in Spring Data
+Commons 4.1.2). 81 files → **84**:
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/OrderTotals.java` — **new**: `interface OrderTotals { List<CustomerTotal>
+  totalsByCustomer(); }`, the fragment's interface: the one method on the repository no derived name can say, a `$group` with a `$sum`.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/OrderTotalsImpl.java` — **new**: `class OrderTotalsImpl implements OrderTotals`,
+  `MongoTemplate` through its constructor, and unit 19's typed pipeline moved here unchanged — `$group` by customer with `$sum` of
+  `value`, then `$sort` by the total, descending — into `CustomerTotal`. No `@Component`, no `@Repository`: Spring Data Commons finds it
+  by its name, the interface's name and the postfix `Impl` (`@EnableMongoRepositories`' `repositoryImplementationPostfix` default),
+  in `OrderDocuments`' package.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/CustomerTotal.java` — **new**: `record CustomerTotal(@Id String customer, long total)`,
+  the group — `Revenue.Total` until this unit, the same two components.
+- `OrderDocuments.java` — `extends MongoRepository<OrderDocument, String>, OrderTotals`; its Javadoc keeps the derived finder's
+  paragraph and gains the fragment's.
+- `Revenue.java` — the route `GET /revenue/by-customer` returns `orders.totalsByCustomer()` (the repository through the constructor,
+  beside `MongoTemplate`, which stays for `reset()` and `fill()`); `Revenue.Total` and the static `pipeline()` gone; a *Course 8, unit
+  26* paragraph says where the pipeline lives now.
+- `MongoDatastoreIT.java` — a fourth test: three orders saved through `OrderDocuments`, `totalsByCustomer()` answers Ravi `480`, then
+  Sunil `300`, as `CustomerTotal`; its container's binding stays `127.0.0.1:20578`. `mvn verify` runs **18 + 14**; `mvn package` still
+  runs the 18 and needs no Docker.
+
+The fragment comes with an alternative this folder does not ship: the same pipeline written as strings in an `@Aggregation` on a
+repository method. `../c8-unit26` runs both and they answer the same four totals. Spring's advisory CVE-2026-59342 (Spring Data
+MongoDB 5.1.2 → 5.1.3, `https://spring.io/security/cve-2026-59342`) names a placeholder inside `$where`, `$function` or
+`$accumulator` in such strings; this pipeline has none, and the fragment's is built in Java, with no string of its own.
+
+**What it changes:** under "dev", `OrderDocuments` answers `totalsByCustomer()`, and `/revenue/by-customer` reads it there — Commons
+composes the repository from `OrderTotalsImpl` and `SimpleMongoRepository`, and hands that one method to the class. **What it does
+not:** the route's JSON, the four totals and their sum (`/kitchen`'s `ordersValue`), the default run (no `Revenue`, no MongoClient, no
+Docker), the seven comparison requests. The numbers — the composition, the call's stack, the misnamed class loud and silent, the
+JPA fragment's own transaction — are in `../c8-unit26`'s README, read off its captures.
 
 ---
 

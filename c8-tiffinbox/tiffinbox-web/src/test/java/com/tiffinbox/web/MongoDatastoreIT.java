@@ -47,6 +47,11 @@ import java.util.TreeSet;
  * spring.data.mongodb.auto-index-creation, OrderDocuments saves three orders and the mapper's own IndexOperations names the index on
  * customer (the mapper's witness); the driver runs explain on a find of one customer and the server's plan walks that index,
  * IXSCAN (the store's witness). The container stays the standalone above: this test is the index, not a transaction.
+ *
+ * <p>Course 8, unit 26: a fourth test, the repository's fragment on the slice - OrderDocuments saves three orders (Ravi-1 and Ravi-2
+ * at 240, Sunil-1 at 300) and totalsByCustomer(), OrderTotals' method that OrderTotalsImpl answers, groups them on MongoDB's server:
+ * Ravi 480, then Sunil 300, as CustomerTotal. The slice's scan (slice/MongoSlice) finds OrderTotalsImpl beside OrderDocuments, by its
+ * name, as the "dev" start does. 18 + 14 under mvn verify.
  */
 @DataMongoTest
 @ContextConfiguration(classes = MongoSlice.class)
@@ -134,6 +139,17 @@ class MongoDatastoreIT {
         assertThat(stages).contains("IXSCAN");
         assertThat(stats.get("nReturned")).isEqualTo(2);
         assertThat(stats.get("totalDocsExamined")).isEqualTo(2);
+        orderDocuments.deleteAll();
+    }
+
+    @Test
+    void theFragmentTotalsTheOrdersPerCustomer() {
+        orderDocuments.deleteAll();
+        orderDocuments.saveAll(List.of(new OrderDocument("Ravi-1", "Ravi", "VEG", 1, 240), new OrderDocument("Ravi-2", "Ravi", "VEG", 2, 240),
+                new OrderDocument("Sunil-1", "Sunil", "VEG", 1, 300)));
+        List<CustomerTotal> totals = orderDocuments.totalsByCustomer();
+        System.out.println("MONGO IT the fragment's totalsByCustomer(), through OrderDocuments: " + totals);
+        assertThat(totals).containsExactly(new CustomerTotal("Ravi", 480), new CustomerTotal("Sunil", 300));
         orderDocuments.deleteAll();
     }
 }

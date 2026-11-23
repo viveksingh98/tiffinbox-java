@@ -1,14 +1,7 @@
 package com.tiffinbox.web;
 
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.group;
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.sort;
-
 import org.springframework.context.annotation.Profile;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.aggregation.TypedAggregation;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,19 +28,23 @@ import java.util.List;
  *
  * <p>Why the profile "dev": under the profile dev, Mongo is required. The default run has no Revenue bean, no /revenue/by-customer
  * (404) and builds no MongoClient (../c8-unit19, default).
+ *
+ * <p>Course 8, unit 26: the pipeline is no longer here. It lives in OrderTotalsImpl, the class of OrderDocuments' fragment
+ * OrderTotals, and the route reads it through the repository - orders.totalsByCustomer() - into CustomerTotal, which replaces
+ * Revenue.Total with the same two components. The pipeline paragraphs above describe that class's pipeline now, stage for stage; the
+ * route's JSON is the same, byte for byte, before and after the move (../c8-unit26, anchor). MongoTemplate stays here for reset() and
+ * fill().
  */
 @RestController
 @Profile("dev")
 public class Revenue {
 
-    /** One group of the pipeline: the customer - the group's _id - and the sum of its orders' values. */
-    public record Total(@Id String customer, int total) {
-    }
-
     private final MongoTemplate mongo;
+    private final OrderDocuments orders;
 
-    Revenue(MongoTemplate mongo) {
+    Revenue(MongoTemplate mongo, OrderDocuments orders) {
         this.mongo = mongo;
+        this.orders = orders;
     }
 
     /** Every document of the collection orders removed - a delete with an empty query; the collection and its indexes stay. */
@@ -60,14 +57,9 @@ public class Revenue {
         mongo.insertAll(orders);
     }
 
-    /** The pipeline, typed: $group by customer with $sum of value, then $sort by total, descending. */
-    static TypedAggregation<OrderDocument> pipeline() {
-        return newAggregation(OrderDocument.class, group("customer").sum("value").as("total"), sort(Sort.Direction.DESC, "total"));
-    }
-
-    /** 200 and the groups, highest total first. */
+    /** 200 and the groups, highest total first - the repository's fragment, OrderTotals.totalsByCustomer(). */
     @GetMapping("/revenue/by-customer")
-    List<Total> revenue() {
-        return mongo.aggregate(pipeline(), Total.class).getMappedResults();
+    List<CustomerTotal> revenue() {
+        return orders.totalsByCustomer();
     }
 }
