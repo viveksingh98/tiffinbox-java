@@ -47,6 +47,8 @@ script — expected). Every capture's md5 equals `receipts.md5`'s in all three; 
 
 A first bash 3.2 run, before these three, printed one `grep: exercise: Is a directory` line (a gate's grep without `-r`):
 `check_unit8.py --runlog` refused that log (R.166), the grep was fixed (`$G -rqE`), and the three above ran on the fixed receipt.
+*(2026-11-23, the exercise fixed: `exercise`'s published md5 changed and the three runs of record were run again on the fixed tree -
+"Fixed" below; every other capture's md5 is the one these three published.)*
 
 ## The change, file by file, and every README/Javadoc sentence it rewrote or noted (R.250, S8.93)
 
@@ -348,6 +350,7 @@ in zsh (/bin/zsh -f) - the README's lines, the block's exit 0:
 $ perl -pe 's/ops\.save\(dish\);/ops.withRefreshPolicy(RefreshPolicy.IMMEDIATE).save(dish);/' exercise/SaveLab.java > "$EX/SaveLab.java"
 saved: dish 1 · the count that follows: 0
 saved: dish 1 · the count that follows: 1
+index dishes: its refresh interval -1 - no periodic refresh (the exercise's template)
 check: _count -> 0 · document writes the program sent: 1 · a refresh behind the write: no · solved: no
 check: _count -> 1 · document writes the program sent: 1 · a refresh behind the write: yes · solved: yes
 the shell is now in: this unit's folder · the shell's own output: 0 lines · listening on 20618 afterwards: 0 · the container c8u22-es-ex afterwards: 0 · volumes 315 (before the shell: 315) · java processes of the exercise: 0 · images afterwards: the same list yes
@@ -377,7 +380,8 @@ the shell is now in: this unit's folder · the shell's own output: 0 lines · li
   `/actuator/beans` line, and the harness's bean list in `drift`).
 - The listener on `BEFORE_COMMIT` — measured once as a plant (below): the caller saw the planted exception and the row rolled back.
   The shipped phase is `AFTER_COMMIT`: the copy is written only for a row the table kept.
-- A pause, or a second write, to make a count read `1` — the exercise's checker counts the writes and looks for the refresh.
+- A pause, or a second write, to make a count read `1` — the exercise's checker counts the writes and looks for the refresh. *(Since
+  the fix below, the exercise's index has no periodic refresh: a pause leaves the count at `0` as well.)*
 - An exec into a container to run curl there; a binding on every interface; the key `spring.elasticsearch.uris` twice on one command line.
 - Wording, per sentence, by `harness/s822.py`: the families of Part A and Part B and the refused readings of units 21 and 22, each
   self-tested on a plant (the plant list below) — the counts are the measurement, never a time (R.432).
@@ -443,7 +447,27 @@ The first mid-Compose attempt never reached the window: with the machine's load 
 exercise's check — in zsh the broken program's count read `1` — and left that failing capture in place of the published one; the next
 run wrote the published capture back, and the point, run again, ended as above. The exercise's check reads `_count` with a curl of its
 own after the program exits, so the index's periodic refresh can fall between the two (the race `nrt` met, "What differed") — a fault
-of that check under load, not of the traps; not changed here.
+of that check under load, not of the traps; not changed here. *(Changed since: "Fixed" below.)*
+
+## Fixed — the exercise's count made deterministic (2026-11-23)
+
+**The defect: a check that could not distinguish under load.** `exercise/check.sh` read `_count` with a `curl` of its own after the
+program exited, and the exercise's index kept Elasticsearch's default periodic refresh, so that refresh could land between the
+program's exit and the check's count: with the machine's load near `30` the broken program's capture printed `check: _count -> 1 · … ·
+a refresh behind the write: no · solved: no` — the verdict stayed right, the printed count differed from `exercise/README.md`'s "What
+it prints" block, and the receipt stopped at its comparison (the same class as `nrt`'s separate `curl` processes, "What differed").
+**What changed:** one `curl` line in both blocks, after the line that polls the cluster's health and before the program, puts an index
+template `c8u22-ex` on the name `dishes` with `refresh_interval` `-1` — `Dish`'s own settings do not name one, so the template's value
+stands and the exercise's index refreshes only on request; `check.sh` reads `GET /dishes/_settings` first and prints it on a line of
+its own before the `check:` line, whose form is unchanged (`index dishes: its refresh interval -1 - no periodic refresh (the exercise's
+template)`; any other value prints that the count cannot judge the program, and `solved: no`). `SaveLab.java` is unchanged, and so is
+the solution's one `perl` line; the shipped index keeps Elasticsearch's default. **Measured** (the agent's session, a fresh container
+each, the machine's 1-min load between `16` and `333` at their starts): the broken block's program, then `sleep 5` (five periodic
+intervals), then the check — with the template `_count -> 0` 3/3; **the control**, the template line left out, the same pause —
+`_count -> 1` 2/2 (the periodic refresh landed) and the precondition line refusing it; the solution with the template — `_count -> 1 · document
+writes the program sent: 1 · a refresh behind the write: yes · solved: yes` 3/3. The receipt asserts the template line (S8.76) and
+`chk22.py exercise` the precondition line in both shells' blocks; the three runs of record (bash 3.2.57, bash 5.3.9, a sealed fresh
+clone in a path with a space) ran on this tree, `exercise` the only capture whose md5 changed.
 
 ## The decision-table unit measures nothing new
 
@@ -548,7 +572,8 @@ each plant judged by the receipt's own gate or `harness/chk22.py`, each refused,
   row and leaves the copy a row behind, which `drift`'s `listener` mode shows. A two-write "solution" and a pause "solution" of the exercise,
   each run against a fresh index: the checker printed `document writes the program sent: 2 · a refresh behind the write: no · solved:
   no`, and for the pause `_count -> 1 · document writes the program sent: 1 · a refresh behind the write: no · solved: no` — the count
-  alone would have passed it; the trace refused it. `ElasticsearchIT` without its binding: cited, not measured again — unit 21's plant
+  alone would have passed it; the trace refused it. *(That pause ran before the fix below; with the exercise's index template the same
+  pause reads `_count -> 0`.)* `ElasticsearchIT` without its binding: cited, not measured again — unit 21's plant
   `nobind` (`../c8-unit21`, "Planted faults") measured Testcontainers 2.0.5 publishing on every interface and the S8.94 grep stopping
   the receipt; this unit's IT keeps the same binding form on `20615`.
 

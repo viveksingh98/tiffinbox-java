@@ -13,6 +13,7 @@ EX="$PWD/.harness/ex"; mkdir -p "$EX"; rm -f "$EX/run.log"; [ -d "$EX/tb" ] || r
 perl -pe 's/ops\.save\(dish\);/ops.withRefreshPolicy(RefreshPolicy.IMMEDIATE).save(dish);/' exercise/SaveLab.java > "$EX/SaveLab.java"
 docker -H "$DH" run -d --name c8u22-es-ex -p 127.0.0.1:20618:9200 -e discovery.type=single-node -e xpack.security.enabled=false -e xpack.ml.enabled=false -e ingest.geoip.downloader.enabled=false -e xpack.inference.elastic.authorization.enabled=false -e "ES_JAVA_OPTS=-Xms512m -Xmx512m" docker.elastic.co/elasticsearch/elasticsearch:9.4.8 > /dev/null
 i=0; until curl -sf --noproxy '*' -o /dev/null http://127.0.0.1:20618/_cluster/health || [ $i -ge 240 ]; do sleep 0.5; i=$((i + 1)); done
+curl -s --noproxy '*' -X PUT -H 'Content-Type: application/json' http://127.0.0.1:20618/_index_template/c8u22-ex --data-binary '{"index_patterns":["dishes"],"template":{"settings":{"index":{"refresh_interval":"-1"}}}}' > /dev/null
 perl -e '$SIG{INT}="DEFAULT"; alarm 240; exec @ARGV' java -cp "$EX/x/tiffinbox-web-1.0.0.jar:$EX/x/lib/*" "$EX/SaveLab.java" > "$EX/run.log" 2>&1; grep -E '^(index dishes|saved: )' "$EX/run.log"; grep -oE "curl -iX [A-Z]+ '[^']*/dishes[^']*'" "$EX/run.log" | sed -E "s#'http://127\.0\.0\.1:[0-9]+#'#"
 bash exercise/check.sh "$EX/run.log"
 docker -H "$DH" rm -fv c8u22-es-ex > /dev/null
@@ -28,9 +29,12 @@ curl -iX HEAD '/dishes'
 curl -iX PUT '/dishes'
 curl -iX PUT '/dishes/_doc/1?refresh=true'
 curl -iX POST '/dishes/_search?search_type=query_then_fetch&typed_keys=true'
+index dishes: its refresh interval -1 - no periodic refresh (the exercise's template)
 check: _count -> 1 · document writes the program sent: 1 · a refresh behind the write: yes · solved: yes
 ```
 
 The same save, the same count, one document write - and `refresh=true` on it: the index refreshed before it answered the write, so the
-count that follows it read `1`, and `exercise/check.sh` says `solved: yes`. Saving the dish twice, or pausing before the count, is not
-it: the check counts the writes and looks for the refresh, and either one leaves `solved: no`.
+count that follows it read `1`, and `exercise/check.sh` says `solved: yes`. The index template's line is the README's too: with the
+index's periodic refresh off (`-1`, the check's first line), the `1` is the write's own refresh, never the clock's. Saving the dish
+twice, or pausing before the count, is not it: the check counts the writes and looks for the refresh, and either one leaves
+`solved: no`.

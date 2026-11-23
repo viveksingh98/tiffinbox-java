@@ -114,6 +114,10 @@ if NAME == "static":
     ok("import com.tiffinbox.web.Dish;" in sl and "20618" in sl and sl.count("ops.save(dish);") == 1 and "RefreshPolicy.IMMEDIATE" not in sl and "low_level.Request=TRACE" in sl, "exercise/SaveLab.java: the shipped Dish, Elasticsearch on 20618, ONE template save, no refresh policy of its own, the trace logger on")
     ck = rd("exercise", "check.sh")
     ok("20618" in ck and "_count" in ck and "_refresh" in ck and "refresh=(true|wait_for)" in ck and "1 1 yes" in ck, "exercise/check.sh: the store's _count, the document writes counted, a refresh behind the write (R.196)")
+    ok("/dishes/_settings" in ck and "refresh_interval" in ck and '"-1 1 1 yes"' in ck and ck.index("/dishes/_settings") < ck.index("/dishes/_count"), "exercise/check.sh: the index's own refresh setting read first - solved only at -1 (the exercise's template)")
+    for f in ("README.md", "SOLUTION.md"):
+        ex = rd("exercise", f)
+        ok(ex.count("/_index_template/c8u22-ex --data-binary '{\"index_patterns\":[\"dishes\"],\"template\":{\"settings\":{\"index\":{\"refresh_interval\":\"-1\"}}}}'") == 1, "exercise/" + f + ": the index template c8u22-ex, refresh_interval -1, once")
     h = rd("harness", "src/probe/u22/H22.java")
     ok(h.count("new IllegalStateException(\"PLANTED") == 3 and "the harness plants a failure" in h and "JpaTransactionManager transactionManager(" in h and "dishes_drift" in h, "H22: three planted failures, each labelled; JPA's manager named transactionManager; the harness's own index dishes_drift")
 elif NAME == "r250":
@@ -196,6 +200,9 @@ elif NAME == "exercise":
         ok(any(l.strip() == "saved: dish 1 · the count that follows: 1" for l in blk), sh + ": solved - the count: 1")
         ok(any(l.strip() == "check: _count -> 1 · document writes the program sent: 1 · a refresh behind the write: yes · solved: yes" for l in blk), sh + ": solved - check: _count 1, one write, refresh yes, solved: yes")
         ok(any("PUT '/dishes/_doc/1?refresh=false'" in l for l in blk) and any("PUT '/dishes/_doc/1?refresh=true'" in l for l in blk), sh + ": the trace - refresh=false broken, refresh=true solved")
+        end = next((k for k, l in enumerate(blk) if l.startswith("  the shell is now in")), len(blk))
+        pre = [k for k, l in enumerate(blk[:end]) if l.strip() == "index dishes: its refresh interval -1 - no periodic refresh (the exercise's template)"]
+        ok(len(pre) == 2 and all(k + 1 < len(blk) and blk[k + 1].strip().startswith("check: _count -> ") for k in pre), sh + ": the precondition - the index's refresh interval -1, printed before each check: line (broken and solved)")
     ok(len(every(L, r"listening on 20618 afterwards: 0 · the container c8u22-es-ex afterwards: 0 ")) == 2, "both shells: 20618 free, the container gone after")
     ok(len(every(L, r"images afterwards: the same list yes")) == 2, "both shells: the images list unchanged (nothing pulled)")
     ok(len(every(L, r"the block's exit 0")) == 4, "the four blocks exit 0")
