@@ -427,13 +427,23 @@ its default, R.410, interrupted while Maven built the trees): the receipt's exit
 of this unit's, Compose's or Testcontainers' (`c8u22-*`, `tiffinbox-dev-*`: `0`), volumes `315`, images `9`, nothing listening on
 `20578`, `20610-20619` or `18881-18884`, `.r-lock` gone, no partial capture, the captures unchanged.
 
-The other points the plan names (mid-verify, mid-dev-start on the four stores, mid-Compose-window, mid-`drift`, mid-exercise) were
-**not run** in this session: the three runs of record were run twice (a grep error in the first bash 3.2 log, then the REST race in
-`nrt`), and the cap left no room for them. The receipt carries the traps they would test, unchanged in shape from unit 21's (whose
-SIGINT points passed): every JVM, Maven and shell child killed by its pid, the Testcontainers containers, the Compose project
-(`down -v` and the mongo service's two anonymous volumes by name), the unit's and the harness's containers removed with `rm -fv`, and —
-new here — the scratch indices `dishes_nrt`, `dishes_nrt_j` and `dishes_drift` deleted by the trap, `_cat/indices` printed. Not
-measured, not said; for the next session.
+The five other points the plan names were run on 2026-11-23, after unit `23`'s commit, by the evidence agents' own script
+(`sigint.sh`, their scratch), each against this folder's `receipts.sh` as committed, started in its own process group with SIGINT at
+its default (R.410): **mid-exercise** (the exercise's own Elasticsearch container `c8u22-es-ex` up), **mid-verify** (a Testcontainers
+container up under `mvn verify`), **mid-dev-start** (the unit's four stores up, TiffinBox's dev JVM starting), **mid-Compose-window**
+(the Compose project's four services and the unit's four stores up), **mid-`drift`** (the harness's PostgreSQL up, the harness JVM in
+its `drift` mode). Each time: the receipt's exit `130`; afterwards `java` processes `0`, no container of this unit's, Compose's or
+Testcontainers' (`c8u22-*`, `tiffinbox-dev-*`: `0`), no `tiffinbox-dev` network or volume, volumes `315`, images `9`, nothing
+listening on `20578`, `20610-20619` or `18881-18884`, `.r-lock` gone, no partial capture; where the unit's Elasticsearch was up, the
+trap deleted the three scratch indices and printed `_cat/indices` (`dishes` alone left, or nothing where the dev start had
+not yet made it); after each point every capture's md5 equal
+to `receipts.md5`'s.
+
+The first mid-Compose attempt never reached the window: with the machine's load near `30` the receipt stopped itself at the
+exercise's check — in zsh the broken program's count read `1` — and left that failing capture in place of the published one; the next
+run wrote the published capture back, and the point, run again, ended as above. The exercise's check reads `_count` with a curl of its
+own after the program exits, so the index's periodic refresh can fall between the two (the race `nrt` met, "What differed") — a fault
+of that check under load, not of the traps; not changed here.
 
 ## The decision-table unit measures nothing new
 
