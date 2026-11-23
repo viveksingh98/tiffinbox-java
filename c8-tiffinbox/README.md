@@ -483,7 +483,7 @@ holds the repository and the aggregation), Hibernate's schema script unchanged:
 - `tiffinbox-web/src/test/java/com/tiffinbox/web/MongoDatastoreIT.java` — a second test: `OrderDocuments` saves three orders and
   `findByMealType("VEG")` reads the two VEG ones back; the driver's own collection reads one raw (`_id` a String, `_class`
   `com.tiffinbox.web.OrderDocument`, `mealType` the String `VEG`). `mvn verify` runs 18 + 10 *(Course 8, unit 20: 18 + 11 — the index's
-  test)* *(Course 8, unit 21: 18 + 12)*; `mvn package` still runs the 18 and needs no
+  test)* *(Course 8, unit 21: 18 + 12)* *(Course 8, unit 22: 18 + 13)*; `mvn package` still runs the 18 and needs no
   Docker.
 - `compose.yaml` — no service line changed: the `mongo` service's notes gain a *Course 8, unit 19* one — the start fills a second
   collection, `orders`, the copy; the menu's fill comes first, so without MongoDB the start still stops there.
@@ -509,7 +509,7 @@ untouched (Spring Data MongoDB 5.1.2, there since unit 18, holds `@Indexed`):
   metadata spells it, `spring-boot-data-mongodb`'s), with its comment: Boot's default is false, and then nothing is created.
 - `tiffinbox-web/src/test/java/com/tiffinbox/web/MongoDatastoreIT.java` — a third test: three orders saved through `OrderDocuments`,
   the mapper's `IndexOperations` names the index on `customer`, and the driver's `explain` of a find on one customer walks it
-  (`IXSCAN`). The container stays the standalone it was. `mvn verify` runs 18 + 11 *(Course 8, unit 21: 18 + 12 — `ElasticsearchIT`)*;
+  (`IXSCAN`). The container stays the standalone it was. `mvn verify` runs 18 + 11 *(Course 8, unit 21: 18 + 12 — `ElasticsearchIT`)* *(Course 8, unit 22: 18 + 13)*;
   `mvn package` still runs the 18 and needs no Docker.
 - `compose.yaml` — no service line changed: the `mongo` service's standalone note gains a *Course 8, unit 20* one.
 
@@ -532,8 +532,9 @@ units 21 to 24, Elasticsearch — changes this folder next. *(Course 8, unit 21:
 
 Course 8's fifteenth change to this folder, **Section 4 Part B's first**: `../c8-unit21/after`, whose `before` is the link to
 `../c8-unit20/after`. **Section 4's anchor now holds** MongoDB's menu, its orders' copy and their index (Part A), and Elasticsearch's
-index of the dishes — a copy of PostgreSQL's dish rows, which the "dev" start rebuilds; unit 22 adds the write path next (a new dish
-saved as a row and indexed after its transaction commits). Under the profile "dev" only, as Part A's MongoDB: the default run needs no
+index of the dishes — a copy of PostgreSQL's dish rows, which the "dev" start rebuilds *(Course 8, unit 22: the start rebuilds it, and the listener `DishIndexSync` adds
+each row a `POST /dishes` commits)*; unit 22 adds the write path next (a new dish saved as a row and indexed after its transaction
+commits). *(Course 8, unit 22: it has — its section below.)* Under the profile "dev" only, as Part A's MongoDB: the default run needs no
 Elasticsearch and builds no client. An analyzer is the step that turns text into the tokens an index stores, and turns a query into the
 tokens it looks up; the index here uses one of its own, `dish`. Files changed or new, besides this README; nothing deleted:
 - `tiffinbox-web/pom.xml` — **`spring-boot-starter-data-elasticsearch`** (Spring Data Elasticsearch 6.1.2, Elastic's client 9.4.8,
@@ -556,13 +557,45 @@ tokens it looks up; the index here uses one of its own, `dish`. Files changed or
   (measured at `sha256:fb7f2d0d…`), the six settings its comments explain, `127.0.0.1:18884:9200`, no volume.
 - Tests: `CustomerAggregatesIT` and `CustomerEntityRepositoryIT` list V1-V4 (V4 is a fourth migration); `slice/ElasticsearchSlice` and
   **`ElasticsearchIT`** — the shipped `Dish` and `Dishes` on Elasticsearch in a container by the digest, published on `127.0.0.1:20606`
-  alone. `mvn verify` runs 18 + 12; `mvn package` still runs the 18 and needs no Docker.
+  alone. `mvn verify` runs 18 + 12 *(Course 8, unit 22: 18 + 13 — `ElasticsearchIT`'s second test; its binding `127.0.0.1:20615`
+  since)*; `mvn package` still runs the 18 and needs no Docker.
 
 **What it changes:** under "dev", PostgreSQL holds ten dish rows and Elasticsearch an index of them, and `GET /dishes/search?q=veg` answers
 the vegetarian box alone — Elasticsearch answers it, through the analyzer `dish`. **What it does not:** the default run — `java -jar`, H2 in
 memory — builds no Elasticsearch client and its log names neither 9200 nor Elasticsearch; the routes answer as before; the seven
 comparison requests, the same answers. The numbers — the tokens, the hits of each way to search, the image, the heap — are in
 `../c8-unit21`'s README, read off its captures.
+
+## Course 8 · unit 22 — Spring Data Elasticsearch: the write path to the dish index, and the copy written after the commit (2026-11-23)
+
+Course 8's sixteenth change to this folder, **Section 4 Part B's second**: `../c8-unit22/after`, whose `before` is the link to
+`../c8-unit21/after`. Under the profile "dev" a new dish has a way in since: `POST /dishes` saves it as a PostgreSQL row, and a listener
+copies that row into Elasticsearch's index once the row's transaction has committed. PostgreSQL stays the system of record — the rows
+are the source, the index a copy — and the start's re-index stays as it was: it deletes every document and saves every row's copy
+again. Two stores, two writes, and no manager spans both: the dual write is named here and handed to unit 24, which measures the
+two managers. Under "dev" only: the default run answers 404 to `POST /dishes` and builds none of the new beans. Files changed or new,
+besides this README; nothing deleted:
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/Dishes.java` — **`searchByName`**, `@Highlight(fields = @HighlightField(name =
+  "name"))`, returning `SearchHits<Dish>`: the derived `query_string` of `findByName` with a highlight request for `name`; each document
+  Elasticsearch found comes with the fragment of its name it marked (`<em>Vegetarian</em> Lunch Box` for `veg`).
+- `DishSearch.java` — `GET /dishes/search` reads `searchByName` since, and each hit is `Hit(id, name, fragment)`.
+- **`DishWrite.java`** (new) — **`POST /dishes`**, JSON in (`name`, `mealType`, `price`), **201** and the saved dish with the id
+  PostgreSQL assigned; **`DishService.java`** (new) — `@Transactional` on JPA's manager (TiffinBox's one, `transactionManager`), saves a
+  `DishEntity` through `DishEntityRepository` and publishes **`DishSaved`** (new, `DishSaved.java`); **`DishIndexSync.java`** (new) —
+  `@TransactionalEventListener(phase = AFTER_COMMIT)` on `DishSaved`: the row's copy saved through `Dishes`, the repository, whose save
+  sends the document with `refresh=false` and then a `_refresh` of the index. All four under "dev" only.
+- `tiffinbox-core/src/main/java/com/tiffinbox/DishEntity.java` — a constructor for a new row (name, meal type, price; the id the
+  database's identity); its Javadoc and `DishEntityRepository`'s gain a *Course 8, unit 22* note each.
+- `TiffinBoxServer.java` — one Javadoc paragraph, *Course 8, unit 22*; no line of code moves.
+- `ElasticsearchIT.java` — another test, `searchByName("veg")` on the slice: one document, the vegetarian box, and its fragment; the
+  container's binding is **`127.0.0.1:20615`** since (unit 21's 20606 was that unit's slot). `mvn verify` runs **18 + 13**; `mvn package`
+  still runs the 18 and needs no Docker. `MongoDatastoreIT`'s Javadoc gains the note.
+
+**What it changes:** under "dev", `POST /dishes` adds a row, and after its commit the index holds its copy: the search for the new dish's
+name finds it, by TiffinBox's route and by Elasticsearch's own `_search`. **What it does not:** the default run, the start's re-index,
+`compose.yaml`, the settings and the mapping, the seven comparison requests. The numbers — the id, the rows beside the documents, the
+requests each way of asking sends, the fragments, the counts that follow each save, and the harness's planted drift — are in
+`../c8-unit22`'s README, read off its captures.
 
 ---
 

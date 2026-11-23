@@ -147,6 +147,11 @@ import static java.lang.System.Logger.Level.INFO;
  * stays the system of record: the index is a copy the start rebuilds, which GET /dishes/search reads (DishSearch). Not guarded: under
  * "dev" Elasticsearch is required too, and without it the start stops before this method, when the repository is created
  * (../c8-unit21, absent).
+ *
+ * <p>Course 8, unit 22: the start's re-index stays as it is - it deletes every document and saves every row's copy again, so a second
+ * start on the same database meets the rows a POST /dishes added and copies them too. Between starts, the listener DishIndexSync
+ * copies each dish row POST /dishes commits (DishWrite, DishService): the index is a copy the start rebuilds and the listener adds
+ * to, after each commit (../c8-unit22, anchor and sync).
  */
 @RestController
 public final class TiffinBoxServer {
