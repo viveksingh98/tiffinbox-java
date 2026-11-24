@@ -89,8 +89,7 @@ pin() { local nm=$1 dir=$2 got want; got=$(python3 -I harness/tree04.py "$dir/")
   echo "  $dir/: python3 -I harness/tree04.py $dir/ -> $got = receipts.md5's $nm line"; }
 pin before-tree before; pin after-tree after
 AD=$(diff -rq -x .m2-demo -x target -x secrets -x .harness after ../c9-tiffinbox 2>&1 || true)
-[ -z "$AD" ] || die "the anchor ../c9-tiffinbox is not after/ (diff -rq: $(printf '%s\n' "$AD" | head -2 | paste -sd';' -))"
-echo "  after/ against ../c9-tiffinbox (diff -rq, .m2-demo target secrets .harness left out): empty - the anchor is this unit's after/"
+echo "  after/ against ../c9-tiffinbox: $( [ -z "$AD" ] && echo 'diff -rq empty - the anchor today' || echo 'they differ - a later unit moved the anchor; this unit measures its own frozen after/' )"
 echo "  before/ against ../c8-unit27/after (diff -rq): $(diff -rq before ../c8-unit27/after 2>&1 | sed "s#$UP/##g; s#\.\./##g" | paste -sd';' -)"
 ST=$(python3 -I -B harness/chk04.py static after before) || die "static: $(printf '%s\n' "$ST" | $G '^FAIL' | head -3 | paste -sd';' -)"
 printf '%s\n' "$ST" | $G -v '^VALUES ' | sed 's/^/  /'
@@ -659,10 +658,10 @@ for p in $PORTS; do [ "$(listeners $p)" = 0 ] || die "something still listens on
 [ -z "$(dk ps -aq --filter label=org.testcontainers=true)" ] && [ -z "$(dk ps -aq --filter name=^/$CN\$)" ] || die "a container of this run is left"
 NI1=$(dk images -q --no-trunc 2> /dev/null | sort -u | wc -l | tr -d ' '); VOL1=$(dk volume ls -q 2> /dev/null | wc -l | tr -d ' ')
 [ "$NI1" = "$NI0" ] && [ "$VOL1" = "$VOL0" ] || die "R.322: images $NI0 -> $NI1, volumes $VOL0 -> $VOL1"
-AD=$(diff -rq -x .m2-demo -x target -x secrets -x .harness after ../c9-tiffinbox 2>&1 || true); [ -z "$AD" ] || die "the anchor moved during the run"
+AD1=$(diff -rq -x .m2-demo -x target -x secrets -x .harness after ../c9-tiffinbox 2>&1 || true); [ "$AD1" = "$AD" ] || die "the anchor moved during the run"
 pin before-tree before; pin after-tree after
 VO=$(python3 -I -B harness/chk04.py values README.md "$VALS") || { printf '%s\n' "$VO" | sed 's/^/  /'; die "README.md's values block is not this run's (harness/chk04.py values)"; }
-echo "  sweep: no JVM of this run, ports free, no container left, images $NI0 -> $NI1, volumes $VOL0 -> $VOL1 · the anchor = after/ · the values block = this run's"
+echo "  sweep: no JVM of this run, ports free, no container left, images $NI0 -> $NI1, volumes $VOL0 -> $VOL1 · the anchor against after/ as at the start · the values block = this run's"
 for f in .r-*.new; do mv "$f" "${f%.new}.out"; done   # the captures replace the last run's only when the whole run got here
 if [ -n "$unpub" ]; then echo "c9-unit04: $NCAPS captures checked; NOT published:$unpub"; exit 2; fi
 echo "c9-unit04: every capture = published ($NCAPS) · load $(sysctl -n vm.loadavg | awk '{ print $2, $3, $4 }')"

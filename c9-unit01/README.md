@@ -33,6 +33,14 @@ sealed clone (git clone of the pushed tree into a path with a space; the seed co
 
 The loads and end lines of the three runs are in the report-back of this evidence (the commit message carries them too).
 
+Re-established 2026-11-24, after the anchor-today check became a note (the commit message carries them too):
+
+```
+2026-11-24  bash 3.2.57  ./receipts.sh        load1 2.08 at launch · exit 0 · every capture = published (9) · check_unit9.py 01 --runlog PASS
+2026-11-24  bash 5.3.9   bash receipts.sh     load1 3.31 at launch · exit 0 · every capture = published (9) · check_unit9.py 01 --runlog PASS
+2026-11-24  sealed clone ("sealed 01/", bash 3.2.57, the seed copied in)  load1 4.49 at launch · exit 0 · every capture = published (9) · PASS
+```
+
 ## RE-MEASURE (settled first)
 
 1. **The hook's count on `after`.** The flag run's handler-method table (`mappings`, H2, never shipped) gives TiffinBox's own
@@ -345,6 +353,7 @@ exercise (a jar written and not sent, an empty jar) inside every run's `exercise
 - The S9.14 plant runs in every run (two more JVMs) and is labelled; it is not hashed apart from the `surface` capture it closes.
 - Every number moved from 4.1.2: none moved. The census, the cookies, the validators, the links, the statements and the seven equal
   the boundary's on 4.1.2 and U04's on 4.1.3.
+- 2026-11-24: the anchor-today check became a note (Course 8's form); it was fatal in the first commit; captures unchanged.
 
 ## For RED
 

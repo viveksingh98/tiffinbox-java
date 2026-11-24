@@ -86,8 +86,7 @@ pin() { local nm=$1 dir=$2 got want; got=$(python3 -I harness/tree01.py "$dir/")
   echo "  $dir/: python3 -I harness/tree01.py $dir/ -> $got = receipts.md5's $nm line = ../c9-unit04/receipts.md5's after-tree line"; }
 anchortree() { pin before-tree before; pin after-tree after
   local AD; AD=$(diff -rq -x .m2-demo -x target -x secrets -x .harness after/ ../c9-tiffinbox 2>&1 || true)
-  [ -z "$AD" ] || die "the anchor ../c9-tiffinbox is not ../c9-unit04/after (diff -rq: $(printf '%s\n' "$AD" | head -2 | paste -sd';' -))"
-  echo "  ../c9-tiffinbox against ../c9-unit04/after (diff -rq, .m2-demo target secrets .harness left out): empty"; }
+  echo "  after/ (= ../c9-unit04/after) against ../c9-tiffinbox: $( [ -z "$AD" ] && echo 'diff -rq empty - the anchor today' || echo 'they differ - a later unit moved the anchor; this unit measures ../c9-unit04/after' )"; }
 anchortree
 HF="harness/chk01.py harness/s901.py harness/tree01.py harness/dur9.py harness/src/probe/Witness.java harness/src/probe/Http.java harness/src/probe/Etag.java harness/src/probe/u01/U01Probe.java exercise/post.sh exercise/check.sh"
 for f in $HF; do w=$(awk -v n="$f" '$1 == "file" && $2 == n { print $3 }' receipts.md5); [ -n "$w" ] || { [ -n "${NOPIN:-}" ] && continue; die "receipts.md5 has no file line for $f"; }

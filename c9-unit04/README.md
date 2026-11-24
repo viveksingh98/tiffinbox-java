@@ -32,6 +32,9 @@ prints the load beside it. The three runs, the loads at their start and end, and
 | run1-bash32 | `./receipts.sh` — macOS's bash 3.2.57 | PASS | `8.44 7.14 8.64` | `7.65` | `3.52 4.58 6.76` | held |
 | run2-bash53 | `/opt/homebrew/bin/bash receipts.sh` — Homebrew's bash 5.3.9 | PASS | `3.52 4.58 6.76` | `4.76` | `4.03 4.15 5.67` | held |
 | run3-sealed | a sealed fresh clone (`git clone file://…`) in a path with a space (`sealed 04/`), `./receipts.sh`, `DOCKER_CONFIG=$HOME/.docker` | PASS | `4.03 4.15 5.67` | `4.87` | `3.17 3.98 5.09` | held |
+| run4-bash32 (2026-11-24) | `./receipts.sh` — bash 3.2.57, after the anchor-today check became a note | PASS, exit 0, every capture = published (37) | `4.55 4.17 4.35` | `5.21` | `4.36 3.95 4.15` | held |
+| run5-bash53 (2026-11-24) | `/opt/homebrew/bin/bash receipts.sh` — bash 5.3.9, the same | PASS, exit 0, every capture = published (37) | `4.18 3.90 4.12` | `4.81` | `3.27 3.59 3.93` | held |
+| run6-sealed (2026-11-24) | a sealed fresh clone in `sealed 04/` (path with a space), `./receipts.sh`, bash 3.2.57, `DOCKER_CONFIG=$HOME/.docker` | PASS, exit 0, every capture = published (37) | `2.91 3.50 3.89` | `3.83` | `7.72 4.50 4.12` | held |
 <!-- runs: end -->
 
 The three runs ran on the files as committed but for this README's tables of runs, interrupts and plants and a few sentences,
@@ -418,6 +421,7 @@ NEAR MISS "Paused days go from five to seven.": refused: 0
 - **3/3 is across the three runs of record**: each capture runs once per run, and its hash must equal `receipts.md5`'s in all three.
 - **Numbers that moved from the brief's**: the tests are `18` + `10` at `package` (the brief: `18 + k`), the ITs `14`; the paused days of the
   hook and the key are the brief's; the `409` counts of a polling retry are machine-dependent and masked in the hash.
+- 2026-11-24: the anchor-today check became a note (Course 8's form); it was fatal in the first commit; captures unchanged.
 <!-- differed: end -->
 
 ## For RED
