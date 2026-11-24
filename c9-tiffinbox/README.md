@@ -29,6 +29,10 @@ tests and handler methods than the set-up's: unit 04's section below gives each,
 `PATCH /api/v1/customers/{name}` (merge patch and JSON Patch, on JSON-P), and the old addresses still answer a PATCH with a four-oh-five;
 unit 05's section below gives the route's answers, the tests and the handler methods as its runs printed them. Still no PUT or DELETE.*
 
+*Course 9, unit 06: since unit 06 the public address also answers a read - `GET /api/v1/customers/{name}` (and, by Spring MVC, `HEAD`)
+beside unit 05's PATCH, where it answered a four-oh-five before. The old routes answer as they did. Unit 06's section below gives the
+change, the tests and the handler methods as its runs printed them.*
+
 
 ## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
 
@@ -98,6 +102,29 @@ The route's answers, and who writes each body:
 
 `PATCH` is not keyed (`IdempotencyKeyFilter` guards its two POSTs only). The old addresses keep their four-oh-five for a PATCH. The
 route's bodies carry no `type` (`about:blank`).
+
+## Course 9 · unit 06 — API Design Review: GET /api/v1/customers/{name} beside the PATCH, the old routes unchanged (2026-11-24)
+
+Course 9's third change to this folder: `../c9-unit06/after`, whose `before` is a link to `../c9-unit05/after`. The review read every
+route one at a time (`../c9-unit06`'s README: the rows, each fixed, handed on by its lesson's title, or named); one row needed code here -
+the public API could change a customer but not read one back (`GET /api/v1/customers/Ravi` answered four-oh-five, `Allow` naming PATCH
+alone). One file new in `main`, one test class new, this README changed; nothing else moves (no dependency, property, migration, problem
+type; the key filter untouched).
+- `tiffinbox-web/.../CustomerReads.java`: `GET /api/v1/customers/{name}` - the customer the old `GET /customers/{name}` reads, through the
+  same `CustomerRepository.findByName` and its `customer` cache (so unit 05's rename eviction reaches both addresses); a name nobody has
+  is `CustomerNotFound` (TiffinBox's advice, a four-oh-four). No validator header: *ETags and Conditional GET* is that lesson's.
+- The tests: `CustomerReadsTest` (the whole application on H2, over a socket): the same JSON as the old address, the four-oh-four, `Allow`
+  as a set beside PATCH, a rename read at the new name only.
+
+The new route's answers, and who writes each body:
+
+```
+200  the customer, as the old address answers it (HEAD: the same headers, no body)   the route
+404  a name nobody has                                                                TiffinBox's advice (CustomerNotFound)
+```
+
+`OPTIONS` on the address now lists `GET` and `HEAD` beside `PATCH`; a `PUT` there still answers four-oh-five. The old routes, the seven
+and the old surface answer byte for byte as on unit 05's tree.
 
 ---
 
