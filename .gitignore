@@ -1215,3 +1215,13 @@ c8-unit*/.harness/
 c8-unit*/.r-*
 c8-unit*/**/target/
 c8-unit*/**/secrets/
+
+# Course 9 (REST APIs Done Right): the anchor's isolated local repository, as c8-tiffinbox/.m2-demo/ above (added at the Course 8 → 9 boundary, 2026-11-24).
+c9-tiffinbox/.m2-demo/
+# Course 9's units (added at the boundary, 2026-11-24, for all 26 at once): each unit's local repository, harness folder, unfinished capture
+# runs, build output and secrets - the same five lines Course 8 added for its units, as one pattern per line.
+c9-unit*/.m2-demo/
+c9-unit*/.harness/
+c9-unit*/.r-*
+c9-unit*/**/target/
+c9-unit*/**/secrets/
