@@ -1,0 +1,1 @@
+A PATCH to slash customers answers four-oh-five, and its Allow header names POST and GET.

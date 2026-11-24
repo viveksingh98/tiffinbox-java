@@ -10,7 +10,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 #              19610-19612, its own checks): exit 0 and both its captures = its receipts.md5 - the pinned readme republished
 # Then two captures, each run three times and hashed; a hash that differs from receipts.md5 stops the run; every number and line the
 # video may say is asserted right after its capture by harness/chk40.py, never a typed figure:
-#   readme  (1) ../README.md read live - its title, the folders its opening maps, its course sections, its roadmap line - beside the
+#   readme  (1) the README as commit 70ad921 (this unit's) left it - its title, the folders its opening maps, its course sections, its
+#           roadmap line (read live until Course 8's finale pinned it, below) - beside the
 #           same lines of the README as commit 828e395 (Course 6's finale's) left it, the two compared; its Course 7 section, whole.
 #           (2) Course 6's finale's readmecap, PINNED by this commit, re-run from its own folder from its shipped receipts.sh: its reads
 #           counted, its md5 against its receipts.md5. (3) Course 5's finale's readmecap the same way (unchanged since b50b410).
@@ -56,7 +57,14 @@ C6=../c6-unit32; C5=../c5-unit30
 PIN6=828e395                                         # the commit Course 6's finale measured: the README as it left it
 PIN5=0458d2b                                         # the commit Course 5's finale's capture is pinned to (c6-unit32's PIN)
 WAS=06ae5dd                                          # the commit before this unit's: c6-unit32/receipts.sh unpinned, as it shipped
-for c in $PIN6 $PIN5 53379bd $WAS; do git -C .. rev-parse --verify -q "$c^{commit}" > /dev/null || die "the repository's history must hold $c: a full clone, not a shallow one"; done
+# 2026-11-24, Course 8's finale (c8-unit28, contract §5, R.176, R.476): this unit's commit 70ad921 is the README it measured. Course 8
+# adds its section to the root README, so every read of the working tree's README in readmecap40 - its five reads, the README its
+# part 4 hands to Course 6's 06ae5dd function, and its shown "cat" line - now reads the README as 70ad921 left it, from git (the PIN6
+# form); harness/chk40.py reads the same commit. The labels stay as the video shows them; only the $ lines name the pin. The readme
+# md5 in receipts.md5 is republished (the shown command changed by design); README.md says so (R.73). The run of record of 2026-11-17
+# published readme fcbf0ce27cdd4fd0184ab8367d76226c, its part 4 printing 626d2ae87e9a2305fab2ba1f8880c2f8 (the README read live).
+PIN7=70ad921                                         # the commit this unit measured: the README as it left it (pinned by c8-unit28)
+for c in $PIN6 $PIN5 53379bd $WAS $PIN7; do git -C .. rev-parse --verify -q "$c^{commit}" > /dev/null || die "the repository's history must hold $c: a full clone, not a shallow one"; done
 # ---- the anchor: the link, its tree pinned, the live folder's note (R.211) ---------------------------------------------------
 [ -L anchor ] && [ "$(readlink anchor)" = ../c7-unit39/after ] || die "anchor must be the link to ../c7-unit39/after - this unit changes nothing in the anchor"
 [ -f anchor/pom.xml ] && [ -f anchor/README.md ] || die "the anchor's pom.xml or README.md is missing"
@@ -141,16 +149,17 @@ fns() { sed -n '/^view() {/,/; }$/p' "$1"; sed -n '/^readmecap() {/,/; }$/p' "$1
 # runcap FOLDER FUNCS OUT: the cut-out functions run in FOLDER, with the variables that unit's script sets for them
 runcap() { ( cd "$1" && mkdir -p .harness && PIN=$PIN5 C5=../c5-unit30 U="$PWD" && die() { echo "  *** $* ***"; exit 1; } && eval "$(cat "$2")" && readmecap ) > "$3" 2>&1; }
 readmecap40() { local c f
+  git -C .. show $PIN7:README.md > .harness/readme-$PIN7.md
   echo "1 · the repository's README as it is now, read live:"
-  echo "\$ cat ../README.md"; view < ../README.md
+  echo "\$ git -C .. show $PIN7:README.md"; view < .harness/readme-$PIN7.md
   echo "and as Course 6's finale's commit left it:"
   echo "\$ git -C .. show $PIN6:README.md"; git -C .. show $PIN6:README.md | view
-  git -C .. show $PIN6:README.md | $G '^Videos publish' > .harness/road-was.txt; $G '^Videos publish' ../README.md > .harness/road-now.txt
+  git -C .. show $PIN6:README.md | $G '^Videos publish' > .harness/road-was.txt; $G '^Videos publish' .harness/readme-$PIN7.md > .harness/road-now.txt
   echo "  the roadmap line, the same in both: $(cmp -s .harness/road-was.txt .harness/road-now.txt && echo yes || echo no)"
   git -C .. show $PIN6:README.md > .harness/readme-$PIN6.md
-  echo "  lines the README gained: $(diff .harness/readme-$PIN6.md ../README.md | $G -c '^>' || true) · lines it lost: $(diff .harness/readme-$PIN6.md ../README.md | $G -c '^<' || true)"
+  echo "  lines the README gained: $(diff .harness/readme-$PIN6.md .harness/readme-$PIN7.md | $G -c '^>' || true) · lines it lost: $(diff .harness/readme-$PIN6.md .harness/readme-$PIN7.md | $G -c '^<' || true)"
   echo "its Course 7 section, whole:"
-  awk '/^## Course 7 — /{ f = 1 } f && /^$/ { exit } f { print "  " $0 }' ../README.md
+  awk '/^## Course 7 — /{ f = 1 } f && /^$/ { exit } f { print "  " $0 }' .harness/readme-$PIN7.md
   echo "2 · Course 6's finale's readme function (\$C6), PINNED to $PIN6 by this commit - its reads, and the function re-run from its own folder:"
   c="grep -c 'git -C \.\. show $PIN6:README.md' \$C6/receipts.sh"; echo "\$ $c"; (eval "$c" || true) | sed 's/^/  /'
   c="grep -o 'git -C \.\. show $PIN6:README.md' \$C6/receipts.sh | wc -l | tr -d ' '"; echo "\$ $c"; (eval "$c" || true) | sed 's/^/  /'
@@ -171,7 +180,7 @@ readmecap40() { local c f
   echo "\$ git -C .. show $WAS:c6-unit32/receipts.sh"
   git -C .. show $WAS:c6-unit32/receipts.sh > .harness/c6-$WAS.sh
   echo "  that file: md5 $(md5 -q .harness/c6-$WAS.sh) · reads of ../README.md inside its readmecap: $(sed -n '/^readmecap() {/,/; }$/p' .harness/c6-$WAS.sh | $G -o '\.\./README\.md' | wc -l | tr -d ' ')"
-  fns .harness/c6-$WAS.sh > .harness/c6-unpinned.sh
+  fns .harness/c6-$WAS.sh | sed "s#\\.\\./README\\.md#../c7-unit40/.harness/readme-$PIN7.md#g" > .harness/c6-unpinned.sh
   runcap $C6 "$U/.harness/c6-unpinned.sh" .harness/c6-unpinned.out || echo "  *** its readme function failed: $(tail -2 .harness/c6-unpinned.out | paste -sd' ' -) ***"
   f=$(git -C .. show $WAS:c6-unit32/receipts.md5 | awk '$1 == "readme" { print $2 }')
   echo "  its readme function, run in its own folder: $(wc -l < .harness/c6-unpinned.out | tr -d ' ') lines · md5 $(md5 -q .harness/c6-unpinned.out) · the readme $WAS's receipts.md5 published: $f · the same: $([ "$(md5 -q .harness/c6-unpinned.out)" = "$f" ] && echo yes || echo no)"

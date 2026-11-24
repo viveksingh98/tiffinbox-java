@@ -35,7 +35,8 @@ def pub(f, n): return next((l.split()[1] for l in open(f, encoding="utf-8") if l
 
 
 if name == "readme":
-    now, was = block("$ cat ../README.md", "and as Course 6"), block("$ git -C .. show 828e395:README.md", "  the roadmap line, the same")
+    # 2026-11-24, Course 8's finale (c8-unit28, R.476): the capture and this check read the README as commit 70ad921 left it, from git
+    now, was = block("$ git -C .. show 70ad921:README.md", "and as Course 6"), block("$ git -C .. show 828e395:README.md", "  the roadmap line, the same")
     need("  the folders its opening maps (lines 1-5): unitNN/ c2-unitNN/ c3-unitNN/ c4-unitNN/ c5-unitNN/ c6-unitNN/ c7-unitNN/" in now, "1: the folders now + c7-unitNN/")
     need("  its course sections: 2 3 4 5 6 7" in now, "1: the sections now 2-7")
     need(any(re.fullmatch(r"  line 1: # TiffinBox — code for .*\*Spring Web MVC\* and \*Data with JPA & Hibernate\* \(Learn Programming with Vivek\)", l) for l in now), "1: the title names Data with JPA & Hibernate")
@@ -43,11 +44,11 @@ if name == "readme":
     need("  its course sections: 2 3 4 5 6" in was, "1: the sections at 828e395")
     line(r"  the roadmap line, the same in both: yes", "1: the roadmap line byte-identical")
     # the second witness: the README itself and git's own diff of it
-    R = open("../README.md", encoding="utf-8").read(); R8 = git("show", "828e395:README.md")
+    R = git("show", "70ad921:README.md"); R8 = git("show", "828e395:README.md")
     rn = [l for l in R.split("\n") if l.startswith("Videos publish")]; rw = [l for l in R8.split("\n") if l.startswith("Videos publish")]
     need(len(rn) == 1 and rn == rw, "1: the roadmap line, read again by this check: one, and equal")
     g = line(r"  lines the README gained: (\d+) · lines it lost: (\d+)", "1: gained/lost")
-    ns = git("diff", "--numstat", "828e395", "--", "README.md").split()
+    ns = git("diff", "--numstat", "828e395", "70ad921", "--", "README.md").split()
     if g: need(ns[:2] == [g.group(1), g.group(2)] or not ns and g.groups() == ("0", "0"), f"1: gained/lost = git diff --numstat 828e395 ({ns[:2]})")
     sec = block("its Course 7 section, whole:", "2 · ")
     need(sec[:1] == ["  ## Course 7 — Data with JPA & Hibernate"], "1: the Course 7 section's heading")
@@ -78,7 +79,7 @@ if name == "readme":
     if m: need(m.group(1) == hashlib.md5(git("show", "06ae5dd:c6-unit32/receipts.sh").encode()).hexdigest(), "4: its md5, read again from git")
     m = line(r"  its readme function, run in its own folder: \d+ lines · md5 ([0-9a-f]{32}) · the readme 06ae5dd's receipts\.md5 published: ([0-9a-f]{32}) · the same: no", "4: the unpinned md5 differs")
     if m: need(m.group(1) != m.group(2) and m.group(2) == git("show", "06ae5dd:c6-unit32/receipts.md5").split("\n")[1].split()[1], "4: differs from 06ae5dd's published readme, read again")
-    line(r'  its line under "and as it is now:": \$ cat \.\./README\.md', "4: the unpinned function reads the working tree")
+    line(r'  its line under "and as it is now:": \$ cat \.\./c7-unit40/\.harness/readme-70ad921\.md', "4: the unpinned function reads the README as 70ad921 had it")
     fails = [l for l in p4 if l.startswith("    FAIL ") and not l.startswith("    FAIL lines: ")]
     need([re.sub(r":.*", "", f[9:], count=1) if "expected" in f else f[9:] for f in fails]
          == ["readme", "readme", "readme: the title names Spring Web MVC"] and len(fails) == 3

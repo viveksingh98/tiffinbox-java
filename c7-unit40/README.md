@@ -110,14 +110,14 @@ FAIL lines**, quoted here as the hook,
     FAIL readme: the title names Spring Web MVC
 ```
 
-and its md5 not the `4e4241dd…` that commit published (the probe of 2026-11-16 saw another md5 on its own sketch of the README; this
-README's text gives `626d2ae8…`; only "not equal" is asserted).
+and its md5 not the `4e4241dd…` that commit published (the probe of 2026-11-16 saw another md5 on its own sketch of the README; the
+block below prints this README's; only "not equal" is asserted).
 
-`.r-readme.out` · md5 `fcbf0ce27cdd4fd0184ab8367d76226c` · 3 of 3
+`.r-readme.out` · md5 `b75791fa5077f943c0bd85a9bdfbe5b3` · 3 of 3
 
 ```
 1 · the repository's README as it is now, read live:
-$ cat ../README.md
+$ git -C .. show 70ad921:README.md
   line 1: # TiffinBox — code for *Java Fundamentals*, *Core Java II*, *Build & Test Like a Pro*, *Spring Framework Core*, *Spring Boot*, *Spring Web MVC* and *Data with JPA & Hibernate* (Learn Programming with Vivek)
   the folders its opening maps (lines 1-5): unitNN/ c2-unitNN/ c3-unitNN/ c4-unitNN/ c5-unitNN/ c6-unitNN/ c7-unitNN/
   its course sections: 2 3 4 5 6 7
@@ -154,14 +154,25 @@ $ sed -n '/^readmecap() {/,/; }$/p' $C5/receipts.sh | grep -c '\.\./README\.md'
 4 · the failure receipt (labelled): Course 6's finale's readme function UNPINNED - its receipts.sh as commit 06ae5dd had it - on the README as it is now:
 $ git -C .. show 06ae5dd:c6-unit32/receipts.sh
   that file: md5 60f63030b9517d5ce5f8a255a351b2f3 · reads of ../README.md inside its readmecap: 6
-  its readme function, run in its own folder: 28 lines · md5 626d2ae87e9a2305fab2ba1f8880c2f8 · the readme 06ae5dd's receipts.md5 published: 4e4241ddf3eb8a044c7762a1938ee54f · the same: no
-  its line under "and as it is now:": $ cat ../README.md
+  its readme function, run in its own folder: 28 lines · md5 61f59107e26ba0429e2445aef4c00cba · the readme 06ae5dd's receipts.md5 published: 4e4241ddf3eb8a044c7762a1938ee54f · the same: no
+  its line under "and as it is now:": $ cat ../c7-unit40/.harness/readme-70ad921.md
   its own readme checks (13 lines of that file), on what it printed:
     FAIL readme: the folders now: expected the line:   the folders its opening maps (lines 1-5): unitNN/ c2-unitNN/ c3-unitNN/ c4-unitNN/ c5-unitNN/ c6-unitNN/
     FAIL readme: the sections now: expected the line:   its course sections: 2 3 4 5 6
     FAIL readme: the title names Spring Web MVC
     FAIL lines: 3
 ```
+
+**Course 8, unit 28 (2026-11-24):** the commit that gives the root README its Course 8 section pins this capture and its
+checker to the README this unit measured, commit `70ad921` (contract §5, R.176, R.476). In `receipts.sh`, every read of the working
+tree's README inside `readmecap40` - its own reads, and the README part 4 hands to Course 6's `06ae5dd` function - reads
+`git -C .. show 70ad921:README.md` (`PIN7`, the `PIN6` form), and its shown `cat` line names that command; in `harness/chk40.py`, its
+block's first line, its own read of the README, git's numstat and part 4's line under "and as it is now:" name `70ad921`. The labels
+stay as the video shows them; only the `$` lines name the pin. So the capture above moved by design: the shown command, part 4's md5
+and that line under "and as it is now:" differ from the run of record of 2026-11-17, and `receipts.md5` republishes its `readme`
+line (`b75791fa…`, the md5 above); the `counts` line is unchanged. The published video keeps what it showed. With the pin,
+this capture reads the same README whatever the working tree holds, and `chk40.py` passes on it as it passed on the published one,
+byte for byte (`../c8-unit28/README.md`, its `readme` capture).
 
 ## 2 · counts — every number the finale says, read off files (contract §6c)
 

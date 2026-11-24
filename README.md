@@ -1,7 +1,7 @@
-# TiffinBox — code for *Java Fundamentals*, *Core Java II*, *Build & Test Like a Pro*, *Spring Framework Core*, *Spring Boot*, *Spring Web MVC* and *Data with JPA & Hibernate* (Learn Programming with Vivek)
+# TiffinBox — code for *Java Fundamentals*, *Core Java II*, *Build & Test Like a Pro*, *Spring Framework Core*, *Spring Boot*, *Spring Web MVC*, *Data with JPA & Hibernate* and *Spring Data beyond JPA* (Learn Programming with Vivek)
 
-Every unit of all seven courses builds **TiffinBox**, a small tiffin-delivery service app, one concept at a time.
-Course 1 lives in `unitNN/` + `capstone/`; Course 2 in `c2-unitNN/` + `c2-capstone/`; Course 3 in `c3-unitNN/` + `c3-tiffinbox/`; Course 4 in `c4-unitNN/` + `c4-tiffinbox/`; Course 5 in `c5-unitNN/` + `c5-tiffinbox/`; Course 6 in `c6-unitNN/` + `c6-tiffinbox/`; Course 7 in `c7-unitNN/` + `c7-tiffinbox/`.
+Every unit of all eight courses builds **TiffinBox**, a small tiffin-delivery service app, one concept at a time.
+Course 1 lives in `unitNN/` + `capstone/`; Course 2 in `c2-unitNN/` + `c2-capstone/`; Course 3 in `c3-unitNN/` + `c3-tiffinbox/`; Course 4 in `c4-unitNN/` + `c4-tiffinbox/`; Course 5 in `c5-unitNN/` + `c5-tiffinbox/`; Course 6 in `c6-unitNN/` + `c6-tiffinbox/`; Course 7 in `c7-unitNN/` + `c7-tiffinbox/`; Course 8 in `c8-unitNN/` + `c8-tiffinbox/`.
 Channel: https://www.youtube.com/@LearnProgrammingWithVivek
 
 ## How to run
@@ -466,6 +466,19 @@ TiffinBox wrote by hand handed over to JPA, Hibernate and Spring Data JPA, one j
 querying, transactions, performance, schema and lifecycle (migrations, auditing, soft deletes), and a capstone on PostgreSQL with
 a container test. The same layout as Course 6: a README and a `receipts.sh` per unit. `c7-tiffinbox/` is the tree the next course,
 *Spring Data beyond JPA*, starts from.
+
+## Course 8 — Spring Data beyond JPA
+**TiffinBox beside JPA**, in `c8-unitNN/` (28 units, 5 sections), with the long-lived project in `c8-tiffinbox/`. Its sections:
+Spring Data JDBC and its aggregates, the caching abstraction on Caffeine and then on Redis, Redis holding records of its own,
+documents in MongoDB and search in Elasticsearch, and the Commons layer those modules share, closed by a capstone with one jar and
+two runs: the default run on H2 with Caffeine, and "dev" on PostgreSQL, Redis, MongoDB and Elasticsearch. The same layout as the
+course before: a README and a `receipts.sh` per unit. At the end its tests are `18 + 14`, and every container test publishes its
+container on the loopback address alone. Spring's two advisories of 2026-11-19 are named here, not adopted: CVE-2026-123886
+(Spring Data Elasticsearch, `https://spring.io/security/cve-2026-123886`, versions 6.1.0 to 6.1.2) and CVE-2026-59342 (Spring Data
+MongoDB, `https://spring.io/security/cve-2026-59342`, versions 5.1.0 to 5.1.2). This course runs 6.1.2 and 5.1.2 with Boot 4.1.2;
+Boot 4.1.3 brings 6.1.3 and 5.1.3. A grep of `c8-tiffinbox/` finds 0 files that import a string annotation from either module's
+repository packages, the shape both advisories name; Course 9's first boundary step decides the version. `c8-tiffinbox/` is the
+tree the next course, *REST APIs Done Right*, starts from.
 
 Videos publish a few per day on the channel. Roadmap (19 courses): Java Fundamentals → Core Java II → Build & Test Like a Pro → Spring Framework Core → Spring Boot → Spring Web MVC → Data with JPA & Hibernate → … → Spring AI.
 
