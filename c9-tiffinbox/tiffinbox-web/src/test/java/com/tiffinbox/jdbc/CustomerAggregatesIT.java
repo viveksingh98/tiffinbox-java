@@ -46,8 +46,10 @@ import java.util.TreeSet;
  * <p>Course 8, unit 27: the container's port is published on 127.0.0.1 alone - the modifier names the address and Docker still
  * picks the port; Testcontainers 2.0.5 publishes a container's port on every interface unless the test names the address. The class prints its
  * container's bindings once, before its first test, off Docker's own record of the container: IT BINDINGS, then each exposed port.
- */
-@DataJdbcTest
+ *
+ * <p>Course 9, unit 04: the container's port is published on 127.0.0.1:21281 alone - one fixed port per IT, 21280-21284, Course 9's IT
+ * block; Course 8's 20578 and 20615 and Docker's own port for the three others are gone (../c9-unit04, tests).
+ */@DataJdbcTest
 @ContextConfiguration(classes = JdbcSlice.class)
 @Testcontainers
 @Sql(statements = "insert into customer (name, meals_per_day, price_per_meal, meal_type) values ('Kavya', 2, 110, 'VEG')")
@@ -59,7 +61,7 @@ class CustomerAggregatesIT {
     static PostgreSQLContainer postgres = new PostgreSQLContainer(
             DockerImageName.parse("postgres@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873").asCompatibleSubstituteFor("postgres"))
             .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withPortBindings(
-                    new PortBinding(Ports.Binding.bindIp("127.0.0.1"), new ExposedPort(5432))));
+                    new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 21281), new ExposedPort(5432))));
 
     /** Course 8, unit 27: this IT's own container, each exposed port with its host address and port, off Docker's own record. */
     @BeforeAll
@@ -112,7 +114,7 @@ class CustomerAggregatesIT {
                 + " from \"flyway_schema_history\" where \"version\" is not null order by \"installed_rank\"", String.class);
         System.out.println("JDBC IT flyway_schema_history: rows " + rows + " · the migrations' (a version) " + history);
         // Course 8, unit 21: and V4 - V4__dish.sql, the dish table the index of the dishes copies (../c8-unit21, anchor).
-        assertThat(history).containsExactly("1 true", "2 true", "3 true", "4 true");
+        assertThat(history).containsExactly("1 true", "2 true", "3 true", "4 true", "5 true");
         report("test 1");
     }
 

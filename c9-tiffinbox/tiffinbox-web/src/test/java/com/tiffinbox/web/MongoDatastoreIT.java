@@ -56,8 +56,10 @@ import java.util.TreeSet;
  *
  * <p>Course 8, unit 27: the class prints its container's bindings once, before its first test, off Docker's own record of the
  * container: IT BINDINGS, then each exposed port with its host address and port - the line every IT of TiffinBox prints.
- */
-@DataMongoTest
+ *
+ * <p>Course 9, unit 04: the container's port is published on 127.0.0.1:21283 alone - one fixed port per IT, 21280-21284, Course 9's IT
+ * block; Course 8's 20578 and 20615 and Docker's own port for the three others are gone (../c9-unit04, tests).
+ */@DataMongoTest
 @ContextConfiguration(classes = MongoSlice.class)
 @Import(Menus.class)
 @ActiveProfiles("dev")
@@ -71,7 +73,7 @@ class MongoDatastoreIT {
             .withEnv("GLIBC_TUNABLES", "glibc.pthread.rseq=1")
             .withExposedPorts(27017)
             .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withPortBindings(
-                    new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 20578), new ExposedPort(27017))));
+                    new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 21283), new ExposedPort(27017))));
 
     /** Course 8, unit 27: this IT's own container, each exposed port with its host address and port, off Docker's own record. */
     @BeforeAll

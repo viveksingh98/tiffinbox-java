@@ -64,7 +64,7 @@ spring:
   # default run, which keeps no MongoDB, would build a MongoClient whose monitor tries localhost 27017, and its health indicator
   # would turn /actuator/health DOWN (503). The health key alone (management.health.mongodb.enabled: false) answers 200, but
   # the client still tries 27017 (../c8-unit18, default). Excluded, the default run's log names neither. The profile "dev", whose
-  # MongoDB Compose starts, clears the list (application-dev.yaml). The names are the ones Boot 4.1.2's two MongoDB jars list.
+  # MongoDB Compose starts, clears the list (application-dev.yaml). The names are the ones Boot 4.1.2's two MongoDB jars list (Course 9, unit 04: 4.1.3's, the same names - the start proves it).
   # Course 8, unit 21: and seven more, Elasticsearch's - every auto-configuration the two Boot 4.1.2 jars of Spring Data
   # Elasticsearch's starter list (spring-boot-elasticsearch's three, spring-boot-data-elasticsearch's four, each jar's
   # META-INF/spring/...AutoConfiguration.imports): the client, its REST client, the two health contributors, the template, and the

@@ -21,6 +21,46 @@ stays frozen from here on, so every Course 8 unit keeps pointing at what it meas
 `c8-tiffinbox`'s README exactly as it was at 7698e93, except the history notes a Course 9 unit makes false: each is amended in
 place, in a note that starts *Course 9, unit NN*, and the unit sections keep their history.
 
+*Course 9, unit 04: the paragraph above is the set-up's starting point, kept as written. Since unit 04 the anchor is on Spring Boot 4.1.3
+with Tomcat 11.0.29 (Spring Framework 7.0.11), Flyway's five migrations (V1-V5), the five ITs on 127.0.0.1:21280-21284 and more
+tests and handler methods than the set-up's: unit 04's section below gives each, as its runs printed them.*
+
+
+## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
+
+Course 9's first change to this folder: `../c9-unit04/after`, whose `before/` is a frozen copy of this folder at the set-up commit
+`80f7839`. Eight files new, ten changed (the README among them); `../c9-unit04`'s README gives every count as its runs printed them.
+- `pom.xml`: the parent `4.1.2` → `4.1.3` (Spring Framework `7.0.11`, Spring Data `2026.0.3`: the advisories CVE-2026-123886 and
+  CVE-2026-59342 against `4.1.2`'s Spring Data), and `<tomcat.version>11.0.29</tomcat.version>` (Tomcat's advisories after `11.0.27`,
+  four of them Important). `h2.version` and the plugin pins untouched. `BOOT-INF/lib` keeps its count; the moved jars are listed in
+  `../c9-unit04`'s `tests` capture.
+- `tiffinbox-core/src/main/resources/db/migration/V5__idempotency_key.sql`: the key store, one row per key (`idem_key`, `request_hash`,
+  `status` with `0` for a claim in flight, `claim_token`, `claimed_at`, `location`, `content_type`, `body`). Flyway applies it on H2 and on
+  PostgreSQL; `ddl-auto: validate` passes with the table in the schema (no entity maps it).
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/`: `IdempotencyKeyFilter` (the fenced two-phase key: the claim committed alone, then the
+  route and its stored answer in one transaction with a time limit, the answer's `UPDATE` fenced by the claim's token, an abandoned claim
+  reclaimed after an age), `IdempotencyKeys` (its registration: order `-90`, after Spring Security's `-100`; URL patterns `/customers` and
+  `/api/v1/customers/*`), `TransactionAwareCaching` (Boot's cache manager wrapped in Spring's `TransactionAwareCacheManagerProxy`, so an
+  evict made inside a transaction runs after its commit; off with `tiffinbox.cache.transaction-aware=false`), `CustomerPauses` (the public
+  API's first route: `POST /api/v1/customers/{name}/pauses?days=` → `201` + `Location`, and `GET …/pauses/{id}`) and `Pauses`.
+- The tests: `IdempotencyKeyTest` (the pause route over a socket on H2: the key required, a replay, a reused key, a malformed key, a claim
+  in flight, an abandoned claim reclaimed, the filter's order after the security chain's) and `TransactionAwareCachingTest` (the proxy's
+  switch); `TiffinBoxWebTest` gains a stand-in for `Pauses`. The five ITs publish on `127.0.0.1:21280`-`21284`, one fixed port each, by
+  `bindIpAndPort`: Course 8's `20578`, `20615` and Docker's own port are gone. Two ITs' Flyway assertions now list V5.
+
+The two configured values, as property and default:
+
+```
+tiffinbox.idempotency.phase2-timeout   default on line 28 of IdempotencyKeys.java (Duration.ofSeconds(10))
+tiffinbox.idempotency.reclaim-after    default on line 29 of IdempotencyKeys.java (Duration.ofSeconds(60)); the start fails unless it is the longer
+tiffinbox.cache.transaction-aware      default true
+```
+
+The honoured routes: `POST /api/v1/customers/{name}/pauses` requires the key (`400` without it); `POST /customers` takes it when it carries
+one (inert without it), and its form (`application/x-www-form-urlencoded`) passes untouched; `/customers/import` and `PATCH` are not keyed.
+The four problem types: `tag:tiffinbox.example,2026:idempotency-key-missing`, `…-malformed`, `…-outstanding`, `…-reused`. A key row is
+kept, with no expiry: not in this course.
+
 ---
 
 # c8-tiffinbox — Course 8 (Spring Data beyond JPA)'s long-lived project

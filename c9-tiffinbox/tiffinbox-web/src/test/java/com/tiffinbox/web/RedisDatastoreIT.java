@@ -55,8 +55,10 @@ import java.util.TreeSet;
  * <p>Course 8, unit 27: the container's port is published on 127.0.0.1 alone - the modifier names the address and Docker still
  * picks the port; Testcontainers 2.0.5 publishes a container's port on every interface unless the test names the address. The class prints its
  * container's bindings once, before its first test, off Docker's own record of the container: IT BINDINGS, then each exposed port.
- */
-@DataRedisTest
+ *
+ * <p>Course 9, unit 04: the container's port is published on 127.0.0.1:21282 alone - one fixed port per IT, 21280-21284, Course 9's IT
+ * block; Course 8's 20578 and 20615 and Docker's own port for the three others are gone (../c9-unit04, tests).
+ */@DataRedisTest
 @ContextConfiguration(classes = RedisSlice.class)
 @Import({Leaderboard.class, RedisDatastore.class, KitchenEvents.class})
 @ActiveProfiles("dev")
@@ -69,7 +71,7 @@ class RedisDatastoreIT {
             DockerImageName.parse("redis@sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3").asCompatibleSubstituteFor("redis"))
             .withExposedPorts(6379)
             .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withPortBindings(
-                    new PortBinding(Ports.Binding.bindIp("127.0.0.1"), new ExposedPort(6379))));
+                    new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 21282), new ExposedPort(6379))));
 
     /** Course 8, unit 27: this IT's own container, each exposed port with its host address and port, off Docker's own record. */
     @BeforeAll

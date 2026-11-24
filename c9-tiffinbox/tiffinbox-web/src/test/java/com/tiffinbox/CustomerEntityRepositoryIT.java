@@ -34,7 +34,7 @@ import java.util.TreeSet;
  * first test and removes it after the last; {@code @ServiceConnection} hands its URL, user and password to the slice's DataSource -
  * Course 5's Docker Compose support did the same for the dev profile. No {@code @AutoConfigureTestDatabase}: the slice keeps the
  * container's DataSource, and Flyway migrates it (V1-V3) before Hibernate validates it.
- * (Course 8, unit 21: V1-V4 - V4__dish.sql.)
+ * (Course 8, unit 21: V1-V4 - V4__dish.sql. Course 9, unit 04: V1-V5 - V5__idempotency_key.sql.)
  *
  * <p>Named *IT: Surefire's default execution leaves it out, so mvn package runs the 18 tests on H2 in memory and needs no Docker;
  * the second execution, container-tests, runs it at mvn verify (tiffinbox-web/pom.xml). Which tests run where: 18 on H2 in memory,
@@ -44,8 +44,10 @@ import java.util.TreeSet;
  * <p>Course 8, unit 27: the container's port is published on 127.0.0.1 alone - the modifier names the address and Docker still
  * picks the port; Testcontainers 2.0.5 publishes a container's port on every interface unless the test names the address. The class prints its
  * container's bindings once, before its first test, off Docker's own record of the container: IT BINDINGS, then each exposed port.
- */
-@DataJpaTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
+ *
+ * <p>Course 9, unit 04: the container's port is published on 127.0.0.1:21280 alone - one fixed port per IT, 21280-21284, Course 9's IT
+ * block; Course 8's 20578 and 20615 and Docker's own port for the three others are gone (../c9-unit04, tests).
+ */@DataJpaTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
 @ContextConfiguration(classes = DataSlice.class)
 @Testcontainers
 class CustomerEntityRepositoryIT {
@@ -55,7 +57,7 @@ class CustomerEntityRepositoryIT {
     static PostgreSQLContainer postgres = new PostgreSQLContainer(
             DockerImageName.parse("postgres@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873").asCompatibleSubstituteFor("postgres"))
             .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withPortBindings(
-                    new PortBinding(Ports.Binding.bindIp("127.0.0.1"), new ExposedPort(5432))));
+                    new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 21280), new ExposedPort(5432))));
 
     /** Course 8, unit 27: this IT's own container, each exposed port with its host address and port, off Docker's own record. */
     @BeforeAll
@@ -70,7 +72,7 @@ class CustomerEntityRepositoryIT {
     @Autowired EntityManagerFactory emf;
     @Autowired JdbcTemplate jdbc;
 
-    /** The schema is the migrations': Flyway's history table lists V1-V4, V2's four customers are there, and validate passed. */
+    /** The schema is the migrations': Flyway's history table lists V1-V4 (Course 9, unit 04: V1-V5), V2's four customers are there, and validate passed. */
     @Test
     void theMigrationsAreTheSchema() throws Exception {
         try (var c = jdbc.getDataSource().getConnection()) {
@@ -79,8 +81,9 @@ class CustomerEntityRepositoryIT {
         List<String> history = jdbc.queryForList("select version || ' ' || description || ' ' || success from flyway_schema_history order by installed_rank", String.class);
         System.out.println("IT flyway_schema_history: " + history.size() + " rows " + history);
         System.out.println("IT hibernate.hbm2ddl.auto = " + emf.getProperties().get("hibernate.hbm2ddl.auto"));
+        // Course 9, unit 04: and V5 - V5__idempotency_key.sql, the Idempotency-Key store (../c9-unit04, tests).
         // Course 8, unit 21: and V4 - V4__dish.sql, the dish table the index of the dishes copies (../c8-unit21, anchor).
-        assertThat(history).containsExactly("1 customer and pause true", "2 seed true", "3 customer audit columns true", "4 dish true");
+        assertThat(history).containsExactly("1 customer and pause true", "2 seed true", "3 customer audit columns true", "4 dish true", "5 idempotency key true");
         assertThat(emf.getProperties().get("hibernate.hbm2ddl.auto")).isEqualTo("validate");
         assertThat(customers.findAll()).extracting(CustomerEntity::getName).containsExactlyInAnyOrder("Ravi", "Meera", "Sunil", "Priya");
     }

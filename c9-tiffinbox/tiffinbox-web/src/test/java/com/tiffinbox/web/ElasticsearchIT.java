@@ -46,8 +46,10 @@ import java.util.TreeSet;
  *
  * <p>Course 8, unit 27: the class prints its container's bindings once, before its first test, off Docker's own record of the
  * container: IT BINDINGS, then each exposed port with its host address and port - the line every IT of TiffinBox prints.
- */
-@DataElasticsearchTest
+ *
+ * <p>Course 9, unit 04: the container's port is published on 127.0.0.1:21284 alone - one fixed port per IT, 21280-21284, Course 9's IT
+ * block; Course 8's 20578 and 20615 and Docker's own port for the three others are gone (../c9-unit04, tests).
+ */@DataElasticsearchTest
 @ContextConfiguration(classes = ElasticsearchSlice.class)
 @ActiveProfiles("dev")
 @Testcontainers
@@ -65,7 +67,7 @@ class ElasticsearchIT {
             .withEnv("ES_JAVA_OPTS", "-Xms512m -Xmx512m")
             .withExposedPorts(9200)
             .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withPortBindings(
-                    new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 20615), new ExposedPort(9200))));
+                    new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 21284), new ExposedPort(9200))));
 
     /** Course 8, unit 27: this IT's own container, each exposed port with its host address and port, off Docker's own record. */
     @BeforeAll
@@ -99,7 +101,7 @@ class ElasticsearchIT {
         List<String> tokens = client.indices().analyze(a -> a.index("dishes").analyzer("dish").text("Vegetarian Lunch Box"))
                 .tokens().stream().map(t -> t.token()).toList();
         System.out.println("ES IT _analyze on dishes, analyzer dish, \"Vegetarian Lunch Box\" (the client's): " + tokens);
-        assertThat(ports).containsExactly("127.0.0.1:20615->9200/tcp");
+        assertThat(ports).containsExactly("127.0.0.1:21284->9200/tcp");
         assertThat(heap).isEqualTo(536870912L);
         assertThat(veg).containsExactly("Vegetarian Lunch Box");
         assertThat(tokens).contains("veg");

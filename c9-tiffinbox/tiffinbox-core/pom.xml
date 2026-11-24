@@ -50,13 +50,13 @@
       <artifactId>jakarta.persistence-api</artifactId>
     </dependency>
     <!-- Course 7, unit 15: CustomerEntityRepository extends Spring Data JPA's JpaRepository - its API, from spring-data-jpa itself
-         (the version is managed by Boot's parent: 4.1.2). tiffinbox-web's data starter already brings the same jar at run time. -->
+         (the version is managed by Boot's parent: 4.1.2; Course 9, unit 04: 4.1.3). tiffinbox-web's data starter already brings the same jar at run time. -->
     <dependency>
       <groupId>org.springframework.data</groupId>
       <artifactId>spring-data-jpa</artifactId>
     </dependency>
     <!-- Course 8, unit 02: com.tiffinbox.jdbc's aggregate (CustomerRow, PauseRow) and its repository, CustomerAggregates, are
-         Spring Data JDBC's - its API, from spring-data-jdbc itself (the version is managed by Boot's parent: 4.1.2, with
+         Spring Data JDBC's - its API, from spring-data-jdbc itself (the version is managed by Boot's parent: 4.1.2 - Course 9, unit 04: 4.1.3 -, with
          spring-data-relational, the mapping annotations). tiffinbox-web's JDBC starter brings the same jar at run time. -->
     <dependency>
       <groupId>org.springframework.data</groupId>
