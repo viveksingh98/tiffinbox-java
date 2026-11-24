@@ -2,8 +2,12 @@ package com.tiffinbox.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.PortBinding;
+import com.github.dockerjava.api.model.Ports;
 import com.tiffinbox.Customer;
 import com.tiffinbox.CustomerAdded;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.redis.test.autoconfigure.DataRedisTest;
@@ -47,6 +51,10 @@ import java.util.TreeSet;
  * write, as a method, with a CustomerAdded; that the listener runs after add's commit is ../c8-unit16's anchor capture, on
  * PostgreSQL, not this test's. Two witnesses: the RecordId the write returns, and the slice's StringRedisTemplate reading the
  * stream's length (XLEN) and its one entry (XRANGE), the three fields in the order they were written.
+ *
+ * <p>Course 8, unit 27: the container's port is published on 127.0.0.1 alone - the modifier names the address and Docker still
+ * picks the port; Testcontainers 2.0.5 publishes a container's port on every interface unless the test names the address. The class prints its
+ * container's bindings once, before its first test, off Docker's own record of the container: IT BINDINGS, then each exposed port.
  */
 @DataRedisTest
 @ContextConfiguration(classes = RedisSlice.class)
@@ -59,7 +67,17 @@ class RedisDatastoreIT {
     @ServiceConnection(name = "redis")
     static GenericContainer<?> redis = new GenericContainer<>(
             DockerImageName.parse("redis@sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3").asCompatibleSubstituteFor("redis"))
-            .withExposedPorts(6379);
+            .withExposedPorts(6379)
+            .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withPortBindings(
+                    new PortBinding(Ports.Binding.bindIp("127.0.0.1"), new ExposedPort(6379))));
+
+    /** Course 8, unit 27: this IT's own container, each exposed port with its host address and port, off Docker's own record. */
+    @BeforeAll
+    static void printBindings() {
+        var out = new TreeSet<String>();
+        redis.getContainerInfo().getNetworkSettings().getPorts().getBindings().forEach((p, bs) -> { if (bs != null) for (var b : bs) out.add(p + " -> " + b.getHostIp() + ":" + b.getHostPortSpec()); });
+        System.out.println("IT BINDINGS RedisDatastoreIT " + out);
+    }
 
     @Autowired Leaderboard board;
     @Autowired StringRedisTemplate strings;

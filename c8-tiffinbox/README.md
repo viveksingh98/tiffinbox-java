@@ -81,7 +81,8 @@ and the executable jar holds the same libraries. Changed or new, besides this RE
   itself: without it Spring Data JDBC quotes every name, and H2 refuses them (`Table "customer" not found`). `DataSlice` cannot serve
   under `@DataJdbcTest`: the start stops (`Unable to retrieve @EnableAutoConfiguration base packages`).
 - `tiffinbox-web/src/test/java/com/tiffinbox/jdbc/CustomerAggregatesIT.java` — **new**: `@DataJdbcTest`, started from `JdbcSlice`, with
-  `@Testcontainers` and a `@Container @ServiceConnection` PostgreSQL 18 from the same digest as `CustomerEntityRepositoryIT`. A class-level
+  `@Testcontainers` and a `@Container @ServiceConnection` PostgreSQL 18 from the same digest as `CustomerEntityRepositoryIT` *(Course 8,
+  unit 27 binds it to 127.0.0.1)*. A class-level
   `@Sql` inserts Kavya before each test, inside the test's transaction, and the rollback removes her: both tests see V2's four customers
   and one Kavya. Each test prints the database that answered, read off the connection: without `@ServiceConnection` the slice replaces
   the DataSource with an embedded H2 of its own (`jdbc:h2:mem:…`) and stays green, so the printed line is the check, not the exit.
@@ -291,7 +292,7 @@ deleted, Flyway's V1-V3 untouched, `application.yaml` untouched, Hibernate's sch
 - `tiffinbox-web/src/test/java/slice/RedisSlice.java` (**new**, the slices' form, `@AutoConfigurationPackage` for the repository scan) and
   `tiffinbox-web/src/test/java/com/tiffinbox/web/RedisDatastoreIT.java` (**new**): `@DataRedisTest` + `@Import(Leaderboard.class)` +
   `@ActiveProfiles("dev")`, Redis in a container from the pinned image by its digest (`GenericContainer`, `@ServiceConnection(name =
-  "redis")`); the shipped bean writes four customers' values and reads the board back, and the slice's own `StringRedisTemplate` reads
+  "redis")` *(Course 8, unit 27 binds it to 127.0.0.1)*); the shipped bean writes four customers' values and reads the board back, and the slice's own `StringRedisTemplate` reads
   the same key. `mvn verify` runs it with the other container tests; `mvn package` still runs the 18 and needs no Docker.
 
 **What it changes:** under the profile "dev", TiffinBox starts only with Redis, fills the leaderboard from the orders it places, and
@@ -438,7 +439,8 @@ besides this README; nothing deleted, Flyway's V1-V3 untouched, Hibernate's sche
   `tiffinbox-web/src/test/java/com/tiffinbox/web/MongoDatastoreIT.java` (**new**): `@DataMongoTest` + `@ContextConfiguration(classes =
   MongoSlice.class)` + `@Import(Menus.class)` + `@ActiveProfiles("dev")`, MongoDB in a container from the pinned image by its digest
   (`MongoDBContainer`, a standalone, with the kernel's variable, `@ServiceConnection`), its port published on `127.0.0.1:20578` alone —
-  Testcontainers 2.0.5 publishes on every interface unless the test names the address. The shipped bean inserts one day and reads it
+  Testcontainers 2.0.5 publishes on every interface unless the test names the address *(Course 8, unit 27: every IT names it since —
+  the three older ones `127.0.0.1` with Docker's port, `bindIp`; each prints its container's bindings, `IT BINDINGS`; its section below)*. The shipped bean inserts one day and reads it
   back; the driver's own collection reads the stored document raw (`_id` a String, `_class` `com.tiffinbox.web.MenuDay`). `mvn verify`
   runs it with the other container tests — 18 + 9 since, the one more this test *(Course 8, unit 19: 18 + 10 — the orders' test, its
   section below)*; `mvn package` still runs the 18 and needs no Docker.
@@ -658,6 +660,34 @@ composes the repository from `OrderTotalsImpl` and `SimpleMongoRepository`, and 
 not:** the route's JSON, the four totals and their sum (`/kitchen`'s `ordersValue`), the default run (no `Revenue`, no MongoClient, no
 Docker), the seven comparison requests. The numbers — the composition, the call's stack, the misnamed class loud and silent, the
 JPA fragment's own transaction — are in `../c8-unit26`'s README, read off its captures.
+
+## Course 8 · unit 27 — Capstone: TiffinBox, Cached and Searchable: the five ITs on 127.0.0.1, and each prints its container's bindings (2026-11-24)
+
+Course 8's nineteenth change to this folder, **Section 5's second**: `../c8-unit27/after`, whose `before` is the link to
+`../c8-unit26/after`. Test scope only: `tiffinbox-core/` and `tiffinbox-web/src/main/` are byte-equal to unit 26's — the jar is the same
+jar. No file new, none gone: **84** files, as unit 26 left them; `pom.xml` untouched, no dependency added. Five test files, besides this
+README:
+- `tiffinbox-web/src/test/java/com/tiffinbox/CustomerEntityRepositoryIT.java`,
+  `tiffinbox-web/src/test/java/com/tiffinbox/jdbc/CustomerAggregatesIT.java` and
+  `tiffinbox-web/src/test/java/com/tiffinbox/web/RedisDatastoreIT.java` — the container gains
+  `.withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withPortBindings(new PortBinding(Ports.Binding.bindIp("127.0.0.1"), new
+  ExposedPort(…))))` (`5432`, `5432`, `6379`): the address is named, `127.0.0.1`, and Docker still picks the port, which the service
+  connection reads. The three `com.github.dockerjava.api.model` imports, as `MongoDatastoreIT` imports them; a *Course 8, unit 27*
+  paragraph in each class's Javadoc. Until this unit these three published on every interface of the host — Testcontainers 2.0.5's
+  own default (`../c8-unit25`'s README, its verify section).
+- all five ITs, these three and `MongoDatastoreIT` and `ElasticsearchIT` (bound to `127.0.0.1:20578` and `127.0.0.1:20615` since units
+  18 and 22) — an `@BeforeAll` method, `printBindings()`, that prints one line before the class's first test, off Docker's own record of
+  its container: `IT BINDINGS <the class> [<port>/tcp -> <host address>:<host port>]`, an entry for each exposed port Docker bound to a
+  host port. `MongoDatastoreIT`'s and `ElasticsearchIT`'s own bindings lines stay beside it.
+
+`mvn verify` runs **18 + 14**, unchanged, and prints five `IT BINDINGS` lines, every entry on `127.0.0.1`. On a loaded machine
+`ElasticsearchIT`'s container can miss its log wait — Testcontainers' own `withStartupTimeout` default, unchanged here — and that
+run fails; `../c8-unit27`'s runs of record launch only below the launch rule's load, and each says its load.
+
+**What it changes:** where the five ITs' containers listen — on the loopback address alone — and one line per IT that says so. **What
+it does not:** the jar, the default run, the "dev" start, the routes, the seven comparison requests, the test counts. The numbers —
+one jar, two runs, the tour of the routes, the copies after a write, a store absent, a second cache manager's start — are in
+`../c8-unit27`'s README, read off its captures.
 
 ---
 
@@ -1179,8 +1209,8 @@ repository's root README only. Changed, besides this README:
   its default includes, which leave `*IT` out.
 - `tiffinbox-web/src/test/java/slice/DataSlice.java` — **new**: the configuration the data slice starts from (the entities, the
   repositories and Spring Data's auditing listener — without it a customer the test saves keeps both stamps null; measured).
-- `tiffinbox-web/src/test/java/com/tiffinbox/CustomerEntityRepositoryIT.java` — **new**: three tests on PostgreSQL 18 in a container
-  started from the image named by its **digest** (`postgres@sha256:77f58511…`, one exact image, never a tag that can move): the
+- `tiffinbox-web/src/test/java/com/tiffinbox/CustomerEntityRepositoryIT.java` — **new**: three tests on PostgreSQL 18 in a container *(Course 8, unit 27 binds it to
+  127.0.0.1)* started from the image named by its **digest** (`postgres@sha256:77f58511…`, one exact image, never a tag that can move): the
   migrations are the schema (Flyway's history table, V2's four customers, `validate`); the dashboard's read of every customer with her
   pauses is one prepared statement, counted by Hibernate's statistics, however many customers there are; forty customers come ten at a
   time by keyset.

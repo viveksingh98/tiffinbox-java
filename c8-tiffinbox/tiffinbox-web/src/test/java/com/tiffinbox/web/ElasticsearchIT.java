@@ -7,6 +7,7 @@ import co.elastic.clients.elasticsearch.nodes.info.NodesInfoMetric;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.PortBinding;
 import com.github.dockerjava.api.model.Ports;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.elasticsearch.test.autoconfigure.DataElasticsearchTest;
@@ -42,6 +43,9 @@ import java.util.TreeSet;
  * <p>Course 8, unit 22: another test - Dishes.searchByName, the shipped repository's highlighted search, on the same three dishes:
  * one document Elasticsearch finds for veg, the vegetarian box, and the fragment it marked in its name. The slice holds no JPA and no transaction
  * manager, so the listener that copies a committed row (DishIndexSync) is not this test's: ../c8-unit22's anchor and sync measure it.
+ *
+ * <p>Course 8, unit 27: the class prints its container's bindings once, before its first test, off Docker's own record of the
+ * container: IT BINDINGS, then each exposed port with its host address and port - the line every IT of TiffinBox prints.
  */
 @DataElasticsearchTest
 @ContextConfiguration(classes = ElasticsearchSlice.class)
@@ -62,6 +66,14 @@ class ElasticsearchIT {
             .withExposedPorts(9200)
             .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withPortBindings(
                     new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 20615), new ExposedPort(9200))));
+
+    /** Course 8, unit 27: this IT's own container, each exposed port with its host address and port, off Docker's own record. */
+    @BeforeAll
+    static void printBindings() {
+        var out = new TreeSet<String>();
+        elasticsearch.getContainerInfo().getNetworkSettings().getPorts().getBindings().forEach((p, bs) -> { if (bs != null) for (var b : bs) out.add(p + " -> " + b.getHostIp() + ":" + b.getHostPortSpec()); });
+        System.out.println("IT BINDINGS ElasticsearchIT " + out);
+    }
 
     @Autowired Dishes dishes;
     @Autowired ElasticsearchClient client;

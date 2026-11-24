@@ -2,9 +2,13 @@ package com.tiffinbox;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.PortBinding;
+import com.github.dockerjava.api.model.Ports;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import org.hibernate.SessionFactory;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -20,6 +24,7 @@ import slice.DataSlice;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 
 /**
  * Course 7, unit 39: TiffinBox's repository on PostgreSQL 18 in a container - the migrations as the schema under test, the
@@ -35,6 +40,10 @@ import java.util.List;
  * the second execution, container-tests, runs it at mvn verify (tiffinbox-web/pom.xml). Which tests run where: 18 on H2 in memory,
  * 3 on PostgreSQL in a container. (Course 8, unit 07: 5 on PostgreSQL in a container since - CustomerAggregatesIT's 2, Spring Data
  * JDBC's slice, beside these 3.)
+ *
+ * <p>Course 8, unit 27: the container's port is published on 127.0.0.1 alone - the modifier names the address and Docker still
+ * picks the port; Testcontainers 2.0.5 publishes a container's port on every interface unless the test names the address. The class prints its
+ * container's bindings once, before its first test, off Docker's own record of the container: IT BINDINGS, then each exposed port.
  */
 @DataJpaTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
 @ContextConfiguration(classes = DataSlice.class)
@@ -44,7 +53,17 @@ class CustomerEntityRepositoryIT {
     @Container
     @ServiceConnection
     static PostgreSQLContainer postgres = new PostgreSQLContainer(
-            DockerImageName.parse("postgres@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873").asCompatibleSubstituteFor("postgres"));
+            DockerImageName.parse("postgres@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873").asCompatibleSubstituteFor("postgres"))
+            .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withPortBindings(
+                    new PortBinding(Ports.Binding.bindIp("127.0.0.1"), new ExposedPort(5432))));
+
+    /** Course 8, unit 27: this IT's own container, each exposed port with its host address and port, off Docker's own record. */
+    @BeforeAll
+    static void printBindings() {
+        var out = new TreeSet<String>();
+        postgres.getContainerInfo().getNetworkSettings().getPorts().getBindings().forEach((p, bs) -> { if (bs != null) for (var b : bs) out.add(p + " -> " + b.getHostIp() + ":" + b.getHostPortSpec()); });
+        System.out.println("IT BINDINGS CustomerEntityRepositoryIT " + out);
+    }
 
     @Autowired CustomerEntityRepository customers;
     @Autowired EntityManager em;

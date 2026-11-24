@@ -6,6 +6,7 @@ import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.PortBinding;
 import com.github.dockerjava.api.model.Ports;
 import org.bson.Document;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.mongodb.test.autoconfigure.DataMongoTest;
@@ -52,6 +53,9 @@ import java.util.TreeSet;
  * at 240, Sunil-1 at 300) and totalsByCustomer(), OrderTotals' method that OrderTotalsImpl answers, groups them on MongoDB's server:
  * Ravi 480, then Sunil 300, as CustomerTotal. The slice's scan (slice/MongoSlice) finds OrderTotalsImpl beside OrderDocuments, by its
  * name, as the "dev" start does. 18 + 14 under mvn verify.
+ *
+ * <p>Course 8, unit 27: the class prints its container's bindings once, before its first test, off Docker's own record of the
+ * container: IT BINDINGS, then each exposed port with its host address and port - the line every IT of TiffinBox prints.
  */
 @DataMongoTest
 @ContextConfiguration(classes = MongoSlice.class)
@@ -68,6 +72,14 @@ class MongoDatastoreIT {
             .withExposedPorts(27017)
             .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withPortBindings(
                     new PortBinding(Ports.Binding.bindIpAndPort("127.0.0.1", 20578), new ExposedPort(27017))));
+
+    /** Course 8, unit 27: this IT's own container, each exposed port with its host address and port, off Docker's own record. */
+    @BeforeAll
+    static void printBindings() {
+        var out = new TreeSet<String>();
+        mongo.getContainerInfo().getNetworkSettings().getPorts().getBindings().forEach((p, bs) -> { if (bs != null) for (var b : bs) out.add(p + " -> " + b.getHostIp() + ":" + b.getHostPortSpec()); });
+        System.out.println("IT BINDINGS MongoDatastoreIT " + out);
+    }
 
     @Autowired Menus menus;
     @Autowired MongoTemplate template;

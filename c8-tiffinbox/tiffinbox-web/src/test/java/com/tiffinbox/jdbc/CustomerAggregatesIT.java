@@ -2,6 +2,10 @@ package com.tiffinbox.jdbc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.PortBinding;
+import com.github.dockerjava.api.model.Ports;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -22,6 +26,7 @@ import org.testcontainers.utility.DockerImageName;
 import slice.JdbcSlice;
 
 import java.util.List;
+import java.util.TreeSet;
 
 /**
  * Course 8, unit 07: Spring Data JDBC's repository tested on its own slice, on PostgreSQL 18 in a container.
@@ -37,6 +42,10 @@ import java.util.List;
  * slice reads spring.sql.init's scripts.
  *
  * <p>Named *IT: only mvn verify runs it, in the container-tests execution (tiffinbox-web/pom.xml).
+ *
+ * <p>Course 8, unit 27: the container's port is published on 127.0.0.1 alone - the modifier names the address and Docker still
+ * picks the port; Testcontainers 2.0.5 publishes a container's port on every interface unless the test names the address. The class prints its
+ * container's bindings once, before its first test, off Docker's own record of the container: IT BINDINGS, then each exposed port.
  */
 @DataJdbcTest
 @ContextConfiguration(classes = JdbcSlice.class)
@@ -48,7 +57,17 @@ class CustomerAggregatesIT {
     @Container
     @ServiceConnection
     static PostgreSQLContainer postgres = new PostgreSQLContainer(
-            DockerImageName.parse("postgres@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873").asCompatibleSubstituteFor("postgres"));
+            DockerImageName.parse("postgres@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873").asCompatibleSubstituteFor("postgres"))
+            .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withPortBindings(
+                    new PortBinding(Ports.Binding.bindIp("127.0.0.1"), new ExposedPort(5432))));
+
+    /** Course 8, unit 27: this IT's own container, each exposed port with its host address and port, off Docker's own record. */
+    @BeforeAll
+    static void printBindings() {
+        var out = new TreeSet<String>();
+        postgres.getContainerInfo().getNetworkSettings().getPorts().getBindings().forEach((p, bs) -> { if (bs != null) for (var b : bs) out.add(p + " -> " + b.getHostIp() + ":" + b.getHostPortSpec()); });
+        System.out.println("IT BINDINGS CustomerAggregatesIT " + out);
+    }
 
     @Autowired CustomerAggregates customers;
     @Autowired JdbcTemplate jdbc;
