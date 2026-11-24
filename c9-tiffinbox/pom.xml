@@ -35,6 +35,10 @@
          (CVE-2026-116600, CVE-2026-116830, CVE-2026-118028, CVE-2026-121649; tomcat.apache.org/security-11.html). Netty 4.2.20.Final
          comes with the parent. -->
     <tomcat.version>11.0.29</tomcat.version>
+    <!-- Course 9, unit 05: Parsson, the JSON-P implementation the PATCH route applies merge patches and JSON Patches with - Boot's BOM
+         manages JSON-P's API (jakarta-json.version) but not Parsson, so its version is pinned here, once: the one the Elasticsearch
+         client already brought (../c9-unit05, jsonp). -->
+    <parsson.version>1.1.9</parsson.version>
     <!-- Course 5: one fixed time for every entry of every archive this build writes - Course 3's reproducible-build
          exercise, landed in the anchor. Without it each jar entry carries the clock of its own build, so tiffinbox-core's
          jar - and with it the application layer of Boot's jar - changed on every build, even with no change at all. With

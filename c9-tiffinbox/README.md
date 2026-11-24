@@ -25,6 +25,10 @@ place, in a note that starts *Course 9, unit NN*, and the unit sections keep the
 with Tomcat 11.0.29 (Spring Framework 7.0.11), Flyway's five migrations (V1-V5), the five ITs on 127.0.0.1:21280-21284 and more
 tests and handler methods than the set-up's: unit 04's section below gives each, as its runs printed them.*
 
+*Course 9, unit 05: the set-up's "no PUT, PATCH or DELETE route" is no longer true of this folder - since unit 05 the public API has
+`PATCH /api/v1/customers/{name}` (merge patch and JSON Patch, on JSON-P), and the old addresses still answer a PATCH with a four-oh-five;
+unit 05's section below gives the route's answers, the tests and the handler methods as its runs printed them. Still no PUT or DELETE.*
+
 
 ## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
 
@@ -60,6 +64,40 @@ The honoured routes: `POST /api/v1/customers/{name}/pauses` requires the key (`4
 one (inert without it), and its form (`application/x-www-form-urlencoded`) passes untouched; `/customers/import` and `PATCH` are not keyed.
 The four problem types: `tag:tiffinbox.example,2026:idempotency-key-missing`, `…-malformed`, `…-outstanding`, `…-reused`. A key row is
 kept, with no expiry: not in this course.
+
+## Course 9 · unit 05 — PATCH Properly: JSON Patch and Merge Patch: PATCH /api/v1/customers/{name} on JSON-P, every patched document re-read and validated, the rename evicting after the commit (2026-11-24)
+
+Course 9's second change to this folder: `../c9-unit05/after`, whose `before` is a link to `../c9-unit04/after`. One file new in `main`,
+one test class new, five files changed (this README among them); `../c9-unit05`'s README gives every count as its runs printed them.
+- `pom.xml`: `<parsson.version>1.1.9</parsson.version>`, once, with its comment - Parsson (JSON-P's implementation) is not managed by Boot's
+  BOM; `1.1.9` is the jar the Elasticsearch client already brought. Nothing else in the parent moves.
+- `tiffinbox-web/pom.xml`: `jakarta.json:jakarta.json-api` (no version: Boot's `jakarta-json.version`) and `org.eclipse.parsson:parsson`
+  (`${parsson.version}`), declared directly beside the Elasticsearch starter, which stays. `BOOT-INF/lib` keeps its count.
+- `tiffinbox-core/.../CustomerEntity.java`: `change(name, mealsPerDay, pricePerMeal, mealType)`, the one write the route makes on a loaded
+  entity (Hibernate's dirty check: one `UPDATE` and the version one higher when a value moved, none when nothing did).
+- `tiffinbox-core/.../CustomerRepository.java`: `update(name, change)` - the row loaded by name inside its own transaction
+  (`rollbackFor = SQLException.class`), the change applied, flushed so a taken name is refused there; it evicts every entry of
+  `customers` and the old and the new name in `customer`, after the commit (unit 04's proxy). The class Javadoc no longer says `add` is the
+  only write that empties a cache.
+- `tiffinbox-web/.../CustomerPatches.java`: the route. `consumes` one handler per media type - `application/merge-patch+json`
+  (`Json.createMergePatch`) and `application/json-patch+json` (`Json.createPatch`, the document's shape checked first); the patched document
+  read back into `Customer` by Boot's `JsonMapper` and checked by Boot's `Validator`.
+- The tests: `CustomerPatchesTest` (the whole application on H2, over a socket, each test on a customer of its own).
+
+The route's answers, and who writes each body:
+
+```
+200  the patched customer, stored                                               the route
+400  a patch document that is not one (not JSON; not an array; an op, a value,   the route (its own ProblemDetail)
+     a path or a from the route cannot take - checked before JSON-P applies it)
+404  a name nobody has                                                          TiffinBox's advice (CustomerNotFound)
+409  a test operation that does not hold; a rename to a taken name              the route
+415  any other Content-Type, with Accept-Patch naming both media types          Boot's problem-details handler
+422  a patched document that is not a valid customer (unreadable, or a rule)    the route
+```
+
+`PATCH` is not keyed (`IdempotencyKeyFilter` guards its two POSTs only). The old addresses keep their four-oh-five for a PATCH. The
+route's bodies carry no `type` (`about:blank`).
 
 ---
 

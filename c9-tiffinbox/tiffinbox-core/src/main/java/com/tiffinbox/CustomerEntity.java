@@ -146,6 +146,18 @@ public class CustomerEntity {
         return mealType;
     }
 
+    /**
+     * Course 9, unit 05: the PATCH route's change - every value of the customer at once, on the entity this transaction loaded, so
+     * Hibernate's dirty check writes one UPDATE (and adds one to the version) when a value moved, and none when nothing did. The name
+     * moves too: it stays unique in the table, which refuses a taken one.
+     */
+    public void change(String name, int mealsPerDay, int pricePerMeal, MealType mealType) {
+        this.name = name;
+        this.mealsPerDay = mealsPerDay;
+        this.pricePerMeal = pricePerMeal;
+        this.mealType = mealType;
+    }
+
     /** The customer's pauses, loaded from the pause table the first time the list is read. */
     public List<PauseEntity> getPauses() {
         return pauses;

@@ -2,6 +2,7 @@ package com.tiffinbox;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
@@ -14,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 /**
@@ -56,6 +58,10 @@ import java.util.stream.Collectors;
  * <p>Course 8, unit 13: findAll's cache is synchronized - {@code sync = true}: on a miss one thread runs the method and the threads
  * that asked for the same key meanwhile wait for its answer, in one JVM (../c8-unit13, sync). findByName is cached in "customer",
  * under the name, and an empty answer is not kept - {@code unless = "#result == null"} (../c8-unit13, nulls and unless).
+ *
+ * <p>Course 9, unit 05: add is no longer the only write that empties a cache - update, the PATCH route's write, empties "customers"
+ * and removes the old name's and the new name's entries from "customer", after its commit (Course 9, unit 04's transaction-aware
+ * cache proxy, on by default): a rename leaves no entry at the old address (../c9-unit05, rename and stale).
  */
 @Component
 public class CustomerRepository {
@@ -149,6 +155,39 @@ public class CustomerRepository {
             }
             throw e;
         }
+    }
+
+    /**
+     * Course 9, unit 05: one customer changed - the row loaded by name inside this transaction (the table's, never a cached
+     * record), the change applied to its record, the new values set on the entity, flushed so a taken name is refused here, in
+     * this method. Empty when nobody has the name. The change may throw; then nothing is written.
+     *
+     * <p>Every entry of "customers" is removed once update returns, and the entries of the old name and the new name in
+     * "customer" (a rename moves the address); with the transaction-aware proxy (Course 9, unit 04) the removals run after the
+     * commit. A refused UPDATE throws the driver's SQLException, as add's INSERT does (rollbackFor = SQLException.class).
+     */
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "customers", allEntries = true),
+            @CacheEvict(cacheNames = "customer", key = "#name"),
+            @CacheEvict(cacheNames = "customer", key = "#result.get().name()", condition = "#result.isPresent()")})
+    @Transactional(rollbackFor = SQLException.class)
+    public Optional<Customer> update(String name, UnaryOperator<Customer> change) throws SQLException {
+        Optional<CustomerEntity> found = customers.findByName(name);
+        if (found.isEmpty()) {
+            return Optional.empty();
+        }
+        CustomerEntity e = found.get();
+        Customer next = change.apply(toRecord(e));
+        try {
+            e.change(next.name(), next.mealsPerDay(), next.pricePerMeal(), MealType.valueOf(next.mealType()));
+            customers.saveAndFlush(e);
+        } catch (DataIntegrityViolationException x) {
+            if (x.getMostSpecificCause() instanceof SQLException refused) {
+                throw refused;
+            }
+            throw x;
+        }
+        return Optional.of(toRecord(e));
     }
 
     /**

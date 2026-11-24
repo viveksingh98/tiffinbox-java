@@ -142,6 +142,19 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
     </dependency>
+    <!-- Course 9, unit 05: JSON-P's API, declared for the PATCH route (CustomerPatches: Json.createMergePatch, Json.createPatch) - until
+         now it came only through the Elasticsearch client above. No version: Boot's parent manages it (jakarta-json.version). -->
+    <dependency>
+      <groupId>jakarta.json</groupId>
+      <artifactId>jakarta.json-api</artifactId>
+    </dependency>
+    <!-- Course 9, unit 05: Parsson, JSON-P's implementation (its JsonProvider), declared for the same route; the version is the parent's
+         parsson.version, since Boot's parent does not manage it. -->
+    <dependency>
+      <groupId>org.eclipse.parsson</groupId>
+      <artifactId>parsson</artifactId>
+      <version>${parsson.version}</version>
+    </dependency>
     <!-- Course 7, unit 36: Flyway. Boot's Flyway starter brings spring-boot-flyway, the auto-configuration that runs the
          migrations in tiffinbox-core's db/migration at every start, before Hibernate starts - flyway-core alone runs nothing
          (../c7-unit36, jars). flyway-database-postgresql is Flyway's PostgreSQL support: without it a start on PostgreSQL stops,
