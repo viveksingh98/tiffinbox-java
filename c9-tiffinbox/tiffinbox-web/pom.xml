@@ -72,6 +72,13 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webmvc</artifactId>
     </dependency>
+    <!-- Course 9, unit 07: springdoc-openapi's Spring MVC starter - it reads TiffinBox's @RestController handler methods at start
+         and serves the OpenAPI document they describe at /v3/api-docs (and /v3/api-docs.yaml), and Swagger UI's page beside it. The
+         parent POM pins its version (springdoc.version); it brings the api starter, swagger-core 3.0.0 and Swagger UI 5.35.1. -->
+    <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+    </dependency>
     <!-- Course 6: Thymeleaf, through Boot's starter - a template engine: it fills an HTML file's th:* attributes from the
          model a @Controller hands it, on the server, so a client that asks for HTML gets a finished page. Boot's module
          configures the engine and a view resolver for classpath:/templates/*.html. Boot's parent manages its version. -->

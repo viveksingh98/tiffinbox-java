@@ -33,6 +33,12 @@ unit 05's section below gives the route's answers, the tests and the handler met
 beside unit 05's PATCH, where it answered a four-oh-five before. The old routes answer as they did. Unit 06's section below gives the
 change, the tests and the handler methods as its runs printed them.*
 
+*Course 9, unit 07: since unit 07 the application also serves its own OpenAPI document at `/v3/api-docs` (springdoc-openapi 3.2.1,
+read off the `@RestController` handler methods at start), where it answered a four-oh-four before; a committed copy of that document
+sits in the tests, and one more test checks the two against each other. The set-up's "`BOOT-INF/lib` 146 jars" and its test counts
+above are the starting point, kept as written; unit 07's section below gives the jars, the tests and what the document says, as its
+runs printed them.*
+
 
 ## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
 
@@ -125,6 +131,30 @@ The new route's answers, and who writes each body:
 
 `OPTIONS` on the address now lists `GET` and `HEAD` beside `PATCH`; a `PUT` there still answers four-oh-five. The old routes, the seven
 and the old surface answer byte for byte as on unit 05's tree.
+
+
+## Course 9 · unit 07 — OpenAPI: The Contract: springdoc-openapi 3.2.1 serving /v3/api-docs, the committed document checked by a test (2026-11-24)
+
+Course 9's fourth change to this folder, and Section 2's first: `../c9-unit07/after`, whose `before` is a link to `../c9-unit06/after`.
+Two POMs changed, two files new in `test`, this README changed; nothing in `main` moves (no handler, record, property, migration or
+problem type; the key filter untouched; no `OpenAPI` info bean, no annotation).
+- `pom.xml`: `<springdoc.version>3.2.1</springdoc.version>`, once, with its comment (what the pin was measured on, and what it was not),
+  and the managed `org.springdoc:springdoc-openapi-starter-webmvc-ui` beside `tiffinbox-core`.
+- `tiffinbox-web/pom.xml`: that starter, no version. It brings the api starter, swagger-core 3.0.0 and Swagger UI 5.35.1 -
+  `BOOT-INF/lib` 146 → 157 jars, eleven new names, no other version moved (`../c9-unit07`'s `tests` capture lists them).
+- `tiffinbox-web/src/test/resources/openapi/tiffinbox.json`: the document as `/v3/api-docs` serves it on this tree, `servers` removed
+  (it is the request's own host and port), written by Python's `json.dump(indent=2, ensure_ascii=False)` with a final newline.
+- `OpenApiSpecTest` (the whole application on H2, MockMvc, no Docker): the served document equals the committed file, `servers` aside.
+  It catches the code drifting from the file; it does not catch the document drifting from the wire - `../c9-unit07`'s script counts
+  that. Tests at `mvn package`: one more than unit 06's.
+
+What the document says and the server does not (each counted by `../c9-unit07`'s receipts, not fixed here): two of the four `Customer`
+properties required where the server refuses a new customer without any of them; two hundred documented where the create routes answer
+two-oh-one; `*/*` as the media type of every success but the feed's; no error response at all; no idempotency key header on the pause
+route; the feed's body as an `SseEmitter`. `DashboardPage`'s three handlers are not in it (springdoc reads `@RestController` classes),
+and the two PATCH handlers are one operation. The page (`/swagger-ui.html`) answers too - *springdoc-openapi and Swagger UI* is its
+lesson, with the document's `info`; *Documenting Errors, Examples and Security* adds the errors; *Code Generation From the Contract*
+reads this file. The old routes, the seven and the old surface answer byte for byte as on unit 06's tree.
 
 ---
 

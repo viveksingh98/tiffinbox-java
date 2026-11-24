@@ -39,6 +39,13 @@
          manages JSON-P's API (jakarta-json.version) but not Parsson, so its version is pinned here, once: the one the Elasticsearch
          client already brought (../c9-unit05, jsonp). -->
     <parsson.version>1.1.9</parsson.version>
+    <!-- Course 9, unit 07: springdoc-openapi, outside Boot's BOM, so its version is pinned here, once (S9.7). What this pin rests
+         on, and nothing wider: springdoc 3.2.1's own POM names Spring Boot 4.2.0 as its parent (springdoc-openapi-3.2.1.pom:13)
+         while this tree runs 4.1.3; the two earlier lines on Central, 3.1.0 and 3.1.1, were not weighed (the course's Maven seed
+         holds 3.2.1 only, and a weighing needs a network read); what was measured is this tree with it - /v3/api-docs answering,
+         45 tests, the seven and the old surface byte-identical - by ../c9-unit07's receipts. Versioned routes (Framework 7.0's
+         API versioning) are not measured here: Versioning Strategies prints what they do to this pin. -->
+    <springdoc.version>3.2.1</springdoc.version>
     <!-- Course 5: one fixed time for every entry of every archive this build writes - Course 3's reproducible-build
          exercise, landed in the anchor. Without it each jar entry carries the clock of its own build, so tiffinbox-core's
          jar - and with it the application layer of Boot's jar - changed on every build, even with no change at all. With
@@ -71,6 +78,11 @@
         <groupId>com.tiffinbox</groupId>
         <artifactId>tiffinbox-core</artifactId>
         <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        <version>${springdoc.version}</version>
       </dependency>
       <dependency>
         <groupId>com.h2database</groupId>
