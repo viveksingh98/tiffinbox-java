@@ -48,6 +48,10 @@ below gives the change and the page's requests, as its runs printed them.*
 `tag:tiffinbox.example,2026:customer-not-found`, on every route that throws it, the old `GET /customers/{name}` included. Course 9's
 sixth change to this folder (U09) beside the fifth (U08); unit 09's section below gives the change, as its runs printed them.*
 
+*Course 9, unit 10: since unit 10 the reactor holds a third module, `tiffinbox-client`, generated from the committed file by
+openapi-generator; the web module and its answers are unmoved. Course 9's seventh change to this folder (U10) beside the sixth (U09);
+unit 10's section below gives the change, as its runs printed them.*
+
 
 ## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
 
@@ -214,6 +218,32 @@ the wire sends `name` at the top level; the key's header is still not a document
 it); `*/*` as the media type of every success but the feed's; no security scheme (*The Threat Model First*, Course 10); the generated
 client (*Code Generation From the Contract*), a driven test of these errors (*Spring REST Docs*), the versions the routes carry
 (*Versioning Strategies*). The seven and the old surface answer byte for byte as on unit 08's tree.
+
+## Course 9 · unit 10 — Code Generation From the Contract: a third module, tiffinbox-client, generated from the committed file (2026-11-25)
+
+Course 9's seventh change to this folder, Section 2's fourth, and its first new module: `../c9-unit10/after`, whose `before` is a link to
+`../c9-unit09/after`. The parent POM gains one module and one property, and the new module gains a POM and one test; nothing under
+`tiffinbox-web/` or `tiffinbox-core/` moves, and the committed file, `OpenApiSpecTest`, the key filter and the Dockerfile are untouched.
+- `pom.xml` (the parent): `<module>tiffinbox-client</module>` after `tiffinbox-web`, and `openapi-generator.version` 7.27.0 with its
+  comment (the newest the course's sweep found, the earlier lines not weighed, what was measured).
+- `tiffinbox-client/pom.xml`: the generator's one execution - generator `spring`, library `spring-http-interface`, reading
+  `../tiffinbox-web/src/test/resources/openapi/tiffinbox.json` in place (never a copy) into `target/generated-sources/openapi`,
+  packages under `com.tiffinbox.client`. Its dependencies are Boot's `spring-boot-starter-restclient` (the `RestClient` and Jackson 3)
+  and `jakarta.annotation-api`; test scope, `spring-boot-starter-test` and `spring-boot-restclient-test`. No dependency on
+  `tiffinbox-web` or `tiffinbox-core`, and neither depends on it: the web jar, and with it the image, carry no client class. The module
+  has no `src/main`: the generated sources are its whole main, never committed.
+- `tiffinbox-client/src/test/java/com/tiffinbox/client/TiffinBoxClientTest.java`: one test, the generated interface bound to
+  `MockRestServiceServer`, ending in `verify()`; it runs at every `mvn package`, with no server and no Boot context.
+
+What moved, as `../c9-unit10`'s runs printed it: a module - the reactor builds the parent and three modules, and `mvn package` runs the
+web module's tests and the client's one, Docker-free; `BOOT-INF/lib` stays 157 jars. The real call (the generated read of Ravi against a
+running TiffinBox) and the generated pause call (no parameter for the key header: the wire answers the missing-key problem) are the
+unit's receipts, driven by a runner in its harness, not tests here. Any change to the committed file now generates the client again in
+the next build. Not fixed here, each by its lesson: the key's header is still not a documented parameter, so the generated pause call
+cannot carry it; `*/*` as the media type of every success but the feed's; the feed's `SseEmitter` model; the keyed caller, the timeouts and
+Boot's own client builder (*Timeouts and Retries From the Caller's Side*); a driven test of these routes (*Spring REST Docs*); the
+versions the routes carry (*Versioning Strategies*); security (*The Threat Model First*, Course 10). The seven and the old surface answer
+byte for byte as on unit 09's tree.
 
 ---
 

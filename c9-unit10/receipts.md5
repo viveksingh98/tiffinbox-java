@@ -1,0 +1,36 @@
+before-tree 99 0ff5d0e9b7539610e7087a039c658f4c
+after-tree 101 63ccd5565b675fd6f9f47b8ef85aabfb
+tests 67ad9515d140efd8410527807ab98fc0
+census 2a7f58c5ce2ec7b6a0f35d8fe27aa09f
+modules 7c4ea1a87c033230ce87da8dbe7e6eed
+generate 1e3bdaf54e080b218d2a2c77861454b6
+jackson bdf4447e8d4ff7a0b8a5305816f32601
+committed 65655986ff66470d66f6989b5aa3767e
+call 3afb12725ef3e3167e25768bee0e07c5
+pause 9130e21837ca796bb8bd1d5c7022b1fe
+mock cfb61e58143e8df1504da90d1faf5f4b
+default 6c7ac67bdcc1fefb948e7c943013ee8d
+counts d2b09d1c332c8acac3d94199db663f01
+location 555eb3f62dc2650c064984731311560f
+diff 69d1c67145bc5d4ede26b79de1426644
+moved cee99669cf76459bc46a4c7f43b0c11c
+seven ec2fb24a89c3add6d40c83778601fea9
+surface 8924e7959579f2f156ce7bf376ee1d49
+inert d93673bf0f9ff6739e68cc81efeb1867
+exercise 4813c308174042b87b1d32b31afb1abb
+file harness/chk10.py d2f4adde7302b331d3dbc7afb3561384
+file harness/s910.py 9e1e963a04934562c2562d47bb6a3b09
+file harness/tree10.py f200162b208751e458f2ce251764d24d
+file harness/dur9.py 77d6fcf895637e0beda50c7bdf9a0df0
+file harness/loc9.py e25a54ea8b395dbb0ba865a978d8424b
+file harness/specwire9.py 330f73f55a3fcd30b1d22e338ad31678
+file harness/mirror/default.diff 18f5be127d71d34f5ab499b8911a1813
+file harness/src/probe/Etag.java 0c518b8fd1f63014970bf0df96bc9e5a
+file harness/src/probe/Http.java aac9acc077572e5c6aad1043c8b6cd55
+file harness/src/probe/Routes.java 1b0e6742c9e41fa70268c92ec8e38d80
+file harness/src/probe/Witness.java ee8d933cd8f46afac621e4ea63c01510
+file harness/src/probe/u10/Caller.java 2566f21ca60d96bd341a552a1d4987a0
+file harness/src/probe/u10/U10Probe.java e1985edddd4ade1b3d858ec1564355ad
+file exercise/check.sh ebed3bf3f50f1185c1cb48176bfbcc5d
+file exercise/apply.sh db28efc73384730330516ecc0e857649
+file exercise/break.sh b5deca97f6e4ae20c676f4a2a672a6b2

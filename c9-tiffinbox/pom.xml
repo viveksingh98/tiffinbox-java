@@ -46,6 +46,13 @@
          45 tests, the seven and the old surface byte-identical - by ../c9-unit07's receipts. Versioned routes (Framework 7.0's
          API versioning) are not measured here: Versioning Strategies prints what they do to this pin. -->
     <springdoc.version>3.2.1</springdoc.version>
+    <!-- Course 9, unit 10: openapi-generator's Maven build step, outside Boot's BOM, so its version is pinned here, once (S9.7). What this
+         pin rests on, and nothing wider: 7.27.0 is the newest the course's sweep found on Central (S2-PROBE-NOTES, the versions table);
+         the earlier lines were not weighed (the course's Maven seed holds 7.27.0 only, and a weighing needs a network read); what was
+         measured is this spec through this generator and its spring-http-interface library - the module tiffinbox-client generated from
+         the committed file, its interface bound to MockRestServiceServer, one real call - by ../c9-unit10's receipts. Version-bound: the
+         receipts are recorded again when this pin moves. -->
+    <openapi-generator.version>7.27.0</openapi-generator.version>
     <!-- Course 5: one fixed time for every entry of every archive this build writes - Course 3's reproducible-build
          exercise, landed in the anchor. Without it each jar entry carries the clock of its own build, so tiffinbox-core's
          jar - and with it the application layer of Boot's jar - changed on every build, even with no change at all. With
@@ -57,6 +64,7 @@
   <modules>
     <module>tiffinbox-core</module>
     <module>tiffinbox-web</module>
+    <module>tiffinbox-client</module>
   </modules>
 
   <!--
