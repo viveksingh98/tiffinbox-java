@@ -1,0 +1,10 @@
+--- a/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxApiVersioning.java
++++ b/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxApiVersioning.java
+@@ -28,6 +28,6 @@
+     @Override
+     public void configureApiVersioning(ApiVersionConfigurer c) {
+         // Course 9, unit 12: the path carrier, restricted to /api/; not required; 1.0 supported (the literal /api/v1/ routes' version)
+-        c.usePathSegment(1, TiffinBoxApiVersioning::underApi).setVersionRequired(false).addSupportedVersions("1.0");
++        c.usePathSegment(1, TiffinBoxApiVersioning::underApi).setVersionRequired(false).addSupportedVersions("2.0");
+     }
+ }

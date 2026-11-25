@@ -1,0 +1,41 @@
+before-tree 104 0c7e38c9be759e71e6235e4cd2c480e5
+after-tree 106 844ab844d28eaa0e8f3f8ff04328d7cb
+choose 3690bc438b01d67e8de29e2568758d66
+tests 8c518c5cc598908add8154b6aa3a46ad
+change 58f09960f18f4eab22a792296e91b802
+four cc2edd32e99878b4d4aec687d01d51ba
+required d45b6bad3125697bf3a3d3df80b07db6
+default fef1f55e97f8b38eb10d871ee75bf162
+newest e0983d75e9e64203e2c012b2df1717f2
+deprecate 9524226bf9db79dfe3c2cf81769e9275
+retire a8d29e9bed7bc4b0af061736aacb3924
+type 467eb4f247685a4155529015f2db7df3
+client fdce2d61901ca35e433a8c94aad9e78b
+restdocs 0683eea00a19915e99ce582bce806df9
+replay 7f34b01a12e08999f92a5511c5267438
+committed 89a90d24c50b7ecd8206030c138def3e
+moved 3b6d17d5d3adade204f00b29b03fcfbb
+seven cd2ffbfcadbbd5c3195079586a947128
+surface f7bf5d8acd2cc07e00060fe0f251237f
+inert 9fc56fc75e559c041d05b8c5af32d8a7
+exercise b8f3a2f4583c30463d8be6b4558c8015
+file harness/chk12.py dc6be3e793eb09a4a5a39226810989c1
+file harness/s912.py 370a9e3e071c9e2bd3632f37dfc861f8
+file harness/tree12.py 2127cb627b0d521e472bc65e852b7605
+file harness/dur9.py 77d6fcf895637e0beda50c7bdf9a0df0
+file harness/specwire9.py 330f73f55a3fcd30b1d22e338ad31678
+file harness/mirror/nover.diff 79693d99e92d7fb58a8fde6bf2501e97
+file harness/mirror/required.diff 3a1e5f6784df0d4f694a372296066abd
+file harness/mirror/deprecate.diff c7bfa16152c5960c8931ca10bd70b817
+file harness/mirror/retire.diff 291e1893da05eaf121c86275656d880e
+file harness/src/probe/Etag.java 0c518b8fd1f63014970bf0df96bc9e5a
+file harness/src/probe/Http.java aac9acc077572e5c6aad1043c8b6cd55
+file harness/src/probe/Routes.java 1b0e6742c9e41fa70268c92ec8e38d80
+file harness/src/probe/Witness.java ee8d933cd8f46afac621e4ea63c01510
+file harness/src/probe/u10/Caller.java 2566f21ca60d96bd341a552a1d4987a0
+file harness/src/probe/u12/U12Probe.java 23a68a9c793754a8e4d6a8ac5944b39a
+file harness/src/probe/u12/U12Routes.java 51c45827c4ffd88f6f1a8e505223324d
+file harness/src/probe/u12/Versioning12.java 63dfb73ca6607ed2596308baf586f1b6
+file exercise/check.sh 66c71457a4f0d943cb7ca84437e3c8ab
+file exercise/apply.sh b9cc0267f5fe3900880758e54fdb3026
+file exercise/break.sh 7a7ba6770659016bd6f05498c3113588

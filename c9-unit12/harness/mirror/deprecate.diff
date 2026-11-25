@@ -1,0 +1,35 @@
+--- a/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxApiVersioning.java
++++ b/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxApiVersioning.java
+@@ -1,7 +1,11 @@
+ package com.tiffinbox.web;
+ 
++import java.net.URI;
++import java.time.ZoneOffset;
++import java.time.ZonedDateTime;
+ import org.springframework.context.annotation.Configuration;
+ import org.springframework.http.server.RequestPath;
++import org.springframework.web.accept.StandardApiVersionDeprecationHandler;
+ import org.springframework.web.servlet.config.annotation.ApiVersionConfigurer;
+ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+ 
+@@ -25,9 +29,19 @@
+         return p.pathWithinApplication().value().startsWith("/api/");
+     }
+ 
++    static StandardApiVersionDeprecationHandler deprecations() {
++        StandardApiVersionDeprecationHandler h = new StandardApiVersionDeprecationHandler();
++        h.configureVersion("1.0")
++         .setDeprecationDate(ZonedDateTime.of(2026, 10, 1, 0, 0, 0, 0, ZoneOffset.UTC))
++         .setSunsetDate(ZonedDateTime.of(2027, 4, 1, 0, 0, 0, 0, ZoneOffset.UTC))
++         .setDeprecationLink(URI.create("http://127.0.0.1/docs/customers-1.0"));
++        return h;
++    }
++
+     @Override
+     public void configureApiVersioning(ApiVersionConfigurer c) {
+         // Course 9, unit 12: the path carrier, restricted to /api/; not required; 1.0 supported (the literal /api/v1/ routes' version)
+-        c.usePathSegment(1, TiffinBoxApiVersioning::underApi).setVersionRequired(false).addSupportedVersions("1.0");
++        c.usePathSegment(1, TiffinBoxApiVersioning::underApi).setVersionRequired(false).addSupportedVersions("1.0")
++         .setDeprecationHandler(deprecations());
+     }
+ }

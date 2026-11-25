@@ -56,6 +56,12 @@ unit 10's section below gives the change, as its runs printed them.*
 test writes; the page is not committed and not in the jar. Course 9's eighth change to this folder (U11) beside the seventh (U10);
 unit 11's section below gives the change, as its runs printed them.*
 
+*Course 9, unit 12: since unit 12 the web module routes `/api/` by the path's second segment: `/api/v1/...` is version `1.0` (the
+resolver reads `v1` as `1.0.0`), the five literal `/api/v1/...` routes keep their strings and answer as before, and nothing else under
+`/api/` is versioned; nothing is deprecated or retired here. The opening paragraph's "no versioning" is the set-up's starting point, kept
+as written. Course 9's ninth change to this folder (U12) beside the eighth (U11); unit 12's section below gives the change, as its runs
+printed them.*
+
 
 ## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
 
@@ -248,6 +254,29 @@ cannot carry it; `*/*` as the media type of every success but the feed's; the fe
 Boot's own client builder (*Timeouts and Retries From the Caller's Side*); a driven test of these routes (*Spring REST Docs*); the
 versions the routes carry (*Versioning Strategies*); security (*The Threat Model First*, Course 10). The seven and the old surface answer
 byte for byte as on unit 09's tree.
+
+## Course 9 · unit 12 — Versioning Strategies: the path's second segment under /api/ is the version, the five literal routes unchanged (2026-11-25)
+
+Course 9's ninth change to this folder, Section 2's sixth and last, its first change to `tiffinbox-web/src/main` since unit 09 and its
+first change to how a request is routed: `../c9-unit12/after`, whose `before` is a link to `../c9-unit11/after`. One configuration class
+and one test class are added to the web module; no pom moves, nothing under `tiffinbox-core/` or `tiffinbox-client/` moves, and the five
+literal `/api/v1/...` mappings, the key filter, the committed file, `OpenApiSpecTest`, `TiffinBoxRestDocsTest`, the `Dockerfile` and
+`compose.yaml` are untouched.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxApiVersioning.java`: one `WebMvcConfigurer` -
+  `usePathSegment(1, ...)` restricted by a predicate to paths under `/api/`, `setVersionRequired(false)`, `addSupportedVersions("1.0")`.
+  No default version, no deprecation handler, no header, query or media-type carrier.
+- `tiffinbox-web/src/test/java/com/tiffinbox/web/ApiVersionTest.java`: two tests, in the default run, through MockMvc (no socket) -
+  `theOldAddressAnswersAsBefore` (`GET /api/v1/customers/Ravi`: Ravi's four members, and the version the resolver stored, `1.0.0`;
+  `GET /customers/Ravi`, the unversioned old route, the same body) and
+  `aVersionNoRouteCarriesIsNotFound` (`GET /api/v3/customers/Ravi`: not found, the holder Spring MVC stores carrying no version).
+
+What moved, as `../c9-unit12`'s runs printed it: a configurer and a test - the web module's tests at `mvn package` are 52 (50 at unit 11),
+the client's 1, none skipped; `BOOT-INF/lib` stays 157 jars; the web jar gains one class and no other entry moves. The literal routes'
+wording in the unit 04-06 sections below is still true (the routes stay literal); since unit 12 their second segment is also the version.
+A version no route carries under `/api/` is not found, not refused: no mapping matches its path, so the version is never checked. Not
+fixed here, each by its lesson: a documented versioned route beyond the literal one REST Docs reads (unit 11's history line stays); a
+version retired on an endpoint (unit 24); the caller's side of a retired version (*Timeouts and Retries From the Caller's Side*);
+security (*The Threat Model First*, Course 10). The seven and the old surface answer byte for byte as on unit 11's tree.
 
 ## Course 9 · unit 11 — Spring REST Docs: one documented read in test scope, and the page Asciidoctor writes from its snippets (2026-11-25)
 

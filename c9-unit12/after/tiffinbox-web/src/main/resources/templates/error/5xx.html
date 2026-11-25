@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <title>Something broke · TiffinBox</title>
+  <link rel="stylesheet" th:href="@{/css/tiffinbox.css}">
+</head>
+<body>
+<h1>TiffinBox could not answer</h1>
+<p>The server failed on <code th:text="${path}">/x</code>: status <span th:text="${status}">500</span>.</p>
+</body>
+</html>
