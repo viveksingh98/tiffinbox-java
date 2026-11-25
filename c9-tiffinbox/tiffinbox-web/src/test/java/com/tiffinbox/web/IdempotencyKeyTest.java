@@ -16,6 +16,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.UUID;
+import java.util.Map;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Course 9, unit 04: the Idempotency-Key on the pause route, pinned over a socket - the whole application on H2 in memory, a real
@@ -143,5 +145,15 @@ class IdempotencyKeyTest {
                 + IdempotencyKeys.ORDER + " · the security chain's " + SECURITY_FILTER_ORDER + " (Boot's documented default)");
         assertThat(registration.getOrder()).isEqualTo(IdempotencyKeys.ORDER);
         assertThat(registration.getOrder()).isGreaterThan(SECURITY_FILTER_ORDER);
+    }
+
+    /** Course 9, unit 09: the not-found problem on the keyed pause POST carries its own type (TiffinBoxErrors.CUSTOMER_NOT_FOUND). */
+    @Test
+    void aNameNobodyHasIsTyped() throws Exception {
+        var r = pause("Nobody", 1, "\"" + fresh() + "\"");
+        assertThat(r.statusCode()).isEqualTo(404);
+        Map<?, ?> problem = JsonMapper.builder().build().readValue(r.body(), Map.class);
+        assertThat(problem.get("type")).isEqualTo("tag:tiffinbox.example,2026:customer-not-found");
+        assertThat(problem.get("name")).isEqualTo("Nobody");
     }
 }

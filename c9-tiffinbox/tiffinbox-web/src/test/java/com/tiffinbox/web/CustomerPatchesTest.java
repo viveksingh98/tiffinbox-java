@@ -14,6 +14,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.UUID;
+import java.util.Map;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Course 9, unit 05: the PATCH route's contract, pinned with the route (S9.11) - on the whole application, H2 in memory, over HTTP
@@ -167,5 +169,15 @@ class CustomerPatchesTest {
                 "Idempotency-Key", "\"" + key + "\"");
         assertThat(r.statusCode()).isEqualTo(200);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM idempotency_key WHERE idem_key = ?", Integer.class, key)).isZero();
+    }
+
+    /** Course 9, unit 09: the not-found problem on the PATCH carries its own type (TiffinBoxErrors.CUSTOMER_NOT_FOUND). */
+    @Test
+    void aNameNobodyHasIsTyped() throws Exception {
+        var r = merge("Nobody", "{\"mealsPerDay\":2}");
+        assertThat(r.statusCode()).isEqualTo(404);
+        Map<?, ?> problem = JsonMapper.builder().build().readValue(r.body(), Map.class);
+        assertThat(problem.get("type")).isEqualTo("tag:tiffinbox.example,2026:customer-not-found");
+        assertThat(problem.get("name")).isEqualTo("Nobody");
     }
 }

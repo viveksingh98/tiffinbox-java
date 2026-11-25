@@ -1,5 +1,9 @@
 package com.tiffinbox.web;
 
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.ObjectProvider;
@@ -207,6 +211,10 @@ public final class TiffinBoxServer {
     }
 
     /** One customer, by the exact name in the path; a name nobody has throws CustomerNotFound (TiffinBoxErrors: a 404). */
+    // Course 9, unit 09: the documented not-found problem - Framework's ProblemDetail schema, an example equal to the answer this route sent
+    @ApiResponse(responseCode = "200", description = "OK")
+    @ApiResponse(responseCode = "404", description = "Customer not found", content = @Content(mediaType = "application/problem+json",
+            schema = @Schema(implementation = ProblemDetail.class), examples = @ExampleObject(name = "customer-not-found", value = "{\"detail\":\"no customer named Nobody\",\"instance\":\"/customers/Nobody\",\"status\":404,\"title\":\"Customer not found\",\"type\":\"tag:tiffinbox.example,2026:customer-not-found\",\"name\":\"Nobody\"}")))
     @GetMapping("/customers/{name}")
     Customer customer(@PathVariable String name) throws Exception {
         return repo.findByName(name)
@@ -231,6 +239,14 @@ public final class TiffinBoxServer {
      * body is a ProblemDetail, the 201's the record. A stored customer reaches CustomerFeed's listeners through the repository's
      * event, after add's transaction commits.
      */
+    // Course 9, unit 09: the key's problems (IdempotencyKeyFilter), documented here - examples equal to the answers the filter sent; the header itself is not named
+    @ApiResponse(responseCode = "200", description = "OK")
+    @ApiResponse(responseCode = "400", description = "Idempotency-Key is malformed", content = @Content(mediaType = "application/problem+json",
+            schema = @Schema(implementation = ProblemDetail.class), examples = @ExampleObject(name = "idempotency-key-malformed", value = "{\"detail\":\"The Idempotency-Key header must be one String of 1 to 255 characters from A-Z, a-z, 0-9 and - . _ ~, with no parameters.\",\"status\":400,\"title\":\"Idempotency-Key is malformed\",\"type\":\"tag:tiffinbox.example,2026:idempotency-key-malformed\"}")))
+    @ApiResponse(responseCode = "409", description = "A request is outstanding for this Idempotency-Key", content = @Content(mediaType = "application/problem+json",
+            schema = @Schema(implementation = ProblemDetail.class), examples = @ExampleObject(name = "idempotency-key-outstanding", value = "{\"detail\":\"A request with this Idempotency-Key is still being processed. Retry it later with the same key.\",\"status\":409,\"title\":\"A request is outstanding for this Idempotency-Key\",\"type\":\"tag:tiffinbox.example,2026:idempotency-key-outstanding\"}")))
+    @ApiResponse(responseCode = "422", description = "Idempotency-Key is already used", content = @Content(mediaType = "application/problem+json",
+            schema = @Schema(implementation = ProblemDetail.class), examples = @ExampleObject(name = "idempotency-key-reused", value = "{\"detail\":\"This Idempotency-Key was first used with a different request. Use a new key for a new request.\",\"status\":422,\"title\":\"Idempotency-Key is already used\",\"type\":\"tag:tiffinbox.example,2026:idempotency-key-reused\"}")))
     @PostMapping("/customers")
     ResponseEntity<?> add(@Valid @RequestBody Customer customer, BindingResult errors) throws SQLException {
         if (errors.hasErrors()) {

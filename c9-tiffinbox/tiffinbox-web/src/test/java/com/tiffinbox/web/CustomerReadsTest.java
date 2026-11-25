@@ -14,6 +14,8 @@ import java.net.http.HttpResponse;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.Map;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Course 9, unit 06: the public read's contract, pinned with the route (S9.11) - CustomerPatchesTest's shape (the whole application,
@@ -77,5 +79,15 @@ class CustomerReadsTest {
                 .isEqualTo(200);
         assertThat(send("GET", "/api/v1/customers/" + n, null, null).statusCode()).isEqualTo(404);
         assertThat(send("GET", "/api/v1/customers/" + m, null, null).statusCode()).isEqualTo(200);
+    }
+
+    /** Course 9, unit 09: the not-found problem on the public read carries its own type (TiffinBoxErrors.CUSTOMER_NOT_FOUND). */
+    @Test
+    void aNameNobodyHasIsTyped() throws Exception {
+        var r = send("GET", "/api/v1/customers/Nobody", null, null);
+        assertThat(r.statusCode()).isEqualTo(404);
+        Map<?, ?> problem = JsonMapper.builder().build().readValue(r.body(), Map.class);
+        assertThat(problem.get("type")).isEqualTo("tag:tiffinbox.example,2026:customer-not-found");
+        assertThat(problem.get("name")).isEqualTo("Nobody");
     }
 }

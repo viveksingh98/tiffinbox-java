@@ -1,0 +1,32 @@
+before-tree 99 4f465fba985c2814e4345128b3c55bfa
+after-tree 99 0ff5d0e9b7539610e7087a039c658f4c
+tests cb9b5bb6cc142bf71710b4b9008e4204
+census 84607b25a938e907b3a665e33ef35bed
+after e5cb9e00167b6c0e6b80f70f461ea64b
+none 811d196b3f0ad00d83c02c6c5d270039
+blanket 4f36d8427a1dda5ab22da690d1f20a56
+perop a5a8ad2a533001131c6ad0dbeff4b190
+types 87053b0357041aed846a4a80a3c7dca3
+shape 7d441bf6b5ae9d6ec6cf4328ba4efc9e
+committed 5079f564712a2614a0e1b7068e0cc676
+diff 7fc980614cb8cb83b7843c2f86c0e0f6
+scheme c469102726f4975a9fbbcccb4b253fcc
+moved b1ddb2cbe481717d8d37bbd026f79254
+seven 8016b96806b869756554afd791ab8d04
+surface 26b7b6044845fd8e62f7bb734cc20a5f
+inert 117f6fe8afd3ae4d8710815bd713433d
+exercise c14c441d0a585e2d23f6455f7b03d00d
+file harness/chk09.py 9f16915e9acd9064cad23c313daef8e3
+file harness/s909.py 8292f743ac0ff9435bffe34cc6c091a1
+file harness/tree09.py dc5d8fa47f879500a09e54b64593eed8
+file harness/dur9.py 77d6fcf895637e0beda50c7bdf9a0df0
+file harness/specwire9.py 330f73f55a3fcd30b1d22e338ad31678
+file harness/src/mirror/TiffinBoxErrorDocs.java 6256105a5456528a45cf696fb64de329
+file harness/src/probe/Etag.java 0c518b8fd1f63014970bf0df96bc9e5a
+file harness/src/probe/Http.java aac9acc077572e5c6aad1043c8b6cd55
+file harness/src/probe/Routes.java 1b0e6742c9e41fa70268c92ec8e38d80
+file harness/src/probe/Witness.java ee8d933cd8f46afac621e4ea63c01510
+file harness/src/probe/u09/SchemeCopy.java a37e09d8bf10e60c2ddc9f8e1c205b57
+file harness/src/probe/u09/U09Probe.java 47f5e66eec339921552b682f64e384e1
+file exercise/check.sh 0119f08e707e8e522cb1777b36855a00
+file exercise/apply.sh 56b03ebd71c662730d31896013b14f88

@@ -43,6 +43,11 @@ runs printed them.*
 "OpenAPI definition" and "v0" - and the page at `/swagger-ui.html` shows them; nothing else in the document moved. Unit 08's section
 below gives the change and the page's requests, as its runs printed them.*
 
+*Course 9, unit 09: since unit 09 the document says the not-found problem and the key's four - each error response with Framework's
+`ProblemDetail` schema and one example equal to an answer the server sent - and the not-found answer carries a type of its own,
+`tag:tiffinbox.example,2026:customer-not-found`, on every route that throws it, the old `GET /customers/{name}` included. Course 9's
+sixth change to this folder (U09) beside the fifth (U08); unit 09's section below gives the change, as its runs printed them.*
+
 
 ## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
 
@@ -179,6 +184,36 @@ the document before and after hashes the same - 11 paths, 13 operations, 6 tags,
 no security scheme (*Documenting Errors, Examples and Security*), `*/*` as the media type of every success but the feed's, the
 generated client (*Code Generation From the Contract*), the versions the routes carry (*Versioning Strategies*). The old routes, the
 seven and the old surface answer byte for byte as on unit 07's tree.
+
+## Course 9 · unit 09 — Documenting Errors, Examples and Security: error responses per operation, the not-found type, the file regenerated (2026-11-25)
+
+Course 9's sixth change to this folder, and Section 2's third: `../c9-unit09/after`, whose `before` is a link to `../c9-unit08/after`.
+Five files in `main` gain annotations (and one of them a type), four test classes gain one test each, the committed document is written
+again, and this README changes; no POM, property, migration or handler logic moves, and the key filter, `TiffinBoxOpenApi` and
+`OpenApiSpecTest` are untouched.
+- `TiffinBoxErrors.java`: one `setType(CUSTOMER_NOT_FOUND)` - the constant `tag:tiffinbox.example,2026:customer-not-found`, in the form
+  of `IdempotencyKeyFilter`'s four (`tiffinbox.example` stands where your own domain goes). No `@ResponseStatus` here: one on the
+  advice would document a four-oh-four on all thirteen operations (`../c9-unit09`'s `blanket` plant).
+- `TiffinBoxServer.java` (`customer`, `add`), `CustomerReads.java` (`one`), `CustomerPatches.java` (`merge`, `jsonPatch` - one
+  operation), `CustomerPauses.java` (`add`, `one`): `@ApiResponse` annotations - each handler's two-hundred kept as springdoc wrote it,
+  and each documented problem with `application/problem+json`, Framework's `ProblemDetail` schema and one example equal to an answer the
+  server sent: the four-oh-four on the `{name}` operations, the key's problems on the two keyed operations (no header parameter is added).
+- `TiffinBoxWebTest`, `CustomerReadsTest`, `CustomerPatchesTest`, `IdempotencyKeyTest`: one test each, `aNameNobodyHasIsTyped`, asserting
+  `$.type` and `$.name` on the route each class already tests for a name nobody has; no existing test is edited.
+- `tiffinbox-web/src/test/resources/openapi/tiffinbox.json`: written again from the running application (`GET /v3/api-docs` on this
+  tree, H2, `servers` removed, the fixed `json.dump(indent=2, ensure_ascii=False)` rule with a final newline); its diff against unit
+  08's file is additions only, and with the added responses and the `ProblemDetail` schema removed it is unit 08's file byte for byte.
+
+What moved, as `../c9-unit09`'s runs printed it: six of the thirteen operations document error responses (the five `{name}` operations
+and `POST /customers`), and `components.schemas` gains `ProblemDetail`; with those removed the document before and after hashes the
+same. The not-found answers of the old read, the public read, the PATCH and the keyed pause POST gain a `type` member, every other
+member byte-equal (S9.37); the pause GET's own four-oh-four keeps `about:blank`. Tests at `mvn package`: unit 08's count plus the four.
+`BOOT-INF/lib` stays 157 jars. Not fixed here, each by its lesson: the other problems TiffinBox writes keep `about:blank` (the 400s and
+409 of `POST /customers`, the PATCH's refusals, the pause route's own, `/shutdown`'s 403); the schema lists a `properties` member where
+the wire sends `name` at the top level; the key's header is still not a documented parameter (*Code Generation From the Contract* meets
+it); `*/*` as the media type of every success but the feed's; no security scheme (*The Threat Model First*, Course 10); the generated
+client (*Code Generation From the Contract*), a driven test of these errors (*Spring REST Docs*), the versions the routes carry
+(*Versioning Strategies*). The seven and the old surface answer byte for byte as on unit 08's tree.
 
 ---
 

@@ -2,6 +2,10 @@ package com.tiffinbox.web;
 
 import com.tiffinbox.Customer;
 import com.tiffinbox.CustomerRepository;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonException;
@@ -66,6 +70,10 @@ final class CustomerPatches {
         this.validator = validator;
     }
 
+    // Course 9, unit 09: the documented not-found problem - Framework's ProblemDetail schema, an example equal to the answer this route sent
+    @ApiResponse(responseCode = "200", description = "OK")
+    @ApiResponse(responseCode = "404", description = "Customer not found", content = @Content(mediaType = "application/problem+json",
+            schema = @Schema(implementation = ProblemDetail.class), examples = @ExampleObject(name = "customer-not-found", value = "{\"detail\":\"no customer named Nobody\",\"instance\":\"/api/v1/customers/Nobody\",\"status\":404,\"title\":\"Customer not found\",\"type\":\"tag:tiffinbox.example,2026:customer-not-found\",\"name\":\"Nobody\"}")))
     @PatchMapping(path = "/api/v1/customers/{name}", consumes = MERGE_PATCH)
     ResponseEntity<?> merge(@PathVariable String name, @RequestBody byte[] body) throws SQLException {
         JsonValue patch = parse(body);
@@ -75,6 +83,10 @@ final class CustomerPatches {
         return apply(name, Json.createMergePatch(patch)::apply, false);
     }
 
+    // Course 9, unit 09: the documented not-found problem - Framework's ProblemDetail schema, an example equal to the answer this route sent
+    @ApiResponse(responseCode = "200", description = "OK")
+    @ApiResponse(responseCode = "404", description = "Customer not found", content = @Content(mediaType = "application/problem+json",
+            schema = @Schema(implementation = ProblemDetail.class), examples = @ExampleObject(name = "customer-not-found", value = "{\"detail\":\"no customer named Nobody\",\"instance\":\"/api/v1/customers/Nobody\",\"status\":404,\"title\":\"Customer not found\",\"type\":\"tag:tiffinbox.example,2026:customer-not-found\",\"name\":\"Nobody\"}")))
     @PatchMapping(path = "/api/v1/customers/{name}", consumes = JSON_PATCH)
     ResponseEntity<?> jsonPatch(@PathVariable String name, @RequestBody byte[] body) throws SQLException {
         JsonValue patch = parse(body);

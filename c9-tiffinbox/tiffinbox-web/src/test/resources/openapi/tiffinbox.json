@@ -97,6 +97,69 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Idempotency-Key is malformed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "idempotency-key-malformed": {
+                    "description": "idempotency-key-malformed",
+                    "value": {
+                      "detail": "The Idempotency-Key header must be one String of 1 to 255 characters from A-Z, a-z, 0-9 and - . _ ~, with no parameters.",
+                      "status": 400,
+                      "title": "Idempotency-Key is malformed",
+                      "type": "tag:tiffinbox.example,2026:idempotency-key-malformed"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A request is outstanding for this Idempotency-Key",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "idempotency-key-outstanding": {
+                    "description": "idempotency-key-outstanding",
+                    "value": {
+                      "detail": "A request with this Idempotency-Key is still being processed. Retry it later with the same key.",
+                      "status": 409,
+                      "title": "A request is outstanding for this Idempotency-Key",
+                      "type": "tag:tiffinbox.example,2026:idempotency-key-outstanding"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Idempotency-Key is already used",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "idempotency-key-reused": {
+                    "description": "idempotency-key-reused",
+                    "value": {
+                      "detail": "This Idempotency-Key was first used with a different request. Use a new key for a new request.",
+                      "status": 422,
+                      "title": "Idempotency-Key is already used",
+                      "type": "tag:tiffinbox.example,2026:idempotency-key-reused"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -176,6 +239,101 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Idempotency-Key is missing or malformed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "idempotency-key-missing": {
+                    "description": "idempotency-key-missing",
+                    "value": {
+                      "detail": "This operation requires an Idempotency-Key header: one String of 1 to 255 characters from A-Z, a-z, 0-9 and - . _ ~, with no parameters.",
+                      "status": 400,
+                      "title": "Idempotency-Key is missing",
+                      "type": "tag:tiffinbox.example,2026:idempotency-key-missing"
+                    }
+                  },
+                  "idempotency-key-malformed": {
+                    "description": "idempotency-key-malformed",
+                    "value": {
+                      "detail": "The Idempotency-Key header must be one String of 1 to 255 characters from A-Z, a-z, 0-9 and - . _ ~, with no parameters.",
+                      "status": 400,
+                      "title": "Idempotency-Key is malformed",
+                      "type": "tag:tiffinbox.example,2026:idempotency-key-malformed"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "customer-not-found": {
+                    "description": "customer-not-found",
+                    "value": {
+                      "detail": "no customer named Nobody",
+                      "instance": "/api/v1/customers/Nobody/pauses",
+                      "status": 404,
+                      "title": "Customer not found",
+                      "type": "tag:tiffinbox.example,2026:customer-not-found",
+                      "name": "Nobody"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A request is outstanding for this Idempotency-Key",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "idempotency-key-outstanding": {
+                    "description": "idempotency-key-outstanding",
+                    "value": {
+                      "detail": "A request with this Idempotency-Key is still being processed. Retry it later with the same key.",
+                      "status": 409,
+                      "title": "A request is outstanding for this Idempotency-Key",
+                      "type": "tag:tiffinbox.example,2026:idempotency-key-outstanding"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Idempotency-Key is already used",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "idempotency-key-reused": {
+                    "description": "idempotency-key-reused",
+                    "value": {
+                      "detail": "This Idempotency-Key was first used with a different request. Use a new key for a new request.",
+                      "status": 422,
+                      "title": "Idempotency-Key is already used",
+                      "type": "tag:tiffinbox.example,2026:idempotency-key-reused"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -203,6 +361,29 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/Customer"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "customer-not-found": {
+                    "description": "customer-not-found",
+                    "value": {
+                      "detail": "no customer named Nobody",
+                      "instance": "/api/v1/customers/Nobody",
+                      "status": 404,
+                      "title": "Customer not found",
+                      "type": "tag:tiffinbox.example,2026:customer-not-found",
+                      "name": "Nobody"
+                    }
+                  }
                 }
               }
             }
@@ -248,6 +429,29 @@
               "*/*": {
                 "schema": {
                   "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "customer-not-found": {
+                    "description": "customer-not-found",
+                    "value": {
+                      "detail": "no customer named Nobody",
+                      "instance": "/api/v1/customers/Nobody",
+                      "status": 404,
+                      "title": "Customer not found",
+                      "type": "tag:tiffinbox.example,2026:customer-not-found",
+                      "name": "Nobody"
+                    }
+                  }
                 }
               }
             }
@@ -344,6 +548,29 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "customer-not-found": {
+                    "description": "customer-not-found",
+                    "value": {
+                      "detail": "no customer named Nobody",
+                      "instance": "/customers/Nobody",
+                      "status": 404,
+                      "title": "Customer not found",
+                      "type": "tag:tiffinbox.example,2026:customer-not-found",
+                      "name": "Nobody"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -404,6 +631,27 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "not-found": {
+                    "description": "not-found",
+                    "value": {
+                      "detail": "no pause 1 for a customer named Nobody",
+                      "instance": "/api/v1/customers/Nobody/pauses/1",
+                      "status": 404,
+                      "title": "Not Found"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -439,6 +687,33 @@
           "mealType",
           "name"
         ]
+      },
+      "ProblemDetail": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "format": "uri"
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        }
       },
       "SseEmitter": {
         "type": "object",

@@ -206,4 +206,13 @@ class TiffinBoxWebTest {
                 .isInstanceOf(ServletException.class)
                 .hasMessageContaining("kitchen on fire");
     }
+
+    /** Course 9, unit 09: the not-found problem on the old route carries its own type (TiffinBoxErrors.CUSTOMER_NOT_FOUND). */
+    @Test
+    void aNameNobodyHasIsTyped() {
+        assertThat(tester.get().uri("/customers/{name}", "Nobody"))
+                .hasStatus(HttpStatus.NOT_FOUND)
+                .bodyJson().isLenientlyEqualTo("""
+                        {"type": "tag:tiffinbox.example,2026:customer-not-found", "name": "Nobody"}""");
+    }
 }
