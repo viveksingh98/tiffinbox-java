@@ -39,6 +39,10 @@ sits in the tests, and one more test checks the two against each other. The set-
 above are the starting point, kept as written; unit 07's section below gives the jars, the tests and what the document says, as its
 runs printed them.*
 
+*Course 9, unit 08: since unit 08 the served document carries its own title and version - "TiffinBox" and "1.0", where springdoc wrote
+"OpenAPI definition" and "v0" - and the page at `/swagger-ui.html` shows them; nothing else in the document moved. Unit 08's section
+below gives the change and the page's requests, as its runs printed them.*
+
 
 ## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
 
@@ -155,6 +159,26 @@ route; the feed's body as an `SseEmitter`. `DashboardPage`'s three handlers are 
 and the two PATCH handlers are one operation. The page (`/swagger-ui.html`) answers too - *springdoc-openapi and Swagger UI* is its
 lesson, with the document's `info`; *Documenting Errors, Examples and Security* adds the errors; *Code Generation From the Contract*
 reads this file. The old routes, the seven and the old surface answer byte for byte as on unit 06's tree.
+
+
+## Course 9 · unit 08 — springdoc-openapi and Swagger UI: the document's own `info`, the committed file regenerated (2026-11-25)
+
+Course 9's fifth change to this folder, and Section 2's second: `../c9-unit08/after`, whose `before` is a link to `../c9-unit07/after`.
+One file new in `main`, one file in `test` regenerated, this README changed; no POM, property, migration, handler, record or problem
+type moves, the key filter is untouched, and no test is added.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxOpenApi.java` (new, package-private, `@Configuration(proxyBeanMethods = false)`):
+  one `OpenAPI` bean whose `info` is the title "TiffinBox" and the version "1.0" - no server, tag, error response, external document
+  or security scheme. `info.version` is the document's version, not a route's.
+- `tiffinbox-web/src/test/resources/openapi/tiffinbox.json`: written again from the running application (`GET /v3/api-docs` on this
+  tree, H2, `servers` removed, the same `json.dump(indent=2, ensure_ascii=False)` rule with a final newline); its diff is the two
+  `info` lines, and `OpenApiSpecTest` (unchanged) passes on it - on the old file it fails, naming `info`.
+
+What moved, as `../c9-unit08`'s runs printed it: the document's `info` (two members) and the title the page shows; with `info` removed
+the document before and after hashes the same - 11 paths, 13 operations, 6 tags, every schema and response as on unit 07's tree.
+`BOOT-INF/lib` stays 157 jars; tests at `mvn package` stay unit 07's count. Not fixed here, each by its lesson: no error response and
+no security scheme (*Documenting Errors, Examples and Security*), `*/*` as the media type of every success but the feed's, the
+generated client (*Code Generation From the Contract*), the versions the routes carry (*Versioning Strategies*). The old routes, the
+seven and the old surface answer byte for byte as on unit 07's tree.
 
 ---
 

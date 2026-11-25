@@ -1,0 +1,36 @@
+before-tree 98 9fa0b3c7a4b8b1e77d666b8c01fe14f5
+after-tree 99 4f465fba985c2814e4345128b3c55bfa
+tests f5833f64744975749324e227acf8b1d8
+census 51e4efc95968cb05d9041548535dcbd1
+after 8e16e0ab2c0f1fec0828848cfee58170
+redirect 7882c4f0b119420c26c97485f22f489b
+tryitpg 6de684167d6cceb934aab0c1fa15a32c
+before 46fa2a48b706e2c2cfaae853419d304d
+info a84eb6b0d1f6fdd4ad159fa3fc63ce81
+sealed 129233fa71359758630d91f9c4da1e1d
+ops fca3da248e8d20a3d2674d0988478cd6
+tryit 197a97e11245f09d0b00e51e35f988d6
+versions be292d26d2fd149b60d0f7e4beddd461
+committed 6dfbe6ff38225780f3f55e821c8a8f3d
+diff 62ac52a0b97dc36db21696467cdd3ff8
+moved 4762df3cc02c728486cb05e2351d6cb6
+seven 4df9c6aa2c5f84900fc1dba5e0a52c90
+surface b71c3113bfa2c6d61160a9be8262b663
+inert 16ffd3d716eef5270ead7da193062058
+exercise 5e83efe6ba7cb99df816f07926b394e4
+file harness/chk08.py 688d5299b9d8f2556afc3903d1f49fb2
+file harness/s908.py 24de4169073fb52e6f6b5633688c4147
+file harness/tree08.py 41bbb94b1bf778e0c98d4b9c12e51ff7
+file harness/dur9.py 77d6fcf895637e0beda50c7bdf9a0df0
+file harness/specwire9.py 330f73f55a3fcd30b1d22e338ad31678
+file harness/seal9.py d34433abf2b5f2c29f9d879876f129d8
+file harness/cdp.mjs 481f48365d9aca78f621acd4fb061039
+file harness/cdp9.mjs 5b1816ab518b853ebde4499c9609a756
+file harness/src/probe/Etag.java 0c518b8fd1f63014970bf0df96bc9e5a
+file harness/src/probe/Http.java aac9acc077572e5c6aad1043c8b6cd55
+file harness/src/probe/Routes.java 1b0e6742c9e41fa70268c92ec8e38d80
+file harness/src/probe/Witness.java ee8d933cd8f46afac621e4ea63c01510
+file harness/src/probe/u08/U08Probe.java 7c81419573dd96dfa9cd6e2ee7c714b6
+file exercise/check.sh 764332d3121fb3d57681462b318602b2
+file exercise/apply.sh 1e217534a1a54a460d40941abd3a1a6a
+file exercise/sealed.sh 5ee73f12099038171af44727202448a9
