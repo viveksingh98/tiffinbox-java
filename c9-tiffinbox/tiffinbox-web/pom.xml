@@ -190,6 +190,20 @@
       <artifactId>spring-boot-starter-webmvc-test</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- Course 9, unit 11: Spring REST Docs - the snippets a MockMvc test writes of the request it drives and the answer it gets
+         (spring-restdocs-mockmvc) and Boot's starter for it (its auto-configuration for @AutoConfigureRestDocs and the snippets'
+         folder). Test scope: on the tests' class path only - the executable jar holds neither. Boot's parent manages both versions
+         (REST Docs 4.0.3). -->
+    <dependency>
+      <groupId>org.springframework.restdocs</groupId>
+      <artifactId>spring-restdocs-mockmvc</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-restdocs</artifactId>
+      <scope>test</scope>
+    </dependency>
     <!-- Course 7, unit 39: the data layer's test slice (@DataJpaTest, from Boot's starter) and Testcontainers 2.0.5 - a PostgreSQL
          container started by the test itself (testcontainers-postgresql), its lifecycle tied to JUnit (testcontainers-junit-jupiter),
          and Boot's service connection, which hands the slice the container's URL (spring-boot-testcontainers). Test scope: the
@@ -265,6 +279,34 @@
 
   <build>
     <plugins>
+      <!-- Course 9, unit 11: Asciidoctor's Maven build step turns src/docs/asciidoc/index.adoc and the snippets the REST Docs test wrote
+           (target/generated-snippets) into target/generated-docs/index.html at prepare-package - after the tests, before the jar, so
+           a failed test stops the build before the page. The page is not committed and not in the jar. Its version is the parent's
+           property; spring-restdocs-asciidoctor (Boot's managed REST Docs version) gives the page its snippets attribute. -->
+      <plugin>
+        <groupId>org.asciidoctor</groupId>
+        <artifactId>asciidoctor-maven-plugin</artifactId>
+        <version>${asciidoctor-maven-plugin.version}</version>
+        <executions>
+          <execution>
+            <id>docs</id>
+            <phase>prepare-package</phase>
+            <goals><goal>process-asciidoc</goal></goals>
+            <configuration>
+              <sourceDirectory>${project.basedir}/src/docs/asciidoc</sourceDirectory>
+              <outputDirectory>${project.build.directory}/generated-docs</outputDirectory>
+              <backend>html5</backend>
+            </configuration>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>org.springframework.restdocs</groupId>
+            <artifactId>spring-restdocs-asciidoctor</artifactId>
+            <version>${spring-restdocs.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
       <!-- Course 5: Boot's plugin, declared bare - no version, no execution. Boot's parent manages both, and declaring
            the plugin is what binds its repackage goal to package: the jar becomes Boot's executable jar, a jar of jars -
            TiffinBox's classes under BOOT-INF/classes, every jar it needs under BOOT-INF/lib, kept whole, and Boot's

@@ -1,0 +1,54 @@
+# c9-unit11 harness/mirror/accept.diff - THE HARNESS'S MIRROR PATCH, never TiffinBox's: the public read under three Accepts (AcceptProbeTest). Applied to a scratch copy of after/ with patch -p1.
+--- /dev/null
++++ b/tiffinbox-web/src/test/java/com/tiffinbox/web/AcceptProbeTest.java
+@@ -0,0 +1,50 @@
++package com.tiffinbox.web;
++
++import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
++import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
++import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
++import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
++import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
++import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
++
++import org.junit.jupiter.api.BeforeEach;
++import org.junit.jupiter.api.Test;
++import org.junit.jupiter.api.extension.ExtendWith;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.boot.test.context.SpringBootTest;
++import org.springframework.restdocs.RestDocumentationContextProvider;
++import org.springframework.restdocs.RestDocumentationExtension;
++import org.springframework.restdocs.payload.FieldDescriptor;
++import org.springframework.test.web.servlet.MockMvc;
++import org.springframework.test.web.servlet.setup.MockMvcBuilders;
++import org.springframework.web.context.WebApplicationContext;
++
++/** THE HARNESS'S MIRROR CLASS (c9-unit11, harness/mirror/accept.diff), never TiffinBox's: the public read documented under three Accepts. */
++@ExtendWith(RestDocumentationExtension.class)
++@SpringBootTest(classes = TiffinBoxApp.class, properties = "tiffinbox.shutdown-token=not-the-real-token")
++class AcceptProbeTest {
++    @Autowired WebApplicationContext ctx;
++    MockMvc mvc;
++
++    @BeforeEach
++    void setUp(RestDocumentationContextProvider rd) {
++        mvc = MockMvcBuilders.webAppContextSetup(ctx).apply(documentationConfiguration(rd)).build();
++    }
++
++    /** the generated client's Accept, as the receipt read it off the generated ApiApi source and wrote it to u11-accept.txt (the harness's file) */
++    static String generated() throws Exception {
++        try (java.io.InputStream in = AcceptProbeTest.class.getResourceAsStream("/u11-accept.txt")) {
++            return new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).strip();
++        }
++    }
++
++    @Test void noAccept() throws Exception {
++        mvc.perform(get("/api/v1/customers/Ravi")).andExpect(status().isOk()).andDo(document("accept-none"));
++    }
++    @Test void generatedClientsAccept() throws Exception {
++        mvc.perform(get("/api/v1/customers/Ravi").header("Accept", generated())).andExpect(status().isOk()).andDo(document("accept-generated"));
++    }
++    @Test void json() throws Exception {
++        mvc.perform(get("/api/v1/customers/Ravi").header("Accept", "application/json")).andExpect(status().isOk()).andDo(document("accept-json"));
++    }
++}

@@ -1,0 +1,70 @@
+# c9-unit11 harness/mirror/fail.diff - THE HARNESS'S MIRROR PATCH, never TiffinBox's: the six failing tests (FailureKindsProbeTest). Applied to a scratch copy of after/ with patch -p1.
+--- /dev/null
++++ b/tiffinbox-web/src/test/java/com/tiffinbox/web/FailureKindsProbeTest.java
+@@ -0,0 +1,66 @@
++package com.tiffinbox.web;
++
++import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
++import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
++import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
++import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
++import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
++import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
++
++import org.junit.jupiter.api.BeforeEach;
++import org.junit.jupiter.api.Test;
++import org.junit.jupiter.api.extension.ExtendWith;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.boot.test.context.SpringBootTest;
++import org.springframework.restdocs.RestDocumentationContextProvider;
++import org.springframework.restdocs.RestDocumentationExtension;
++import org.springframework.restdocs.payload.FieldDescriptor;
++import org.springframework.test.web.servlet.MockMvc;
++import org.springframework.test.web.servlet.setup.MockMvcBuilders;
++import org.springframework.web.context.WebApplicationContext;
++
++/** THE HARNESS'S MIRROR CLASS (c9-unit11, harness/mirror/fail.diff), never TiffinBox's: six failing REST Docs tests, two per kind, one per order. */
++@ExtendWith(RestDocumentationExtension.class)
++@SpringBootTest(classes = TiffinBoxApp.class, properties = "tiffinbox.shutdown-token=not-the-real-token")
++class FailureKindsProbeTest {
++    @Autowired WebApplicationContext ctx;
++    MockMvc mvc;
++
++    @BeforeEach
++    void setUp(RestDocumentationContextProvider rd) {
++        mvc = MockMvcBuilders.webAppContextSetup(ctx).apply(documentationConfiguration(rd)).build();
++    }
++
++    static FieldDescriptor[] four() {
++        return new FieldDescriptor[] { fieldWithPath("name").description("name"), fieldWithPath("mealsPerDay").description("meals"),
++            fieldWithPath("pricePerMeal").description("price"), fieldWithPath("mealType").description("type") };
++    }
++    static FieldDescriptor[] withNickname() {
++        return new FieldDescriptor[] { fieldWithPath("name").description("name"), fieldWithPath("mealsPerDay").description("meals"),
++            fieldWithPath("pricePerMeal").description("price"), fieldWithPath("mealType").description("type"),
++            fieldWithPath("nickname").description("a field TiffinBox never sends") };
++    }
++    static FieldDescriptor[] withoutMealType() {
++        return new FieldDescriptor[] { fieldWithPath("name").description("name"), fieldWithPath("mealsPerDay").description("meals"),
++            fieldWithPath("pricePerMeal").description("price") };
++    }
++
++    @Test void statusA() throws Exception {
++        mvc.perform(get("/api/v1/customers/Ravi")).andExpect(status().isCreated()).andDo(document("status-a", responseFields(four())));
++    }
++    @Test void statusB() throws Exception {
++        mvc.perform(get("/api/v1/customers/Ravi")).andDo(document("status-b", responseFields(four()))).andExpect(status().isCreated());
++    }
++    @Test void neverSentA() throws Exception {
++        mvc.perform(get("/api/v1/customers/Ravi")).andExpect(status().isOk()).andDo(document("never-sent-a", responseFields(withNickname())));
++    }
++    @Test void neverSentB() throws Exception {
++        mvc.perform(get("/api/v1/customers/Ravi")).andDo(document("never-sent-b", responseFields(withNickname()))).andExpect(status().isOk());
++    }
++    @Test void undocumentedA() throws Exception {
++        mvc.perform(get("/api/v1/customers/Ravi")).andExpect(status().isOk()).andDo(document("undocumented-a", responseFields(withoutMealType())));
++    }
++    @Test void undocumentedB() throws Exception {
++        mvc.perform(get("/api/v1/customers/Ravi")).andDo(document("undocumented-b", responseFields(withoutMealType()))).andExpect(status().isOk());
++    }
++}

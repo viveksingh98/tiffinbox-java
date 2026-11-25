@@ -1,0 +1,40 @@
+# c9-unit11 harness/mirror/html.diff - THE HARNESS'S MIRROR PATCH, never TiffinBox's: the default and nofonts pages (two adoc files beside index.adoc). Applied to a scratch copy of after/ with patch -p1.
+--- /dev/null
++++ b/tiffinbox-web/src/docs/asciidoc/index-default.adoc
+@@ -0,0 +1,16 @@
++= TiffinBox's public read
++:doctype: book
++
++== GET /api/v1/customers/{name}
++
++.The request
++include::{snippets}/customer-read/http-request.adoc[]
++
++.The answer
++include::{snippets}/customer-read/http-response.adoc[]
++
++.Its fields
++include::{snippets}/customer-read/response-fields.adoc[]
++
++.Its path parameter
++include::{snippets}/customer-read/path-parameters.adoc[]
+--- /dev/null
++++ b/tiffinbox-web/src/docs/asciidoc/index-nofonts.adoc
+@@ -0,0 +1,17 @@
++= TiffinBox's public read
++:doctype: book
++:webfonts!:
++
++== GET /api/v1/customers/{name}
++
++.The request
++include::{snippets}/customer-read/http-request.adoc[]
++
++.The answer
++include::{snippets}/customer-read/http-response.adoc[]
++
++.Its fields
++include::{snippets}/customer-read/response-fields.adoc[]
++
++.Its path parameter
++include::{snippets}/customer-read/path-parameters.adoc[]

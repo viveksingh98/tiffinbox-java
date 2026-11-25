@@ -52,6 +52,10 @@ sixth change to this folder (U09) beside the fifth (U08); unit 09's section belo
 openapi-generator; the web module and its answers are unmoved. Course 9's seventh change to this folder (U10) beside the sixth (U09);
 unit 10's section below gives the change, as its runs printed them.*
 
+*Course 9, unit 11: since unit 11 the web module's build writes `target/generated-docs/index.html` from the snippets its one REST Docs
+test writes; the page is not committed and not in the jar. Course 9's eighth change to this folder (U11) beside the seventh (U10);
+unit 11's section below gives the change, as its runs printed them.*
+
 
 ## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
 
@@ -244,6 +248,32 @@ cannot carry it; `*/*` as the media type of every success but the feed's; the fe
 Boot's own client builder (*Timeouts and Retries From the Caller's Side*); a driven test of these routes (*Spring REST Docs*); the
 versions the routes carry (*Versioning Strategies*); security (*The Threat Model First*, Course 10). The seven and the old surface answer
 byte for byte as on unit 09's tree.
+
+## Course 9 · unit 11 — Spring REST Docs: one documented read in test scope, and the page Asciidoctor writes from its snippets (2026-11-25)
+
+Course 9's eighth change to this folder, Section 2's fifth, and its first change to test scope and to the build's documentation step:
+`../c9-unit11/after`, whose `before` is a link to `../c9-unit10/after`. The parent POM gains one property; the web module's POM gains two
+test-scope dependencies and one build step; the web module gains one test and two source files for the page. Nothing under
+`tiffinbox-web/src/main`, `tiffinbox-core/` or `tiffinbox-client/` moves, and the committed file, `OpenApiSpecTest`, the key filter, the
+`Dockerfile` and `compose.yaml` are untouched.
+- `pom.xml` (the parent): `asciidoctor-maven-plugin.version` 3.2.0 with its comment (the newest the course's sweep found, the versions
+  not weighed, what was measured).
+- `tiffinbox-web/pom.xml`: `spring-restdocs-mockmvc` and `spring-boot-starter-restdocs`, test scope, versions from Boot's parent (REST
+  Docs 4.0.3); Asciidoctor's Maven build step at `prepare-package`, its version the parent's property, reading `src/docs/asciidoc` into
+  `target/generated-docs`, with `spring-restdocs-asciidoctor` for the page's snippets attribute.
+- `tiffinbox-web/src/test/java/com/tiffinbox/web/TiffinBoxRestDocsTest.java`: one test, `thePublicReadIsDocumented` - the whole
+  application through MockMvc (no socket), the 200 expected before the read of Ravi is documented: its path parameter and its four
+  members. It runs at every `mvn package`, Docker-free, and writes `target/generated-snippets/customer-read/`.
+- `tiffinbox-web/src/docs/asciidoc/index.adoc` and `tiffinbox-docs.css`: the page - `:webfonts!:` and the local stylesheet, so its bytes
+  name no other host.
+
+What moved, as `../c9-unit11`'s runs printed it: a test, a build step and a page - the web module's tests at `mvn package` are 50 (49 at
+unit 10), the client's 1; `BOOT-INF/lib` stays 157 jars and no REST Docs or Asciidoctor jar reaches it; the web jar differs only in the
+copy of its own POM that Boot's jar carries. A build with `-DskipTests` still runs the page step, with no snippets: its page holds
+unresolved includes and is not documentation. Not fixed here, each by its lesson: a documented versioned route (*Versioning Strategies*);
+the key's header, `*/*` as the media type of every success but the feed's, the keyed caller and the timeouts (*Timeouts and Retries From
+the Caller's Side*); security (*The Threat Model First*, Course 10). The seven and the old surface answer byte for byte as on unit 10's
+tree.
 
 ---
 
