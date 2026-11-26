@@ -1,0 +1,29 @@
+before-tree 113 ff8de365e99316792a336847b6916edc
+after-tree 113 ff8de365e99316792a336847b6916edc
+advisory 36cd100e460bd126266973884d75f48e
+before 2ef5c31f44a4878165439968ff46194f
+pin 1c34330dd50c94ed05b61d54c0064cd1
+starter d72374bd58db950cb09bc80bb0301ae6
+cost a6ac518228e6e445232d3f7a4f41de75
+moved 1589467448f55826bdff4f100d355bdb
+literal 29b8af9a646ed928edfcd0335c9bfadc
+final 2f4c84177c92e34a9d00b7388c973be9
+placeholder 201a8168ca9e92d77631dc75ff9d3068
+seven 7492e18cbcae5d0e38ee25f8e7260929
+surface 1eb445ad572244a44eb4dabe8a738666
+exercise 5b0b556693733ddd72927fbbd76df5ad
+inert 3ff801f81be642dd66064a5a17ffa0d2
+file harness/chk15.py 577426fd25e4026c935017c63ae0bf84
+file harness/s915.py 764de09783241669cf6e31a73b08752f
+file harness/tree15.py 953c5662992ac8aa532407dd47255d84
+file harness/dur9.py 77d6fcf895637e0beda50c7bdf9a0df0
+file harness/ops9s3.py 8f062a0e5e872c478579756a8426c012
+file harness/follow.py aa5722a4d7a5e5ae41dddafd07433a44
+file harness/src/probe/u15/U15Config.java bed0683254fa1a704364e7705492b1ad
+file harness/src/probe/u15/U15Hal.java c1ac7e25dace485f36c49e58dd905dbd
+file harness/src/probe/u15/U15Moved.java 9049f1ff17265c8697bbac2f317470be
+file harness/src/probe/u15/U15Placeholder.java da7a63cdd6f8edf02e24c54437ef36df
+file exercise/client.py 7fcb046eed6ec085eb9be176a87f5cab
+file exercise/build.sh 7bd8e18ac1ef17720a6c4769d3a34e0d
+file exercise/check.sh f0ad250f16815e814223e35dda2f0f7a
+file exercise/apply.sh a2b4ad8d0393b5710763e0594c81e6bb
