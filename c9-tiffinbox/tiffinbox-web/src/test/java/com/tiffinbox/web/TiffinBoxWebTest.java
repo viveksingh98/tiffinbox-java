@@ -67,6 +67,8 @@ class TiffinBoxWebTest {
     @MockitoBean OrderQueue kitchen;
     // Course 9, unit 04: the slice now holds CustomerPauses, a controller, but not Pauses, the component it calls: a stand-in (no test here calls it).
     @MockitoBean Pauses pauses;
+    // Course 9, unit 13: and OrderPages, a controller, whose repository the slice leaves out: a stand-in (no test here calls it).
+    @MockitoBean com.tiffinbox.OrderEntityRepository orders;
 
     /** Surefire's JVM takes its options from the POM's argLine - the locale every run line pins. */
     @Test

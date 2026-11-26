@@ -595,6 +595,72 @@
         }
       }
     },
+    "/api/v1/orders": {
+      "get": {
+        "tags": [
+          "order-pages"
+        ],
+        "operationId": "orderPage",
+        "parameters": [
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "newest"
+            }
+          },
+          {
+            "name": "mealType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An unknown sort, parameter or meal type, a page size outside 1 to 50, a cursor this server did not sign or one written for another sort or filter",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/customers/{name}/pauses/{id}": {
       "get": {
         "tags": [
@@ -721,6 +787,48 @@
           "timeout": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "OrderPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderView"
+            }
+          },
+          "next": {
+            "type": "string"
+          }
+        }
+      },
+      "OrderView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "customer": {
+            "type": "string"
+          },
+          "mealType": {
+            "type": "string",
+            "enum": [
+              "VEG",
+              "NON_VEG",
+              "VEGAN"
+            ]
+          },
+          "amount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "placedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }

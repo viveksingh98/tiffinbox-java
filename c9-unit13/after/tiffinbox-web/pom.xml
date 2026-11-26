@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.tiffinbox</groupId>
+    <artifactId>tiffinbox-parent</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
+  <artifactId>tiffinbox-web</artifactId>
+  <name>TiffinBox Web</name>
+  <description>Spring MVC's routes over TiffinBox's core. No SQL in here.</description>
+
+  <!-- Course 6: Surefire runs the tests in a JVM of its own (a fork), and passes it this property's options: Maven's own
+       (MAVEN_OPTS) never reach it. The locale pinned there, as on every run line: a test asserts the JVM's is en_US
+       (MockMvc's requests carry a language of their own - English, unless a test sends Accept-Language). -->
+  <properties>
+    <argLine>-Duser.language=en -Duser.country=US</argLine>
+  </properties>
+
+  <dependencies>
+    <!-- No version: the parent manages it. Course 6: Jackson 2's jackson-databind, beside it since Core Java II, is gone -
+         Spring MVC's Jackson 3 reads and writes every JSON body TiffinBox sends or receives. (Course 8, unit 21: Jackson 2's
+         jackson-databind is back at run time, through the Elasticsearch client, beside Jackson 3 - Spring MVC still reads and
+         writes with Jackson 3: ../c8-unit21, anchor.) -->
+    <dependency>
+      <groupId>com.tiffinbox</groupId>
+      <artifactId>tiffinbox-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+    </dependency>
+    <!-- Course 5: Bean Validation for TiffinBoxProperties - Hibernate Validator (the implementation), the API it
+         implements, and spring-boot-validation, whose own imports file adds ValidationAutoConfiguration. Without an
+         implementation, the API jar alone (which tiffinbox-core brings) stops the start even with a good configuration. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <!-- Course 5: Boot's Docker Compose support, for development only - optional, so Boot's plugin leaves it out of
+         the executable jar (its includeOptional is off), and with it the Jackson 3 it brings; the plugin's
+         excludeDockerCompose, on, would keep the module out even then. It runs from a class path that holds it,
+         and only with the profile "dev": application.yaml switches it off. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-docker-compose</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <!-- Course 5: Boot's Actuator - endpoints that report on the running application, health first, and Micrometer
+         for its metrics. Course 6: with Spring MVC below, TiffinBox is the web application Boot's HTTP side of Actuator
+         waits for, and Boot's own adapter answers them under /actuator (Course 5's ActuatorRoutes is gone). -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <!-- Course 5: Micrometer's Prometheus registry. Actuator's starter brings Micrometer with a registry that keeps every
+         meter in memory and offers no format to read it in; this one keeps them for Prometheus, whose server pulls
+         them over HTTP (a scrape: nothing leaves TiffinBox unless it is asked), and it gives Actuator its prometheus
+         endpoint. Boot's parent manages its version. -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+    <!-- Course 6: Spring MVC and the server it runs on - embedded Tomcat, Spring's DispatcherServlet, and Jackson 3, the
+         one JSON library left: it reads TiffinBox's request bodies and writes every answer (TiffinBox's routes', an error
+         body, Actuator's). Boot's parent manages its version. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc</artifactId>
+    </dependency>
+    <!-- Course 9, unit 07: springdoc-openapi's Spring MVC starter - it reads TiffinBox's @RestController handler methods at start
+         and serves the OpenAPI document they describe at /v3/api-docs (and /v3/api-docs.yaml), and Swagger UI's page beside it. The
+         parent POM pins its version (springdoc.version); it brings the api starter, swagger-core 3.0.0 and Swagger UI 5.35.1. -->
+    <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+    </dependency>
+    <!-- Course 6: Thymeleaf, through Boot's starter - a template engine: it fills an HTML file's th:* attributes from the
+         model a @Controller hands it, on the server, so a client that asks for HTML gets a finished page. Boot's module
+         configures the engine and a view resolver for classpath:/templates/*.html. Boot's parent manages its version. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-thymeleaf</artifactId>
+    </dependency>
+    <!-- Course 7, unit 03: Spring Data JPA's starter - Hibernate (the implementation of Jakarta Persistence that does the work),
+         Spring's JPA support (spring-orm: the EntityManagerFactory, the transaction manager), Spring Data JPA, and Boot's JDBC
+         starter with its pool, HikariCP. TiffinBox had no DataSource bean (the Database class, retired by Course 7 unit 36, opened DriverManager connections), so Boot
+         makes one from spring.datasource.url - application.yaml points it at tiffinbox.jdbc-url, TiffinBox's own database.
+         Without that key Boot's pool opens a second, empty in-memory H2 under a generated name (../c7-unit03, two).
+         Boot's parent manages its version. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    <!-- Course 8, unit 02: Spring Data JDBC's starter, beside Spring Data JPA's - Spring Data JDBC and Boot's module for it
+         (spring-boot-data-jdbc: the mapping context, JdbcAggregateTemplate, the dialect read off the database). With two Spring
+         Data modules on the class path each claims a repository by its domain type's annotation (strict repository
+         configuration mode); TiffinBoxApp names the JDBC module's package. The pool and the transaction manager stay the JPA
+         starter's: one JpaTransactionManager serves both modules. Boot's parent manages its version. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jdbc</artifactId>
+    </dependency>
+    <!-- Course 8, unit 08: Spring's cache abstraction, through Boot's starter - spring-context-support and Boot's module for it
+         (spring-boot-cache: the CacheManager Boot builds when the context asks for one). The annotations themselves - @Cacheable,
+         @CacheEvict, @CachePut, @EnableCaching - are spring-context's, which tiffinbox-core already has: Spring Framework's, not a
+         Spring Data module's, and not Hibernate's second-level cache. With no cache library on the class path Boot builds a
+         ConcurrentMapCacheManager: each cache a ConcurrentHashMap in the JVM. Boot's parent manages its version. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-cache</artifactId>
+    </dependency>
+    <!-- Course 8, unit 10: Caffeine, a cache library for the JVM - each cache bounded (a ceiling on its entries, the spec in
+         application.yaml) and counted (its hits and misses). With it on the class path Boot's cache module builds a
+         CaffeineCacheManager in place of the ConcurrentMapCacheManager above, and Micrometer reports each cache named at the start
+         on /actuator/prometheus. Boot's parent manages its version. -->
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+    </dependency>
+    <!-- Course 8, unit 11: Spring Data Redis, through Boot's starter - spring-data-redis, Lettuce (the Redis client Boot builds its
+         connection factory with) and Boot's module for them. With Redis and Caffeine both on the class path Boot's cache module
+         would build a RedisCacheManager; application.yaml's spring.cache.type: caffeine keeps Caffeine, in the JVM, for the default
+         run - which needs no Redis - and application-dev.yaml's spring.cache.type: redis gives the profile "dev" Redis, the
+         service compose.yaml starts. RedisCaching (this module) sets the cache writer and the serializer Redis's cache uses.
+         Boot's parent manages its version. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
+    </dependency>
+    <!-- Course 8, unit 18: Spring Data MongoDB, through Boot's starter - spring-data-mongodb, MongoDB's Java driver (the sync one)
+         and Boot's modules for them, which build a MongoClient and a MongoTemplate. Only the profile "dev" uses them (Menus, the menu
+         in MongoDB, the service compose.yaml starts): application.yaml excludes Boot's three MongoDB auto-configurations, so the
+         default run builds no MongoClient, and application-dev.yaml clears that list. Boot's parent manages its version. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-mongodb</artifactId>
+    </dependency>
+    <!-- Course 8, unit 21: Spring Data Elasticsearch, through Boot's starter - spring-data-elasticsearch, Elastic's Java client (which
+         brings Jackson 2's jackson-databind with it) and Boot's modules for them, which build the client and the template Dishes, the
+         index of the dishes, is built on. Only the profile "dev" uses them (Elasticsearch, the service compose.yaml starts):
+         application.yaml excludes every auto-configuration the two Boot modules list, so the default run builds no client, and
+         application-dev.yaml clears that list. Boot's parent manages its version. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+    </dependency>
+    <!-- Course 9, unit 05: JSON-P's API, declared for the PATCH route (CustomerPatches: Json.createMergePatch, Json.createPatch) - until
+         now it came only through the Elasticsearch client above. No version: Boot's parent manages it (jakarta-json.version). -->
+    <dependency>
+      <groupId>jakarta.json</groupId>
+      <artifactId>jakarta.json-api</artifactId>
+    </dependency>
+    <!-- Course 9, unit 05: Parsson, JSON-P's implementation (its JsonProvider), declared for the same route; the version is the parent's
+         parsson.version, since Boot's parent does not manage it. -->
+    <dependency>
+      <groupId>org.eclipse.parsson</groupId>
+      <artifactId>parsson</artifactId>
+      <version>${parsson.version}</version>
+    </dependency>
+    <!-- Course 7, unit 36: Flyway. Boot's Flyway starter brings spring-boot-flyway, the auto-configuration that runs the
+         migrations in tiffinbox-core's db/migration at every start, before Hibernate starts - flyway-core alone runs nothing
+         (../c7-unit36, jars). flyway-database-postgresql is Flyway's PostgreSQL support: without it a start on PostgreSQL stops,
+         Unsupported Database. Boot's parent manages both versions. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-flyway</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+    </dependency>
+    <!-- Course 7, unit 39: PostgreSQL's JDBC driver, at run time - in the executable jar's lib/ beside H2, so TiffinBox starts on
+         PostgreSQL with its own driver when its URL (the config tree's secrets/tiffinbox/jdbc-url, or the dev profile's Compose
+         service) names one. The default URL stays H2 in memory. Boot's parent manages its version (42.7.14). -->
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <!-- Course 6: TiffinBox's tests, in src/test. Test scope: on the tests' class path only - the executable jar holds the
+         same libraries without it. Boot's starter brings JUnit, AssertJ, Mockito, spring-test (MockMvc, @MockitoBean,
+         RestTestClient) and Boot's test modules (@WebMvcTest, @SpringBootTest). Boot's parent manages its version. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Course 9, unit 11: Spring REST Docs - the snippets a MockMvc test writes of the request it drives and the answer it gets
+         (spring-restdocs-mockmvc) and Boot's starter for it (its auto-configuration for @AutoConfigureRestDocs and the snippets'
+         folder). Test scope: on the tests' class path only - the executable jar holds neither. Boot's parent manages both versions
+         (REST Docs 4.0.3). -->
+    <dependency>
+      <groupId>org.springframework.restdocs</groupId>
+      <artifactId>spring-restdocs-mockmvc</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-restdocs</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Course 7, unit 39: the data layer's test slice (@DataJpaTest, from Boot's starter) and Testcontainers 2.0.5 - a PostgreSQL
+         container started by the test itself (testcontainers-postgresql), its lifecycle tied to JUnit (testcontainers-junit-jupiter),
+         and Boot's service connection, which hands the slice the container's URL (spring-boot-testcontainers). Test scope: the
+         executable jar holds none of them. Boot's parent manages every version. Only CustomerEntityRepositoryIT uses them, and only
+         mvn verify runs it - the container-tests execution below. (Course 8, unit 07: CustomerAggregatesIT uses them too, in the same
+         execution. Course 8, unit 14: and RedisDatastoreIT, on Redis in a container. Course 8, unit 18: and MongoDatastoreIT, on
+         MongoDB in a container.) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jpa-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Course 8, unit 07: Spring Data JDBC's test slice (@DataJdbcTest, from Boot's starter) - Spring Data JDBC's repositories, Flyway,
+         a DataSource, JdbcClient and a JDBC transaction manager, and nothing of Spring Data JPA's. Test scope: the executable jar holds
+         none of it. Boot's parent manages its version. Only CustomerAggregatesIT uses it, started from slice/JdbcSlice. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jdbc-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Course 8, unit 14: Spring Data Redis's test slice (@DataRedisTest, from Boot's starter) - a Redis connection factory and the
+         two templates, and nothing of Spring Data JPA's or JDBC's. Test scope: the executable jar holds none of it. Boot's parent
+         manages its version. Only RedisDatastoreIT uses it, started from slice/RedisSlice, on Redis in a container. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Course 8, unit 18: Spring Data MongoDB's test slice (@DataMongoTest, from Boot's starter) - a MongoClient and a MongoTemplate,
+         and nothing of Spring Data JPA's, JDBC's or Redis's - and Testcontainers' MongoDB module (MongoDBContainer, whose address
+         Boot's service connection hands the slice). Test scope: the executable jar holds none of it. Boot's parent manages both
+         versions. Only MongoDatastoreIT uses them, started from slice/MongoSlice, on MongoDB in a container. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-mongodb-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-mongodb</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Course 8, unit 21: Spring Data Elasticsearch's test slice (@DataElasticsearchTest, from Boot's starter) - the client and the
+         template, and nothing of Spring Data JPA's, JDBC's, Redis's or MongoDB's - and Testcontainers' Elasticsearch module
+         (ElasticsearchContainer, whose address Boot's service connection hands the slice). Test scope: the executable jar holds none
+         of it. Boot's parent manages both versions. Only ElasticsearchIT uses them, started from slice/ElasticsearchSlice. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-elasticsearch-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-elasticsearch</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-testcontainers</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-postgresql</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- Course 9, unit 11: Asciidoctor's Maven build step turns src/docs/asciidoc/index.adoc and the snippets the REST Docs test wrote
+           (target/generated-snippets) into target/generated-docs/index.html at prepare-package - after the tests, before the jar, so
+           a failed test stops the build before the page. The page is not committed and not in the jar. Its version is the parent's
+           property; spring-restdocs-asciidoctor (Boot's managed REST Docs version) gives the page its snippets attribute. -->
+      <plugin>
+        <groupId>org.asciidoctor</groupId>
+        <artifactId>asciidoctor-maven-plugin</artifactId>
+        <version>${asciidoctor-maven-plugin.version}</version>
+        <executions>
+          <execution>
+            <id>docs</id>
+            <phase>prepare-package</phase>
+            <goals><goal>process-asciidoc</goal></goals>
+            <configuration>
+              <sourceDirectory>${project.basedir}/src/docs/asciidoc</sourceDirectory>
+              <outputDirectory>${project.build.directory}/generated-docs</outputDirectory>
+              <backend>html5</backend>
+            </configuration>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>org.springframework.restdocs</groupId>
+            <artifactId>spring-restdocs-asciidoctor</artifactId>
+            <version>${spring-restdocs.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+      <!-- Course 5: Boot's plugin, declared bare - no version, no execution. Boot's parent manages both, and declaring
+           the plugin is what binds its repackage goal to package: the jar becomes Boot's executable jar, a jar of jars -
+           TiffinBox's classes under BOOT-INF/classes, every jar it needs under BOOT-INF/lib, kept whole, and Boot's
+           launcher at the top. The run command is unchanged. Gone with it: the jar plugin's Main-Class/Class-Path manifest
+           and the copy-dependencies execution that filled target/lib - a Class-Path header survives repackage, and makes
+           the jar load the classes it names from a lib/ folder beside it, whatever version sits there. -->
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <!-- Course 5: Spring's ahead-of-time step (process-aot, the profile native) reads Maven's class path, not the
+             jar's - with the optional Docker Compose module. This exclude keeps it out of that step, as the native
+             plugin's exclusion keeps it out of the binary. Course 6: the two Jackson 3 excludes beside it are gone. Course
+             5 needed them because the Compose module's Jackson 3 reached that step but not the jar; Spring MVC's starter
+             puts Jackson 3 in the jar, so the step, the jar and the binary hold the same Jackson again. -->
+        <configuration>
+          <excludes>
+            <exclude>
+              <groupId>org.springframework.boot</groupId>
+              <artifactId>spring-boot-docker-compose</artifactId>
+            </exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+
+      <!-- Course 5: GraalVM's Native Build Tools plugin, declared bare - no version, no execution. Boot's parent manages
+           its version, 1.1.8 (Course 3 pinned 1.1.13 by hand). Boot's parent's profile "native" already runs Boot's
+           process-aot, Spring's ahead-of-time step; with the plugin declared it also runs add-reachability-metadata, and
+           this module gets native:compile-no-fork, which builds the binary from this module's classes and Maven's class
+           path. From the root, native:compile fails on the parent POM: run it on this module alone. -->
+      <plugin>
+        <groupId>org.graalvm.buildtools</groupId>
+        <artifactId>native-maven-plugin</artifactId>
+        <!-- Course 5: the plugin builds the binary from Maven's class path, not from the jar's - with the optional Docker
+             Compose module, which the executable jar leaves out. This exclusion keeps it out of the binary too. Course 6:
+             the two Jackson 3 exclusions are gone - Spring MVC's starter puts Jackson 3 in the jar, and in the binary. -->
+        <configuration>
+          <exclusions>
+            <exclusion>
+              <groupId>org.springframework.boot</groupId>
+              <artifactId>spring-boot-docker-compose</artifactId>
+            </exclusion>
+          </exclusions>
+        </configuration>
+      </plugin>
+
+      <!-- Course 7, unit 39: the container tests. Surefire's own execution, default-test, runs at the test phase with Surefire's
+           default includes (**/Test*.java, **/*Test.java, **/*Tests.java, **/*TestCase.java), which leave **/*IT.java out: the 18
+           tests on H2 in memory, so mvn package, mvn install, -Pnative and the Dockerfile's mvn -B package need no Docker. This
+           second execution runs at integration-test - after package, so only mvn verify and later phases reach it - and runs the
+           *IT classes alone, into a report folder of its own: CustomerEntityRepositoryIT's three tests on PostgreSQL in a container.
+           (Course 8, unit 07: and CustomerAggregatesIT's two, Spring Data JDBC's slice on PostgreSQL in a container.)
+           (Course 8, unit 14: and RedisDatastoreIT's one, Spring Data Redis's slice on Redis in a container.)
+           It needs Docker; without one it fails, and so does mvn verify (Could not find a valid Docker environment). Surefire's,
+           not Failsafe: the course's Maven repository holds no Failsafe plugin, and Surefire's second execution needs nothing new. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>container-tests</id>
+            <phase>integration-test</phase>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include>**/*IT.java</include>
+              </includes>
+              <reportsDirectory>${project.build.directory}/surefire-reports-it</reportsDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- exec:exec forks a real JVM. It no longer has to pass the preview flag. -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <configuration>
+          <executable>java</executable>
+          <arguments>
+            <argument>-classpath</argument>
+            <classpath/>
+            <argument>com.tiffinbox.web.TiffinBoxServer</argument>
+          </arguments>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

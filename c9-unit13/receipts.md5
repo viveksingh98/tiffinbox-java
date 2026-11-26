@@ -1,0 +1,35 @@
+before-tree 106 844ab844d28eaa0e8f3f8ff04328d7cb
+after-tree 111 50b120f5358f68016fa8f9d74f9d6484
+advisory bce0ae753ec44e069ed4930214f594f0
+before 1e209491a0f8e714e514e6d18f3a629a
+change 2155db754d4c02952500189341be1e43
+table 3345ea433ecea877b8c3b5278bf4fde4
+first e0dd01dad6983c52032aa2a6c360aa0b
+next f8d803f349f0539a2badd7a6abb680b5
+refuse b17019046ef5fb22075caa1977031ea9
+spec cd3a3da3d50e98cdb65685911f302e8d
+pageable ff78cf2e2be39332a4849e780e225d27
+walk ba7c7ea2b7181ac9a9b847e89f1fcb24
+trap 58a69c0bf97dea17019646f56031822b
+restart b97b1defb552c65b4208d357e3d3679b
+moved f63295f98228adc85a08cf945e8ac6ed
+seven 8aa5e6c682b44398b45d8095cddbb1a1
+surface 47b2c607208d4dda13ae404fe947765d
+tests ca7f1b87e659d85af2728c67c90cf4c9
+exercise 745f5e1be6001c313bd1950d0fef9530
+inert 4c66f805357d46a3c30a9a2a6bffa01e
+file harness/chk13.py 2e20b1d32b4ae9a194023dffd64812d7
+file harness/s913.py a192f932f48bf23d38d795eada72a5b3
+file harness/tree13.py e84dd39f691352971682e359bf17bd47
+file harness/dur9.py 77d6fcf895637e0beda50c7bdf9a0df0
+file harness/ops9s3.py 8f062a0e5e872c478579756a8426c012
+file harness/walk.py ef10b9c0ac0dd057551c283371910228
+file harness/src/probe/u13/U13Config.java 4f5fc753ee8335cf3c7c186bf40d11b5
+file harness/src/probe/u13/U13Offset.java d4f8c6deb19cbc5a8523aab3ab137565
+file harness/src/probe/u13/U13OrderRepository.java 24b528c9eb119524233ebf092c7d767f
+file harness/src/probe/u13/U13Pageable.java 0e65ff73288b7ff58fa8187d6fc6aaee
+file harness/src/probe/u13/U13Rows.java 2c828d2ccd6299309c19043826856b55
+file harness/src/probe/u13/U13Trap.java e5328591f4fa92ca584df483177798e6
+file exercise/check.sh 5e641270195b2895cb2776d35e2d0f62
+file exercise/apply.sh e34338ad6f7910ca834bd926e2b7ee36
+file exercise/break.sh d090aa9ef5afa9d21f5b2f52951e6fb2

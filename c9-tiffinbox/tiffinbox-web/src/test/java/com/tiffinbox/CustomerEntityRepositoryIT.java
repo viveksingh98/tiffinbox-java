@@ -83,7 +83,8 @@ class CustomerEntityRepositoryIT {
         System.out.println("IT hibernate.hbm2ddl.auto = " + emf.getProperties().get("hibernate.hbm2ddl.auto"));
         // Course 9, unit 04: and V5 - V5__idempotency_key.sql, the Idempotency-Key store (../c9-unit04, tests).
         // Course 8, unit 21: and V4 - V4__dish.sql, the dish table the index of the dishes copies (../c8-unit21, anchor).
-        assertThat(history).containsExactly("1 customer and pause true", "2 seed true", "3 customer audit columns true", "4 dish true", "5 idempotency key true");
+        // Course 9, unit 13: and V6 - V6__tiffin_order.sql, the order list the cursor route pages (../c9-unit13, anchor).
+        assertThat(history).containsExactly("1 customer and pause true", "2 seed true", "3 customer audit columns true", "4 dish true", "5 idempotency key true", "6 tiffin order true");
         assertThat(emf.getProperties().get("hibernate.hbm2ddl.auto")).isEqualTo("validate");
         assertThat(customers.findAll()).extracting(CustomerEntity::getName).containsExactlyInAnyOrder("Ravi", "Meera", "Sunil", "Priya");
     }

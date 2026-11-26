@@ -62,6 +62,11 @@ resolver reads `v1` as `1.0.0`), the five literal `/api/v1/...` routes keep thei
 as written. Course 9's ninth change to this folder (U12) beside the eighth (U11); unit 12's section below gives the change, as its runs
 printed them.*
 
+*Course 9, unit 13: since unit 13 TiffinBox keeps an order list - a sixth migration (V6, `tiffin_order`, twenty seeded orders) beside unit
+04's five, so the unit 04 note's "five migrations (V1-V5)" was true at unit 04 and is six (V1-V6) since unit 13 - and pages it at
+`GET /api/v1/orders` by a signed cursor. `OrderQueue` and `/kitchen`'s counters are still the in-JVM counters, not the list.
+Course 9's tenth change to this folder (U13) beside the ninth (U12); unit 13's section below gives the change, as its runs printed them.*
+
 
 ## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
 
@@ -277,6 +282,41 @@ A version no route carries under `/api/` is not found, not refused: no mapping m
 fixed here, each by its lesson: a documented versioned route beyond the literal one REST Docs reads (unit 11's history line stays); a
 version retired on an endpoint (unit 24); the caller's side of a retired version (*Timeouts and Retries From the Caller's Side*);
 security (*The Threat Model First*, Course 10). The seven and the old surface answer byte for byte as on unit 11's tree.
+
+## Course 9 · unit 13 — Pagination, Filtering and Sorting as an API Concern: an order list, GET /api/v1/orders by a signed cursor (2026-11-26)
+
+Course 9's tenth change to this folder, Section 3's first, the anchor's first migration since unit 04 and its first change to
+`tiffinbox-core` since unit 05: `../c9-unit13/after`, whose `before` is a link to `../c9-unit12/after`. A table, an entity, a repository
+and a public route are added at once; no pom moves, nothing under `tiffinbox-client/` is edited by hand, and the five literal `/api/v1/...`
+customer routes, the versioning configurer, the key filter, the error advice, `TiffinBoxOpenApi`, `ApiVersionTest`, `OpenApiSpecTest`,
+`TiffinBoxRestDocsTest`, the `Dockerfile` and `compose.yaml` are untouched.
+- `tiffinbox-core/src/main/resources/db/migration/V6__tiffin_order.sql`: `tiffin_order` (`id`, `customer`, `meal_type`, `amount` - never
+  `value`, a reserved word in H2 -, `placed_at`), seeded with twenty orders, two a minute, so the id breaks every tie. One file for H2 and
+  PostgreSQL.
+- `tiffinbox-core/src/main/java/com/tiffinbox/OrderEntity.java` and `OrderEntityRepository.java`: the row, and two keyset reads
+  (`Window findBy(ScrollPosition, Sort, Limit)`, `findByMealType(...)`) on a plain `Repository` - no offset read at all, not even the
+  inherited `findAll(Pageable)`.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/OrderPages.java`: one final controller, `GET /api/v1/orders?sort=&mealType=&size=&cursor=`
+  - the sorts `newest`, `oldest`, `amount`, `customer` only; the filter `mealType` only; pages of five by default, 1 to 50; the answer
+  `{"items": [...], "next": <cursor or null>}`; the cursor base64url of a readable JSON payload and an HMAC-SHA256 signature under the
+  setting `tiffinbox.cursor-key` (unset: 32 random bytes each start), bound to its sort and its filter. An unknown parameter, sort or
+  meal type, a size out of range, a cursor this server did not sign and one written for another request are each a four hundred with
+  its own problem type (`tag:tiffinbox.example,2026:parameter-unknown`, `sort-unknown`, `filter-unknown`, `size-invalid`,
+  `cursor-invalid`, `cursor-mismatch`).
+- `tiffinbox-web/src/test/java/com/tiffinbox/web/OrderPagesTest.java`: five tests in the default run, through MockMvc (no socket) - page
+  one newest first, page two through its cursor, a tampered cursor, an unknown sort, an unknown parameter.
+- BLUE's four test edits: the slice test (`TiffinBoxWebTest`) gains one `@MockitoBean OrderEntityRepository` (without it the slice does
+  not start); the committed spec is regenerated (one new path, `/api/v1/orders`, with its 200 and 400 responses and the two schemas
+  `OrderPage` and `OrderView`; no old byte moved); `CustomerEntityRepositoryIT` and `jdbc/CustomerAggregatesIT` list V6 in their Flyway
+  histories.
+
+What moved, as `../c9-unit13`'s runs printed it: a table, a route and a spec path - the web module's tests at `mvn package` are 57 (52 at
+unit 12), the client's 1, none skipped; the five ITs at `mvn verify` are 14, on PostgreSQL in their containers; `BOOT-INF/lib` stays 157
+jars; the web jar gains `OrderPages` and its two records and the core jar `OrderEntity`, `OrderEntityRepository` and V6; the client is
+generated again from the regenerated file (the new operation in `ApiApi`). No order is written by any route: a public write route for
+orders is not in Course 9 (Course 10). Not fixed here, each by its lesson: the fields of the answer and its size (unit 14); links in an
+order and the page's next as a link (unit 16); a long-running bill (unit 17); who may read whose orders (*The Threat Model First*, Course
+10). The seven and the old surface answer byte for byte as on unit 12's tree; neither sends a request to the new route.
 
 ## Course 9 · unit 11 — Spring REST Docs: one documented read in test scope, and the page Asciidoctor writes from its snippets (2026-11-25)
 

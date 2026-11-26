@@ -114,7 +114,8 @@ class CustomerAggregatesIT {
                 + " from \"flyway_schema_history\" where \"version\" is not null order by \"installed_rank\"", String.class);
         System.out.println("JDBC IT flyway_schema_history: rows " + rows + " · the migrations' (a version) " + history);
         // Course 8, unit 21: and V4 - V4__dish.sql, the dish table the index of the dishes copies (../c8-unit21, anchor).
-        assertThat(history).containsExactly("1 true", "2 true", "3 true", "4 true", "5 true");
+        // Course 9, unit 13: and V6 - V6__tiffin_order.sql, the order list the cursor route pages (../c9-unit13, anchor).
+        assertThat(history).containsExactly("1 true", "2 true", "3 true", "4 true", "5 true", "6 true");
         report("test 1");
     }
 
