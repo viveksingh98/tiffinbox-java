@@ -661,6 +661,50 @@
         }
       }
     },
+    "/api/v1/customers": {
+      "get": {
+        "tags": [
+          "customer-fields"
+        ],
+        "operationId": "customerFields",
+        "parameters": [
+          {
+            "name": "fields",
+            "in": "query",
+            "description": "a comma-separated list of name, mealsPerDay, pricePerMeal, mealType",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK - every customer; with fields, each object holds only the fields named, in the record's order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Customer"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An unknown field or parameter, or a fields value that is empty, holds an empty name, names a field twice or is sent more than once",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/customers/{name}/pauses/{id}": {
       "get": {
         "tags": [

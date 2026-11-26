@@ -67,6 +67,11 @@ printed them.*
 `GET /api/v1/orders` by a signed cursor. `OrderQueue` and `/kitchen`'s counters are still the in-JVM counters, not the list.
 Course 9's tenth change to this folder (U13) beside the ninth (U12); unit 13's section below gives the change, as its runs printed them.*
 
+*Course 9, unit 14: since unit 14 `GET /api/v1/customers` lists the customers, and `?fields=` narrows each one to the fields named (a
+whitelist of the record's four); compression stays a run flag (`--server.compression.enabled=true`), never a key in `application.yaml`.
+The unit 13 card's "Not fixed here: the fields of the answer and its size (unit 14)" was true at unit 13 and is paid since unit 14.
+Course 9's eleventh change to this folder (U14) beside the tenth (U13); unit 14's section below gives the change, as its runs printed them.*
+
 
 ## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
 
@@ -317,6 +322,34 @@ generated again from the regenerated file (the new operation in `ApiApi`). No or
 orders is not in Course 9 (Course 10). Not fixed here, each by its lesson: the fields of the answer and its size (unit 14); links in an
 order and the page's next as a link (unit 16); a long-running bill (unit 17); who may read whose orders (*The Threat Model First*, Course
 10). The seven and the old surface answer byte for byte as on unit 12's tree; neither sends a request to the new route.
+
+## Course 9 · unit 14 — Sparse Fieldsets and Compression: GET /api/v1/customers?fields=, a whitelisted projection; compression a run flag (2026-11-26)
+
+Course 9's eleventh change to this folder, Section 3's second: `../c9-unit14/after`, whose `before` is a link to `../c9-unit13/after`. One
+public read route is added; no migration, no entity, no module, no pom moves, nothing under `tiffinbox-client/` is edited by hand, and
+`OrderPages`, the customer routes, the versioning configurer, the key filter, the error advice, `TiffinBoxOpenApi`, the slice test,
+`OpenApiSpecTest`, `application.yaml`, the `Dockerfile` and `compose.yaml` are untouched.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/CustomerFields.java`: one final controller, `GET /api/v1/customers?fields=` - every
+  customer `CustomerRepository` lists, as a JSON array; with `fields` (a comma-separated list) each customer is narrowed to the fields
+  named, from a whitelist of the `Customer` record's four components, the members in the record's order whatever order the request names
+  them in. An unknown field (case included), an unknown parameter, and a `fields` value that is empty, holds an empty name, names a field
+  twice or is sent twice are each a four hundred with its own problem type (`tag:tiffinbox.example,2026:field-unknown`,
+  `parameter-unknown`, `fields-invalid`). Not an access control: a fieldset hides nothing from a caller who asks for the whole list.
+- `tiffinbox-web/src/test/java/com/tiffinbox/web/CustomerFieldsTest.java`: five tests in the default run, through MockMvc (no socket) -
+  the full list, names only, names and meal types in the record's order, an unknown field, an unknown parameter. The slice test needed no
+  edit: it already mocks `CustomerRepository`, the only bean the new controller takes (measured: its count unmoved).
+- The committed spec, regenerated: one new path, `/api/v1/customers` (`customerFields`, its `fields` parameter, its 200 as an array of
+  `Customer` and its 400 as `ProblemDetail`); no old byte moved, the old operations' ids unchanged.
+
+What moved, as `../c9-unit14`'s runs printed it: a route and a spec path - the web module's tests at `mvn package` are 62 (57 at unit 13),
+the client's 1, none skipped; the five ITs at `mvn verify` are 14, on PostgreSQL in their containers; `BOOT-INF/lib` stays 157 jars; the
+web jar gains `CustomerFields`; the client is generated again from the regenerated file (the new operation in `ApiApi`). On the wire, at
+the seed's four customers: the full list `282` bytes, `?fields=name,mealType` `142`, `?fields=name` `68`. Compression is Boot's switch,
+off by default; turn it on for a run with `--server.compression.enabled=true` (it answers the eight listed types at or above the `2KB`
+floor, read off Boot's metadata). Put in `application.yaml` instead, it adds a `vary: accept-encoding` header to three old answers
+(`POST /customers`, the dashboard's HTML, `GET /customers/new`; `../c9-unit14`'s `yaml` capture), so it stays a run flag. Not fixed here, each by its lesson: links in a customer and the list (unit 16);
+a long-running bill (unit 17); who may read which customer (*The Threat Model First*, Course 10). The seven and the old surface answer byte
+for byte as on unit 13's tree; neither sends a request to the new route.
 
 ## Course 9 · unit 11 — Spring REST Docs: one documented read in test scope, and the page Asciidoctor writes from its snippets (2026-11-25)
 
