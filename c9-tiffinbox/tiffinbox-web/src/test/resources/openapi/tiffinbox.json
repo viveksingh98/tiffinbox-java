@@ -338,6 +338,53 @@
         }
       }
     },
+    "/api/v1/billing-runs": {
+      "post": {
+        "tags": [
+          "billing-runs"
+        ],
+        "operationId": "startBillingRun",
+        "responses": {
+          "202": {
+            "description": "Accepted - the run is started; Location is its status resource",
+            "headers": {
+              "Retry-After": {
+                "description": "When to come back, sent while the run is not finished",
+                "style": "simple",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Location": {
+                "description": "The run's status resource",
+                "style": "simple",
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingRun"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter (this route reads none)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/customers/{name}": {
       "get": {
         "tags": [
@@ -821,6 +868,65 @@
           }
         }
       }
+    },
+    "/api/v1/billing-runs/{id}": {
+      "get": {
+        "tags": [
+          "billing-runs"
+        ],
+        "operationId": "billingRun",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK - the run's state, and its bills once it has succeeded",
+            "headers": {
+              "Retry-After": {
+                "description": "When to come back, sent only while the run is not finished",
+                "style": "simple",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingRun"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter (this route reads none)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run has this id (in this JVM)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -878,6 +984,32 @@
           "properties": {
             "type": "object",
             "additionalProperties": {}
+          }
+        }
+      },
+      "BillingRun": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "RUNNING",
+              "SUCCEEDED",
+              "FAILED"
+            ]
+          },
+          "bills": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
           }
         }
       },

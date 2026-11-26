@@ -1,0 +1,18 @@
+= TiffinBox's public read
+:doctype: book
+:webfonts!:
+:stylesheet: tiffinbox-docs.css
+
+== GET /api/v1/customers/{name}
+
+.The request
+include::{snippets}/customer-read/http-request.adoc[]
+
+.The answer
+include::{snippets}/customer-read/http-response.adoc[]
+
+.Its fields
+include::{snippets}/customer-read/response-fields.adoc[]
+
+.Its path parameter
+include::{snippets}/customer-read/path-parameters.adoc[]

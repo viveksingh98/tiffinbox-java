@@ -81,6 +81,13 @@ unit 16; `OrderPages`' Javadoc line "a later unit's concern" names this unit, wh
 Course 9's twelfth change to this folder (U16) beside the eleventh (U14; unit 15 changed nothing here); unit 16's section below gives the
 change, as its runs printed them.*
 
+*Course 9, unit 17: since unit 17 `POST /api/v1/billing-runs` starts a billing run and answers at once - `202`, its `Location` the run's
+status resource, `GET /api/v1/billing-runs/{id}` - and the status resource answers the run's state, then the four bills once it has
+succeeded; the runs live in a map in the JVM, so a restart empties it. The unit 13, 14 and 16 cards' "a long-running bill (unit 17)" is
+paid by this billing run. The cards' counts "operations 16", "14 paths", "27,247" bytes and the web module's "67" tests were true at unit
+16; unit 17's section below gives the counts since. Course 9's thirteenth change to this folder (U17) beside the twelfth (U16); unit 17's
+section below gives the change, as its runs printed them.*
+
 
 ## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
 
@@ -394,6 +401,39 @@ a request that carries the header writes the links' host (`https://api.tiffinbox
 `application.yaml`. Not fixed here, each by its lesson: the list's `next` is still a cursor, not a link (a named change to the list's
 answer); a long-running bill (unit 17); the bill and its signed link (unit 18); who may read whose order (*The Threat Model First*, Course
 10). The seven and the old surface answer byte for byte as on unit 14's tree; neither sends a request to the new route.
+
+## Course 9 · unit 17 — Bulk Operations and 202 Accepted: POST /api/v1/billing-runs answers at once, GET /api/v1/billing-runs/{id} is its status resource (2026-11-26)
+
+Course 9's thirteenth change to this folder, Section 3's fifth: `../c9-unit17/after`, whose `before` is a link to `../c9-unit16/after`.
+One controller with its store is added, and its test; no pom, no migration, no core class, no module, no `application.yaml` key, and
+nothing under `tiffinbox-client/` is edited by hand. `OrderResources`, `OrderPages`, `CustomerReads`, `CustomerFields`, the key filter, the
+error advice, `TiffinBoxOpenApi`, the versioning configurer, the slice test, `OpenApiSpecTest`, the `Dockerfile` and `compose.yaml` are
+untouched.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/BillingRuns.java`: one final controller, two routes. `POST /api/v1/billing-runs`
+  (`startBillingRun`) starts a run on a virtual thread of its own and answers at once: `202`, `Location` the run's own address (built
+  from the request, so it carries the request's host), `Retry-After` (the header that says when to come back) and the run's state as
+  `{id, state, bills}`. `GET /api/v1/billing-runs/{id}` (`billingRun`) is the status resource: `RUNNING`, then `SUCCEEDED` with the bills
+  (each customer's `Customer.monthlyBill()`, keyed by name; `FAILED` if the read throws); `Retry-After` while the run is `RUNNING`, never
+  once it is finished. The store is a `ConcurrentHashMap` in the JVM: not durable (a restart empties it and the old address answers a four
+  oh four, `tag:tiffinbox.example,2026:billing-run-unknown`), no eviction (a long-lived JVM keeps every run until it stops), no cancel,
+  no list. Any query parameter is a four hundred (`parameter-unknown`). The route is not in `IdempotencyKeyFilter`'s table: two POSTs
+  start two runs, with a key or without one. The pause between customers is the harness's (`tiffinbox.billing-runs.harness-pause-ms`, a
+  run flag, default none), never a key in `application.yaml`.
+- `tiffinbox-web/src/test/java/com/tiffinbox/web/BillingRunsTest.java`: four tests in the default run, through MockMvc (no socket, its
+  host `localhost`) - a run accepted and its status resource polled by its condition (the answer's own `Retry-After`) to `SUCCEEDED` with
+  the bills, `Retry-After` on every `RUNNING` answer and on no finished one; an unknown id; a query parameter on each route. The slice
+  test needed no edit: it already mocks `CustomerRepository`, the only bean the new controller takes besides the setting.
+- The committed spec, regenerated: two new paths, `/api/v1/billing-runs` (`startBillingRun`, its `202` with `Location` and `Retry-After`
+  documented as headers, its 400) and `/api/v1/billing-runs/{id}` (`billingRun`, its 200 with `Retry-After`, its 400 and 404 as
+  `ProblemDetail`), one schema added (`BillingRun`); no old byte moved, the old operations' ids unchanged.
+
+What moved, as `../c9-unit17`'s runs printed it: two routes, two spec paths, one class and its store - the web module's tests at `mvn
+package` are 71 (67 at unit 16), the client's 1, none skipped; the five ITs at `mvn verify` are 14, on PostgreSQL in their containers;
+`BOOT-INF/lib` stays 164 jars; the committed file is 30,801 bytes (27,247 at unit 16), operations 18 (16 at unit 16), paths 16 (14 at unit
+16); the client is generated again from the regenerated file (the two new operations in `ApiApi`, the `BillingRun` model). Not fixed
+here, each by its lesson: durable jobs (*Spring Batch & Scheduling*, *Messaging & Integration*); the bill and its signed link (unit 18);
+who may start or read a run (*The Threat Model First*, Course 10). The seven and the old surface answer byte for byte as on unit 16's
+tree; neither sends a request to the new routes.
 
 ## Course 9 · unit 11 — Spring REST Docs: one documented read in test scope, and the page Asciidoctor writes from its snippets (2026-11-25)
 
