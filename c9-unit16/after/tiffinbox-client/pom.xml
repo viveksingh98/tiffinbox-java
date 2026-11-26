@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.tiffinbox</groupId>
+    <artifactId>tiffinbox-parent</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
+  <!-- Course 9, unit 10: a client for TiffinBox's routes, written by a tool from the contract. The module has no src/main of its own:
+       openapi-generator writes the whole main source tree at generate-sources, from the committed file the web module's
+       OpenApiSpecTest guards (tiffinbox-web/src/test/resources/openapi/tiffinbox.json, read in place - never copied here). It depends
+       on neither tiffinbox-core nor tiffinbox-web, and neither of them depends on it: TiffinBox's jar does not change. -->
+  <artifactId>tiffinbox-client</artifactId>
+  <name>TiffinBox Client</name>
+  <description>HTTP interfaces generated from TiffinBox's committed OpenAPI file. No hand-written main code.</description>
+
+  <properties>
+    <argLine>-Duser.language=en -Duser.country=US</argLine>
+  </properties>
+
+  <dependencies>
+    <!-- Course 9, unit 10: the RestClient the generated interfaces run on, and Jackson 3, its JSON converter. No version: the parent
+         manages it. The generated sources name Jackson's annotation package only (com.fasterxml.jackson.annotation, which Jackson 3
+         keeps) and neither mapper. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-restclient</artifactId>
+    </dependency>
+    <!-- Course 9, unit 10: the generated classes carry jakarta.annotation.Generated. The parent manages the version. -->
+    <dependency>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
+    </dependency>
+    <!-- Course 9, unit 10: one test, the generated interface bound to Spring's MockRestServiceServer. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-restclient-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- Course 9, unit 10: the generator's one execution - generator spring, library spring-http-interface (interfaces with
+           @HttpExchange methods; the RestClient handed to them does the HTTP), the options the course's probe measured. Its output
+           is target/generated-sources/openapi, added to the compile; it is never committed. The input is named by the module's base URI
+       (project.baseUri, spaces escaped): given as a plain path, the generator 7.27.0 fails to resolve the file's own #/components
+       references when the folder's name holds a space (URISyntaxException, ../c9-unit10's receipts). -->
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <version>${openapi-generator.version}</version>
+        <executions>
+          <execution>
+            <id>tiffinbox</id>
+            <goals><goal>generate</goal></goals>
+            <configuration>
+              <inputSpec>${project.baseUri}../tiffinbox-web/src/test/resources/openapi/tiffinbox.json</inputSpec>
+              <generatorName>spring</generatorName>
+              <library>spring-http-interface</library>
+              <output>${project.build.directory}/generated-sources/openapi</output>
+              <apiPackage>com.tiffinbox.client.api</apiPackage>
+              <modelPackage>com.tiffinbox.client.model</modelPackage>
+              <invokerPackage>com.tiffinbox.client</invokerPackage>
+              <generateApiTests>false</generateApiTests>
+              <generateModelTests>false</generateModelTests>
+              <configOptions>
+                <useJakartaEe>true</useJakartaEe>
+                <useSpringBoot3>true</useSpringBoot3>
+                <openApiNullable>false</openApiNullable>
+                <documentationProvider>none</documentationProvider>
+                <annotationLibrary>none</annotationLibrary>
+                <configPackage>com.tiffinbox.client.configuration</configPackage>
+              </configOptions>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

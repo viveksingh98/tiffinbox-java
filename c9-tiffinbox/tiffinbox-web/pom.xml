@@ -79,6 +79,12 @@
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
     </dependency>
+    <!-- Course 9, unit 16: Spring HATEOAS, through Boot's starter - EntityModel, the link builders (WebMvcLinkBuilder) and the HAL writer,
+         on Jackson 3, for OrderResources' GET /api/v1/orders/{id}. Boot's parent manages its version (Spring HATEOAS 3.1.4). -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-hateoas</artifactId>
+    </dependency>
     <!-- Course 6: Thymeleaf, through Boot's starter - a template engine: it fills an HTML file's th:* attributes from the
          model a @Controller hands it, on the server, so a client that asks for HTML gets a finished page. Boot's module
          configures the engine and a view resolver for classpath:/templates/*.html. Boot's parent manages its version. -->

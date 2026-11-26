@@ -72,6 +72,15 @@ whitelist of the record's four); compression stays a run flag (`--server.compres
 The unit 13 card's "Not fixed here: the fields of the answer and its size (unit 14)" was true at unit 13 and is paid since unit 14.
 Course 9's eleventh change to this folder (U14) beside the tenth (U13); unit 14's section below gives the change, as its runs printed them.*
 
+*Course 9, unit 16: since unit 16 `GET /api/v1/orders/{id}` answers one order as HAL - its five members and, under `_links`, its own
+link and its customer's - through Spring HATEOAS (Boot's starter, in the web module's pom). The unit 13 card's "Not fixed here: links in
+an order and the page's next as a link (unit 16)" is paid for the order; the page's `next` stays a cursor string (a link there would be a
+named change to the list's answer, not made). The unit 14 card's "links in a customer and the list (unit 16)" is paid for neither: the
+customer routes and the list answer as before. `BOOT-INF/lib` "stays 157 jars" in the cards above was true to unit 15 and is 164 since
+unit 16; `OrderPages`' Javadoc line "a later unit's concern" names this unit, which proxies only its new, non-final class.
+Course 9's twelfth change to this folder (U16) beside the eleventh (U14; unit 15 changed nothing here); unit 16's section below gives the
+change, as its runs printed them.*
+
 
 ## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
 
@@ -350,6 +359,41 @@ floor, read off Boot's metadata). Put in `application.yaml` instead, it adds a `
 (`POST /customers`, the dashboard's HTML, `GET /customers/new`; `../c9-unit14`'s `yaml` capture), so it stays a run flag. Not fixed here, each by its lesson: links in a customer and the list (unit 16);
 a long-running bill (unit 17); who may read which customer (*The Threat Model First*, Course 10). The seven and the old surface answer byte
 for byte as on unit 13's tree; neither sends a request to the new route.
+
+## Course 9 · unit 16 — Spring HATEOAS in Practice: GET /api/v1/orders/{id}, the order as HAL; the starter in the web pom (2026-11-26)
+
+Course 9's twelfth change to this folder, Section 3's fourth: `../c9-unit16/after`, whose `before` is a link to `../c9-unit14/after` (unit
+15 made no change here). One public read route is added; no migration, no entity, no module, and nothing under `tiffinbox-client/` is
+edited by hand. `OrderPages`, `CustomerReads` and `CustomerFields` stay final and untouched, as do the versioning configurer, the key
+filter, the error advice, `TiffinBoxOpenApi`, the slice test, `OpenApiSpecTest`, `application.yaml`, the `Dockerfile` and `compose.yaml`.
+- `tiffinbox-web/pom.xml`: `spring-boot-starter-hateoas`, no version (Boot's parent manages Spring HATEOAS `3.1.4`). The parent pom and
+  the other two poms are unchanged.
+- `tiffinbox-core/src/main/java/com/tiffinbox/OrderEntityRepository.java`: one method, `Optional<OrderEntity> findById(Long id)` - the
+  order route's one read (the interface had only the list's two keyset reads).
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/OrderResources.java`: one controller that is NOT final, `GET /api/v1/orders/{id}` - the
+  order as an `EntityModel` of the list's `OrderView`, served as `application/hal+json` (and as `application/json` when a client asks for
+  that), with `_links.self` built by `linkTo(methodOn(OrderResources.class)...)` - a proxy of its own class, which is why it is not final -
+  and `_links.customer` built by the Method form, `linkTo(CustomerReads.class, Method, name)`, which makes no proxy, so `CustomerReads` stays
+  final. An id no order has is a four oh four (`tag:tiffinbox.example,2026:order-unknown`), any query parameter a four hundred
+  (`parameter-unknown`); an id that is not a number is Framework's own four hundred, with no type of TiffinBox's. Not an access control.
+- `tiffinbox-web/src/test/java/com/tiffinbox/web/OrderResourcesTest.java`: five tests in the default run, through MockMvc (no socket, its
+  host `localhost`) - order 1 as HAL with its two links, the same body under `application/json`, an unknown id, a query parameter, a
+  non-numeric id. The slice test needed no edit: it already mocks `OrderEntityRepository`, the only bean the new controller takes.
+- The committed spec, regenerated: one new path, `/api/v1/orders/{id}` (`orderResource`, its `id` parameter, its 200 under
+  `application/hal+json` and `application/json` as `EntityModelOrderView`, its 400 and 404 as `ProblemDetail`), three schemas added
+  (`EntityModelOrderView`, `Link`, `Links`); no old byte moved, the old operations' ids unchanged.
+
+What moved, as `../c9-unit16`'s runs printed it: a route, a spec path, a core method and seven jars - the web module's tests at `mvn
+package` are 67 (62 at unit 14), the client's 1, none skipped; the five ITs at `mvn verify` are 14, on PostgreSQL in their containers;
+`BOOT-INF/lib` is 164 jars (157 at unit 14: the starter adds `spring-hateoas`, `spring-boot-hateoas`, Spring's plug-in core, `json-path`,
+`json-smart`, `accessors-smart`, `asm`, and removes none); the web jar gains `OrderResources`, the core jar's `OrderEntityRepository`
+changes; the client is generated again from the regenerated file (the new operation in `ApiApi`, the new models). On the wire (H2, host
+`127.0.0.1:<port>`): order 1 is `225` bytes, its two links carrying the host the request used. The forwarded-header setting stays Boot's
+default: a request's `X-Forwarded-Host` is not read; with the run flag `--server.forward-headers-strategy=framework` on the command line,
+a request that carries the header writes the links' host (`https://api.tiffinbox.example`), so it stays a run flag, never a key in
+`application.yaml`. Not fixed here, each by its lesson: the list's `next` is still a cursor, not a link (a named change to the list's
+answer); a long-running bill (unit 17); the bill and its signed link (unit 18); who may read whose order (*The Threat Model First*, Course
+10). The seven and the old surface answer byte for byte as on unit 14's tree; neither sends a request to the new route.
 
 ## Course 9 · unit 11 — Spring REST Docs: one documented read in test scope, and the page Asciidoctor writes from its snippets (2026-11-25)
 

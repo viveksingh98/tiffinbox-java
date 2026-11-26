@@ -6,6 +6,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Window;
 import org.springframework.data.repository.Repository;
 
+import java.util.Optional;
+
 /**
  * Course 9, unit 13: the order list's two reads, both by keyset (Course 7's Window and ScrollPosition): given the position of the
  * last order a client read, the next ones are those after it, read by a WHERE on the sort's columns and the id - never by skipping
@@ -22,4 +24,7 @@ public interface OrderEntityRepository extends Repository<OrderEntity, Long> {
 
     /** The orders of one meal type, in the sort given, after the position given, at most limit of them. */
     Window<OrderEntity> findByMealType(MealType mealType, ScrollPosition position, Sort sort, Limit limit);
+
+    /** Course 9, unit 16: one order by its id, for GET /api/v1/orders/{id} (OrderResources) - empty when no order has it. */
+    Optional<OrderEntity> findById(Long id);
 }
