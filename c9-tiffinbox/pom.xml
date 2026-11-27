@@ -60,6 +60,13 @@
          snippets through this step to an HTML page read as a file in a sealed browser, the passing test and the failure kinds, by
          ../c9-unit11's receipts. Version-bound: the receipts are recorded again when this pin moves. -->
     <asciidoctor-maven-plugin.version>3.2.0</asciidoctor-maven-plugin.version>
+    <!-- Course 9, unit 19: Bucket4j, the token bucket behind the rate limit (RateLimitFilter), outside Boot's BOM, so its version is
+         pinned here, once (S9.7). What this pin rests on, and nothing wider: 8.23.0 is the newest the course's sweep found on Central
+         (2026-11-27, the Section 4 probe); the earlier lines were not weighed (the course's Maven seed holds 8.23.0 only, and a weighing
+         needs a network read); its lettuce module declares Lettuce 6.1.8.RELEASE as provided, and Boot's parent resolves 7.5.2.RELEASE.
+         What was measured is this tree with it - the bucket in the JVM on the default run, and two JVMs on one Redis bucket under the
+         profile "dev" - by ../c9-unit19's receipts. Version-bound: the receipts are recorded again when this pin moves. -->
+    <bucket4j.version>8.23.0</bucket4j.version>
     <!-- Course 5: one fixed time for every entry of every archive this build writes - Course 3's reproducible-build
          exercise, landed in the anchor. Without it each jar entry carries the clock of its own build, so tiffinbox-core's
          jar - and with it the application layer of Boot's jar - changed on every build, even with no change at all. With

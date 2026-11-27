@@ -23,6 +23,14 @@ tiffinbox:
   # right away, and a link copied out of a page or a log stops opening once it runs out; a larger value only keeps a copied
   # link open longer. A link carries its own expiry, so a changed value moves the links minted after it, never one minted before.
   bill-link-lifetime: 5m
+  # Course 9, unit 19: the rate limit on /api/v1/* (RateLimitFilter, RateLimiting) - each client address may send capacity requests,
+  # and its bucket is full again once refill-period has passed (refilled as a whole). Why these values: a developer's browser, the
+  # tests and every receipt of the course send far fewer requests in one period, so nothing that worked before meets the limit;
+  # a request beyond them answers 429 with Retry-After. A receipt that measures the refusal gives a small capacity on its own
+  # command line (--tiffinbox.rate-limit.capacity=5), never here. Both keys are required: without them the start stops.
+  rate-limit:
+    capacity: 1000
+    refill-period: 1m
 # Course 6: the server is embedded Tomcat, and Tomcat reads Boot's keys - server.address and server.port - not TiffinBox's.
 # These two lines give it TiffinBox's, so --tiffinbox.port=, TIFFINBOX_ADDRESS and TIFFINBOX_PORT work as before. Without
 # server.address Tomcat listens on every interface. They sit here, above the "---": below it, they would belong to the

@@ -168,6 +168,19 @@
       <artifactId>parsson</artifactId>
       <version>${parsson.version}</version>
     </dependency>
+    <!-- Course 9, unit 19: Bucket4j's core - the token bucket RateLimitFilter takes a token from; the buckets in the JVM on the default run. -->
+    <dependency>
+      <groupId>com.bucket4j</groupId>
+      <artifactId>bucket4j_jdk17-core</artifactId>
+      <version>${bucket4j.version}</version>
+    </dependency>
+    <!-- Course 9, unit 19: Bucket4j's Lettuce module - the buckets in Redis under the profile "dev", through Boot's Lettuce client
+         (RateLimiting); it brings bucket4j_jdk17-redis-common. In the jar on every run: "dev" is a Spring profile, not a Maven one. -->
+    <dependency>
+      <groupId>com.bucket4j</groupId>
+      <artifactId>bucket4j_jdk17-lettuce</artifactId>
+      <version>${bucket4j.version}</version>
+    </dependency>
     <!-- Course 7, unit 36: Flyway. Boot's Flyway starter brings spring-boot-flyway, the auto-configuration that runs the
          migrations in tiffinbox-core's db/migration at every start, before Hibernate starts - flyway-core alone runs nothing
          (../c7-unit36, jars). flyway-database-postgresql is Flyway's PostgreSQL support: without it a start on PostgreSQL stops,

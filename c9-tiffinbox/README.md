@@ -96,6 +96,15 @@ by these three routes. The cards' counts "operations 18", "16 paths", "30,801" b
 17; unit 18's section below gives the counts since. Course 9's fourteenth change to this folder (U18) beside the thirteenth (U17); unit
 18's section below gives the change, as its runs printed them.*
 
+*Course 9, unit 19: since unit 19 every request under `/api/v1/` takes a token from its client address's bucket (`RateLimitFilter`,
+Bucket4j): the request after the bucket's capacity is refused with `429`, a problem of type `tag:tiffinbox.example,2026:rate-limited`
+and `Retry-After`. The capacity and the refill period are settings, `tiffinbox.rate-limit.capacity` and
+`tiffinbox.rate-limit.refill-period` in `application.yaml`; the bucket lives in the JVM on the default run and in Redis under the profile
+"dev". The old surface, the pages, `/actuator` and `/v3/api-docs` are never counted. The cards' counts "the web module's 78 tests" and
+"`BOOT-INF/lib` 164 jars" were true at unit 18; unit 19's section below gives the counts since.
+Course 9's fifteenth change to this folder (U19) beside the fourteenth (U18); unit 19's section below gives the change, as its runs
+printed them.*
+
 
 ## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
 
@@ -484,6 +493,46 @@ again from the regenerated file (the three new operations in `ApiApi`, the `Bill
 mint a link or read a bill, and whose bill (*The Threat Model First*, Course 10); a real store behind the link - named, never called
 here; durable jobs, unchanged from unit 17's card (*Spring Batch & Scheduling*, *Messaging & Integration*). The seven and the old surface
 answer byte for byte as on unit 17's tree; neither sends a request to the new routes.
+
+
+## Course 9 · unit 19 — Rate Limiting: a token bucket per client address on /api/v1/*, in the JVM or in Redis under dev (2026-11-27)
+
+Course 9's fifteenth change to this folder, Section 4's first: `../c9-unit19/after`, whose `before` is a link to `../c9-unit18/after`.
+One filter and its configuration are added, and their test, one pin in the parent pom, two dependencies in the web pom and two keys in
+`application.yaml`; no route, no migration, no core class, no module, no spec byte, and nothing under `tiffinbox-client/` is edited by
+hand. The key filter and its registration, the error advice, `TiffinBoxOpenApi`, the versioning configurer, `CustomerBills`,
+`application-dev.yaml`, every existing test, the `Dockerfile` and `compose.yaml` are untouched.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/RateLimitFilter.java`: one final `OncePerRequestFilter`. Each request takes one token
+  from the bucket of `getRemoteAddr()` - the address the container gives; no request header is read, so a forged `X-Api-Key` or
+  `X-Forwarded-For` is counted under the address. With a token the request goes on untouched: the answer gains no header and no byte.
+  Without one the filter answers itself: `429`, `application/problem+json` with no charset, the problem written as UTF-8 bytes with its
+  `Content-Length` (`type`, `title`, `status`, `detail`, `instance`), and `Retry-After`, the bucket's own wait in whole seconds, rounded
+  up. Each refusal logs one line that names the method and the path, never the address.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/RateLimiting.java`: the registration on `/api/v1/*` and nothing else, at order -95 -
+  before the key filter's -90, so a refused keyed request writes no key row - and the two stores, chosen by the profile: a map of
+  buckets in the JVM on the default run (never evicted; a restart empties it, and two JVMs count apart), and under "dev" Bucket4j's
+  Lettuce proxy on the client of Boot's own `LettuceConnectionFactory`, one Redis key per address, `tiffinbox:api-rate:<address>`, so
+  every JVM on that Redis counts against one bucket. The default run opens no Redis connection.
+- `pom.xml`: `bucket4j.version` 8.23.0, once, with its reason (the sweep's newest, what was measured). `tiffinbox-web/pom.xml`:
+  `bucket4j_jdk17-core` and `bucket4j_jdk17-lettuce` at that property; the Lettuce module brings `bucket4j_jdk17-redis-common`. "dev" is
+  a Spring profile, not a Maven one, so the three jars are in the executable jar on every run; Lettuce stays the version Boot's parent
+  manages, 7.5.2.RELEASE.
+- `tiffinbox-web/src/main/resources/application.yaml`: `tiffinbox.rate-limit.capacity: 1000` and `tiffinbox.rate-limit.refill-period: 1m`
+  and their reason, beside `bill-link-lifetime`: no test of the suite and no receipt of the course reaches the capacity in one period;
+  the receipts that measure the refusal give a capacity of five on their own command line. Both keys are required.
+- `tiffinbox-web/src/test/java/com/tiffinbox/web/RateLimitFilterTest.java`: three tests in the default run, through MockMvc (no socket),
+  with the filter added at its registration's patterns and a capacity of three of its own - the refusal's status, headers and members;
+  a forged `X-Api-Key` and a forged `X-Forwarded-For` counted under the address; a route outside `/api/v1/*` never refused. The slice
+  test needed no edit: it does not scan `RateLimiting`.
+
+What moved, as `../c9-unit19`'s runs printed it: one filter on the public API, three jars, two settings - the web module's tests at `mvn
+package` are 81 (78 at unit 18), the client's 1, none skipped; the five ITs at `mvn verify` are 14; `BOOT-INF/lib` is 167 jars
+(the three Bucket4j jars added to unit 18's 164); the committed spec is unchanged, byte for byte, and says nothing of the refusal - a filter's answer no
+operation documents. Every `/api/v1/` answer below the capacity is byte for byte unit 18's; the seven and the old surface are too, and
+send nothing to `/api/v1/`. Every later receipt of the section prints the setting read back. Not fixed here, each by its lesson: who a
+caller is - the address is not an identity, callers behind one address share a bucket, and the open mint route and the open write
+routes are limited by this bucket and by nothing else (*Spring Security — complete*); which address to trust behind a proxy; the ETag
+filter beside this one on `/api/v1/*`, a caller's retry meeting the refusal, and the refusal's metrics tag, each by its own unit.
 
 ## Course 9 · unit 11 — Spring REST Docs: one documented read in test scope, and the page Asciidoctor writes from its snippets (2026-11-25)
 
