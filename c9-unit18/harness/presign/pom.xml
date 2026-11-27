@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Course 9 unit 18: THE HARNESS'S presigner build - never shipped, never in a tiffinbox pom, never in a jar. The receipts build it
+     offline (mvn -o -B -f harness/presign/pom.xml, from a copy of this folder, with the unit's copy of the Section 3 seed) and run its one
+     class in an eclipse-temurin:25-jre container BY DIGEST with no network (docker run network none, pull never, the seed copy and the
+     classes mounted read-only). -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <!-- R.515: the parent line is the anchor's own, spring-boot-starter-parent 4.1.3 (c9-tiffinbox/pom.xml): its plugin versions are the ones
+       the seed holds, so this build resolves offline. Nothing of Boot's is on this class path but what the SDK itself names. -->
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.1.3</version>
+    <relativePath/>
+  </parent>
+  <groupId>probe.u18</groupId>
+  <artifactId>u18-presign</artifactId>
+  <version>1.0.0</version>
+  <properties>
+    <java.version>25</java.version>
+    <!-- R.515: the harness's own pin of the AWS SDK for Java, 2.59.10 - the version the Section 3 seed holds (the probe's seed act).
+         The measured surface, and the only one: S3Presigner computing a presigned GET with static fake credentials, a region and an
+         endpoint override (the URL's X-Amz-* query keys, its algorithm, its signed headers, the signature's length), and the default
+         credentials and region chains failing at the instance-metadata service (IMDS) in a container with no network. No store is called;
+         no request is sent. -->
+    <awssdk.version>2.59.10</awssdk.version>
+  </properties>
+  <dependencies>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>s3</artifactId>
+      <version>${awssdk.version}</version>
+    </dependency>
+  </dependencies>
+  <build>
+    <!-- the one source file sits beside this POM -->
+    <sourceDirectory>${project.basedir}</sourceDirectory>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>cp</id>
+            <phase>package</phase>
+            <goals><goal>build-classpath</goal></goals>
+            <configuration><outputFile>${project.build.directory}/cp.txt</outputFile></configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

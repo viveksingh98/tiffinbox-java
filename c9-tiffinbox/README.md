@@ -88,6 +88,14 @@ paid by this billing run. The cards' counts "operations 16", "14 paths", "27,247
 16; unit 17's section below gives the counts since. Course 9's thirteenth change to this folder (U17) beside the twelfth (U16); unit 17's
 section below gives the change, as its runs printed them.*
 
+*Course 9, unit 18: since unit 18 `GET /api/v1/customers/{name}/bill` streams a customer's bill as a CSV file (Course 6's rows, now on
+the public API), `GET /api/v1/customers/{name}/bill-link` mints a signed link to it, and `GET /api/v1/customers/{name}/bill/signed`
+checks that link before it streams the same bill. The link's lifetime is the server's setting, `tiffinbox.bill-link-lifetime` in
+`application.yaml`; a lifetime the client sends is refused. The unit 16 and 17 cards' "the bill and its signed link (unit 18)" is paid
+by these three routes. The cards' counts "operations 18", "16 paths", "30,801" bytes and the web module's "71" tests were true at unit
+17; unit 18's section below gives the counts since. Course 9's fourteenth change to this folder (U18) beside the thirteenth (U17); unit
+18's section below gives the change, as its runs printed them.*
+
 
 ## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
 
@@ -434,6 +442,48 @@ package` are 71 (67 at unit 16), the client's 1, none skipped; the five ITs at `
 here, each by its lesson: durable jobs (*Spring Batch & Scheduling*, *Messaging & Integration*); the bill and its signed link (unit 18);
 who may start or read a run (*The Threat Model First*, Course 10). The seven and the old surface answer byte for byte as on unit 16's
 tree; neither sends a request to the new routes.
+
+## Course 9 · unit 18 — Binary Payloads: GET /api/v1/customers/{name}/bill streams the bill, and TiffinBox's own signed link to it (2026-11-27)
+
+Course 9's fourteenth change to this folder, Section 3's sixth and last: `../c9-unit18/after`, whose `before` is a link to
+`../c9-unit17/after`. One controller is added, and its test, and one key in `application.yaml`; no pom, no migration, no core class, no
+module, and nothing under `tiffinbox-client/` is edited by hand. `BillingRuns`, `OrderResources`, `OrderPages`, `CustomerReads`,
+`CustomerFields`, `CustomerNotFound`, `CustomerImport`, the key filter, the error advice, `TiffinBoxOpenApi`, the versioning configurer,
+the slice test, `OpenApiSpecTest`, the `Dockerfile` and `compose.yaml` are untouched.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/CustomerBills.java`: one final controller, three `GET` routes. `GET
+  /api/v1/customers/{name}/bill` (`bill`) streams the bill: `text/csv;charset=UTF-8`, a `Content-Disposition` that names the file
+  (`bill Ravi.csv`), the rows written after the handler returns, so Tomcat sends them chunked, with no `Content-Length`. The rows are
+  Course 6's bill byte for byte - a header, one row a day of a thirty-day month, the month's total, `Customer.monthlyBill()`. `GET
+  /api/v1/customers/{name}/bill-link` (`billLink`) mints `{"href": "/api/v1/customers/{name}/bill/signed?expires=…&sig=…"}`: the link
+  carries its own expiry and an HMAC-SHA256 of its path and that expiry under this start's key. `GET
+  /api/v1/customers/{name}/bill/signed` (`signedBill`) checks the signature first (one `MessageDigest.isEqual`), then the expiry, then
+  the customer, and streams the same bill through the same helper; both downloads are declared
+  `ResponseEntity<StreamingResponseBody>`. Refusals, each `application/problem+json` with a type of its own: a changed name or a changed
+  `expires` (`link-signature-invalid`) and a link past its expiry (`link-expired`) are four oh three; a missing or malformed parameter
+  is a four hundred (`link-malformed`), any other parameter too (`parameter-unknown`) - `ttlSeconds` on the mint among them, since the
+  lifetime is the server's; a name nobody has is the four oh four every customer route answers (`customer-not-found`). The key is the
+  setting `tiffinbox.bill-link-key`, unset by default: 32 random bytes made at each start, never logged, so a link from before a
+  restart is refused. The mint answers any caller for any customer.
+- `tiffinbox-web/src/main/resources/application.yaml`: one key and its reason, `tiffinbox.bill-link-lifetime`, beside
+  `kitchen-order-ttl`; nothing else in the file moved.
+- `tiffinbox-web/src/test/java/com/tiffinbox/web/CustomerBillsTest.java`: seven tests in the default run, through MockMvc (no socket, its
+  host `localhost`), on a context started with a short lifetime of its own (`@TestPropertySource`) - the bill's rows; a minted link that
+  opens the same bill; the name changed; `expires` raised; the link waited out by its condition until it is refused as expired; a
+  lifetime sent by the client; a name nobody has. The slice test needed no edit: it already mocks `CustomerRepository`, the only bean the
+  new controller takes besides its two settings.
+- The committed spec, regenerated: three new paths, `/api/v1/customers/{name}/bill` (`bill`, its 200 documented as `text/csv` with
+  `Content-Disposition` as a header), `/api/v1/customers/{name}/bill-link` (`billLink`, its 200 as the new `BillLink` schema) and
+  `/api/v1/customers/{name}/bill/signed` (`signedBill`, its 200 as `text/csv`, its 403); each one's 400 and 404 as `ProblemDetail`; no old
+  byte moved, the old operations' ids unchanged.
+
+What moved, as `../c9-unit18`'s runs printed it: three routes, three spec paths, one class and a setting - the web module's tests at
+`mvn package` are 78 (71 at unit 17), the client's 1, none skipped; the five ITs at `mvn verify` are 14, on PostgreSQL in their
+containers; `BOOT-INF/lib` stays 164 jars (the SDK the receipts' presigner uses is the harness's own pin, in no pom here and in no jar);
+the committed file is 36,164 bytes (30,801 at unit 17), operations 21 (18 at unit 17), paths 19 (16 at unit 17); the client is generated
+again from the regenerated file (the three new operations in `ApiApi`, the `BillLink` model). Not fixed here, each by its lesson: who may
+mint a link or read a bill, and whose bill (*The Threat Model First*, Course 10); a real store behind the link - named, never called
+here; durable jobs, unchanged from unit 17's card (*Spring Batch & Scheduling*, *Messaging & Integration*). The seven and the old surface
+answer byte for byte as on unit 17's tree; neither sends a request to the new routes.
 
 ## Course 9 · unit 11 — Spring REST Docs: one documented read in test scope, and the page Asciidoctor writes from its snippets (2026-11-25)
 

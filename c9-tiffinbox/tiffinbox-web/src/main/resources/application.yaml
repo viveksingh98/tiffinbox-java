@@ -18,6 +18,11 @@ tiffinbox:
   # Redis; written the way the cache's backstop below is (spring.cache.redis.time-to-live). Absent or 0: the orders are saved
   # with no time to live.
   kitchen-order-ttl: 10m
+  # Course 9, unit 18: the lifetime of a signed link to a customer's bill (CustomerBills, GET /api/v1/customers/{name}/bill-link) -
+  # the server's, never the client's: the mint reads no parameter. Why this value: a link is minted for a download that starts
+  # right away, and a link copied out of a page or a log stops opening once it runs out; a larger value only keeps a copied
+  # link open longer. A link carries its own expiry, so a changed value moves the links minted after it, never one minted before.
+  bill-link-lifetime: 5m
 # Course 6: the server is embedded Tomcat, and Tomcat reads Boot's keys - server.address and server.port - not TiffinBox's.
 # These two lines give it TiffinBox's, so --tiffinbox.port=, TIFFINBOX_ADDRESS and TIFFINBOX_PORT work as before. Without
 # server.address Tomcat listens on every interface. They sit here, above the "---": below it, they would belong to the
