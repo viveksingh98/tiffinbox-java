@@ -1,0 +1,6 @@
+[
+  { "name": "Ravi",  "mealsPerDay": 2, "pricePerMeal": 120, "veg": true  },
+  { "name": "Meera", "mealsPerDay": 1, "pricePerMeal": 150, "veg": true  },
+  { "name": "Sunil", "mealsPerDay": 3, "pricePerMeal": 100, "veg": false },
+  { "name": "Priya", "mealsPerDay": 1, "pricePerMeal": 120, "veg": true  }
+]

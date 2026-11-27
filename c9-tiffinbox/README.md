@@ -113,6 +113,13 @@ The cards' counts "the web module's 81 tests" were true at unit 19; unit 20's se
 Course 9's sixteenth change to this folder (U20) beside the fifteenth (U19); unit 20's section below gives the change, as its runs
 printed them.*
 
+*Course 9, unit 21: since unit 21 TiffinBox is also a caller, in test scope only: `tiffinbox-client/src/test` holds a hand-written
+payments interface (`Payments`, Course 6's shape plus one `Idempotency-Key` header parameter), a `@Retryable` caller (`PaymentCaller`,
+which receives one key minted outside the retried method) and `PaymentRetryTest` over `MockRestServiceServer`. No main jar changed and
+nothing a client of the API sees moved. The client module's test count "1" was true at unit 20; unit 21's section below gives the count
+since. Course 9's seventeenth change to this folder (U21) beside the sixteenth (U20); unit 21's section below gives the change, as its
+runs printed them.*
+
 
 ## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
 
@@ -579,6 +586,32 @@ additively: an `ETag` on each tagged two hundred, the framing of the tagged rout
 seven and the old surface answer byte for byte as on unit 19's tree and send nothing to `/api/v1/`. Not fixed here, each by its lesson:
 the window between the check and the write; a version counts a row's edits, not the row, so a re-created name starts again at `"v0"`; the
 spec's undocumented answers (*OpenAPI: The Contract* named how a document is kept); a caller that sends the tag back, by its own unit.
+
+## Course 9 · unit 21 — Timeouts and Retries From the Caller's Side: TiffinBox's own payments interface, a @Retryable caller with one key, a MockRestServiceServer test (2026-11-27)
+
+Course 9's seventeenth change to this folder, Section 4's third: `../c9-unit21/after`, whose `before` is a link to `../c9-unit20/after`.
+Three test files are added under `tiffinbox-client/src/test/java/com/tiffinbox/client/`; nothing else is edited but this README. No
+`src/main` file of any module, no pom, no `application.yaml` key, no route, no spec byte; `TiffinBoxClientTest` and the generated client
+are untouched (`ApiApi.add1` still has no key parameter).
+- `Payments.java`: a hand-written `@HttpExchange("/payments")` interface in Course 6's shape - a `POST` of a `Charge` answered by a
+  `Payment`, and the slow path - plus ONE parameter, `@RequestHeader("Idempotency-Key") String key`. It honours no key and sets no timeout.
+- `PaymentCaller.java`: `pay(key, charge)` under Framework 7's `@Retryable(maxRetries = 2, delay = 10, includes =
+  {ResourceAccessException, HttpServerErrorException})` - three attempts, an I/O failure or a 5xx retried, a 4xx not. The key is the
+  method's parameter; its nested `Checkout` mints one key per payment outside the retried method and calls through the proxy. No
+  interceptor, no backoff growth, no jitter.
+- `PaymentRetryTest.java`: four tests over `MockRestServiceServer.bindTo(builder)` in a minimal Spring context (`@EnableResilientMethods`
+  on the test's own configuration; no Boot context, no socket): an `IOException`, a 500 and a 201 - three requests, one key; three 500s
+  with the caller's key matched on each and `verify()`; two payments, two keys; a 404 sent once.
+
+What moved, as `../c9-unit21`'s runs printed them: the client module's tests at `mvn package` are 5 (1 at unit 20), none skipped; the web
+module's stay 85 (unchanged since unit 20); the five ITs at `mvn verify` stay 14; `BOOT-INF/lib` stays 167 jars and no entry of the web,
+core or client main jar moved; the committed spec is unchanged. Against Course 6's stub, `../c9-unit21`'s harness measured on this
+module's class path (no HttpClient 5; the web module's has it): the JDK client's `Request cancelled` under a one-second read-timeout run
+flag, the stub's whole delay waited out with none set, and one key sent three times for three payments the stub made - it honours no key.
+Not fixed here, each by its lesson: the generated client sends no key and TiffinBox's own keyed route is not called through a caller
+(*Capstone: The TiffinBox Public API*); backoff, jitter and a resilience library (*Microservices & Spring Cloud*); `MockRestServiceServer` against
+a stub server (*Testing Spring Apps*); the server that answers a repeated key with its first answer is unit 04's (*Idempotency, Safety and
+Retries*).
 
 ## Course 9 · unit 11 — Spring REST Docs: one documented read in test scope, and the page Asciidoctor writes from its snippets (2026-11-25)
 
