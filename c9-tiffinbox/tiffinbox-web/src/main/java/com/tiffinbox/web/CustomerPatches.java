@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.WebRequest;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -45,6 +46,14 @@ import java.util.function.Function;
  * name; 422 for a patched document that is not a valid customer; any other media type is Spring MVC's 415, which names both in
  * Accept-Patch. Every refusal of the route's own is a ProblemDetail in its own words: no class name, no parser text. PATCH is not
  * keyed (IdempotencyKeyFilter guards two POSTs only).
+ *
+ * <p>Course 9, unit 20: a precondition on both routes - If-Match. A request that sends it names the tag it last read from GET
+ * /api/v1/customers/{name} ({@code "v<version>"}, CustomerReads); when that is not the row's current version the route answers 412,
+ * a ProblemDetail, and nothing is written. The check reads the version (CustomerRepository.findVersioned, one SELECT) and compares
+ * through Spring's WebRequest.checkNotModified, a strong comparison: a weak W/ form of the current tag does not match. It runs after
+ * the body's own 400 checks and before update's transaction; the 404 of a name nobody has comes first. A request without If-Match
+ * writes as before (unconditional). Not closed here: two writers between this check and update's own read of the row - Hibernate's
+ * where id=? and version=? in that UPDATE is the only guard there. A successful PATCH sends no ETag: read the customer again.
  */
 @RestController
 final class CustomerPatches {
@@ -75,12 +84,12 @@ final class CustomerPatches {
     @ApiResponse(responseCode = "404", description = "Customer not found", content = @Content(mediaType = "application/problem+json",
             schema = @Schema(implementation = ProblemDetail.class), examples = @ExampleObject(name = "customer-not-found", value = "{\"detail\":\"no customer named Nobody\",\"instance\":\"/api/v1/customers/Nobody\",\"status\":404,\"title\":\"Customer not found\",\"type\":\"tag:tiffinbox.example,2026:customer-not-found\",\"name\":\"Nobody\"}")))
     @PatchMapping(path = "/api/v1/customers/{name}", consumes = MERGE_PATCH)
-    ResponseEntity<?> merge(@PathVariable String name, @RequestBody byte[] body) throws SQLException {
+    ResponseEntity<?> merge(@PathVariable String name, @RequestBody byte[] body, WebRequest request) throws SQLException {
         JsonValue patch = parse(body);
         if (patch == null) {
             return refuse(HttpStatus.BAD_REQUEST, "Malformed patch", "the merge patch is not JSON");
         }
-        return apply(name, Json.createMergePatch(patch)::apply, false);
+        return apply(name, request, Json.createMergePatch(patch)::apply, false);
     }
 
     // Course 9, unit 09: the documented not-found problem - Framework's ProblemDetail schema, an example equal to the answer this route sent
@@ -88,7 +97,7 @@ final class CustomerPatches {
     @ApiResponse(responseCode = "404", description = "Customer not found", content = @Content(mediaType = "application/problem+json",
             schema = @Schema(implementation = ProblemDetail.class), examples = @ExampleObject(name = "customer-not-found", value = "{\"detail\":\"no customer named Nobody\",\"instance\":\"/api/v1/customers/Nobody\",\"status\":404,\"title\":\"Customer not found\",\"type\":\"tag:tiffinbox.example,2026:customer-not-found\",\"name\":\"Nobody\"}")))
     @PatchMapping(path = "/api/v1/customers/{name}", consumes = JSON_PATCH)
-    ResponseEntity<?> jsonPatch(@PathVariable String name, @RequestBody byte[] body) throws SQLException {
+    ResponseEntity<?> jsonPatch(@PathVariable String name, @RequestBody byte[] body, WebRequest request) throws SQLException {
         JsonValue patch = parse(body);
         if (patch == null) {
             return refuse(HttpStatus.BAD_REQUEST, "Malformed patch", "the JSON Patch is not JSON");
@@ -99,7 +108,7 @@ final class CustomerPatches {
         }
         JsonArray ops = patch.asJsonArray();
         boolean tests = ops.stream().anyMatch(op -> "test".equals(op.asJsonObject().getString("op")));
-        return apply(name, Json.createPatch(ops)::apply, tests);
+        return apply(name, request, Json.createPatch(ops)::apply, tests);
     }
 
     /** JSON-P's reading of the body, or null when it is not JSON. */
@@ -150,7 +159,13 @@ final class CustomerPatches {
     }
 
     /** The patch applied to the stored customer inside CustomerRepository.update's transaction; the answer the route gives. */
-    private ResponseEntity<?> apply(String name, Function<JsonObject, JsonValue> patch, boolean tests) throws SQLException {
+    private ResponseEntity<?> apply(String name, WebRequest request, Function<JsonObject, JsonValue> patch, boolean tests)
+            throws SQLException {
+        // Course 9, unit 20: the precondition - a stale If-Match answers 412 before anything is written
+        CustomerRepository.Versioned row = repo.findVersioned(name).orElseThrow(() -> new CustomerNotFound(name));
+        if (request.checkNotModified(CustomerReads.tag(row.version()))) {
+            return refuse(HttpStatus.PRECONDITION_FAILED, "Precondition failed", "the customer has changed since the tag in If-Match was read");
+        }
         try {
             Customer stored = repo.update(name, current -> readBack(patched(patch, current, tests)))
                     .orElseThrow(() -> new CustomerNotFound(name));

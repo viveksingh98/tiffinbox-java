@@ -128,6 +128,20 @@ public class CustomerRepository {
     }
 
     /**
+     * Course 9, unit 20: the customer whose name is exactly this one, with the version of its row - read from the table through
+     * Spring Data's derived findByName, never from the "customer" cache: the record and the version come from the same row, in one
+     * SELECT, so the tag the web layer makes of the version ("v" and the number) always names the body it sends with it. Empty when
+     * nobody has the name. The version is the one Hibernate checks in update's UPDATE (Course 7, unit 27's where id=? and version=?).
+     */
+    public Optional<Versioned> findVersioned(String name) throws SQLException {
+        return customers.findByName(name).map(e -> new Versioned(toRecord(e), e.getVersion()));
+    }
+
+    /** Course 9, unit 20: a customer and the version of the row it was read from (0 for a seeded or new row, one more per edit). */
+    public record Versioned(Customer customer, long version) {
+    }
+
+    /**
      * One new row: the record's four values in a new CustomerEntity, saved by Spring Data - Hibernate binds each as a parameter
      * of its INSERT, never part of it. Nothing here checks them: the table's own constraints - a value in every column, a name
      * nobody else has - are the only refusal, and H2 throws for each. Spring translates that into its own

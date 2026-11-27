@@ -105,6 +105,14 @@ and `Retry-After`. The capacity and the refill period are settings, `tiffinbox.r
 Course 9's fifteenth change to this folder (U19) beside the fourteenth (U18); unit 19's section below gives the change, as its runs
 printed them.*
 
+*Course 9, unit 20: since unit 20 every `GET` under `/api/v1/` that ends in a two hundred carries an `ETag` and answers `304` to an
+`If-None-Match` that names it (`ConditionalGets`: Spring Web's `ShallowEtagHeaderFilter` on `/api/v1/*`, the two streamed bill routes
+excluded), `GET /api/v1/customers/{name}` sends the row's version as its tag (`"v<version>"`), and both `PATCH /api/v1/customers/{name}`
+routes answer `412` to a stale `If-Match` and write nothing. Unit 01's and unit 06's "no validator" lines are history on their own trees.
+The cards' counts "the web module's 81 tests" were true at unit 19; unit 20's section below gives the counts since.
+Course 9's sixteenth change to this folder (U20) beside the fifteenth (U19); unit 20's section below gives the change, as its runs
+printed them.*
+
 
 ## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
 
@@ -533,6 +541,44 @@ send nothing to `/api/v1/`. Every later receipt of the section prints the settin
 caller is - the address is not an identity, callers behind one address share a bucket, and the open mint route and the open write
 routes are limited by this bucket and by nothing else (*Spring Security — complete*); which address to trust behind a proxy; the ETag
 filter beside this one on `/api/v1/*`, a caller's retry meeting the refusal, and the refusal's metrics tag, each by its own unit.
+
+## Course 9 · unit 20 — ETags and Conditional GET: a shallow tag on /api/v1/* reads, the row's version on the public read, If-Match on both PATCH routes (2026-11-27)
+
+Course 9's sixteenth change to this folder, Section 4's second: `../c9-unit20/after`, whose `before` is a link to `../c9-unit19/after`.
+One configuration class is added and one test class; two controllers and one core class are edited. No pom, no `application.yaml` key,
+no route, no migration, no entity, no spec byte, and nothing under `tiffinbox-client/` is edited by hand. `CustomerBills`, `CustomerFeed`,
+the limiter and the key filter with their registrations, the error advice, `TiffinBoxOpenApi`, the versioning configurer, every existing
+test, the `Dockerfile` and `compose.yaml` are untouched.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/ConditionalGets.java`: Spring Web's `ShallowEtagHeaderFilter`, as a nested final
+  subclass, registered on `/api/v1/*` and nothing else at order -80, after the limiter's -95 and the key filter's -90 (a refused request is
+  never buffered). A `GET` answer that ends 2xx is buffered and hashed into a strong tag and sent with a `Content-Length`; an
+  `If-None-Match` naming it answers `304` with no body. The handler still runs on every `304` and the route still reads what it reads.
+  The subclass's `shouldNotFilter` names the two streamed bill shapes (`/api/v1/customers/{name}/bill` and `.../bill/signed`), which
+  stay chunked. No `Cache-Control` is set and no weak tag is written.
+- `tiffinbox-core/src/main/java/com/tiffinbox/CustomerRepository.java`: one read, `findVersioned(name)` - the customer and its row's
+  version from one `SELECT` through Spring Data's `findByName`, never the "customer" cache - and its small record `Versioned`.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/CustomerReads.java`: `GET /api/v1/customers/{name}` answers through that read with
+  `ETag: "v<version>"`; Spring's entity processor answers `304` when `If-None-Match` names it. Every answer of this route, a two hundred
+  or a `304`, now costs that one statement - the cached read it replaces sent none when warm. The parameter list stays `(String)`
+  (`OrderResources` builds the order's customer link from it); the old address `GET /customers/{name}` is unchanged and untagged.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/CustomerPatches.java`: both routes (merge patch, JSON Patch) pass one check in `apply`:
+  the version read again, then `If-Match` compared through `checkNotModified` (strong: a `W/` form does not match). A stale tag answers
+  `412`, a problem in the route's own form ("Precondition failed", no type), and nothing is written; no `If-Match` writes as before. The
+  check runs after the body's own `400` checks and the `404`; it is not inside `update`'s transaction - two writers between the check and
+  the write are not closed here (Hibernate's `where id=? and version=?` in that `UPDATE` is the guard there). A successful `PATCH` sends
+  no tag.
+- `tiffinbox-web/src/test/java/com/tiffinbox/web/ConditionalGetTest.java`: four tests in the default run, through MockMvc (no socket) with
+  the filter at its registration's patterns - the deep tag and its `304`; on the merge patch a stale `If-Match` `412` with the customer
+  unchanged, the current tag two hundred, a weak form `412`, none two hundred; the stale and current pair on the JSON Patch; the list's
+  shallow tag and its `304`. The slice test needed no edit.
+
+What moved, as `../c9-unit20`'s runs printed it: the web module's tests at `mvn package` are 85 (81 at unit 19), the client's 1, none
+skipped; the five ITs at `mvn verify` are 14; `BOOT-INF/lib` stays 167 jars (the core jar inside it moved: the new read); the committed
+spec is unchanged, byte for byte, and documents none of the new answers (the tag, `If-Match`, `304`, `412`). The `/api/v1/` answers move
+additively: an `ETag` on each tagged two hundred, the framing of the tagged routes named in `../c9-unit20`; the bill stays chunked. The
+seven and the old surface answer byte for byte as on unit 19's tree and send nothing to `/api/v1/`. Not fixed here, each by its lesson:
+the window between the check and the write; a version counts a row's edits, not the row, so a re-created name starts again at `"v0"`; the
+spec's undocumented answers (*OpenAPI: The Contract* named how a document is kept); a caller that sends the tag back, by its own unit.
 
 ## Course 9 · unit 11 — Spring REST Docs: one documented read in test scope, and the page Asciidoctor writes from its snippets (2026-11-25)
 
