@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.WebRequest;
 import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.ByteArrayInputStream;
@@ -54,6 +55,11 @@ import java.util.function.Function;
  * the body's own 400 checks and before update's transaction; the 404 of a name nobody has comes first. A request without If-Match
  * writes as before (unconditional). Not closed here: two writers between this check and update's own read of the row - Hibernate's
  * where id=? and version=? in that UPDATE is the only guard there. A successful PATCH sends no ETag: read the customer again.
+ *
+ * <p>Course 9, unit 22: the patched document is read back by this route's own strict reader (readerFor(Customer.class) with
+ * FAIL_ON_UNKNOWN_PROPERTIES), so a member the Customer record does not have - version, admin, loyaltyPoints - answers 422 naming
+ * it ("the patched customer cannot be read at admin") instead of being dropped, while Boot's shared JsonMapper, and with it the old POST
+ * /customers, keeps ignoring unknown members as Course 6, unit 09 decided.
  */
 @RestController
 final class CustomerPatches {
@@ -202,7 +208,8 @@ final class CustomerPatches {
         }
         Customer c;
         try {
-            c = json.readValue(doc.toString(), Customer.class);
+            // Course 9, unit 22: this route's own strict reader - a member Customer lacks is a 422 naming it, never dropped
+            c = json.readerFor(Customer.class).with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).readValue(doc.toString());
         } catch (JacksonException e) {
             String member = e.getPath().isEmpty() ? null : e.getPath().getLast().getPropertyName();
             throw new Refused(HttpStatus.UNPROCESSABLE_CONTENT, "Invalid customer",

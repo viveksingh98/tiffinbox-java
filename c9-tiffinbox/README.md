@@ -120,6 +120,14 @@ nothing a client of the API sees moved. The client module's test count "1" was t
 since. Course 9's seventeenth change to this folder (U21) beside the sixteenth (U20); unit 21's section below gives the change, as its
 runs printed them.*
 
+*Course 9, unit 22: since unit 22 the public merge patch (`PATCH /api/v1/customers/{name}`, `application/merge-patch+json`) reads the
+patched document back with its own strict reader: a member the `Customer` record does not have answers `422` "Invalid customer", detail
+"the patched customer cannot be read at <member>", where it was dropped and answered `200` - a named change of a shipped public answer
+(S9.37), not a versioned one. Every body made of the record's own members answers as before; the JSON Patch, the old `POST /customers`
+(Course 6's misspelt `mealTyp` and extra `loyaltyPoints` included) and every other route are unchanged. The web module's test count
+"85" was true at unit 21; unit 22's section below gives the count since. Course 9's eighteenth change to this folder (U22) beside the
+seventeenth (U21); unit 22's section below gives the change, as its runs printed them.*
+
 
 ## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
 
@@ -612,6 +620,32 @@ Not fixed here, each by its lesson: the generated client sends no key and Tiffin
 (*Capstone: The TiffinBox Public API*); backoff, jitter and a resilience library (*Microservices & Spring Cloud*); `MockRestServiceServer` against
 a stub server (*Testing Spring Apps*); the server that answers a repeated key with its first answer is unit 04's (*Idempotency, Safety and
 Retries*).
+
+## Course 9 · unit 22 — Input Hardening: the public merge patch's strict read, a 422 naming a member the record lacks (2026-11-27)
+
+Course 9's eighteenth change to this folder, Section 4's fourth: `../c9-unit22/after`, whose `before` is a link to `../c9-unit21/after`.
+One line of `tiffinbox-web/src/main` moves, with its import and one sentence of the class comment; one test is added; nothing else is
+edited but this README. No pom, no `application.yaml` key, no route, no migration, no spec byte.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/CustomerPatches.java`: `readBack` reads the patched document with
+  `json.readerFor(Customer.class).with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)` instead of `json.readValue(…, Customer.class)`.
+  The reader is this route's own; Boot's shared `JsonMapper` keeps `FAIL_ON_UNKNOWN_PROPERTIES` false, so the old `POST /customers` and
+  every other body route still ignore an unknown member (Course 6 unit 09's decision stands). `readBack` has one caller, the merge patch
+  and the JSON Patch's `apply`; a JSON Patch to a member the record lacks is refused earlier, by the route's own path check (`400`).
+- `tiffinbox-web/src/test/java/com/tiffinbox/web/InputHardeningTest.java`: three tests through MockMvc over the whole application on H2
+  (no socket): `{"admin":true}` and `{"version":99}` answer `422` naming the member and the customer reads back unchanged; a patch of
+  the record's own members still answers `200`; the old `POST /customers` with a misspelt `mealTyp` still answers `400` naming the
+  missing `mealType` (green before the change too). Without the new line its first test is red; the existing suite does not see it.
+
+What moved, as `../c9-unit22`'s runs printed them: a merge patch naming a member `Customer` lacks answers `422` "the patched customer
+cannot be read at <member>" where it answered `200` - named under S9.37, a change of a shipped public answer. The web module's tests at
+`mvn package` are 88 (85 at unit 21), the client's stay 5, none skipped; the five ITs at `mvn verify` stay 14; `BOOT-INF/lib` stays 167
+jars; two entries of the web jar moved, both compiled from `CustomerPatches.java` (the class and its nested `Refused`); the
+committed spec is unchanged. On the harness's entity-bound route
+(a harness route that reads a body onto `CustomerEntity`; no shipped route does) another customer's `id` overwrote that customer's row
+on H2 and PostgreSQL 18.6, and a record-reading route on the same JVM left the row untouched: the cure is the record, which every
+shipped route already reads. Not fixed here, each by its lesson: the global `spring.jackson.deserialization.fail-on-unknown-properties`
+key (measured on a harness copy only: it moves the old `POST /customers` answers too); upload and request-size limits (*Spring Security
+— complete*); the refusal's count on the metrics page (*Observability for APIs*).
 
 ## Course 9 · unit 11 — Spring REST Docs: one documented read in test scope, and the page Asciidoctor writes from its snippets (2026-11-25)
 
