@@ -1,0 +1,22 @@
+diff -ru a/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java b/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java
+--- a/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java
++++ b/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java
+@@ -215,10 +215,16 @@
+     @ApiResponse(responseCode = "200", description = "OK")
+     @ApiResponse(responseCode = "404", description = "Customer not found", content = @Content(mediaType = "application/problem+json",
+             schema = @Schema(implementation = ProblemDetail.class), examples = @ExampleObject(name = "customer-not-found", value = "{\"detail\":\"no customer named Nobody\",\"instance\":\"/customers/Nobody\",\"status\":404,\"title\":\"Customer not found\",\"type\":\"tag:tiffinbox.example,2026:customer-not-found\",\"name\":\"Nobody\"}")))
++    // Course 9, unit 24 - the timeline's first step (a copy only, never shipped): the route still answers 200, and says it is going
+     @GetMapping("/customers/{name}")
+-    Customer customer(@PathVariable String name) throws Exception {
+-        return repo.findByName(name)
++    ResponseEntity<Customer> customer(@PathVariable String name) throws Exception {
++        Customer found = repo.findByName(name)
+                 .orElseThrow(() -> new CustomerNotFound(name));
++        return ResponseEntity.ok()
++                .header("Deprecation", "@1798761600")
++                .header("Sunset", "Thu, 01 Jul 2027 00:00:00 GMT")
++                .header("Link", "</api/v1/customers/" + org.springframework.web.util.UriUtils.encodePathSegment(name, StandardCharsets.UTF_8) + ">; rel=\"successor-version\"")
++                .body(found);
+     }
+ 
+     /**

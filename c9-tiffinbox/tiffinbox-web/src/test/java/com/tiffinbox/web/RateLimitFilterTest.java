@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -95,6 +96,6 @@ class RateLimitFilterTest {
         assertThat(mvc.perform(from("192.0.2.3", "/api/v1/customers/Ravi")).andReturn().getResponse().getStatus()).isEqualTo(429);
         MockHttpServletResponse old = mvc.perform(from("192.0.2.3", "/customers/Ravi")).andReturn().getResponse();
         System.out.println("RateLimitFilterTest: GET /customers/Ravi after the address's refusal -> " + old.getStatus());
-        assertThat(old.getStatus()).isEqualTo(200);
+        assertThat(old.getStatus()).isEqualTo(HttpStatus.GONE.value());   // Course 9, unit 24: retired, and still never refused (not 429)
     }
 }

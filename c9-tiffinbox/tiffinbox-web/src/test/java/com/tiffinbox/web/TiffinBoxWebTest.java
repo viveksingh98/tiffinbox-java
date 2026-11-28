@@ -92,10 +92,10 @@ class TiffinBoxWebTest {
                 .bodyJson().extractingPath("$[0].name").isEqualTo("Ravi");
     }
 
-    /** TiffinBoxErrors' own problem detail: it names him. */
+    /** TiffinBoxErrors' own problem detail: it names him. Course 9, unit 24: asked on the successor - the old address is retired. */
     @Test
     void aNameNobodyHasIsAProblemDetail() {
-        assertThat(tester.get().uri("/customers/{name}", "Nobody"))
+        assertThat(tester.get().uri("/api/v1/customers/{name}", "Nobody"))
                 .hasStatus(HttpStatus.NOT_FOUND)
                 .hasContentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .bodyJson().extractingPath("$.name").isEqualTo("Nobody");
@@ -209,10 +209,10 @@ class TiffinBoxWebTest {
                 .hasMessageContaining("kitchen on fire");
     }
 
-    /** Course 9, unit 09: the not-found problem on the old route carries its own type (TiffinBoxErrors.CUSTOMER_NOT_FOUND). */
+    /** Course 9, unit 09: the not-found problem carries its own type (TiffinBoxErrors.CUSTOMER_NOT_FOUND). Course 9, unit 24: on the successor. */
     @Test
     void aNameNobodyHasIsTyped() {
-        assertThat(tester.get().uri("/customers/{name}", "Nobody"))
+        assertThat(tester.get().uri("/api/v1/customers/{name}", "Nobody"))
                 .hasStatus(HttpStatus.NOT_FOUND)
                 .bodyJson().isLenientlyEqualTo("""
                         {"type": "tag:tiffinbox.example,2026:customer-not-found", "name": "Nobody"}""");

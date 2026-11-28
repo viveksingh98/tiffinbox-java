@@ -1,0 +1,1327 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "TiffinBox",
+    "version": "1.0"
+  },
+  "paths": {
+    "/shutdown": {
+      "post": {
+        "tags": [
+          "tiffin-box-server"
+        ],
+        "operationId": "shutdown",
+        "parameters": [
+          {
+            "name": "X-Shutdown-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers": {
+      "get": {
+        "tags": [
+          "tiffin-box-server"
+        ],
+        "operationId": "customers",
+        "parameters": [
+          {
+            "name": "mealType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "VEG",
+                "NON_VEG",
+                "VEGAN"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Customer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "tiffin-box-server"
+        ],
+        "operationId": "add",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Customer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Idempotency-Key is malformed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "idempotency-key-malformed": {
+                    "description": "idempotency-key-malformed",
+                    "value": {
+                      "detail": "The Idempotency-Key header must be one String of 1 to 255 characters from A-Z, a-z, 0-9 and - . _ ~, with no parameters.",
+                      "status": 400,
+                      "title": "Idempotency-Key is malformed",
+                      "type": "tag:tiffinbox.example,2026:idempotency-key-malformed"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A request is outstanding for this Idempotency-Key",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "idempotency-key-outstanding": {
+                    "description": "idempotency-key-outstanding",
+                    "value": {
+                      "detail": "A request with this Idempotency-Key is still being processed. Retry it later with the same key.",
+                      "status": 409,
+                      "title": "A request is outstanding for this Idempotency-Key",
+                      "type": "tag:tiffinbox.example,2026:idempotency-key-outstanding"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Idempotency-Key is already used",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "idempotency-key-reused": {
+                    "description": "idempotency-key-reused",
+                    "value": {
+                      "detail": "This Idempotency-Key was first used with a different request. Use a new key for a new request.",
+                      "status": 422,
+                      "title": "Idempotency-Key is already used",
+                      "type": "tag:tiffinbox.example,2026:idempotency-key-reused"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers/import": {
+      "post": {
+        "tags": [
+          "customer-import"
+        ],
+        "operationId": "importCsv",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customers/{name}/pauses": {
+      "post": {
+        "tags": [
+          "customer-pauses"
+        ],
+        "operationId": "add_1",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Idempotency-Key is missing or malformed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "idempotency-key-missing": {
+                    "description": "idempotency-key-missing",
+                    "value": {
+                      "detail": "This operation requires an Idempotency-Key header: one String of 1 to 255 characters from A-Z, a-z, 0-9 and - . _ ~, with no parameters.",
+                      "status": 400,
+                      "title": "Idempotency-Key is missing",
+                      "type": "tag:tiffinbox.example,2026:idempotency-key-missing"
+                    }
+                  },
+                  "idempotency-key-malformed": {
+                    "description": "idempotency-key-malformed",
+                    "value": {
+                      "detail": "The Idempotency-Key header must be one String of 1 to 255 characters from A-Z, a-z, 0-9 and - . _ ~, with no parameters.",
+                      "status": 400,
+                      "title": "Idempotency-Key is malformed",
+                      "type": "tag:tiffinbox.example,2026:idempotency-key-malformed"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "customer-not-found": {
+                    "description": "customer-not-found",
+                    "value": {
+                      "detail": "no customer named Nobody",
+                      "instance": "/api/v1/customers/Nobody/pauses",
+                      "status": 404,
+                      "title": "Customer not found",
+                      "type": "tag:tiffinbox.example,2026:customer-not-found",
+                      "name": "Nobody"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A request is outstanding for this Idempotency-Key",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "idempotency-key-outstanding": {
+                    "description": "idempotency-key-outstanding",
+                    "value": {
+                      "detail": "A request with this Idempotency-Key is still being processed. Retry it later with the same key.",
+                      "status": 409,
+                      "title": "A request is outstanding for this Idempotency-Key",
+                      "type": "tag:tiffinbox.example,2026:idempotency-key-outstanding"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Idempotency-Key is already used",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "idempotency-key-reused": {
+                    "description": "idempotency-key-reused",
+                    "value": {
+                      "detail": "This Idempotency-Key was first used with a different request. Use a new key for a new request.",
+                      "status": 422,
+                      "title": "Idempotency-Key is already used",
+                      "type": "tag:tiffinbox.example,2026:idempotency-key-reused"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/billing-runs": {
+      "post": {
+        "tags": [
+          "billing-runs"
+        ],
+        "operationId": "startBillingRun",
+        "responses": {
+          "202": {
+            "description": "Accepted - the run is started; Location is its status resource",
+            "headers": {
+              "Retry-After": {
+                "description": "When to come back, sent while the run is not finished",
+                "style": "simple",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Location": {
+                "description": "The run's status resource",
+                "style": "simple",
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingRun"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter (this route reads none)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customers/{name}": {
+      "get": {
+        "tags": [
+          "customer-reads"
+        ],
+        "operationId": "one",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Customer"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "customer-not-found": {
+                    "description": "customer-not-found",
+                    "value": {
+                      "detail": "no customer named Nobody",
+                      "instance": "/api/v1/customers/Nobody",
+                      "status": 404,
+                      "title": "Customer not found",
+                      "type": "tag:tiffinbox.example,2026:customer-not-found",
+                      "name": "Nobody"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "customer-patches"
+        ],
+        "operationId": "merge",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/merge-patch+json": {
+              "schema": {
+                "type": "string",
+                "format": "byte"
+              }
+            },
+            "application/json-patch+json": {
+              "schema": {
+                "type": "string",
+                "format": "byte"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "customer-not-found": {
+                    "description": "customer-not-found",
+                    "value": {
+                      "detail": "no customer named Nobody",
+                      "instance": "/api/v1/customers/Nobody",
+                      "status": 404,
+                      "title": "Customer not found",
+                      "type": "tag:tiffinbox.example,2026:customer-not-found",
+                      "name": "Nobody"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/revenue": {
+      "get": {
+        "tags": [
+          "tiffin-box-server"
+        ],
+        "operationId": "revenue",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/kitchen": {
+      "get": {
+        "tags": [
+          "tiffin-box-server"
+        ],
+        "operationId": "kitchen",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard": {
+      "get": {
+        "tags": [
+          "tiffin-box-server"
+        ],
+        "operationId": "dashboard",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers/{name}": {
+      "get": {
+        "tags": [
+          "tiffin-box-server"
+        ],
+        "operationId": "customer",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "410": {
+            "description": "Route retired",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "route-retired": {
+                    "description": "route-retired",
+                    "value": {
+                      "detail": "GET /customers/{name} is retired; its successor is GET /api/v1/customers/{name}",
+                      "instance": "/customers/Nobody",
+                      "status": 410,
+                      "title": "Route retired",
+                      "type": "tag:tiffinbox.example,2026:route-retired"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/customers/feed": {
+      "get": {
+        "tags": [
+          "customer-feed"
+        ],
+        "operationId": "feed",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/SseEmitter"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/orders": {
+      "get": {
+        "tags": [
+          "order-pages"
+        ],
+        "operationId": "orderPage",
+        "parameters": [
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "newest"
+            }
+          },
+          {
+            "name": "mealType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An unknown sort, parameter or meal type, a page size outside 1 to 50, a cursor this server did not sign or one written for another sort or filter",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/orders/{id}": {
+      "get": {
+        "tags": [
+          "order-resources"
+        ],
+        "operationId": "orderResource",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK - the order, and its self and customer links under _links (HAL)",
+            "content": {
+              "application/hal+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityModelOrderView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityModelOrderView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter (this route reads none)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No order has this id",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customers": {
+      "get": {
+        "tags": [
+          "customer-fields"
+        ],
+        "operationId": "customerFields",
+        "parameters": [
+          {
+            "name": "fields",
+            "in": "query",
+            "description": "a comma-separated list of name, mealsPerDay, pricePerMeal, mealType",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK - every customer; with fields, each object holds only the fields named, in the record's order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Customer"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An unknown field or parameter, or a fields value that is empty, holds an empty name, names a field twice or is sent more than once",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customers/{name}/pauses/{id}": {
+      "get": {
+        "tags": [
+          "customer-pauses"
+        ],
+        "operationId": "one_1",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "not-found": {
+                    "description": "not-found",
+                    "value": {
+                      "detail": "no pause 1 for a customer named Nobody",
+                      "instance": "/api/v1/customers/Nobody/pauses/1",
+                      "status": 404,
+                      "title": "Not Found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customers/{name}/bill": {
+      "get": {
+        "tags": [
+          "customer-bills"
+        ],
+        "operationId": "bill",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK - the bill, as a CSV file, streamed",
+            "headers": {
+              "Content-Disposition": {
+                "description": "attachment, and the file's name",
+                "style": "simple",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter (this route reads none)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No customer has this name",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customers/{name}/bill/signed": {
+      "get": {
+        "tags": [
+          "customer-bills"
+        ],
+        "operationId": "signedBill",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expires",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sig",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK - the bill, as a CSV file, streamed",
+            "headers": {
+              "Content-Disposition": {
+                "description": "attachment, and the file's name",
+                "style": "simple",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A parameter missing, malformed or unknown (this route reads expires and sig)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The signature does not match the link, or the link has expired",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No customer has this name",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customers/{name}/bill-link": {
+      "get": {
+        "tags": [
+          "customer-bills"
+        ],
+        "operationId": "billLink",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK - a link to the bill that carries its own expiry and signature",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillLink"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter (this route reads none: the lifetime is the server's)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No customer has this name",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/billing-runs/{id}": {
+      "get": {
+        "tags": [
+          "billing-runs"
+        ],
+        "operationId": "billingRun",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK - the run's state, and its bills once it has succeeded",
+            "headers": {
+              "Retry-After": {
+                "description": "When to come back, sent only while the run is not finished",
+                "style": "simple",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingRun"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter (this route reads none)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run has this id (in this JVM)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Customer": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 0
+          },
+          "mealsPerDay": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 3,
+            "minimum": 1
+          },
+          "pricePerMeal": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "mealType": {
+            "type": "string",
+            "pattern": "VEG|NON_VEG|VEGAN"
+          }
+        },
+        "required": [
+          "mealType",
+          "name"
+        ]
+      },
+      "ProblemDetail": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "format": "uri"
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        }
+      },
+      "BillingRun": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "RUNNING",
+              "SUCCEEDED",
+              "FAILED"
+            ]
+          },
+          "bills": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "SseEmitter": {
+        "type": "object",
+        "properties": {
+          "timeout": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "OrderPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderView"
+            }
+          },
+          "next": {
+            "type": "string"
+          }
+        }
+      },
+      "OrderView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "customer": {
+            "type": "string"
+          },
+          "mealType": {
+            "type": "string",
+            "enum": [
+              "VEG",
+              "NON_VEG",
+              "VEGAN"
+            ]
+          },
+          "amount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "placedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "EntityModelOrderView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "customer": {
+            "type": "string"
+          },
+          "mealType": {
+            "type": "string",
+            "enum": [
+              "VEG",
+              "NON_VEG",
+              "VEGAN"
+            ]
+          },
+          "amount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "placedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "_links": {
+            "$ref": "#/components/schemas/Links"
+          }
+        }
+      },
+      "BillLink": {
+        "type": "object",
+        "properties": {
+          "href": {
+            "type": "string"
+          }
+        }
+      },
+      "Link": {
+        "type": "object",
+        "properties": {
+          "href": {
+            "type": "string"
+          },
+          "hreflang": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "deprecation": {
+            "type": "string"
+          },
+          "profile": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "templated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Links": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/Link"
+        }
+      }
+    }
+  }
+}

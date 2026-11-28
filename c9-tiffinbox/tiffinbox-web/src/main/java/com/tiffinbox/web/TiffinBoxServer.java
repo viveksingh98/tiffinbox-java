@@ -1,5 +1,6 @@
 package com.tiffinbox.web;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -9,6 +10,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 import com.tiffinbox.Customer;
 import com.tiffinbox.CustomerRepository;
 import com.tiffinbox.Dashboard;
@@ -210,15 +213,28 @@ public final class TiffinBoxServer {
         return mealType == null ? all : all.stream().filter(c -> c.mealType().equals(mealType.name())).toList();
     }
 
-    /** One customer, by the exact name in the path; a name nobody has throws CustomerNotFound (TiffinBoxErrors: a 404). */
-    // Course 9, unit 09: the documented not-found problem - Framework's ProblemDetail schema, an example equal to the answer this route sent
-    @ApiResponse(responseCode = "200", description = "OK")
-    @ApiResponse(responseCode = "404", description = "Customer not found", content = @Content(mediaType = "application/problem+json",
-            schema = @Schema(implementation = ProblemDetail.class), examples = @ExampleObject(name = "customer-not-found", value = "{\"detail\":\"no customer named Nobody\",\"instance\":\"/customers/Nobody\",\"status\":404,\"title\":\"Customer not found\",\"type\":\"tag:tiffinbox.example,2026:customer-not-found\",\"name\":\"Nobody\"}")))
+    /**
+     * The old address of one customer, retired: the deprecation timeline's last step. Course 9, unit 24: every name answers 410 Gone,
+     * a problem detail of type {@link TiffinBoxErrors#ROUTE_RETIRED} whose detail names the successor, and a Link header pointing at
+     * the successor for this request's name - GET /api/v1/customers/{name}, the name encoded as one path segment (a space is %20) -
+     * with rel="successor-version". The route no longer reads the repository; its mapping, its method name and so its operationId
+     * are unchanged, and http.server.requests keeps counting it under uri="/customers/{name}". The timeline's first step - the same
+     * route answering 200 with Deprecation, Sunset and that Link - is not shipped in this tree.
+     */
+    // Course 9, unit 24: the 404 and 200 documentation replaced by the one answer this route sends, and the operation marked deprecated
+    @Operation(deprecated = true)
+    @ApiResponse(responseCode = "410", description = "Route retired", content = @Content(mediaType = "application/problem+json",
+            schema = @Schema(implementation = ProblemDetail.class), examples = @ExampleObject(name = "route-retired", value = "{\"detail\":\"GET /customers/{name} is retired; its successor is GET /api/v1/customers/{name}\",\"instance\":\"/customers/Nobody\",\"status\":410,\"title\":\"Route retired\",\"type\":\"tag:tiffinbox.example,2026:route-retired\"}")))
     @GetMapping("/customers/{name}")
-    Customer customer(@PathVariable String name) throws Exception {
-        return repo.findByName(name)
-                .orElseThrow(() -> new CustomerNotFound(name));
+    ResponseEntity<ProblemDetail> customer(@PathVariable String name) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.GONE,
+                "GET /customers/{name} is retired; its successor is GET /api/v1/customers/{name}");
+        problem.setType(TiffinBoxErrors.ROUTE_RETIRED);
+        problem.setTitle("Route retired");
+        String successor = "/api/v1/customers/" + UriUtils.encodePathSegment(name, StandardCharsets.UTF_8);
+        return ResponseEntity.status(HttpStatus.GONE)
+                .header(HttpHeaders.LINK, "<" + successor + ">; rel=\"successor-version\"")
+                .body(problem);
     }
 
     /**

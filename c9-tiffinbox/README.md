@@ -45,7 +45,8 @@ below gives the change and the page's requests, as its runs printed them.*
 
 *Course 9, unit 09: since unit 09 the document says the not-found problem and the key's four - each error response with Framework's
 `ProblemDetail` schema and one example equal to an answer the server sent - and the not-found answer carries a type of its own,
-`tag:tiffinbox.example,2026:customer-not-found`, on every route that throws it, the old `GET /customers/{name}` included. Course 9's
+`tag:tiffinbox.example,2026:customer-not-found`, on every route that throws it (the old `GET /customers/{name}` included until unit 24,
+which retires it). Course 9's
 sixth change to this folder (U09) beside the fifth (U08); unit 09's section below gives the change, as its runs printed them.*
 
 *Course 9, unit 10: since unit 10 the reactor holds a third module, `tiffinbox-client`, generated from the committed file by
@@ -58,7 +59,7 @@ unit 11's section below gives the change, as its runs printed them.*
 
 *Course 9, unit 12: since unit 12 the web module routes `/api/` by the path's second segment: `/api/v1/...` is version `1.0` (the
 resolver reads `v1` as `1.0.0`), the five literal `/api/v1/...` routes keep their strings and answer as before, and nothing else under
-`/api/` is versioned; nothing is deprecated or retired here. The opening paragraph's "no versioning" is the set-up's starting point, kept
+`/api/` is versioned; no route was deprecated or retired by unit 12 (unit 24 retires the old `GET /customers/{name}`). The opening paragraph's "no versioning" is the set-up's starting point, kept
 as written. Course 9's ninth change to this folder (U12) beside the eighth (U11); unit 12's section below gives the change, as its runs
 printed them.*
 
@@ -127,6 +128,13 @@ patched document back with its own strict reader: a member the `Customer` record
 (Course 6's misspelt `mealTyp` and extra `loyaltyPoints` included) and every other route are unchanged. The web module's test count
 "85" was true at unit 21; unit 22's section below gives the count since. Course 9's eighteenth change to this folder (U22) beside the
 seventeenth (U21); unit 22's section below gives the change, as its runs printed them.*
+
+*Course 9, unit 24: since unit 24 the old `GET /customers/{name}` is retired - the course's one named break. It answers `410` Gone with
+a problem detail of type `tag:tiffinbox.example,2026:route-retired` and a `Link` naming its successor, `GET /api/v1/customers/{name}`,
+for the name asked (`rel="successor-version"`); it reads nothing, so every name answers the same `410`. The successor and every other
+route answer as before. The sentences above and below that say the old address answers `200` or a `404` describe it before unit 24.
+Course 9's nineteenth change to this folder (U24) beside the eighteenth (U22); unit 24's section below gives the change, as its runs
+printed them.*
 
 
 ## Course 9 · unit 04 — Idempotency, Safety and Retries: Spring Boot 4.1.3 + Tomcat 11.0.29, the Idempotency-Key, the ITs on 21280-21284 (2026-11-24)
@@ -576,6 +584,7 @@ test, the `Dockerfile` and `compose.yaml` are untouched.
   `ETag: "v<version>"`; Spring's entity processor answers `304` when `If-None-Match` names it. Every answer of this route, a two hundred
   or a `304`, now costs that one statement - the cached read it replaces sent none when warm. The parameter list stays `(String)`
   (`OrderResources` builds the order's customer link from it); the old address `GET /customers/{name}` is unchanged and untagged.
+  *(Course 9, unit 24: retired since - it answers `410`.)*
 - `tiffinbox-web/src/main/java/com/tiffinbox/web/CustomerPatches.java`: both routes (merge patch, JSON Patch) pass one check in `apply`:
   the version read again, then `If-Match` compared through `checkNotModified` (strong: a `W/` form does not match). A stale tag answers
   `412`, a problem in the route's own form ("Precondition failed", no type), and nothing is written; no `If-Match` writes as before. The
@@ -620,6 +629,39 @@ Not fixed here, each by its lesson: the generated client sends no key and Tiffin
 (*Capstone: The TiffinBox Public API*); backoff, jitter and a resilience library (*Microservices & Spring Cloud*); `MockRestServiceServer` against
 a stub server (*Testing Spring Apps*); the server that answers a repeated key with its first answer is unit 04's (*Idempotency, Safety and
 Retries*).
+
+## Course 9 · unit 24 — Retiring an Endpoint Without Breaking Anyone: GET /customers/{name} answers 410 Gone, a problem type and a Link to its successor (2026-11-28)
+
+Course 9's nineteenth change to this folder, Section 4's sixth and last, and the course's one named break: `../c9-unit24/after`, whose
+`before` is a link to `../c9-unit23/after` (itself a link to `../c9-unit22/after`). One handler body moves, one constant is added, two
+class comments gain a dated sentence, six test methods in five classes are edited, one test class is added and the committed spec is
+regenerated. No pom, no `application.yaml` key, no new route, no migration, no `tiffinbox-core` or `tiffinbox-client` source.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java`: `customer(@PathVariable String name)` keeps its mapping
+  (`@GetMapping("/customers/{name}")`), its name and so its `operationId` (`customer`), and returns `ResponseEntity<ProblemDetail>`:
+  `410`, the type `TiffinBoxErrors.ROUTE_RETIRED`, the title "Route retired", a detail that names the successor, and a `Link` header
+  `</api/v1/customers/<the name, encoded as one path segment>>; rel="successor-version"` (`UriUtils.encodePathSegment`). It reads
+  neither the repository nor the `customer` cache. Its documentation is the one answer it sends: a `410` with `ProblemDetail`'s schema
+  and an example equal to the answer for `Nobody`, and `@Operation(deprecated = true)`.
+- `tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxErrors.java`: `ROUTE_RETIRED = tag:tiffinbox.example,2026:route-retired`
+  beside `CUSTOMER_NOT_FOUND`.
+- `CustomerNotFound.java`, `CustomerReads.java`: one dated *Course 9, unit 24* sentence each in the class comment (no code moves;
+  their compiled classes move by their line numbers).
+- The tests: `TiffinBoxWebTest.aNameNobodyHasIsAProblemDetail` and `.aNameNobodyHasIsTyped` ask the successor; `ApiVersionTest.
+  theOldAddressAnswersAsBefore` and `RateLimitFilterTest.aRouteOutsideTheApiIsNeverRefused` assert the old address's `410`;
+  `CustomerReadsTest.thePublicReadAnswersWhatTheOldAddressAnswers` asserts the public read's `200` and the old address's `410`;
+  `CustomerPatchesTest.aRenameLeavesNothingAtTheOldAddress` reads through the public read; `OpenApiSpecTest` is unchanged and green on
+  the regenerated file. New: `RetiredRouteTest` (MockMvc over the whole application on H2, no socket, 5 methods): the `410` and its
+  type, the `Link` for `Ravi` and for `Meera Joshi`, no other header, `HEAD`, the successor's `200`.
+- `tiffinbox-web/src/test/resources/openapi/tiffinbox.json`: regenerated the house way (`GET /v3/api-docs`, `servers` removed, Python's
+  `json.dump(indent=2, ensure_ascii=False)` and a final newline): only `/customers/{name}` `get` moves.
+
+What moved, as `../c9-unit24`'s runs printed them: the old surface's one request on this route, `GET /customers/Ravi`, answers `410`
+where it answered `200`; every request whose path is `/customers/<one segment>` by `GET` or `HEAD` answers the same `410`; the seven,
+the `/api/v1/` census and the successor answer as before - not witnesses for the retirement. The anchor jumps to the deprecation
+timeline's last step: its first step (`Deprecation`, `Sunset` and the same `Link` on a route that still answers `200`) was measured on
+a copy only and never shipped. The counter `http_server_requests_seconds_count{uri="/customers/{name}"}` keeps counting the route; it
+counts the requests that reached it and cannot say whether a client still calls it. Unit 24's README gives the tests' counts, the jar's
+moved entries and the generated client's state on both specs.
 
 ## Course 9 · unit 22 — Input Hardening: the public merge patch's strict read, a 422 naming a member the record lacks (2026-11-27)
 

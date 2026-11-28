@@ -1,0 +1,16 @@
+diff -ru a/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java b/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java
+--- a/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java
++++ b/tiffinbox-web/src/main/java/com/tiffinbox/web/TiffinBoxServer.java
+@@ -215,11 +215,7 @@
+     @ApiResponse(responseCode = "200", description = "OK")
+     @ApiResponse(responseCode = "404", description = "Customer not found", content = @Content(mediaType = "application/problem+json",
+             schema = @Schema(implementation = ProblemDetail.class), examples = @ExampleObject(name = "customer-not-found", value = "{\"detail\":\"no customer named Nobody\",\"instance\":\"/customers/Nobody\",\"status\":404,\"title\":\"Customer not found\",\"type\":\"tag:tiffinbox.example,2026:customer-not-found\",\"name\":\"Nobody\"}")))
+-    @GetMapping("/customers/{name}")
+-    Customer customer(@PathVariable String name) throws Exception {
+-        return repo.findByName(name)
+-                .orElseThrow(() -> new CustomerNotFound(name));
+-    }
++    // Course 9, unit 24 - the bare removal (a copy only, never shipped): the mapping removed
+ 
+     /**
+      * A new customer, from the request's body: Spring MVC's JSON message converter reads the JSON into the record - through

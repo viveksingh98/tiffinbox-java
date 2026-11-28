@@ -27,6 +27,9 @@ import java.sql.SQLException;
  * ServletWebRequest.checkNotModified: the handler runs and the row is read; only the body is not written. The parameter list stays
  * (String): OrderResources looks this method up by it for the order's customer link. ConditionalGets' shallow filter keeps this tag: it hashes a body only when the
  * handler set no tag. The old address GET /customers/{name} sends no validator and still reads the cache.
+ *
+ * <p>Course 9, unit 24: the old address is retired - GET /customers/{name} answers 410 Gone, reads neither the repository nor the
+ * cache, and names this route as its successor. The sentences above that name the old address describe it before unit 24.
  */
 @RestController
 final class CustomerReads {

@@ -29,6 +29,9 @@ final class TiffinBoxErrors {
     /** Course 9, unit 09: the not-found problem's type. */
     static final URI CUSTOMER_NOT_FOUND = URI.create("tag:tiffinbox.example,2026:customer-not-found");
 
+    /** Course 9, unit 24: the retired route's problem type - GET /customers/{name} answers 410 with it (TiffinBoxServer.customer). */
+    static final URI ROUTE_RETIRED = URI.create("tag:tiffinbox.example,2026:route-retired");
+
     /** A name nobody has: 404, the exception's message - "no customer named X" - as the detail, and the name as its own member. */
     @ExceptionHandler(CustomerNotFound.class)
     ProblemDetail notFound(CustomerNotFound e) {

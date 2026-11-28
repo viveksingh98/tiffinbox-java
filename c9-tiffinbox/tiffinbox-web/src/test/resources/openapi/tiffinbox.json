@@ -586,40 +586,30 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/Customer"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Customer not found",
+          "410": {
+            "description": "Route retired",
             "content": {
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetail"
                 },
                 "examples": {
-                  "customer-not-found": {
-                    "description": "customer-not-found",
+                  "route-retired": {
+                    "description": "route-retired",
                     "value": {
-                      "detail": "no customer named Nobody",
+                      "detail": "GET /customers/{name} is retired; its successor is GET /api/v1/customers/{name}",
                       "instance": "/customers/Nobody",
-                      "status": 404,
-                      "title": "Customer not found",
-                      "type": "tag:tiffinbox.example,2026:customer-not-found",
-                      "name": "Nobody"
+                      "status": 410,
+                      "title": "Route retired",
+                      "type": "tag:tiffinbox.example,2026:route-retired"
                     }
                   }
                 }
               }
             }
           }
-        }
+        },
+        "deprecated": true
       }
     },
     "/customers/feed": {

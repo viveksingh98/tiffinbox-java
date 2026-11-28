@@ -139,11 +139,12 @@ class CustomerPatchesTest {
     void aRenameLeavesNothingAtTheOldAddress() throws Exception {
         String n = fresh();
         String m = n + "-x";
-        assertThat(send("GET", "/customers/" + n, null, null).statusCode()).isEqualTo(200);   // warm the "customer" entry
+        // Course 9, unit 24: the reads go to the public read - the old address is retired and reads nothing
+        assertThat(send("GET", "/api/v1/customers/" + n, null, null).statusCode()).isEqualTo(200);   // read the customer before the rename
         assertThat(send("GET", "/customers", null, null).body()).contains(n);                // and the list
         assertThat(merge(n, "{\"name\":\"" + m + "\"}").statusCode()).isEqualTo(200);
-        assertThat(send("GET", "/customers/" + n, null, null).statusCode()).isEqualTo(404);
-        assertThat(send("GET", "/customers/" + m, null, null).statusCode()).isEqualTo(200);
+        assertThat(send("GET", "/api/v1/customers/" + n, null, null).statusCode()).isEqualTo(404);
+        assertThat(send("GET", "/api/v1/customers/" + m, null, null).statusCode()).isEqualTo(200);
         assertThat(send("GET", "/customers", null, null).body()).contains("\"" + m + "\"").doesNotContain("\"" + n + "\"");
     }
 

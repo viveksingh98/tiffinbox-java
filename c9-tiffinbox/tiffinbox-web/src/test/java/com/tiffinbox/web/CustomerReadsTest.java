@@ -3,6 +3,7 @@ package com.tiffinbox.web;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -52,7 +53,8 @@ class CustomerReadsTest {
         var pub = send("GET", "/api/v1/customers/" + n, null, null);
         var old = send("GET", "/customers/" + n, null, null);
         assertThat(pub.statusCode()).isEqualTo(200);
-        assertThat(pub.body()).isEqualTo(old.body());
+        assertThat(pub.body()).contains("\"name\":\"" + n + "\"");
+        assertThat(old.statusCode()).isEqualTo(HttpStatus.GONE.value());   // Course 9, unit 24: the old address is retired; only the public read answers
     }
 
     @Test

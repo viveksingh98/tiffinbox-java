@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -58,9 +59,8 @@ class ApiVersionTest {
         assertThat(v.hasError()).isFalse();
         assertThat(String.valueOf(v.getVersionIfPresent())).isEqualTo("1.0.0");
         MockHttpServletResponse old = mvc.perform(get("/customers/Ravi")).andReturn().getResponse();
-        System.out.println("ApiVersionTest: GET /customers/Ravi -> " + old.getStatus() + " (the unversioned old route)");
-        assertThat(old.getStatus()).isEqualTo(200);
-        assertThat(JsonMapper.builder().build().readTree(old.getContentAsString(StandardCharsets.UTF_8))).isEqualTo(body);
+        System.out.println("ApiVersionTest: GET /customers/Ravi -> " + old.getStatus() + " (the unversioned old route, retired in unit 24)");
+        assertThat(old.getStatus()).isEqualTo(HttpStatus.GONE.value());   // Course 9, unit 24: the old route answers 410, the versioned one as before
     }
 
     @Test
