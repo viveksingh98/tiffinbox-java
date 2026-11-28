@@ -1,0 +1,11 @@
+GET /api/v1/customers/Ravi
+GET /api/v1/customers/Ravi
+GET /api/v1/customers/Nobody
+GET /api/v1/nosuch/route
+GET /customers/Ravi
+GET /api/v1/orders?size=2
+GET /api/v1/orders?bogus=1
+GET /api/v1/customers/Nobody/bill
+GET /nowhere
+GET /api/v1/customers/Nobody
+GET /nowhere
